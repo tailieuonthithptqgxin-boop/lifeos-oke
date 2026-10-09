@@ -1,0 +1,8 @@
+{
+  "name": "Life OS",
+  "description": "Hệ thống quản lý cá nhân toàn diện: công việc, thời gian, học tập, tài chính và mục tiêu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

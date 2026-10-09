@@ -1,0 +1,1105 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+  SUPERADMIN
+}
+
+enum Plan {
+  FREE
+  PRO
+  TEAM
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+model User {
+  id                  String     @id @default(uuid())
+  name                String
+  email               String     @unique
+  username            String?    @unique
+  passwordHash        String
+  role                Role       @default(USER)
+  plan                Plan       @default(FREE)
+  status              UserStatus @default(ACTIVE)
+  avatar              String?
+  onboardingCompleted Boolean    @default(false)
+  planExpiresAt       DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+
+  sessions            Session[]
+  passwordResetTokens PasswordResetToken[]
+  loginAttempts       LoginAttempt[]
+  securityEvents      SecurityEvent[]
+  tasks               Task[]
+  projects            Project[]
+  projectMembers      ProjectMember[]
+  goals               Goal[]
+  habits              Habit[]
+  notes               Note[]
+  noteTags            NoteTag[]
+  calendarEvents      CalendarEvent[]
+  scheduleBlocks      ScheduleBlock[]
+  reminders           Reminder[]
+  focusSessions       FocusSession[]
+  focusGoals          FocusGoal[]
+  financeAccounts     FinanceAccount[]
+  transactions        Transaction[]
+  budgets             Budget[]
+  savingGoals         SavingGoal[]
+  debts               Debt[]
+  recurringTransactions RecurringTransaction[]
+  subjects            Subject[]
+  studyAssignments    StudyAssignment[]
+  studyExams          StudyExam[]
+  studySessions       StudySession[]
+  decisions           Decision[]
+  automationRules     AutomationRule[]
+  automationExecutions AutomationExecution[]
+  subscriptions       Subscription[]
+  payments            Payment[]
+  cartItems           CartItem[]
+  orders              Order[]
+  notifications       Notification[]
+  supportTickets      SupportTicket[]
+  templateUsages      TemplateUsage[]
+  ownedTeams          Team[]         @relation("TeamOwner")
+  teamMemberships     TeamMember[]   @relation("TeamMembership")
+  customModuleRecords CustomModuleRecord[]
+
+  @@index([email])
+  @@index([role])
+  @@index([status])
+  @@index([createdAt])
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+  @@map("password_reset_tokens")
+}
+
+model LoginAttempt {
+  id        String   @id @default(uuid())
+  email     String
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  ip        String?
+  success   Boolean  @default(false)
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([createdAt])
+  @@index([email, success, createdAt])
+  @@map("login_attempts")
+}
+
+model SecurityEvent {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventType String
+  ip        String?
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([eventType])
+  @@map("security_events")
+}
+
+// ----------------------------------------------------
+// TASKS
+// ----------------------------------------------------
+model Task {
+  id             String           @id @default(uuid())
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId      String?
+  project        Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  linkedGoalId   String?
+  goal           Goal?            @relation(fields: [linkedGoalId], references: [id], onDelete: SetNull)
+  title          String
+  description    String?
+  status         String           @default("Chưa làm")
+  priority       String           @default("Trung bình")
+  dueDate        String?
+  startDate      String?
+  estimatedHours Float            @default(0)
+  actualHours    Float            @default(0)
+  tags           String?
+  recurring      String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  comments       TaskComment[]
+  attachments    TaskAttachment[]
+  history        TaskHistory[]
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([linkedGoalId])
+  @@index([status])
+  @@index([priority])
+  @@index([dueDate])
+  @@index([createdAt])
+  @@index([userId, status, dueDate])
+  @@index([dueDate, status])
+  @@map("tasks")
+}
+
+model TaskComment {
+  id        String   @id @default(uuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId    String
+  authorName String  @default("User")
+  content   String
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+  @@map("task_comments")
+}
+
+model TaskAttachment {
+  id        String   @id @default(uuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  fileName  String
+  fileUrl   String
+  fileSize  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+  @@map("task_attachments")
+}
+
+model TaskHistory {
+  id        String   @id @default(uuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  action    String
+  details   String?
+  createdAt DateTime @default(now())
+
+  @@index([taskId])
+  @@map("task_history")
+}
+
+// ----------------------------------------------------
+// SCHEDULE & CALENDAR
+// ----------------------------------------------------
+model CalendarEvent {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  date        String
+  startTime   String?
+  endTime     String?
+  type        String   @default("Công việc")
+  status      String   @default("Đã lên lịch")
+  color       String   @default("#3b82f6")
+  reminder    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([date])
+  @@index([status])
+  @@map("calendar_events")
+}
+
+model ScheduleBlock {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date      String
+  startTime String
+  endTime   String
+  label     String
+  category  String   @default("Deep Work")
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([date])
+  @@map("schedule_blocks")
+}
+
+model Reminder {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  dueAt     DateTime
+  channel   String   @default("in-app")
+  sent      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([dueAt])
+  @@index([sent])
+  @@map("reminders")
+}
+
+// ----------------------------------------------------
+// PROJECTS
+// ----------------------------------------------------
+model Project {
+  id          String          @id @default(uuid())
+  userId      String
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  status      String          @default("Mới tạo")
+  health      String          @default("Tốt")
+  progress    Float           @default(0)
+  startDate   String?
+  deadline    String?
+  budget      Float           @default(0)
+  color       String          @default("#3b82f6")
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  tasks       Task[]
+  members     ProjectMember[]
+  milestones  ProjectMilestone[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([deadline])
+  @@map("projects")
+}
+
+model ProjectMember {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("Member")
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+  @@index([userId])
+  @@map("project_members")
+}
+
+model ProjectMilestone {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title     String
+  deadline  String?
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+  @@map("project_milestones")
+}
+
+// ----------------------------------------------------
+// FOCUS
+// ----------------------------------------------------
+model FocusSession {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title           String
+  mode            String   @default("Pomodoro")
+  status          String   @default("Completed")
+  plannedDuration Float    @default(25)
+  actualDuration  Float    @default(25)
+  startTime       String?
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("focus_sessions")
+}
+
+model FocusGoal {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type        String   @default("daily")
+  targetHours Float    @default(3)
+  startDate   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@map("focus_goals")
+}
+
+// ----------------------------------------------------
+// FINANCE
+// ----------------------------------------------------
+model FinanceAccount {
+  id        String        @id @default(uuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  type      String        @default("Tiền mặt")
+  balance   Float         @default(0)
+  currency  String        @default("VND")
+  color     String        @default("#10b981")
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  transactions Transaction[]
+
+  @@index([userId])
+  @@map("finance_accounts")
+}
+
+model Transaction {
+  id          String         @id @default(uuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId   String
+  account     FinanceAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  toAccountId String?
+  amount      Float
+  type        String
+  category    String         @default("Chung")
+  date        String
+  note        String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([accountId])
+  @@index([date])
+  @@index([type])
+  @@index([category])
+  @@map("transactions")
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String
+  type      String
+  icon      String?
+  color     String?
+  createdAt DateTime @default(now())
+
+  @@map("categories")
+}
+
+model Budget {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  String
+  limit     Float
+  period    String   @default("monthly")
+  spent     Float    @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([category])
+  @@map("budgets")
+}
+
+model SavingGoal {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title         String
+  targetAmount  Float
+  currentAmount Float    @default(0)
+  deadline      String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+  @@map("saving_goals")
+}
+
+model Debt {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  person    String
+  amount    Float
+  type      String
+  dueDate   String?
+  status    String   @default("Chưa trả")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("debts")
+}
+
+model RecurringTransaction {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accountId   String
+  amount      Float
+  type        String
+  category    String
+  frequency   String   @default("monthly")
+  nextDate    String
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@map("recurring_transactions")
+}
+
+// ----------------------------------------------------
+// STUDY
+// ----------------------------------------------------
+model Subject {
+  id           String            @id @default(uuid())
+  userId       String
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  targetGrade  Float             @default(10)
+  currentGrade Float             @default(0)
+  progress     Float             @default(0)
+  color        String            @default("#3b82f6")
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  assignments  StudyAssignment[]
+  exams        StudyExam[]
+  sessions     StudySession[]
+
+  @@index([userId])
+  @@map("subjects")
+}
+
+model StudyAssignment {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId      String?
+  subject        Subject? @relation(fields: [subjectId], references: [id], onDelete: SetNull)
+  title          String
+  dueDate        String?
+  status         String   @default("In Progress")
+  estimatedHours Float    @default(0)
+  actualHours    Float    @default(0)
+  grade          Float?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+  @@index([subjectId])
+  @@index([status])
+  @@map("study_assignments")
+}
+
+model StudyExam {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId   String
+  subject     Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  title       String
+  examDate    String
+  targetScore Float    @default(10)
+  actualScore Float?
+  status      String   @default("Upcoming")
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([subjectId])
+  @@map("study_exams")
+}
+
+model StudySession {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subjectId       String
+  subject         Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  durationMinutes Int      @default(60)
+  date            String
+  notes           String?
+  createdAt       DateTime @default(now())
+
+  @@index([userId])
+  @@index([subjectId])
+  @@map("study_sessions")
+}
+
+// ----------------------------------------------------
+// HABITS
+// ----------------------------------------------------
+model Habit {
+  id             String     @id @default(uuid())
+  userId         String
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  category       String     @default("Personal")
+  target         Float      @default(1)
+  unitLabel      String     @default("lần")
+  unit           String     @default("boolean")
+  streak         Int        @default(0)
+  bestStreak     Int        @default(0)
+  status         String     @default("Active")
+  completedDates String     @default("[]")
+  scheduleTime   String?
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  habitLogs      HabitLog[]
+
+  @@index([userId])
+  @@index([status])
+  @@map("habits")
+}
+
+model HabitLog {
+  id        String   @id @default(uuid())
+  habitId   String
+  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  date      String
+  value     Float    @default(1)
+  completed Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([habitId])
+  @@index([date])
+  @@map("habit_logs")
+}
+
+// ----------------------------------------------------
+// GOALS
+// ----------------------------------------------------
+model Goal {
+  id           String          @id @default(uuid())
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  category     String          @default("Personal")
+  progress     Float           @default(0)
+  status       String          @default("In Progress")
+  targetValue  Float           @default(100)
+  currentValue Float           @default(0)
+  deadline     String?
+  streak       Int             @default(0)
+  score        Float           @default(0)
+  tier         String          @default("Tier 1")
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  tasks        Task[]
+  milestones   GoalMilestone[]
+  actions      GoalAction[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([deadline])
+  @@map("goals")
+}
+
+model GoalMilestone {
+  id        String   @id @default(uuid())
+  goalId    String
+  goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  title     String
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([goalId])
+  @@map("goal_milestones")
+}
+
+model GoalAction {
+  id        String   @id @default(uuid())
+  goalId    String
+  goal      Goal     @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  title     String
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([goalId])
+  @@map("goal_actions")
+}
+
+// ----------------------------------------------------
+// NOTES
+// ----------------------------------------------------
+model Note {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  content   String   @default("")
+  folder    String   @default("Ghi chú chung")
+  category  String   @default("Cá nhân")
+  pinned    Boolean  @default(false)
+  tags      String   @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([folder])
+  @@index([category])
+  @@index([pinned])
+  @@map("notes")
+}
+
+model NoteTag {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  color     String   @default("#3b82f6")
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("note_tags")
+}
+
+// ----------------------------------------------------
+// DECISION ENGINE
+// ----------------------------------------------------
+model Decision {
+  id               String           @id @default(uuid())
+  userId           String
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title            String
+  problem          String
+  category         String           @default("Strategic")
+  importance       String           @default("Medium")
+  status           String           @default("Analyzing")
+  selectedOptionId String?
+  score            Float            @default(0)
+  outcome          String?
+  expectedResult   String?
+  actualResult     String?
+  reviewDate       String?
+  options          String           @default("[]") // JSON string of options array
+  criteria         String           @default("[]") // JSON string of criteria array
+  risks            String           @default("[]") // JSON string of risks array
+  scenarios        String           @default("[]") // JSON string of scenarios array
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([category])
+  @@map("decisions")
+}
+
+// ----------------------------------------------------
+// AUTOMATION ENGINE
+// ----------------------------------------------------
+model AutomationRule {
+  id              String                @id @default(uuid())
+  userId          String
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  description     String?
+  module          String                @default("Tasks")
+  triggerType     String
+  conditions      String                @default("[]") // JSON condition array
+  actions         String                @default("[]") // JSON action array
+  priority        String                @default("Medium")
+  active          Boolean               @default(true)
+  executionCount  Int                   @default(0)
+  lastExecutedAt  DateTime?
+  cooldownMinutes Int                   @default(0)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  executions      AutomationExecution[]
+
+  @@index([userId])
+  @@index([active])
+  @@index([module])
+  @@map("automation_rules")
+}
+
+model AutomationExecution {
+  id          String         @id @default(uuid())
+  ruleId      String
+  rule        AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status      String         @default("Success")
+  triggerData String?
+  resultData  String?
+  error       String?
+  executedAt  DateTime       @default(now())
+
+  @@index([ruleId])
+  @@index([userId])
+  @@index([executedAt])
+  @@map("automation_executions")
+}
+
+// ----------------------------------------------------
+// COMMERCE, ORDERS, SUBSCRIPTIONS
+// ----------------------------------------------------
+model Subscription {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId         String    @default("PERSONAL_1M") // PERSONAL_1M | PERSONAL_3M | TEAM_1M
+  planType       String    @default("PERSONAL") // PERSONAL | TEAM
+  planName       String    @default("Gói Cá Nhân 1 Tháng")
+  amount         Float     @default(15000)
+  billingCycle   String    @default("1_MONTH") // 1_MONTH | 3_MONTHS
+  durationDays   Int       @default(30)
+  paymentStatus  String    @default("PAID") // PAID | PENDING | FAILED
+  status         String    @default("ACTIVE") // ACTIVE | EXPIRED | CANCELLED
+  txReference    String?
+  paymentId      String?
+  startDate      DateTime  @default(now())
+  endDate        DateTime
+  purchasedAt    DateTime  @default(now())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  team           Team?
+
+  @@index([userId])
+  @@index([planId])
+  @@index([status])
+  @@index([endDate])
+  @@index([userId, status, endDate])
+  @@map("subscriptions")
+}
+
+model Team {
+  id             String        @id @default(uuid())
+  name           String        @default("Nhóm của tôi")
+  ownerId        String
+  owner          User          @relation("TeamOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  subscriptionId String?       @unique
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  maxMembers     Int           @default(5)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  members        TeamMember[]
+
+  @@index([ownerId])
+  @@map("teams")
+}
+
+model TeamMember {
+  id        String   @id @default(uuid())
+  teamId    String
+  team      Team     @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("TeamMembership", fields: [userId], references: [id], onDelete: Cascade)
+  role      String   @default("MEMBER") // OWNER | MEMBER
+  addedAt   DateTime @default(now())
+
+  @@unique([teamId, userId])
+  @@index([userId])
+  @@map("team_members")
+}
+
+model Payment {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customerEmail  String
+  orderId        String
+  planRequested  String    @default("PERSONAL_1M")
+  amount         Float
+  method         String    @default("Bank Transfer")
+  status         String    @default("PENDING") // PENDING | APPROVED | REJECTED | CANCELLED
+  date           DateTime  @default(now())
+  txReference    String
+  billingCycle   String    @default("1_MONTH")
+  note           String?
+  rejectedReason String?
+  approvedAt     DateTime?
+  approvedBy     String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([txReference])
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@map("payments")
+}
+
+model Coupon {
+  id              String    @id @default(uuid())
+  code            String    @unique
+  discountPercent Float
+  status          String    @default("Active")
+  maxUses         Int       @default(100)
+  usedCount       Int       @default(0)
+  expiresAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([code])
+  @@index([status])
+  @@map("coupons")
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("cart_items")
+}
+
+model Order {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orderId    String   @unique
+  items      String
+  subtotal   Float
+  discount   Float    @default(0)
+  total      Float
+  status     String   @default("Paid")
+  couponCode String?
+  date       DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([orderId])
+  @@index([status])
+  @@map("orders")
+}
+
+// ----------------------------------------------------
+// TEMPLATES & SYSTEM
+// ----------------------------------------------------
+model SystemTemplate {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  tier        String   @default("Free")
+  category    String   @default("General")
+  tags        String   @default("[]")
+  author      String   @default("LifeOS Team")
+  version     String   @default("1.0.0")
+  rating      Float    @default(5.0)
+  ratingCount Int      @default(0)
+  usesCount   Int      @default(0)
+  price       Float    @default(0)
+  isFree      Boolean  @default(true)
+  isFeatured  Boolean  @default(false)
+  isPopular   Boolean  @default(false)
+  structure   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  usages      TemplateUsage[]
+
+  @@index([category])
+  @@index([tier])
+  @@map("system_templates")
+}
+
+model TemplateUsage {
+  id         String         @id @default(uuid())
+  templateId String
+  template   SystemTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  appliedAt  DateTime       @default(now())
+
+  @@index([templateId])
+  @@index([userId])
+  @@map("template_usages")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("info")
+  read      Boolean  @default(false)
+  date      DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([read])
+  @@map("notifications")
+}
+
+model SupportTicket {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  category  String   @default("Technical")
+  priority  String   @default("Medium")
+  status    String   @default("Open")
+  messages  String   @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("support_tickets")
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  adminId      String
+  targetUserId String?
+  action       String
+  beforeState  String?
+  afterState   String?
+  result       String   @default("Success")
+  reason       String?
+  timestamp    DateTime @default(now())
+
+  @@index([adminId])
+  @@index([action])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("system_settings")
+}
+
+// ----------------------------------------------------
+// DYNAMIC MODULE SYSTEM (CUSTOM DOMAINS & EXTENSIONS)
+// ----------------------------------------------------
+model CustomModule {
+  id          String                   @id @default(uuid())
+  name        String
+  slug        String                   @unique
+  description String?
+  icon        String                   @default("Layers")
+  status      String                   @default("ACTIVE") // ACTIVE | INACTIVE | DRAFT
+  sortOrder   Int                      @default(0)
+  isPublic    Boolean                  @default(false)
+  settings    String                   @default("{}") // JSON string of display settings
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  fields      CustomModuleField[]
+  records     CustomModuleRecord[]
+  permissions CustomModulePermission[]
+
+  @@index([status])
+  @@index([slug])
+  @@index([sortOrder])
+  @@map("custom_modules")
+}
+
+model CustomModuleField {
+  id           String       @id @default(uuid())
+  moduleId     String
+  module       CustomModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  name         String
+  key          String
+  type         String       @default("text") // text, textarea, number, currency, boolean, date, datetime, time, select, multi-select, checkbox, rating, url, email, phone, color, file, image, relation, rich-text
+  required     Boolean      @default(false)
+  defaultValue String?
+  options      String       @default("[]") // JSON string for select/multi-select options
+  validation   String       @default("{}") // JSON string for min, max, regex, etc.
+  sortOrder    Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@unique([moduleId, key])
+  @@index([moduleId])
+  @@index([sortOrder])
+  @@map("custom_module_fields")
+}
+
+model CustomModuleRecord {
+  id        String       @id @default(uuid())
+  moduleId  String
+  module    CustomModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data      Json         // JSONB storage of record fields
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([moduleId])
+  @@index([userId])
+  @@index([moduleId, userId])
+  @@index([createdAt])
+  @@map("custom_module_records")
+}
+
+model CustomModulePermission {
+  id             String       @id @default(uuid())
+  moduleId       String
+  module         CustomModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  role           Role         @default(USER)
+  canCreate      Boolean      @default(true)
+  canRead        Boolean      @default(true)
+  canUpdate      Boolean      @default(true)
+  canDelete      Boolean      @default(true)
+  onlyOwnRecords Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+
+  @@unique([moduleId, role])
+  @@index([moduleId])
+  @@map("custom_module_permissions")
+}
+

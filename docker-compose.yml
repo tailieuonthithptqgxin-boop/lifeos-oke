@@ -1,0 +1,73 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: lifeos_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-lifeos_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-secure_password_123}
+      POSTGRES_DB: ${POSTGRES_DB:-lifeos_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    # Security: PostgreSQL is NOT exposed to the public internet
+    # It is accessible strictly within the internal Docker bridge network
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-lifeos_user} -d ${POSTGRES_DB:-lifeos_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - lifeos_internal
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lifeos_api
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-lifeos_user}:${POSTGRES_PASSWORD:-secure_password_123}@postgres:5432/${POSTGRES_DB:-lifeos_db}?schema=public
+      JWT_SECRET: ${JWT_SECRET:-change_this_to_a_long_random_secret_key_in_production_2026}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      INITIAL_ADMIN_EMAIL: ${INITIAL_ADMIN_EMAIL:-admin@lifeos.com}
+      INITIAL_ADMIN_PASSWORD: ${INITIAL_ADMIN_PASSWORD:-Admin@123456}
+      ALLOW_PUBLIC_REGISTRATION: ${ALLOW_PUBLIC_REGISTRATION:-true}
+    expose:
+      - "3000"
+    networks:
+      - lifeos_internal
+
+  nginx:
+    image: nginx:alpine
+    container_name: lifeos_nginx
+    restart: always
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    networks:
+      - lifeos_internal
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  lifeos_internal:
+    driver: bridge

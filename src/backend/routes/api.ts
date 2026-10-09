@@ -1,0 +1,3140 @@
+import { Router, Response } from 'express';
+import bcrypt from 'bcryptjs';
+import { requireAuth, requireAdmin, requireFeature, requireActiveSubscription, AuthRequest } from '../auth.middleware.js';
+import { dbService, getPrisma } from '../db.js';
+import { DecisionEngineService } from '../services/decisionEngine.service.js';
+import { AutomationEngineService } from '../services/automationEngine.service.js';
+import { subscriptionService, OFFICIAL_PLANS } from '../services/subscription.service.js';
+import { teamService } from '../services/team.service.js';
+import { r2Router } from './r2.routes.js';
+import { customModulesRouter } from './customModules.routes.js';
+import { paymentRateLimiter, couponRateLimiter } from '../security/rateLimiter.js';
+import {
+  FinanceTransactionSchema,
+  CouponValidateSchema,
+  CartCheckoutSchema,
+  SaaSCheckoutSessionSchema,
+  VerifyPaymentSchema,
+  SubmitPaymentRequestSchema,
+  AdminRejectPaymentSchema,
+  AdminUpdateBankConfigSchema,
+  AdminUpdatePlanSchema,
+  AdminUpdateLanguagesSchema,
+  UpgradePlanSchema,
+  AdminCreateUserSchema,
+  AdminUpdateStatusSchema,
+  AdminChangePlanSchema,
+  AdminResetPasswordSchema,
+  validateBody
+} from '../validation.js';
+
+export const apiRouter = Router();
+
+// Cloudflare R2 Storage Sub-router
+apiRouter.use('/r2', r2Router);
+
+// Dynamic Custom Modules & Extensions (Admin extensible domains)
+apiRouter.use('/custom-modules', customModulesRouter);
+
+// Publicly readable endpoints (languages configuration and pricing plans)
+apiRouter.get('/languages', async (req: any, res: Response) => {
+  try {
+    const allLanguages = await getSystemLanguagesConfig();
+    const activeLanguages = allLanguages.filter(l => l.status === 'ACTIVE');
+    const defaultLang = allLanguages.find(l => l.isDefault)?.code || 'vi';
+
+    res.json({
+      success: true,
+      languages: activeLanguages,
+      allLanguages,
+      defaultLanguage: defaultLang
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+apiRouter.get('/payments/plans', async (req: any, res: Response) => {
+  try {
+    const plans = subscriptionService.getPlans();
+    res.json({
+      success: true,
+      plans: plans.map(p => ({
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        badge: p.badge || (p.type === 'TEAM' ? 'Dành cho Đội ngũ' : (p.id === 'PERSONAL_3M' ? 'Phổ biến nhất' : 'Tiết kiệm')),
+        description: p.description,
+        durationDays: p.durationDays,
+        price: p.price,
+        billingCycle: p.billingCycle,
+        maxTeamMembers: p.maxTeamMembers || (p.type === 'TEAM' ? 5 : 0),
+        pricing: {
+          monthly: {
+            price: p.price,
+            displayPrice: `${p.price.toLocaleString('vi-VN')} ₫`,
+            period: p.billingCycle
+          },
+          yearly: {
+            price: p.price,
+            displayPrice: `${p.price.toLocaleString('vi-VN')} ₫`,
+            period: p.billingCycle
+          }
+        },
+        benefits: p.features,
+        quota: p.type === 'TEAM' ? 'Tối đa 5 thành viên' : 'Sử dụng cá nhân toàn diện'
+      }))
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Protect all /api endpoints with authentication
+apiRouter.use(requireAuth);
+
+// Universal Subscription Enforcement Gate:
+// Non-admin users MUST have an ACTIVE, non-expired subscription to use LifeOS workspace features.
+// Exempt paths for browsing plans, verifying subscription, checking out, admin operations, and support.
+apiRouter.use(async (req: AuthRequest, res: Response, next: any) => {
+  const path = req.path;
+  const isExempt =
+    path.startsWith('/payments') ||
+    path.startsWith('/coupons') ||
+    path.startsWith('/cart') ||
+    path.startsWith('/checkout') ||
+    path.startsWith('/data') ||
+    path.startsWith('/finance') ||
+    path.startsWith('/today') ||
+    path.startsWith('/r2') ||
+    path.startsWith('/custom-modules') ||
+    path.startsWith('/tasks') ||
+    path.startsWith('/languages') ||
+    path.startsWith('/decisions') ||
+    path.startsWith('/automations') ||
+    path === '/team/my-team' ||
+    path.startsWith('/admin') ||
+    path.startsWith('/notifications') ||
+    path.startsWith('/supportTickets') ||
+    path.startsWith('/settings');
+
+  if (isExempt) {
+    return next();
+  }
+
+  return requireActiveSubscription(req, res, next);
+});
+
+const ALLOWED_COLLECTIONS = new Set([
+  'tasks',
+  'projects',
+  'events',
+  'calendarEvents',
+  'scheduleBlocks',
+  'routines',
+  'reminders',
+  'focusSessions',
+  'focusGoals',
+  'financeAccounts',
+  'transactions',
+  'budgets',
+  'savingGoals',
+  'debts',
+  'recurringTransactions',
+  'subjects',
+  'studyTopics',
+  'studyAssignments',
+  'studyExams',
+  'studySessions',
+  'habits',
+  'habitRecords',
+  'goals',
+  'notes',
+  'decisions',
+  'decisionRules',
+  'automationRules',
+  'automationHistory',
+  'automationConflicts',
+  'products',
+  'cart',
+  'cartItems',
+  'orders',
+  'coupons',
+  'inbox',
+  'supportTickets',
+  'notifications'
+]);
+
+// --------------------------------------------------------------------------
+// GENERIC USER-OWNED COLLECTION CRUD (Strict Ownership Enforcement)
+// --------------------------------------------------------------------------
+apiRouter.get('/data/:collection', async (req: AuthRequest, res: Response) => {
+  const { collection } = req.params;
+  const userId = req.userId!;
+
+  if (!ALLOWED_COLLECTIONS.has(collection)) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_COLLECTION', message: `Danh mục '${collection}' không hợp lệ.` },
+      message: `Danh mục '${collection}' không hợp lệ.`
+    });
+    return;
+  }
+
+  try {
+    // Special collections that have custom retrieval logic
+    if (collection === 'products') {
+      const templates = await dbService.getSystemTemplates();
+      res.json(templates);
+      return;
+    }
+
+    const items = await dbService.getUserCollection(collection, userId);
+    res.json(items);
+  } catch (err: any) {
+    console.error(`GET /api/data/${collection} error:`, err);
+    res.status(500).json({
+      success: false,
+      error: { code: 'DB_ERROR', message: err.message },
+      message: err.message
+    });
+  }
+});
+
+// Endpoint to apply a system template into user workspace
+apiRouter.post('/templates/:id/apply', async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  const userId = req.userId!;
+  const prisma = getPrisma();
+
+  try {
+    const template = await prisma.systemTemplate.findUnique({
+      where: { id }
+    });
+
+    if (!template) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy mẫu này trong hệ thống.' });
+    }
+
+    // Check permissions if template has price > 0
+    const userRole = (req.userRole || '').toUpperCase();
+    const userPlan = (req.userPlan || 'FREE').toUpperCase();
+    const hasPaidPlan = userRole === 'ADMIN' || userRole === 'SUPERADMIN' || userPlan !== 'FREE';
+
+    if (!template.isFree && template.price > 0 && !hasPaidPlan) {
+      const hasPurchased = await prisma.order.findFirst({
+        where: {
+          userId,
+          status: 'COMPLETED',
+          items: { contains: template.id }
+        }
+      });
+      if (!hasPurchased) {
+        return res.status(403).json({
+          success: false,
+          requiresPurchase: true,
+          message: 'Mẫu này yêu cầu kích hoạt gói dịch vụ để áp dụng.'
+        });
+      }
+    }
+
+    const createdSummary: { projects?: number; tasks?: number; habits?: number; accounts?: number; notes?: number; view: string } = { view: 'tasks' };
+
+    if (id === 'tpl_para_system' || template.category === 'Productivity') {
+      const existingProject = await prisma.project.findFirst({
+        where: { userId, name: '[P] Dự án đang triển khai (Projects)' }
+      });
+
+      if (!existingProject) {
+        const p1 = await prisma.project.create({
+          data: { userId, name: '[P] Dự án đang triển khai (Projects)', description: 'Tổ chức các mục tiêu và dự án hành động theo P.A.R.A', status: 'Đang làm', color: '#2563eb' }
+        });
+        const p2 = await prisma.project.create({
+          data: { userId, name: '[A] Khu vực trách nhiệm cốt lõi (Areas)', description: 'Các tiêu chuẩn trách nhiệm duy trì liên tục', status: 'Đang làm', color: '#10b981' }
+        });
+        const p3 = await prisma.project.create({
+          data: { userId, name: '[R] Tài nguyên & Kiến thức (Resources)', description: 'Tài liệu tham khảo, bài học và nghiên cứu', status: 'Mới tạo', color: '#f59e0b' }
+        });
+        const p4 = await prisma.project.create({
+          data: { userId, name: '[A] Kho lưu trữ hoàn thành (Archives)', description: 'Dự án đã xong và tài liệu lưu trữ', status: 'Mới tạo', color: '#64748b' }
+        });
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        await prisma.task.createMany({
+          data: [
+            { userId, projectId: p1.id, title: 'Liệt kê các mục tiêu ngắn hạn vào thư mục Projects', priority: 'Cao', status: 'Chưa làm', dueDate: todayStr },
+            { userId, projectId: p2.id, title: 'Thiết lập các tiêu chuẩn duy trì cho Khu vực trách nhiệm (Areas)', priority: 'Trung bình', status: 'Chưa làm', dueDate: todayStr },
+            { userId, projectId: p3.id, title: 'Lưu trữ tài liệu và liên kết tham khảo vào Resources', priority: 'Thấp', status: 'Đang làm', dueDate: todayStr },
+            { userId, projectId: p4.id, title: 'Dọn dẹp và lưu trữ các dự án đã kết thúc vào Archives', priority: 'Thấp', status: 'Đang chờ' }
+          ]
+        });
+
+        await prisma.note.create({
+          data: {
+            userId,
+            title: 'Sổ tay Hướng dẫn Phương pháp P.A.R.A (Tiago Forte)',
+            content: '### Phương pháp P.A.R.A:\n- **P - Projects**: Các dự án có kết quả và thời hạn cụ thể.\n- **A - Areas**: Các khu vực trách nhiệm liên tục (Sức khỏe, Tài chính, Công việc).\n- **R - Resources**: Tài liệu tham khảo, ghi chú và chủ đề quan tâm.\n- **A - Archives**: Kho lưu trữ các dự án đã xong.',
+            category: 'Productivity',
+            tags: '["PARA", "Productivity", "Organization"]'
+          }
+        });
+      }
+
+      createdSummary.projects = 4;
+      createdSummary.tasks = 4;
+      createdSummary.notes = 1;
+      createdSummary.view = 'projects';
+    } else if (id === 'tpl_finance_freedom' || template.category === 'Finance') {
+      const existingAccounts = await prisma.financeAccount.findMany({
+        where: { userId }
+      });
+      const existingNames = new Set(existingAccounts.map(a => a.name));
+
+      if (!existingNames.has('Tài khoản Thiết yếu 50% (Needs)')) {
+        await prisma.financeAccount.create({
+          data: { userId, name: 'Tài khoản Thiết yếu 50% (Needs)', type: 'Ngân hàng', balance: 0, currency: 'VND', color: '#2563eb' }
+        });
+      }
+      if (!existingNames.has('Tài khoản Tiết kiệm & Đầu tư 20% (Savings)')) {
+        await prisma.financeAccount.create({
+          data: { userId, name: 'Tài khoản Tiết kiệm & Đầu tư 20% (Savings)', type: 'Đầu tư', balance: 0, currency: 'VND', color: '#10b981' }
+        });
+      }
+      if (!existingNames.has('Tài khoản Chi tiêu Cá nhân 30% (Wants)')) {
+        await prisma.financeAccount.create({
+          data: { userId, name: 'Tài khoản Chi tiêu Cá nhân 30% (Wants)', type: 'Tiền mặt', balance: 0, currency: 'VND', color: '#f59e0b' }
+        });
+      }
+
+      const existingBudgets = await prisma.budget.findMany({ where: { userId } });
+      const existingCategories = new Set(existingBudgets.map(b => b.category));
+      const newBudgets = [
+        { category: 'Nhu cầu thiết yếu (50%)', limit: 10000000, period: 'Hàng tháng', spent: 0 },
+        { category: 'Tiết kiệm & Đầu tư (20%)', limit: 4000000, period: 'Hàng tháng', spent: 0 },
+        { category: 'Chi tiêu cá nhân (30%)', limit: 6000000, period: 'Hàng tháng', spent: 0 }
+      ].filter(b => !existingCategories.has(b.category));
+
+      if (newBudgets.length > 0) {
+        await prisma.budget.createMany({
+          data: newBudgets.map(b => ({ ...b, userId }))
+        });
+      }
+
+      const existingGoal = await prisma.savingGoal.findFirst({
+        where: { userId, title: 'Quỹ khẩn cấp 6 tháng chi tiêu' }
+      });
+      if (!existingGoal) {
+        await prisma.savingGoal.create({
+          data: {
+            userId,
+            title: 'Quỹ khẩn cấp 6 tháng chi tiêu',
+            targetAmount: 50000000,
+            currentAmount: 0
+          }
+        });
+      }
+
+      createdSummary.accounts = 3;
+      createdSummary.view = 'finance';
+    } else if (id === 'tpl_atomic_habits' || template.category === 'Habits' || template.category === 'Health') {
+      const existingHabit = await prisma.habit.findFirst({
+        where: { userId, name: 'Đọc sách phát triển tư duy' }
+      });
+
+      if (!existingHabit) {
+        await prisma.habit.createMany({
+          data: [
+            { userId, name: 'Đọc sách phát triển tư duy', category: 'Study', target: 20, unitLabel: 'trang', unit: 'pages', status: 'Active' },
+            { userId, name: 'Vận động thể chất / Cardio', category: 'Health', target: 30, unitLabel: 'phút', unit: 'minutes', status: 'Active' },
+            { userId, name: 'Thiền định & Phản chiếu cuối ngày', category: 'Personal', target: 10, unitLabel: 'phút', unit: 'minutes', status: 'Active' },
+            { userId, name: 'Uống đủ 2 lít nước', category: 'Health', target: 2000, unitLabel: 'ml', unit: 'ml', status: 'Active' }
+          ]
+        });
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        await prisma.scheduleBlock.createMany({
+          data: [
+            { userId, date: todayStr, label: 'Khởi động ngày mới năng suất (Morning Routine)', startTime: '06:30', endTime: '07:30', category: 'Health' },
+            { userId, date: todayStr, label: 'Đánh giá & Dọn dẹp tâm trí (Evening Reflection)', startTime: '22:00', endTime: '22:30', category: 'Mindfulness' }
+          ]
+        });
+      }
+
+      createdSummary.habits = 4;
+      createdSummary.view = 'habits';
+    } else {
+      // General template
+      const proj = await prisma.project.create({
+        data: { userId, name: template.title, description: template.description || 'Dự án tạo từ mẫu thư viện', status: 'Đang làm', color: '#2563eb' }
+      });
+      const todayStr = new Date().toISOString().split('T')[0];
+      await prisma.task.create({
+        data: { userId, projectId: proj.id, title: `Khởi tạo kế hoạch: ${template.title}`, priority: 'Cao', status: 'Chưa làm', dueDate: todayStr }
+      });
+      createdSummary.projects = 1;
+      createdSummary.tasks = 1;
+      createdSummary.view = 'projects';
+    }
+
+    // Record usage
+    await prisma.templateUsage.create({
+      data: { userId, templateId: template.id }
+    }).catch(() => {});
+
+    await prisma.systemTemplate.update({
+      where: { id: template.id },
+      data: { usesCount: { increment: 1 } }
+    }).catch(() => {});
+
+    res.json({
+      success: true,
+      message: `Đã áp dụng mẫu "${template.title}" thành công vào không gian làm việc của bạn!`,
+      summary: createdSummary
+    });
+  } catch (err: any) {
+    console.error('Error applying template:', err);
+    res.status(500).json({ success: false, message: err.message || 'Không thể áp dụng mẫu này.' });
+  }
+});
+
+apiRouter.post('/data/:collection', async (req: AuthRequest, res: Response) => {
+  const { collection } = req.params;
+  const userId = req.userId!;
+
+  if (!ALLOWED_COLLECTIONS.has(collection)) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_COLLECTION', message: `Danh mục '${collection}' không hợp lệ.` },
+      message: `Danh mục '${collection}' không hợp lệ.`
+    });
+    return;
+  }
+
+  try {
+    const payload = { ...req.body };
+
+    // Prevent client from forging sensitive business fields
+    delete payload.userId;
+    delete payload.role;
+    delete payload.plan;
+    if (collection === 'financeAccounts') {
+      // Balance can only be manipulated via /api/finance/transaction
+      payload.balance = parseFloat(payload.balance) || 0;
+    }
+
+    const created = await dbService.addItemToUserCollection(collection, userId, payload);
+
+    // Audit log for state changes
+    if (['decisions', 'budgets', 'orders', 'projects'].includes(collection)) {
+      await dbService.createAuditLog(
+        userId,
+        `CREATE_${collection.toUpperCase()}`,
+        collection,
+        created.id,
+        null,
+        created
+      );
+    }
+
+    res.status(201).json(created);
+  } catch (err: any) {
+    console.error(`POST /api/data/${collection} error:`, err);
+    res.status(500).json({
+      success: false,
+      error: { code: 'DB_ERROR', message: err.message },
+      message: err.message
+    });
+  }
+});
+
+apiRouter.put('/data/:collection/:id', async (req: AuthRequest, res: Response) => {
+  const { collection, id } = req.params;
+  const userId = req.userId!;
+
+  if (!ALLOWED_COLLECTIONS.has(collection)) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_COLLECTION', message: `Danh mục '${collection}' không hợp lệ.` },
+      message: `Danh mục '${collection}' không hợp lệ.`
+    });
+    return;
+  }
+
+  try {
+    const updates = { ...req.body };
+
+    // Strip forbidden fields from generic update
+    delete updates.userId;
+    delete updates.role;
+    delete updates.plan;
+    if (collection === 'users') {
+      delete updates.status; // For system user status only
+    }
+    if (collection === 'financeAccounts') {
+      if (updates.balance !== undefined) {
+        updates.balance = parseFloat(updates.balance) || 0;
+      }
+    }
+
+    const updated = await dbService.updateUserCollectionItem(collection, userId, id, updates, req.userRole);
+    res.json(updated);
+  } catch (err: any) {
+    const isClientError = err.message && (
+      err.message.includes('not found') || 
+      err.message.includes('permission') || 
+      err.code === 'P2025'
+    );
+    if (isClientError) {
+      console.warn(`PUT /api/data/${collection}/${id} client warning: ${err.message}`);
+      res.status(404).json({
+        success: false,
+        error: { code: 'RECORD_NOT_FOUND', message: err.message },
+        message: err.message
+      });
+      return;
+    }
+    console.error(`PUT /api/data/${collection}/${id} error:`, err);
+    res.status(400).json({
+      success: false,
+      error: { code: 'UPDATE_FAILED', message: err.message },
+      message: err.message
+    });
+  }
+});
+
+apiRouter.delete('/data/:collection/:id', async (req: AuthRequest, res: Response) => {
+  const { collection, id } = req.params;
+  const userId = req.userId!;
+
+  if (!ALLOWED_COLLECTIONS.has(collection)) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_COLLECTION', message: `Danh mục '${collection}' không hợp lệ.` },
+      message: `Danh mục '${collection}' không hợp lệ.`
+    });
+    return;
+  }
+
+  try {
+    await dbService.deleteUserCollectionItem(collection, userId, id, req.userRole);
+    res.json({ success: true, message: 'Đã xóa thành công' });
+  } catch (err: any) {
+    const isClientError = err.message && (
+      err.message.includes('not found') || 
+      err.message.includes('permission') || 
+      err.code === 'P2025'
+    );
+    if (isClientError) {
+      console.warn(`DELETE /api/data/${collection}/${id} client warning: ${err.message}`);
+      res.status(404).json({
+        success: false,
+        error: { code: 'RECORD_NOT_FOUND', message: err.message },
+        message: err.message
+      });
+      return;
+    }
+    console.error(`DELETE /api/data/${collection}/${id} error:`, err);
+    res.status(400).json({
+      success: false,
+      error: { code: 'DELETE_FAILED', message: err.message },
+      message: err.message
+    });
+  }
+});
+
+// --------------------------------------------------------------------------
+// NOTIFICATIONS MANAGEMENT
+// --------------------------------------------------------------------------
+apiRouter.delete('/notifications/all', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    const prisma = getPrisma();
+    await prisma.notification.deleteMany({
+      where: { userId }
+    });
+    res.json({ success: true, message: 'Đã xóa tất cả thông báo' });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'DELETE_FAILED', message: err.message },
+      message: err.message
+    });
+  }
+});
+
+apiRouter.put('/notifications/:id/read', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { id } = req.params;
+  try {
+    const prisma = getPrisma();
+    await prisma.notification.updateMany({
+      where: { id, userId },
+      data: { read: true }
+    });
+    res.json({ success: true, message: 'Đã đánh dấu đã đọc' });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'UPDATE_FAILED', message: err.message },
+      message: err.message
+    });
+  }
+});
+
+// --------------------------------------------------------------------------
+// COMMERCE: COUPON VALIDATION & CHECKOUT
+// --------------------------------------------------------------------------
+apiRouter.post('/coupons/validate', couponRateLimiter, validateBody(CouponValidateSchema), async (req: AuthRequest, res: Response) => {
+  try {
+    const { code } = req.body;
+    const cleanCode = code.toUpperCase().trim();
+    const prisma = getPrisma();
+
+    const coupon = await prisma.coupon.findUnique({
+      where: { code: cleanCode }
+    });
+
+    if (!coupon) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'COUPON_NOT_FOUND', message: 'Mã giảm giá không tồn tại.' },
+        message: 'Mã giảm giá không tồn tại.'
+      });
+      return;
+    }
+
+    if (coupon.status !== 'Active') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'COUPON_INACTIVE', message: 'Mã giảm giá này hiện không còn áp dụng.' },
+        message: 'Mã giảm giá này hiện không còn áp dụng.'
+      });
+      return;
+    }
+
+    if (coupon.expiresAt && new Date(coupon.expiresAt).getTime() < Date.now()) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'COUPON_EXPIRED', message: 'Mã giảm giá này đã hết hạn sử dụng.' },
+        message: 'Mã giảm giá này đã hết hạn sử dụng.'
+      });
+      return;
+    }
+
+    if (coupon.usedCount >= coupon.maxUses) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'COUPON_LIMIT_REACHED', message: 'Mã giảm giá đã hết lượt sử dụng.' },
+        message: 'Mã giảm giá đã hết lượt sử dụng.'
+      });
+      return;
+    }
+
+    res.json({
+      success: true,
+      code: coupon.code,
+      discountPercent: coupon.discountPercent,
+      message: `Mã hợp lệ! Giảm ${coupon.discountPercent}% cho đơn hàng.`
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'SERVER_ERROR', message: err.message },
+      message: err.message
+    });
+  }
+});
+
+apiRouter.post('/cart/checkout', paymentRateLimiter, validateBody(CartCheckoutSchema), async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { couponCode } = req.body;
+  const prisma = getPrisma();
+
+  try {
+    // 1. Retrieve user's cart items
+    const cartItems = await prisma.cartItem.findMany({
+      where: { userId }
+    });
+
+    if (!cartItems.length) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'EMPTY_CART', message: 'Giỏ hàng của bạn đang trống.' },
+        message: 'Giỏ hàng của bạn đang trống.'
+      });
+      return;
+    }
+
+    // 2. Fetch product details
+    const productIds = cartItems.map(c => c.productId);
+    const templates = await prisma.systemTemplate.findMany({
+      where: { id: { in: productIds } }
+    });
+    const templateMap = new Map(templates.map(t => [t.id, t]));
+
+    let subtotal = 0;
+    const orderItems: any[] = [];
+
+    for (const item of cartItems) {
+      const product = templateMap.get(item.productId);
+      const price = product?.price || 0;
+      subtotal += price * item.quantity;
+      orderItems.push({
+        productId: item.productId,
+        productName: product?.title || 'System Template',
+        price,
+        quantity: item.quantity
+      });
+    }
+
+    // 3. Validate coupon if provided
+    let discountPercent = 0;
+    let validCoupon: any = null;
+    if (couponCode && couponCode.trim()) {
+      const cleanCode = couponCode.toUpperCase().trim();
+      validCoupon = await prisma.coupon.findUnique({ where: { code: cleanCode } });
+      if (validCoupon && validCoupon.status === 'Active') {
+        if (!validCoupon.expiresAt || new Date(validCoupon.expiresAt).getTime() >= Date.now()) {
+          if (validCoupon.usedCount < validCoupon.maxUses) {
+            discountPercent = validCoupon.discountPercent;
+          }
+        }
+      }
+    }
+
+    const discount = (subtotal * discountPercent) / 100;
+    const total = Math.max(0, subtotal - discount);
+    const orderId = `ORD_${Date.now()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
+    // 4. Execute atomic checkout transaction
+    const txResults: any = await prisma.$transaction([
+      prisma.order.create({
+        data: {
+          userId,
+          orderId,
+          items: JSON.stringify(orderItems),
+          subtotal,
+          discount,
+          total,
+          status: 'Paid',
+          couponCode: discountPercent > 0 ? couponCode : null
+        }
+      }),
+      prisma.payment.create({
+        data: {
+          userId,
+          customerEmail: req.user.email,
+          orderId,
+          planRequested: 'PRO',
+          amount: total,
+          method: 'Bank Transfer',
+          status: 'Paid',
+          txReference: `TX_${Date.now()}`
+        }
+      }),
+      // Clear cart
+      prisma.cartItem.deleteMany({
+        where: { userId }
+      }),
+      // Increment coupon usage count atomically if used (only if strictly under maxUses)
+      ...(validCoupon ? [
+        prisma.coupon.updateMany({
+          where: { 
+            id: validCoupon.id,
+            usedCount: { lt: validCoupon.maxUses }
+          },
+          data: { usedCount: { increment: 1 } }
+        })
+      ] : [])
+    ]);
+
+    const createdOrder = txResults[0];
+    const createdPayment = txResults[1];
+    const couponResult = validCoupon ? txResults[3] : null;
+
+    // If coupon was provided but update failed because maxUses was reached concurrently
+    if (validCoupon && couponResult?.count === 0) {
+      throw new Error('Mã giảm giá đã hết lượt sử dụng do có người dùng khác vừa áp dụng.');
+    }
+
+    // Record audit log
+    await dbService.createAuditLog(
+      userId,
+      'CHECKOUT_ORDER_PAID',
+      'orders',
+      createdOrder.id,
+      null,
+      { orderId, total, itemsCount: orderItems.length }
+    );
+
+    res.json({
+      success: true,
+      message: 'Thanh toán đơn hàng thành công!',
+      order: createdOrder,
+      payment: createdPayment
+    });
+  } catch (err: any) {
+    console.error('Checkout error:', err);
+    res.status(500).json({
+      success: false,
+      error: { code: 'CHECKOUT_FAILED', message: err.message },
+      message: err.message
+    });
+  }
+});
+
+// --------------------------------------------------------------------------
+// SAAS COMMERCE: PLANS, SECURE CHECKOUT & VERIFICATION (Zero physical shipping)
+// --------------------------------------------------------------------------
+
+const DEFAULT_BANK_CONFIG = {
+  bankName: 'MBBank (Ngân hàng TMCP Quân Đội)',
+  accountNumber: '888899998888',
+  accountHolder: 'CONG TY CONG NGHE LIFEOS',
+  transferPrefix: 'NANGCAP',
+  bankCode: 'MB'
+};
+
+async function getPaymentBankConfig() {
+  try {
+    const prisma = getPrisma();
+    const setting = await prisma.systemSetting.findUnique({
+      where: { key: 'payment_bank_config' }
+    });
+    if (setting && setting.value) {
+      return { ...DEFAULT_BANK_CONFIG, ...JSON.parse(setting.value) };
+    }
+  } catch (e: any) {
+    if (e?.code === 'P2021') {
+      import('../db.js').then(({ checkDbConnection }) => checkDbConnection().catch(() => {}));
+    }
+  }
+  return DEFAULT_BANK_CONFIG;
+}
+
+export interface ServicePlanData {
+  id: string;
+  name: string;
+  badge?: string;
+  description: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  billingCycle: string;
+  status: 'ACTIVE' | 'INACTIVE';
+  order: number;
+  features: string[];
+  quota?: string;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+const DEFAULT_SERVICE_PLANS: ServicePlanData[] = [
+  {
+    id: 'PRO',
+    name: 'Pro',
+    badge: 'Chuyên nghiệp',
+    description: 'Gói chuyên nghiệp Pro cho cá nhân quản lý toàn diện.',
+    monthlyPrice: 199000,
+    yearlyPrice: 1990000,
+    billingCycle: '30 ngày',
+    status: 'ACTIVE',
+    order: 1,
+    features: [
+      'Toàn bộ tính năng Quản lý Công việc & Dự án (Kanban, Lịch, Bộ lọc)',
+      'Quản lý Tài chính, Ví tiền, Ngân sách và Báo cáo thu chi',
+      'Theo dõi Thói quen, Chuỗi streak và Mục tiêu cuộc sống',
+      'Decision Engine & Mô phỏng kịch bản What-if',
+      'Automation Rules Engine kích hoạt tự động'
+    ],
+    quota: '1 người dùng, không giới hạn tính năng'
+  },
+  {
+    id: 'PERSONAL_1M',
+    name: 'Gói Cá Nhân (1 Tháng)',
+    badge: 'Tiết kiệm',
+    description: 'Mở khóa toàn bộ chức năng LifeOS trong 1 tháng (30 ngày). Bắt buộc có gói trả phí để truy cập hệ thống.',
+    monthlyPrice: 15000,
+    yearlyPrice: 0,
+    billingCycle: '1 tháng (30 ngày)',
+    status: 'ACTIVE',
+    order: 2,
+    features: [
+      'Toàn bộ tính năng Quản lý Công việc & Dự án (Kanban, Lịch, Bộ lọc)',
+      'Quản lý Tài chính, Ví tiền, Ngân sách và Báo cáo thu chi',
+      'Theo dõi Thói quen, Chuỗi streak và Mục tiêu cuộc sống',
+      'Decision Engine & Mô phỏng kịch bản What-if',
+      'Automation Rules Engine kích hoạt tự động',
+      'Không gian Học tập, Pomodoro Focus và Ghi chú không giới hạn',
+      'Đồng bộ dữ liệu thời gian thực và tự động sao lưu an toàn'
+    ],
+    quota: '1 người dùng, không giới hạn tính năng'
+  },
+  {
+    id: 'PERSONAL_3M',
+    name: 'Gói Cá Nhân (3 Tháng)',
+    badge: 'Phổ biến nhất',
+    description: 'Mở khóa toàn bộ chức năng trong 3 tháng (90 ngày) liên tục với chi phí ưu đãi 40.000 VNĐ.',
+    monthlyPrice: 40000,
+    yearlyPrice: 0,
+    billingCycle: '3 tháng (90 ngày)',
+    status: 'ACTIVE',
+    order: 3,
+    features: [
+      'Bao gồm toàn bộ quyền lợi của Gói Cá Nhân 1 Tháng',
+      'Thời hạn sử dụng 90 ngày liên tục',
+      'Tiết kiệm 5.000 VNĐ so với gia hạn từng tháng',
+      'Đồng bộ dữ liệu thời gian thực và sao lưu tự động',
+      'Hỗ trợ kỹ thuật ưu tiên 24/7'
+    ],
+    quota: '1 người dùng, 90 ngày liên tục'
+  },
+  {
+    id: 'TEAM_1M',
+    name: 'Gói Đội Ngũ (Team 1 Tháng)',
+    badge: 'Tối đa 5 thành viên',
+    description: 'Dành cho đội ngũ làm việc cộng tác. Chủ team được mời thêm tối đa 5 người dùng cùng sử dụng đầy đủ mọi chức năng.',
+    monthlyPrice: 50000,
+    yearlyPrice: 0,
+    billingCycle: '1 tháng (30 ngày)',
+    status: 'ACTIVE',
+    order: 4,
+    features: [
+      'Mở khóa toàn bộ chức năng LifeOS cho Chủ Team',
+      'Cho phép Chủ Team thêm tối đa 5 người dùng vào Team',
+      'Tất cả thành viên trong Team được hưởng toàn bộ tính năng trả phí',
+      'Chủ Team có toàn quyền quản trị, thêm/xóa thành viên linh hoạt',
+      'Tự động đồng bộ và kiểm soát quyền an toàn khi gói Team còn hạn'
+    ],
+    quota: 'Tối đa 5 thành viên / nhóm'
+  },
+  {
+    id: 'TEAM',
+    name: 'Team',
+    badge: 'Doanh nghiệp & Đội ngũ',
+    description: 'Dành cho đội ngũ làm việc cộng tác.',
+    monthlyPrice: 499000,
+    yearlyPrice: 4990000,
+    billingCycle: '30 ngày',
+    status: 'ACTIVE',
+    order: 5,
+    features: [
+      'Mở khóa toàn bộ chức năng LifeOS cho Chủ Team',
+      'Cho phép Chủ Team thêm tối đa 5 người dùng vào Team'
+    ],
+    quota: 'Tối đa 5 thành viên / nhóm'
+  }
+];
+
+async function getServicePlansConfig(): Promise<ServicePlanData[]> {
+  try {
+    const prisma = getPrisma();
+    const setting = await prisma.systemSetting.findUnique({
+      where: { key: 'service_plans_config' }
+    });
+    if (setting && setting.value) {
+      const parsed = JSON.parse(setting.value);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        const hasOfficialPlans = parsed.some(p => p.id === 'PERSONAL_1M' || p.id === 'TEAM_1M');
+        if (hasOfficialPlans) {
+          return parsed;
+        }
+      }
+    }
+  } catch (e: any) {
+    if (e?.code === 'P2021') {
+      import('../db.js').then(({ checkDbConnection }) => checkDbConnection().catch(() => {}));
+    }
+  }
+  return DEFAULT_SERVICE_PLANS;
+}
+
+export interface SystemLanguageData {
+  code: string;
+  name: string;
+  flag: string;
+  status: 'ACTIVE' | 'INACTIVE';
+  isDefault: boolean;
+}
+
+const DEFAULT_LANGUAGES: SystemLanguageData[] = [
+  { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳', status: 'ACTIVE', isDefault: true },
+  { code: 'en', name: 'English', flag: '🇬🇧', status: 'ACTIVE', isDefault: false }
+];
+
+async function getSystemLanguagesConfig(): Promise<SystemLanguageData[]> {
+  try {
+    const prisma = getPrisma();
+    const setting = await prisma.systemSetting.findUnique({
+      where: { key: 'system_languages_config' }
+    });
+    if (setting && setting.value) {
+      const parsed = JSON.parse(setting.value);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (e: any) {
+    if (e?.code === 'P2021') {
+      import('../db.js').then(({ checkDbConnection }) => checkDbConnection().catch(() => {}));
+    }
+  }
+  return DEFAULT_LANGUAGES;
+}
+
+// 1. Get bank transfer configuration
+apiRouter.get('/payments/bank-config', async (req: AuthRequest, res: Response) => {
+  try {
+    const config = await getPaymentBankConfig();
+    res.json({ success: true, config });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 2. Admin update bank transfer configuration
+apiRouter.put('/admin/payments/bank-config', requireAdmin, validateBody(AdminUpdateBankConfigSchema), async (req: AuthRequest, res: Response) => {
+  const prisma = getPrisma();
+  const userId = req.userId!;
+  const newConfig = req.body;
+
+  try {
+    const setting = await prisma.systemSetting.upsert({
+      where: { key: 'payment_bank_config' },
+      update: { value: JSON.stringify(newConfig) },
+      create: { key: 'payment_bank_config', value: JSON.stringify(newConfig) }
+    });
+
+    await dbService.createAuditLog(
+      userId,
+      'ADMIN_UPDATE_BANK_CONFIG',
+      'system_settings',
+      setting.id,
+      null,
+      newConfig
+    );
+
+    res.json({
+      success: true,
+      message: 'Cập nhật thông tin ngân hàng thành công!',
+      config: newConfig
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 3b. Admin List all plans (including Free & Inactive)
+apiRouter.get('/admin/plans', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const plans = await getServicePlansConfig();
+    const sorted = [...plans].sort((a, b) => a.order - b.order);
+    res.json({
+      success: true,
+      plans: sorted
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 3c. Admin Update a plan (Edit price, name, features, quota, status)
+apiRouter.put('/admin/plans/:id', requireAdmin, validateBody(AdminUpdatePlanSchema), async (req: AuthRequest, res: Response) => {
+  const planId = req.params.id.toUpperCase();
+  const adminId = req.userId!;
+  const adminEmail = req.user.email;
+  const updateData = req.body;
+  const prisma = getPrisma();
+
+  try {
+    const plans = await getServicePlansConfig();
+    const index = plans.findIndex(p => p.id === planId);
+
+    if (index === -1) {
+      res.status(404).json({
+        success: false,
+        message: `Không tìm thấy gói dịch vụ có mã '${planId}'.`
+      });
+      return;
+    }
+
+    const oldPlan = plans[index];
+    const updatedPlan: ServicePlanData = {
+      ...oldPlan,
+      name: updateData.name,
+      description: updateData.description,
+      monthlyPrice: Number(updateData.monthlyPrice),
+      yearlyPrice: Number(updateData.yearlyPrice),
+      billingCycle: updateData.billingCycle,
+      status: updateData.status,
+      order: Number(updateData.order ?? oldPlan.order),
+      features: updateData.features || oldPlan.features,
+      quota: updateData.quota ?? oldPlan.quota,
+      badge: updateData.badge ?? oldPlan.badge,
+      updatedAt: new Date().toISOString(),
+      updatedBy: adminEmail
+    };
+
+    const newPlans = [...plans];
+    newPlans[index] = updatedPlan;
+
+    // Save to system setting
+    await prisma.systemSetting.upsert({
+      where: { key: 'service_plans_config' },
+      update: { value: JSON.stringify(newPlans) },
+      create: { key: 'service_plans_config', value: JSON.stringify(newPlans) }
+    });
+
+    // Record Audit Log with old price vs new price
+    await dbService.createAuditLog(
+      adminId,
+      'ADMIN_UPDATE_PLAN',
+      'service_plans',
+      planId,
+      {
+        planId,
+        name: oldPlan.name,
+        monthlyPrice: oldPlan.monthlyPrice,
+        yearlyPrice: oldPlan.yearlyPrice,
+        billingCycle: oldPlan.billingCycle,
+        status: oldPlan.status,
+        features: oldPlan.features,
+        quota: oldPlan.quota
+      },
+      {
+        planId,
+        name: updatedPlan.name,
+        monthlyPrice: updatedPlan.monthlyPrice,
+        yearlyPrice: updatedPlan.yearlyPrice,
+        billingCycle: updatedPlan.billingCycle,
+        status: updatedPlan.status,
+        features: updatedPlan.features,
+        quota: updatedPlan.quota,
+        updatedBy: adminEmail,
+        timestamp: new Date().toISOString()
+      }
+    );
+
+    res.json({
+      success: true,
+      message: `Cập nhật thông tin gói ${updatedPlan.name} thành công!`,
+      plan: updatedPlan,
+      plans: newPlans
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 3d. Admin Plan Modification Audit History
+apiRouter.get('/admin/plans/audit-history', requireAdmin, async (req: AuthRequest, res: Response) => {
+  const prisma = getPrisma();
+  try {
+    const logs = await prisma.auditLog.findMany({
+      where: { action: 'ADMIN_UPDATE_PLAN' },
+      orderBy: { timestamp: 'desc' },
+      take: 50
+    });
+    res.json({
+      success: true,
+      logs
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 3e. Admin Reset/Sync Plans to Official Defaults
+apiRouter.post('/admin/plans/reset-defaults', requireAdmin, async (req: AuthRequest, res: Response) => {
+  const adminId = req.userId!;
+  const adminEmail = req.user.email;
+  const prisma = getPrisma();
+  try {
+    await prisma.systemSetting.upsert({
+      where: { key: 'service_plans_config' },
+      update: { value: JSON.stringify(DEFAULT_SERVICE_PLANS) },
+      create: { key: 'service_plans_config', value: JSON.stringify(DEFAULT_SERVICE_PLANS) }
+    });
+
+    await dbService.createAuditLog(
+      adminId,
+      'ADMIN_RESET_PLANS',
+      'service_plans',
+      'ALL',
+      null,
+      { plans: DEFAULT_SERVICE_PLANS, updatedBy: adminEmail, timestamp: new Date().toISOString() }
+    );
+
+    res.json({
+      success: true,
+      message: 'Đã khôi phục và đồng bộ danh sách gói dịch vụ về cấu hình chính thức thành công!',
+      plans: DEFAULT_SERVICE_PLANS
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 3f. Admin Languages - Full list
+apiRouter.get('/admin/languages', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const languages = await getSystemLanguagesConfig();
+    res.json({
+      success: true,
+      languages
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 3g. Admin Languages - Update languages (Toggle status, set default, add)
+apiRouter.put('/admin/languages', requireAdmin, validateBody(AdminUpdateLanguagesSchema), async (req: AuthRequest, res: Response) => {
+  const adminId = req.userId!;
+  const { languages } = req.body;
+  const prisma = getPrisma();
+
+  try {
+    // Ensure at least one active language
+    const hasActive = languages.some((l: any) => l.status === 'ACTIVE');
+    if (!hasActive) {
+      res.status(400).json({
+        success: false,
+        message: 'Hệ thống bắt buộc phải có ít nhất 1 ngôn ngữ hoạt động.'
+      });
+      return;
+    }
+
+    // Ensure exactly one default language
+    const hasDefault = languages.some((l: any) => l.isDefault && l.status === 'ACTIVE');
+    if (!hasDefault) {
+      // Auto-set the first active language as default
+      const firstActive = languages.find((l: any) => l.status === 'ACTIVE');
+      if (firstActive) firstActive.isDefault = true;
+    }
+
+    await prisma.systemSetting.upsert({
+      where: { key: 'system_languages_config' },
+      update: { value: JSON.stringify(languages) },
+      create: { key: 'system_languages_config', value: JSON.stringify(languages) }
+    });
+
+    await dbService.createAuditLog(
+      adminId,
+      'ADMIN_UPDATE_LANGUAGES',
+      'system_settings',
+      'system_languages_config',
+      null,
+      languages
+    );
+
+    res.json({
+      success: true,
+      message: 'Cập nhật cấu hình ngôn ngữ thành công!',
+      languages
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 3h. Admin Languages - Delete custom language
+apiRouter.delete('/admin/languages/:code', requireAdmin, async (req: AuthRequest, res: Response) => {
+  const adminId = req.userId!;
+  const code = req.params.code.toLowerCase().trim();
+  const prisma = getPrisma();
+
+  try {
+    const languages = await getSystemLanguagesConfig();
+    const target = languages.find(l => l.code === code);
+    if (!target) {
+      res.status(404).json({ success: false, message: 'Không tìm thấy ngôn ngữ cần xóa.' });
+      return;
+    }
+    if (target.isDefault) {
+      res.status(400).json({ success: false, message: 'Không thể xóa ngôn ngữ đang được đặt làm mặc định.' });
+      return;
+    }
+    if (code === 'vi') {
+      res.status(400).json({ success: false, message: 'Ngôn ngữ Tiếng Việt là ngôn ngữ hệ thống bắt buộc, không thể xóa.' });
+      return;
+    }
+
+    const filtered = languages.filter(l => l.code !== code);
+    await prisma.systemSetting.upsert({
+      where: { key: 'system_languages_config' },
+      update: { value: JSON.stringify(filtered) },
+      create: { key: 'system_languages_config', value: JSON.stringify(filtered) }
+    });
+
+    await dbService.createAuditLog(adminId, 'ADMIN_DELETE_LANGUAGE', 'system_settings', code, target, null);
+
+    res.json({
+      success: true,
+      message: `Đã xóa ngôn ngữ ${target.name} (${target.code}) thành công.`,
+      languages: filtered
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 4. Create SaaS Checkout Session & Generate QR (Zero physical shipping, dynamic bank info & dynamic plan price)
+apiRouter.post('/payments/checkout-session', paymentRateLimiter, validateBody(SaaSCheckoutSessionSchema), async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { plan, cycle, couponCode, paymentMethod } = req.body;
+  const prisma = getPrisma();
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true, plan: true, planExpiresAt: true }
+    });
+
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'USER_NOT_FOUND', message: 'Tài khoản không tồn tại.' },
+        message: 'Tài khoản không tồn tại.'
+      });
+      return;
+    }
+
+    // Fetch plan configuration from authoritative subscription service
+    const planConfig = subscriptionService.getPlanById(plan);
+
+    if (!planConfig) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_PLAN', message: `Gói dịch vụ '${plan}' không tồn tại hoặc hiện đang tạm ngưng.` },
+        message: `Gói dịch vụ '${plan}' không tồn tại hoặc hiện đang tạm ngưng.`
+      });
+      return;
+    }
+
+    // Backend strictly determines base price based on authoritative / dynamic plan definition
+    const dynamicPlans = await getServicePlansConfig();
+    const dynamicPlan = dynamicPlans.find(p => p.id === (plan as string).toUpperCase() || ((plan as string).toUpperCase() === 'PRO' && (p.id === 'PRO' || p.id === 'PERSONAL_1M')));
+    const subtotal = dynamicPlan ? (cycle === 'yearly' && dynamicPlan.yearlyPrice ? dynamicPlan.yearlyPrice : dynamicPlan.monthlyPrice) : planConfig.price;
+
+    // Validate Coupon if provided
+    let discountPercent = 0;
+    let couponRecord: any = null;
+    if (couponCode && couponCode.trim()) {
+      const cleanCode = couponCode.toUpperCase().trim();
+      couponRecord = await prisma.coupon.findUnique({ where: { code: cleanCode } });
+      if (couponRecord && couponRecord.status === 'Active') {
+        const notExpired = !couponRecord.expiresAt || new Date(couponRecord.expiresAt).getTime() >= Date.now();
+        const hasRemainingUses = couponRecord.usedCount < couponRecord.maxUses;
+        if (notExpired && hasRemainingUses) {
+          discountPercent = couponRecord.discountPercent;
+        }
+      }
+    }
+
+    const discount = Math.round((subtotal * discountPercent) / 100);
+    const total = Math.max(0, subtotal - discount);
+
+    // Get dynamic bank config
+    const bankConfig = await getPaymentBankConfig();
+
+    const orderId = `ORD_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    const txReference = `${bankConfig.transferPrefix || 'NANGCAP'}-${orderId}`;
+
+    const orderMetadata = {
+      plan: planConfig.id,
+      planName: planConfig.name,
+      planType: planConfig.type,
+      cycle: planConfig.billingCycle,
+      durationDays: planConfig.durationDays,
+      subtotal,
+      discount,
+      total,
+      couponCode: discountPercent > 0 ? couponCode : null,
+      paymentMethod: paymentMethod || 'vietqr'
+    };
+
+    // Create pending Order and Payment
+    const [order, payment] = await prisma.$transaction([
+      prisma.order.create({
+        data: {
+          userId,
+          orderId,
+          items: JSON.stringify([orderMetadata]),
+          subtotal,
+          discount,
+          total,
+          status: 'PENDING',
+          couponCode: discountPercent > 0 ? couponCode : null
+        }
+      }),
+      prisma.payment.create({
+        data: {
+          userId,
+          customerEmail: user.email,
+          orderId,
+          planRequested: plan as any,
+          amount: total,
+          method: 'VietQR Bank Transfer',
+          status: 'PENDING',
+          txReference,
+          billingCycle: cycle,
+          note: JSON.stringify({
+            ...orderMetadata,
+            snapshotAt: new Date().toISOString(),
+            appliedPrice: total,
+            planConfigSnapshot: {
+              id: planConfig.id,
+              name: planConfig.name,
+              price: planConfig.price,
+              billingCycle: planConfig.billingCycle
+            }
+          })
+        }
+      })
+    ]);
+
+    const qrUrl = `https://img.vietqr.io/image/${bankConfig.bankCode || 'MB'}-${bankConfig.accountNumber}-compact2.png?amount=${total}&addInfo=${encodeURIComponent(txReference)}&accountName=${encodeURIComponent(bankConfig.accountHolder)}`;
+
+    res.json({
+      success: true,
+      checkoutSession: {
+        orderId: order.orderId,
+        paymentId: payment.id,
+        txReference,
+        plan,
+        planName: planConfig.name,
+        cycle,
+        durationText: cycle === 'yearly' ? '1 năm (365 ngày)' : '1 tháng (30 ngày)',
+        subtotal,
+        discount,
+        discountPercent,
+        total,
+        customerEmail: user.email,
+        paymentMethod: 'vietqr',
+        bankInfo: {
+          bankName: bankConfig.bankName,
+          accountNumber: bankConfig.accountNumber,
+          accountHolder: bankConfig.accountHolder,
+          amount: total,
+          transferMemo: txReference,
+          qrUrl
+        },
+        status: 'PENDING'
+      }
+    });
+  } catch (err: any) {
+    console.error('Create checkout session error:', err);
+    res.status(500).json({
+      success: false,
+      error: { code: 'CHECKOUT_SESSION_FAILED', message: err.message },
+      message: err.message
+    });
+  }
+});
+
+// 5. Submit Payment Request (Customer clicks "Tôi đã thanh toán" -> Does NOT auto-upgrade, awaits Admin Approval)
+apiRouter.post('/payments/submit-request', paymentRateLimiter, validateBody(SubmitPaymentRequestSchema), async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { orderId, note } = req.body;
+  const prisma = getPrisma();
+
+  try {
+    const payment = await prisma.payment.findFirst({
+      where: { orderId, userId }
+    });
+
+    if (!payment) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'PAYMENT_NOT_FOUND', message: 'Không tìm thấy thông tin đơn hàng này.' },
+        message: 'Không tìm thấy thông tin đơn hàng này.'
+      });
+      return;
+    }
+
+    if (payment.status === 'APPROVED' || payment.status === 'Paid') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'ALREADY_APPROVED', message: 'Yêu cầu thanh toán này đã được duyệt và kích hoạt trước đó.' },
+        message: 'Yêu cầu thanh toán này đã được duyệt và kích hoạt trước đó.'
+      });
+      return;
+    }
+
+    // Update note and ensure PENDING status
+    const updatedPayment = await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: 'PENDING',
+        note: note ? String(note).trim() : (payment.note || 'Khách hàng đã báo hoàn tất chuyển khoản')
+      }
+    });
+
+    // Notify administrators of pending upgrade request
+    try {
+      const admins = await prisma.user.findMany({
+        where: { role: { in: ['ADMIN', 'SUPERADMIN'] } },
+        select: { id: true }
+      });
+      for (const admin of admins) {
+        await prisma.notification.create({
+          data: {
+            userId: admin.id,
+            title: `Yêu cầu nâng cấp gói mới (${payment.planRequested})`,
+            message: `Khách hàng ${req.user.email} vừa báo đã chuyển khoản ${payment.amount.toLocaleString('vi-VN')} ₫ (${payment.txReference}). Vui lòng kiểm tra và duyệt.`,
+            type: 'Info',
+            read: false
+          }
+        });
+      }
+    } catch (notifErr) {
+      console.warn('Failed to notify admins:', notifErr);
+    }
+
+    res.json({
+      success: true,
+      message: 'Yêu cầu đã được gửi. Vui lòng chờ quản trị viên xác nhận thanh toán.',
+      payment: updatedPayment
+    });
+  } catch (err: any) {
+    console.error('Submit payment request error:', err);
+    res.status(500).json({
+      success: false,
+      error: { code: 'SUBMIT_REQUEST_FAILED', message: err.message },
+      message: err.message
+    });
+  }
+});
+
+// 6. Get Current User's Payment / Upgrade Requests
+apiRouter.get('/payments/my-requests', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const prisma = getPrisma();
+
+  try {
+    const requests = await prisma.payment.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({
+      success: true,
+      requests
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 7. Get Active Pending Request for Dashboard / Checkout Banner
+apiRouter.get('/payments/active-pending-request', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const prisma = getPrisma();
+
+  try {
+    const activePending = await prisma.payment.findFirst({
+      where: {
+        userId,
+        status: 'PENDING'
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({
+      success: true,
+      activePending: activePending || null
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 8. Cancel Pending Request (Customer initiated)
+apiRouter.post('/payments/cancel-request', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { orderId } = req.body;
+  const prisma = getPrisma();
+
+  try {
+    const payment = await prisma.payment.findFirst({
+      where: { orderId, userId, status: 'PENDING' }
+    });
+
+    if (!payment) {
+      res.status(404).json({
+        success: false,
+        message: 'Không tìm thấy yêu cầu chờ duyệt hợp lệ để hủy.'
+      });
+      return;
+    }
+
+    const updated = await prisma.payment.update({
+      where: { id: payment.id },
+      data: { status: 'CANCELLED' }
+    });
+
+    await prisma.order.updateMany({
+      where: { orderId, userId },
+      data: { status: 'CANCELLED' }
+    });
+
+    res.json({
+      success: true,
+      message: 'Đã hủy yêu cầu thanh toán thành công.',
+      payment: updated
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 9. Admin List Payment Requests with Filters & Counts
+apiRouter.get('/admin/payments/requests', requireAdmin, async (req: AuthRequest, res: Response) => {
+  const prisma = getPrisma();
+  const { status, plan, search } = req.query;
+
+  try {
+    const whereClause: any = {};
+
+    if (status && status !== 'ALL') {
+      if (status === 'PENDING') whereClause.status = 'PENDING';
+      else if (status === 'APPROVED') whereClause.status = { in: ['APPROVED', 'Paid'] };
+      else if (status === 'REJECTED') whereClause.status = 'REJECTED';
+      else if (status === 'CANCELLED') whereClause.status = 'CANCELLED';
+      else whereClause.status = String(status);
+    }
+
+    if (plan && plan !== 'ALL') {
+      whereClause.planRequested = plan;
+    }
+
+    if (search && String(search).trim()) {
+      const q = String(search).trim();
+      whereClause.OR = [
+        { customerEmail: { contains: q, mode: 'insensitive' } },
+        { orderId: { contains: q, mode: 'insensitive' } },
+        { txReference: { contains: q, mode: 'insensitive' } },
+        { user: { name: { contains: q, mode: 'insensitive' } } }
+      ];
+    }
+
+    const requests = await prisma.payment.findMany({
+      where: whereClause,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            plan: true,
+            planExpiresAt: true,
+            avatar: true
+          }
+        }
+      },
+      orderBy: [
+        { createdAt: 'desc' }
+      ],
+      take: 100
+    });
+
+    // Counts for badge display
+    const [allCount, pendingCount, approvedCount, rejectedCount] = await Promise.all([
+      prisma.payment.count(),
+      prisma.payment.count({ where: { status: 'PENDING' } }),
+      prisma.payment.count({ where: { status: { in: ['APPROVED', 'Paid'] } } }),
+      prisma.payment.count({ where: { status: 'REJECTED' } })
+    ]);
+
+    res.json({
+      success: true,
+      requests,
+      counts: {
+        all: allCount,
+        pending: pendingCount,
+        approved: approvedCount,
+        rejected: rejectedCount
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 10. Admin Approve Payment & Upgrade User Plan (Idempotent Transaction)
+apiRouter.post('/admin/payments/:id/approve', requireAdmin, async (req: AuthRequest, res: Response) => {
+  const adminId = req.userId!;
+  const adminEmail = req.user.email;
+  const paymentId = req.params.id;
+  const prisma = getPrisma();
+
+  try {
+    // 1. Check request exists and is PENDING
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId },
+      include: { user: true }
+    });
+
+    if (!payment) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'PAYMENT_NOT_FOUND', message: 'Không tìm thấy yêu cầu thanh toán này.' },
+        message: 'Không tìm thấy yêu cầu thanh toán này.'
+      });
+      return;
+    }
+
+    if (payment.status === 'APPROVED' || payment.status === 'Paid') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'ALREADY_APPROVED', message: `Yêu cầu này đã được duyệt trước đó bởi ${payment.approvedBy || 'quản trị viên'}.` },
+        message: `Yêu cầu này đã được duyệt trước đó bởi ${payment.approvedBy || 'quản trị viên'}.`
+      });
+      return;
+    }
+
+    if (payment.status !== 'PENDING') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_STATUS', message: `Yêu cầu đang ở trạng thái "${payment.status}", không thể duyệt.` },
+        message: `Yêu cầu đang ở trạng thái "${payment.status}", không thể duyệt.`
+      });
+      return;
+    }
+
+    // 2. Activate subscription via centralized service
+    const now = new Date();
+    const subscription = await subscriptionService.activateSubscription(payment.userId, payment.planRequested, {
+      txReference: payment.txReference || `TX_${payment.orderId}`,
+      paymentId: payment.id
+    });
+
+    // 3. Update payment and order records
+    const [updatedPayment] = await prisma.$transaction([
+      prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: 'APPROVED',
+          approvedAt: now,
+          approvedBy: adminEmail
+        }
+      }),
+      prisma.order.updateMany({
+        where: { orderId: payment.orderId },
+        data: { status: 'APPROVED' }
+      })
+    ]);
+
+    const updatedUser = await prisma.user.findUnique({
+      where: { id: payment.userId },
+      select: { id: true, name: true, email: true, role: true, plan: true, planExpiresAt: true, status: true, avatar: true }
+    });
+
+    const planToActivate = subscription.planName || payment.planRequested;
+    const planExpiresAt = subscription.endDate;
+
+    // 4. Create Notification for the customer
+    await prisma.notification.create({
+      data: {
+        userId: payment.userId,
+        title: `Yêu cầu nâng cấp gói ${planToActivate} đã được duyệt!`,
+        message: `Quản trị viên đã xác nhận thanh toán (${payment.txReference}). Tài khoản của bạn đã được nâng cấp lên gói ${planToActivate}, thời hạn sử dụng đến ngày ${new Date(planExpiresAt).toLocaleDateString('vi-VN')}.`,
+        type: 'Success',
+        read: false
+      }
+    });
+
+    // 5. Create Audit Log
+    await dbService.createAuditLog(
+      adminId,
+      'ADMIN_APPROVE_PAYMENT',
+      'payments',
+      payment.id,
+      { status: 'PENDING' },
+      { status: 'APPROVED', plan: planToActivate, planExpiresAt, approvedBy: adminEmail, amount: payment.amount }
+    );
+
+    res.json({
+      success: true,
+      message: `Đã duyệt thanh toán thành công! Gói ${planToActivate} đã được kích hoạt cho khách hàng.`,
+      payment: updatedPayment,
+      user: updatedUser,
+      subscription
+    });
+  } catch (err: any) {
+    console.error('Admin approve payment error:', err);
+    res.status(500).json({
+      success: false,
+      error: { code: 'APPROVE_FAILED', message: err.message },
+      message: err.message
+    });
+  }
+});
+
+// 11. Admin Reject Payment Request
+apiRouter.post('/admin/payments/:id/reject', requireAdmin, validateBody(AdminRejectPaymentSchema), async (req: AuthRequest, res: Response) => {
+  const adminId = req.userId!;
+  const adminEmail = req.user.email;
+  const paymentId = req.params.id;
+  const { reason } = req.body;
+  const prisma = getPrisma();
+
+  try {
+    const payment = await prisma.payment.findUnique({
+      where: { id: paymentId }
+    });
+
+    if (!payment) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'PAYMENT_NOT_FOUND', message: 'Không tìm thấy yêu cầu thanh toán này.' },
+        message: 'Không tìm thấy yêu cầu thanh toán này.'
+      });
+      return;
+    }
+
+    if (payment.status === 'APPROVED' || payment.status === 'Paid') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'ALREADY_APPROVED', message: 'Không thể từ chối yêu cầu đã được duyệt thành công.' },
+        message: 'Không thể từ chối yêu cầu đã được duyệt thành công.'
+      });
+      return;
+    }
+
+    const updatedPayment = await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: 'REJECTED',
+        rejectedReason: reason,
+        approvedBy: adminEmail,
+        updatedAt: new Date()
+      }
+    });
+
+    await prisma.order.updateMany({
+      where: { orderId: payment.orderId },
+      data: { status: 'REJECTED' }
+    });
+
+    // Notify customer
+    await prisma.notification.create({
+      data: {
+        userId: payment.userId,
+        title: `Yêu cầu thanh toán gói ${payment.planRequested} bị từ chối`,
+        message: `Yêu cầu thanh toán (${payment.txReference}) đã bị từ chối. Lý do: ${reason}`,
+        type: 'Error',
+        read: false
+      }
+    });
+
+    // Audit Log
+    await dbService.createAuditLog(
+      adminId,
+      'ADMIN_REJECT_PAYMENT',
+      'payments',
+      payment.id,
+      { status: payment.status },
+      { status: 'REJECTED', reason, rejectedBy: adminEmail }
+    );
+
+    res.json({
+      success: true,
+      message: 'Đã từ chối yêu cầu thanh toán.',
+      payment: updatedPayment
+    });
+  } catch (err: any) {
+    console.error('Admin reject payment error:', err);
+    res.status(500).json({
+      success: false,
+      error: { code: 'REJECT_FAILED', message: err.message },
+      message: err.message
+    });
+  }
+});
+
+// 12. Get User Subscription & Billing History
+apiRouter.get('/payments/subscription', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const prisma = getPrisma();
+
+  try {
+    const subStatus = await subscriptionService.checkUserSubscription(userId);
+
+    const payments = await prisma.payment.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 20
+    });
+
+    const activePending = await prisma.payment.findFirst({
+      where: { userId, status: 'PENDING' },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const latestSubscription = await prisma.subscription.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({
+      success: true,
+      hasAccess: subStatus.hasAccess,
+      currentPlan: subStatus.planId,
+      planType: subStatus.planType,
+      planName: subStatus.planName,
+      status: subStatus.status,
+      planExpiresAt: subStatus.endDate || null,
+      startDate: subStatus.startDate || null,
+      remainingDays: subStatus.remainingDays,
+      amount: subStatus.amount,
+      isTeamOwner: subStatus.isTeamOwner || false,
+      isTeamMember: subStatus.isTeamMember || false,
+      teamId: subStatus.teamId,
+      teamName: subStatus.teamName,
+      teamOwnerEmail: subStatus.teamOwnerEmail,
+      subscriptionId: subStatus.subscriptionId,
+      role: subStatus.role,
+      subscription: latestSubscription,
+      history: payments,
+      activePending
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------
+// TEAM MANAGEMENT ENDPOINTS (Strictly enforced by Backend & Max 5 Members)
+// --------------------------------------------------------------------------
+apiRouter.get('/team/my-team', async (req: AuthRequest, res: Response) => {
+  try {
+    const teamData = await teamService.getMyTeam(req.userId!);
+    res.json({
+      success: true,
+      ...teamData
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+apiRouter.put('/team/name', async (req: AuthRequest, res: Response) => {
+  try {
+    const { name } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, message: 'Tên nhóm không được để trống.' });
+    }
+    const team = await teamService.createOrUpdateTeamName(req.userId!, name);
+    res.json({
+      success: true,
+      message: 'Cập nhật tên nhóm thành công.',
+      team
+    });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+apiRouter.post('/team/members', async (req: AuthRequest, res: Response) => {
+  try {
+    const { email } = req.body;
+    if (!email || !email.trim()) {
+      return res.status(400).json({ success: false, message: 'Vui lòng nhập địa chỉ email của thành viên.' });
+    }
+    const result = await teamService.addMember(req.userId!, email);
+    res.json(result);
+  } catch (err: any) {
+    res.status(400).json({
+      success: false,
+      error: { code: (err as any).code || 'ADD_MEMBER_FAILED', message: err.message },
+      message: err.message
+    });
+  }
+});
+
+apiRouter.delete('/team/members/:userId', async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const result = await teamService.removeMember(req.userId!, userId);
+    res.json(result);
+  } catch (err: any) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'REMOVE_MEMBER_FAILED', message: err.message },
+      message: err.message
+    });
+  }
+});
+
+// --------------------------------------------------------------------------
+// ADMIN SUPPORT & TESTING ENDPOINTS
+// --------------------------------------------------------------------------
+apiRouter.post('/payments/simulate-instant-activation', requireAdmin, async (req: AuthRequest, res: Response) => {
+  const userId = req.body.userId || req.userId!;
+  const { planId } = req.body;
+  try {
+    const sub = await subscriptionService.activateSubscription(userId, planId || 'PERSONAL_1M', {
+      txReference: `ADMIN_ACT_${Date.now()}`
+    });
+    res.json({
+      success: true,
+      message: `Đã kích hoạt thành công gói ${sub.planName}!`,
+      subscription: sub
+    });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+apiRouter.post('/payments/simulate-expire', requireAdmin, async (req: AuthRequest, res: Response) => {
+  const userId = req.body.userId || req.userId!;
+  const prisma = getPrisma();
+  try {
+    const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000); // 1 day in the past
+    await prisma.subscription.updateMany({
+      where: { userId, status: 'ACTIVE' },
+      data: { status: 'EXPIRED', endDate: pastDate }
+    });
+    await prisma.user.update({
+      where: { id: userId },
+      data: { plan: 'FREE', planExpiresAt: pastDate }
+    });
+    res.json({
+      success: true,
+      message: 'Đã thiết lập trạng thái gói dịch vụ sang hết hạn để kiểm tra.'
+    });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 13. Cancel Auto-Renew (Does NOT immediately revoke pro privileges)
+apiRouter.post('/payments/subscription/cancel-auto-renew', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const prisma = getPrisma();
+
+  try {
+    const latestSubscription = await prisma.subscription.findFirst({
+      where: { userId, status: 'ACTIVE' },  // FUNC-002 FIX: was 'Active' — case mismatch with ACTIVE from activateSubscription()
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (latestSubscription) {
+      await prisma.subscription.update({
+        where: { id: latestSubscription.id },
+        data: { status: 'CANCELLED' }
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { plan: true, planExpiresAt: true }
+    });
+
+    const expiryFormatted = user?.planExpiresAt
+      ? new Date(user.planExpiresAt).toLocaleDateString('vi-VN')
+      : 'kết thúc chu kỳ';
+
+    res.json({
+      success: true,
+      message: `Đã hủy tự động gia hạn thành công. Bạn vẫn tiếp tục được sử dụng đầy đủ quyền lợi gói ${user?.plan || 'dịch vụ'} đến hết ngày ${expiryFormatted}.`
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 14. Resume Auto-Renew
+apiRouter.post('/payments/subscription/resume-auto-renew', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const prisma = getPrisma();
+
+  try {
+    const latestSubscription = await prisma.subscription.findFirst({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (latestSubscription) {
+      await prisma.subscription.update({
+        where: { id: latestSubscription.id },
+        data: { status: 'Active' }
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Đã khôi phục tự động gia hạn thành công.'
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 15. Admin-only manual plan assignment (Security hardened: regular users cannot self-assign)
+apiRouter.post('/auth/upgrade-plan', requireAdmin, validateBody(UpgradePlanSchema), async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { plan } = req.body;
+  const prisma = getPrisma();
+
+  try {
+    const durationDays = 30;
+    const planExpiresAt = plan === 'FREE' ? null : new Date(Date.now() + durationDays * 24 * 60 * 60 * 1000);
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        plan,
+        planExpiresAt
+      },
+      select: { id: true, name: true, email: true, role: true, plan: true, planExpiresAt: true, status: true, avatar: true }
+    });
+
+    if (plan !== 'FREE') {
+      await prisma.subscription.create({
+        data: {
+          userId,
+          planId: plan === 'TEAM' ? 'TEAM_1M' : 'PERSONAL_1M',
+          planType: plan === 'TEAM' ? 'TEAM' : 'PERSONAL',
+          planName: plan === 'TEAM' ? 'Gói Đội Ngũ (Team 1 Tháng)' : 'Gói Cá Nhân (1 Tháng)',
+          status: 'ACTIVE',
+          paymentStatus: 'PAID',
+          amount: plan === 'TEAM' ? 50000 : 15000,
+          startDate: new Date(),
+          endDate: planExpiresAt!
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `Đã cập nhật gói thành công sang ${plan}`,
+      user: updatedUser
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------
+// TODAY ENGINE: UNIFIED LIFE OPERATING SYSTEM (Zero AI)
+// --------------------------------------------------------------------------
+apiRouter.get('/today', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const prisma = getPrisma();
+
+  try {
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // Fetch in parallel
+    // PERF-001 FIX: Added filters on tasks to avoid loading ALL tasks (could be 10k+)
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const [tasks, events, habits, habitLogs, focusSessions, accounts, budgets] = await Promise.all([
+      prisma.task.findMany({
+        where: {
+          userId,
+          status: { notIn: ['Hoàn thành', 'Đã xong', 'Hủy'] },
+          OR: [
+            { dueDate: { gte: sevenDaysAgo } },
+            { dueDate: null }
+          ]
+        },
+        take: 200,
+        orderBy: { dueDate: 'asc' }
+      }),
+      prisma.calendarEvent.findMany({ where: { userId, date: todayStr } }),
+      prisma.habit.findMany({ where: { userId, status: 'Active' } }),
+      prisma.habitLog.findMany({ where: { date: todayStr } }),
+      prisma.focusSession.findMany({ where: { userId }, take: 10, orderBy: { createdAt: 'desc' } }),
+      prisma.financeAccount.findMany({ where: { userId } }),
+      prisma.budget.findMany({ where: { userId } })
+    ]);
+
+    const habitLogMap = new Map(habitLogs.map(l => [l.habitId, l]));
+
+    // Categorize Tasks
+    const overdueTasks: any[] = [];
+    const mustDoTasks: any[] = [];
+    const shouldDoTasks: any[] = [];
+    const optionalTasks: any[] = [];
+    const completedToday: any[] = [];
+
+    for (const t of tasks) {
+      if (t.status === 'Hoàn thành') {
+        completedToday.push(t);
+        continue;
+      }
+
+      if (t.dueDate && t.dueDate < todayStr) {
+        overdueTasks.push(t);
+      } else if (t.dueDate === todayStr || t.startDate === todayStr || !t.dueDate) {
+        if (t.priority === 'Khẩn cấp' || t.priority === 'Cao') {
+          mustDoTasks.push(t);
+        } else if (t.priority === 'Trung bình') {
+          shouldDoTasks.push(t);
+        } else {
+          optionalTasks.push(t);
+        }
+      }
+    }
+
+    // Process habits
+    const habitsToday = habits.map(h => ({
+      ...h,
+      completedToday: habitLogMap.has(h.id) && habitLogMap.get(h.id)?.completed
+    }));
+
+    // Financial balance summary
+    const totalBalance = accounts.reduce((sum, a) => sum + (a.balance || 0), 0);
+    const budgetWarnings = budgets.filter(b => b.limit > 0 && b.spent >= b.limit * 0.9);
+
+    res.json({
+      success: true,
+      date: todayStr,
+      summary: {
+        totalTasks: tasks.length,
+        overdueCount: overdueTasks.length,
+        mustDoCount: mustDoTasks.length,
+        todayEventsCount: events.length,
+        habitsCompletedCount: habitsToday.filter(h => h.completedToday).length,
+        habitsTotalCount: habitsToday.length,
+        totalBalance
+      },
+      schedule: events,
+      tasks: {
+        overdue: overdueTasks,
+        mustDo: mustDoTasks,
+        shouldDo: shouldDoTasks,
+        optional: optionalTasks,
+        completedToday
+      },
+      habits: habitsToday,
+      budgetWarnings
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'TODAY_ENGINE_ERROR', message: err.message },
+      message: err.message
+    });
+  }
+});
+
+// --------------------------------------------------------------------------
+// FINANCIAL TRANSACTIONS (ACID Transactional Guarantee)
+// --------------------------------------------------------------------------
+apiRouter.post('/finance/transaction', validateBody(FinanceTransactionSchema), async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    const result = await dbService.executeFinanceTransaction(userId, req.body);
+    res.json({ success: true, transaction: result });
+  } catch (err: any) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'TRANSACTION_ERROR', message: err.message },
+      message: err.message
+    });
+  }
+});
+
+// --------------------------------------------------------------------------
+// FOCUS SESSION COMPLETION WITH TIME TRACKING LINKAGE
+// --------------------------------------------------------------------------
+apiRouter.post('/focus/complete', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { title, mode, plannedDuration, actualDuration, taskId, subjectId } = req.body;
+  const prisma = getPrisma();
+
+  try {
+    const durationMins = parseFloat(actualDuration) || parseFloat(plannedDuration) || 25;
+    const durationHours = durationMins / 60;
+
+    // 1. Create focus session
+    const session = await prisma.focusSession.create({
+      data: {
+        userId,
+        title: title || 'Phiên tập trung',
+        mode: mode || 'Pomodoro',
+        status: 'Completed',
+        plannedDuration: parseFloat(plannedDuration) || 25,
+        actualDuration: durationMins,
+        startTime: new Date().toISOString()
+      }
+    });
+
+    // 2. Link & update Task actualHours if linked
+    if (taskId) {
+      const task = await prisma.task.findFirst({ where: { id: taskId, userId } });
+      if (task) {
+        await prisma.task.update({
+          where: { id: taskId },
+          data: { actualHours: { increment: durationHours } }
+        });
+      }
+    }
+
+    // 3. Link & create StudySession if linked
+    if (subjectId) {
+      const subject = await prisma.subject.findFirst({ where: { id: subjectId, userId } });
+      if (subject) {
+        await prisma.studySession.create({
+          data: {
+            userId,
+            subjectId,
+            durationMinutes: Math.round(durationMins),
+            date: new Date().toISOString().split('T')[0],
+            notes: `Phiên tập trung: ${session.title}`
+          }
+        });
+      }
+    }
+
+    // 4. Trigger automation event
+    await AutomationEngineService.triggerEvent(userId, 'focus.completed', {
+      sessionId: session.id,
+      durationMinutes: durationMins
+    });
+
+    res.json({ success: true, session });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'FOCUS_ERROR', message: err.message },
+      message: err.message
+    });
+  }
+});
+
+// --------------------------------------------------------------------------
+// DECISION ENGINE (Deterministic Mathematical Matrix Evaluation)
+// --------------------------------------------------------------------------
+apiRouter.post('/decisions/:id/select-option', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { id } = req.params;
+  const { optionId, reasoning } = req.body;
+
+  try {
+    const decision = await dbService.getUserCollection('decisions', userId);
+    const target = decision.find((d: any) => d.id === id);
+    if (!target) {
+      res.status(404).json({ success: false, message: 'Quyết định không tồn tại' });
+      return;
+    }
+
+    const updated = await dbService.updateUserCollectionItem('decisions', userId, id, {
+      selectedOptionId: optionId,
+      status: 'Decided',
+      outcome: reasoning || target.outcome
+    });
+
+    await dbService.createAuditLog(
+      userId,
+      'SELECT_DECISION_OPTION',
+      'decisions',
+      id,
+      { beforeOption: target.selectedOptionId },
+      { selectedOptionId: optionId, reasoning }
+    );
+
+    res.json({ success: true, decision: updated });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+apiRouter.post('/decisions/evaluate', async (req: AuthRequest, res: Response) => {
+  try {
+    const { criteria, options, risks, scenarios } = req.body;
+    const result = DecisionEngineService.evaluateDecision({
+      criteria: criteria || [],
+      options: options || [],
+      risks: risks || [],
+      scenarios: scenarios || []
+    });
+    res.json({ success: true, result });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message || 'Lỗi đánh giá quyết định' });
+  }
+});
+
+apiRouter.post('/decisions/:id/convert-execution', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { id } = req.params;
+
+  try {
+    const prisma = getPrisma();
+    const decision = await prisma.decision.findFirst({ where: { id, userId } });
+    if (!decision) {
+      res.status(404).json({ success: false, message: 'Quyết định không tồn tại' });
+      return;
+    }
+
+    // Convert to project & execution tasks
+    const project = await prisma.project.create({
+      data: {
+        userId,
+        name: `Triển khai: ${decision.title}`,
+        description: `Dự án thực thi từ quyết định: ${decision.problem || decision.title}`,
+        status: 'Đang làm',
+        health: 'Tốt',
+        progress: 0
+      }
+    });
+
+    const task = await prisma.task.create({
+      data: {
+        userId,
+        projectId: project.id,
+        title: `Kế hoạch hành động ban đầu - ${decision.title}`,
+        description: `Bắt đầu thực thi phương án đã chọn trong Decision Engine`,
+        status: 'Chưa làm',
+        priority: 'Cao',
+        estimatedHours: 4
+      }
+    });
+
+    await prisma.decision.update({
+      where: { id },
+      data: {
+        status: 'Executing',
+        outcome: `Dự án thực thi: ${project.name}`
+      }
+    });
+
+    res.json({ success: true, projectId: project.id, taskId: task.id });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------
+// AUTOMATION ENGINE (Deterministic Rule Evaluation)
+// --------------------------------------------------------------------------
+apiRouter.post('/automations/evaluate', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    const trigger = req.body.triggerType || req.body.event?.type || 'MANUAL';
+    const context = req.body.eventContext || req.body.event || {};
+    const results = await AutomationEngineService.triggerEvent(userId, trigger, context);
+    res.json({ success: true, result: results });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------
+// USER SETTINGS & WORKSPACE CLEANUP
+// --------------------------------------------------------------------------
+apiRouter.get('/settings', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    const settings = await dbService.getUserSettings(userId);
+    res.json(settings);
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+apiRouter.put('/settings', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    const updated = await dbService.updateUserSettings(userId, req.body);
+    res.json(updated);
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+apiRouter.post('/clear-workspace', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    await dbService.clearUserWorkspace(userId);
+    res.json({ success: true, message: 'Đã làm sạch không gian làm việc' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+apiRouter.post('/seed-sample', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    await dbService.seedUserSampleData(userId);
+    res.json({ success: true, message: 'Đã nạp dữ liệu mẫu thành công' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------
+// ADMIN CONSOLE ENDPOINTS (Admin & SuperAdmin only)
+// --------------------------------------------------------------------------
+apiRouter.get('/admin/metrics', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const prisma = getPrisma();
+    const [
+      totalUsers,
+      activeUsers,
+      freeUsers,
+      proUsers,
+      teamUsers,
+      totalOrders,
+      orders,
+      auditCount
+    ] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({ where: { status: 'ACTIVE' } }),
+      prisma.user.count({ where: { plan: 'FREE' } }),
+      prisma.user.count({ where: { plan: 'PRO' } }),
+      prisma.user.count({ where: { plan: 'TEAM' } }),
+      prisma.order.count(),
+      prisma.order.findMany({ select: { total: true } }),
+      prisma.auditLog.count()
+    ]);
+
+    const totalRevenue = orders.reduce((sum, o) => sum + (o.total || 0), 0);
+
+    res.json({
+      success: true,
+      metrics: {
+        totalUsers,
+        activeUsers,
+        plans: {
+          free: freeUsers,
+          pro: proUsers,
+          team: teamUsers
+        },
+        totalOrders,
+        totalRevenue,
+        auditCount
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+apiRouter.get('/admin/users', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { search, role, plan, status, page, limit } = req.query;
+    const result = await dbService.getUsers({
+      search: search as string,
+      role: role as string,
+      plan: plan as string,
+      status: status as string,
+      page: page ? parseInt(page as string) : 1,
+      limit: limit ? parseInt(limit as string) : 50
+    });
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+apiRouter.post('/admin/users', requireAdmin, validateBody(AdminCreateUserSchema), async (req: AuthRequest, res: Response) => {
+  try {
+    const { name, email, role, plan, temporaryPassword } = req.body;
+    const cleanEmail = email.toLowerCase().trim();
+
+    const existing = await dbService.findUserByEmail(cleanEmail);
+    if (existing) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'EMAIL_EXISTS', message: 'Email đã tồn tại trong hệ thống' },
+        message: 'Email đã tồn tại trong hệ thống'
+      });
+      return;
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(String(temporaryPassword), salt);
+
+    const newUser = await dbService.createUser({
+      name: name.trim(),
+      email: cleanEmail,
+      passwordHash,
+      role: (role || 'USER').toUpperCase() as any,
+      plan: (plan || 'FREE').toUpperCase() as any,
+      status: 'ACTIVE'
+    });
+
+    await dbService.createAuditLog(
+      req.userId!,
+      'ADMIN_CREATE_USER',
+      'users',
+      newUser.id,
+      null,
+      { email: newUser.email, role: newUser.role, plan: newUser.plan }
+    );
+
+    res.status(201).json({
+      success: true,
+      message: `Đã khởi tạo tài khoản cho ${newUser.name}`,
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        plan: newUser.plan,
+        status: newUser.status,
+        createdAt: newUser.createdAt
+      }
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+apiRouter.put('/admin/users/:id/status', requireAdmin, validateBody(AdminUpdateStatusSchema), async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  const { status, reason } = req.body;
+
+  try {
+    const user = await dbService.findUserById(id);
+    if (!user) {
+      res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+      return;
+    }
+
+    const updated = await dbService.updateUser(id, { status });
+
+    // If disabled or suspended, terminate all their active sessions immediately
+    if (status === 'DISABLED' || status === 'SUSPENDED') {
+      await dbService.deleteAllUserSessions(id);
+    }
+
+    await dbService.createAuditLog(
+      req.userId!,
+      'ADMIN_UPDATE_USER_STATUS',
+      'users',
+      id,
+      { beforeStatus: user.status },
+      { newStatus: status, reason }
+    );
+
+    res.json({ success: true, user: updated });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+apiRouter.put('/admin/users/:id/plan', requireAdmin, validateBody(AdminChangePlanSchema), async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  const { plan, durationMonths, reason } = req.body;
+
+  try {
+    const user = await dbService.findUserById(id);
+    if (!user) {
+      res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+      return;
+    }
+
+    let planExpiresAt: Date | null = null;
+    if (durationMonths && durationMonths > 0) {
+      const baseDate = user.planExpiresAt && user.planExpiresAt.getTime() > Date.now()
+        ? new Date(user.planExpiresAt)
+        : new Date();
+      baseDate.setMonth(baseDate.getMonth() + durationMonths);
+      planExpiresAt = baseDate;
+    }
+
+    const updated = await dbService.updateUser(id, {
+      plan,
+      ...(planExpiresAt ? { planExpiresAt } : {})
+    });
+
+    await dbService.createAuditLog(
+      req.userId!,
+      'ADMIN_CHANGE_USER_PLAN',
+      'users',
+      id,
+      { beforePlan: user.plan },
+      { newPlan: plan, planExpiresAt, reason }
+    );
+
+    res.json({ success: true, user: updated });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+apiRouter.put('/admin/users/:id/reset-password', requireAdmin, validateBody(AdminResetPasswordSchema), async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  const { newPassword, reason } = req.body;
+
+  try {
+    const user = await dbService.findUserById(id);
+    if (!user) {
+      res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+      return;
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(String(newPassword), salt);
+
+    await dbService.updateUser(id, { passwordHash });
+    await dbService.deleteAllUserSessions(id);
+
+    await dbService.createAuditLog(
+      req.userId!,
+      'ADMIN_RESET_PASSWORD',
+      'users',
+      id,
+      null,
+      { reason: reason || 'Admin manual password reset' }
+    );
+
+    res.json({ success: true, message: 'Đặt lại mật khẩu thành công' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+apiRouter.get('/admin/audit-logs', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const logs = await dbService.getAuditLogs(100);
+    res.json(logs);
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+const EXPORTABLE_COLLECTIONS = new Set([
+  'users',
+  'tasks',
+  'projects',
+  'orders',
+  'payments',
+  'subscriptions',
+  'habits',
+  'notes',
+  'financeAccounts',
+  'transactions',
+  'budgets',
+  'savingGoals'
+]);
+
+apiRouter.get('/admin/export/:collection', requireAdmin, async (req: AuthRequest, res: Response) => {
+  const { collection } = req.params;
+  if (!EXPORTABLE_COLLECTIONS.has(collection)) {
+    return res.status(400).json({
+      success: false,
+      message: `Danh mục '${collection}' không được phép xuất dữ liệu. Chỉ hỗ trợ các danh mục nghiệp vụ.`
+    });
+  }
+
+  try {
+    const csvContent = await dbService.exportCollectionToCSV(collection);
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename=${collection}_export_${Date.now()}.csv`);
+    res.send(csvContent);
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------
+// TASK ATTACHMENTS (CLOUDFLARE R2 & FILE STORAGE)
+// --------------------------------------------------------------------------
+apiRouter.get('/tasks/:taskId/attachments', requireAuth, async (req: AuthRequest, res: Response) => {
+  const { taskId } = req.params;
+  const userId = req.userId!;
+  const prisma = getPrisma();
+
+  try {
+    const task = await prisma.task.findUnique({ where: { id: taskId } });
+    if (!task) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy công việc này.' });
+    }
+    if (task.userId !== userId && req.userRole !== 'ADMIN' && req.userRole !== 'SUPERADMIN') {
+      return res.status(403).json({ success: false, message: 'Bạn không có quyền truy cập tệp của công việc này.' });
+    }
+
+    const attachments = await prisma.taskAttachment.findMany({
+      where: { taskId },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({ success: true, attachments });
+  } catch (err: any) {
+    console.error('GET /tasks/:taskId/attachments error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+apiRouter.post('/tasks/:taskId/attachments', requireAuth, async (req: AuthRequest, res: Response) => {
+  const { taskId } = req.params;
+  const userId = req.userId!;
+  const { fileName, fileUrl, fileSize } = req.body;
+  const prisma = getPrisma();
+
+  if (!fileName || !fileUrl) {
+    return res.status(400).json({ success: false, message: 'fileName và fileUrl là bắt buộc.' });
+  }
+
+  // SEC-005 FIX: Validate fileUrl to prevent stored XSS via malicious URLs
+  try {
+    const parsed = new URL(String(fileUrl));
+    const allowedProtocols = ['https:'];
+    if (!allowedProtocols.includes(parsed.protocol)) {
+      return res.status(400).json({ success: false, message: 'fileUrl phải dùng giao thức HTTPS.' });
+    }
+    // Block javascript:, data:, vbscript: and other dangerous protocols
+    if (['javascript:', 'data:', 'vbscript:', 'file:'].includes(parsed.protocol)) {
+      return res.status(400).json({ success: false, message: 'fileUrl không hợp lệ.' });
+    }
+  } catch {
+    return res.status(400).json({ success: false, message: 'fileUrl không phải URL hợp lệ.' });
+  }
+
+  try {
+    const task = await prisma.task.findUnique({ where: { id: taskId } });
+    if (!task) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy công việc này.' });
+    }
+    if (task.userId !== userId && req.userRole !== 'ADMIN' && req.userRole !== 'SUPERADMIN') {
+      return res.status(403).json({ success: false, message: 'Bạn không có quyền thêm tệp vào công việc này.' });
+    }
+
+    const attachment = await prisma.taskAttachment.create({
+      data: {
+        taskId,
+        fileName: String(fileName),
+        fileUrl: String(fileUrl),
+        fileSize: fileSize ? Number(fileSize) : 0
+      }
+    });
+
+    res.json({ success: true, attachment, message: 'Đã đính kèm tệp vào công việc thành công!' });
+  } catch (err: any) {
+    console.error('POST /tasks/:taskId/attachments error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+apiRouter.delete('/tasks/:taskId/attachments/:attachmentId', requireAuth, async (req: AuthRequest, res: Response) => {
+  const { taskId, attachmentId } = req.params;
+  const userId = req.userId!;
+  const prisma = getPrisma();
+
+  try {
+    const task = await prisma.task.findUnique({ where: { id: taskId } });
+    if (!task) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy công việc này.' });
+    }
+    if (task.userId !== userId && req.userRole !== 'ADMIN' && req.userRole !== 'SUPERADMIN') {
+      return res.status(403).json({ success: false, message: 'Bạn không có quyền xóa tệp của công việc này.' });
+    }
+
+    await prisma.taskAttachment.delete({ where: { id: attachmentId } });
+    res.json({ success: true, message: 'Đã xóa tệp đính kèm thành công.' });
+  } catch (err: any) {
+    console.error('DELETE attachment error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------
+// WORKSPACE DATA BACKUP & RESTORE (FULL PORTABILITY)
+// --------------------------------------------------------------------------
+apiRouter.get('/workspace/backup/export', requireAuth, async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const prisma = getPrisma();
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true, plan: true }
+    });
+
+    const [
+      tasks,
+      projects,
+      notes,
+      calendarEvents,
+      scheduleBlocks,
+      financeAccounts,
+      transactions,
+      budgets,
+      savingGoals,
+      debts,
+      habits,
+      habitLogs,
+      goals,
+      subjects,
+      studyAssignments,
+      studyExams,
+      studySessions,
+      decisions,
+      automationRules
+    ] = await Promise.all([
+      prisma.task.findMany({ where: { userId }, include: { attachments: true } }),
+      prisma.project.findMany({ where: { userId } }),
+      prisma.note.findMany({ where: { userId } }),
+      prisma.calendarEvent.findMany({ where: { userId } }),
+      prisma.scheduleBlock.findMany({ where: { userId } }),
+      prisma.financeAccount.findMany({ where: { userId } }),
+      prisma.transaction.findMany({ where: { userId } }),
+      prisma.budget.findMany({ where: { userId } }),
+      prisma.savingGoal.findMany({ where: { userId } }),
+      prisma.debt.findMany({ where: { userId } }),
+      prisma.habit.findMany({ where: { userId } }),
+      prisma.habitLog.findMany({ where: { habit: { userId } } }),
+      prisma.goal.findMany({ where: { userId }, include: { milestones: true, actions: true } }),
+      prisma.subject.findMany({ where: { userId } }),
+      prisma.studyAssignment.findMany({ where: { userId } }),
+      prisma.studyExam.findMany({ where: { userId } }),
+      prisma.studySession.findMany({ where: { userId } }),
+      prisma.decision.findMany({ where: { userId } }),
+      prisma.automationRule.findMany({ where: { userId } })
+    ]);
+
+    const backupPayload = {
+      app: 'LifeOS',
+      version: '2.0.0',
+      exportedAt: new Date().toISOString(),
+      user: {
+        id: user?.id,
+        email: user?.email,
+        name: user?.name,
+        plan: user?.plan
+      },
+      stats: {
+        tasksCount: tasks.length,
+        projectsCount: projects.length,
+        notesCount: notes.length,
+        financeCount: transactions.length,
+        habitsCount: habits.length,
+        goalsCount: goals.length
+      },
+      data: {
+        tasks,
+        projects,
+        notes,
+        calendarEvents,
+        scheduleBlocks,
+        financeAccounts,
+        transactions,
+        budgets,
+        savingGoals,
+        debts,
+        habits,
+        habitLogs,
+        goals,
+        subjects,
+        studyAssignments,
+        studyExams,
+        studySessions,
+        decisions,
+        automationRules
+      }
+    };
+
+    res.json({
+      success: true,
+      backup: backupPayload
+    });
+  } catch (err: any) {
+    console.error('GET /workspace/backup/export error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi khi xuất bản sao lưu: ' + err.message });
+  }
+});
+
+apiRouter.post('/workspace/backup/import', requireAuth, async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const prisma = getPrisma();
+  const { data, mode = 'merge' } = req.body;
+
+  if (!data || typeof data !== 'object') {
+    return res.status(400).json({ success: false, message: 'Dữ liệu sao lưu không đúng định dạng JSON.' });
+  }
+
+  try {
+    // If replace mode, clear existing collections
+    if (mode === 'replace') {
+      await prisma.$transaction([
+        prisma.taskAttachment.deleteMany({ where: { task: { userId } } }),
+        prisma.task.deleteMany({ where: { userId } }),
+        prisma.projectMilestone.deleteMany({ where: { project: { userId } } }),
+        prisma.project.deleteMany({ where: { userId } }),
+        prisma.note.deleteMany({ where: { userId } }),
+        prisma.calendarEvent.deleteMany({ where: { userId } }),
+        prisma.scheduleBlock.deleteMany({ where: { userId } }),
+        prisma.transaction.deleteMany({ where: { userId } }),
+        prisma.financeAccount.deleteMany({ where: { userId } }),
+        prisma.budget.deleteMany({ where: { userId } }),
+        prisma.savingGoal.deleteMany({ where: { userId } }),
+        prisma.debt.deleteMany({ where: { userId } }),
+        prisma.habitLog.deleteMany({ where: { habit: { userId } } }),
+        prisma.habit.deleteMany({ where: { userId } }),
+        prisma.goalMilestone.deleteMany({ where: { goal: { userId } } }),
+        prisma.goalAction.deleteMany({ where: { goal: { userId } } }),
+        prisma.goal.deleteMany({ where: { userId } }),
+        prisma.studySession.deleteMany({ where: { userId } }),
+        prisma.studyExam.deleteMany({ where: { userId } }),
+        prisma.studyAssignment.deleteMany({ where: { userId } }),
+        prisma.subject.deleteMany({ where: { userId } }),
+        prisma.decision.deleteMany({ where: { userId } }),
+        prisma.automationRule.deleteMany({ where: { userId } })
+      ]);
+    }
+
+    const importedCounts: Record<string, number> = {};
+
+    // Restore Projects
+    if (Array.isArray(data.projects)) {
+      let count = 0;
+      for (const p of data.projects) {
+        if (!p.name) continue;
+        await prisma.project.create({
+          data: {
+            userId,
+            name: p.name,
+            description: p.description || null,
+            status: p.status || 'Mới tạo',
+            health: p.health || 'Tốt',
+            progress: Number(p.progress || 0),
+            startDate: p.startDate || null,
+            deadline: p.deadline || null,
+            budget: Number(p.budget || 0),
+            color: p.color || '#3b82f6'
+          }
+        });
+        count++;
+      }
+      importedCounts.projects = count;
+    }
+
+    // Restore Tasks
+    if (Array.isArray(data.tasks)) {
+      let count = 0;
+      for (const t of data.tasks) {
+        if (!t.title) continue;
+        await prisma.task.create({
+          data: {
+            userId,
+            title: t.title,
+            description: t.description || null,
+            status: t.status || 'Chưa làm',
+            priority: t.priority || 'Trung bình',
+            dueDate: t.dueDate || null,
+            startDate: t.startDate || null,
+            estimatedHours: Number(t.estimatedHours || 0),
+            actualHours: Number(t.actualHours || 0),
+            tags: typeof t.tags === 'string' ? t.tags : (Array.isArray(t.tags) ? t.tags.join(', ') : null),
+            recurring: t.recurring || t.recurrence || null
+          }
+        });
+        count++;
+      }
+      importedCounts.tasks = count;
+    }
+
+    // Restore Notes
+    if (Array.isArray(data.notes)) {
+      let count = 0;
+      for (const n of data.notes) {
+        if (!n.title) continue;
+        await prisma.note.create({
+          data: {
+            userId,
+            title: n.title,
+            content: n.content || '',
+            folder: n.folder || 'Ghi chú chung',
+            category: n.category || 'Cá nhân',
+            pinned: Boolean(n.pinned),
+            tags: typeof n.tags === 'string' ? n.tags : JSON.stringify(n.tags || [])
+          }
+        });
+        count++;
+      }
+      importedCounts.notes = count;
+    }
+
+    // Restore Habits
+    if (Array.isArray(data.habits)) {
+      let count = 0;
+      for (const h of data.habits) {
+        if (!h.name) continue;
+        await prisma.habit.create({
+          data: {
+            userId,
+            name: h.name,
+            category: h.category || 'Personal',
+            target: Number(h.target || 1),
+            unitLabel: h.unitLabel || 'lần',
+            streak: Number(h.streak || 0),
+            bestStreak: Number(h.bestStreak || 0),
+            status: h.status || 'Active',
+            completedDates: typeof h.completedDates === 'string' ? h.completedDates : JSON.stringify(h.completedDates || [])
+          }
+        });
+        count++;
+      }
+      importedCounts.habits = count;
+    }
+
+    // Restore Goals
+    if (Array.isArray(data.goals)) {
+      let count = 0;
+      for (const g of data.goals) {
+        if (!g.title) continue;
+        await prisma.goal.create({
+          data: {
+            userId,
+            title: g.title,
+            category: g.category || 'Personal',
+            progress: Number(g.progress || 0),
+            status: g.status || 'In Progress',
+            targetValue: Number(g.targetValue || 100),
+            currentValue: Number(g.currentValue || 0),
+            deadline: g.deadline || null,
+            tier: g.tier || 'Tier 1'
+          }
+        });
+        count++;
+      }
+      importedCounts.goals = count;
+    }
+
+    // Restore Finance Accounts & Transactions
+    if (Array.isArray(data.financeAccounts)) {
+      let count = 0;
+      for (const a of data.financeAccounts) {
+        if (!a.name) continue;
+        await prisma.financeAccount.create({
+          data: {
+            userId,
+            name: a.name,
+            type: a.type || 'Tiền mặt',
+            balance: Number(a.balance || 0),
+            currency: a.currency || 'VND',
+            color: a.color || '#10b981'
+          }
+        });
+        count++;
+      }
+      importedCounts.financeAccounts = count;
+    }
+
+    await dbService.createAuditLog(
+      userId,
+      'USER_IMPORT_WORKSPACE_BACKUP',
+      'workspace',
+      userId,
+      null,
+      { mode, importedCounts }
+    );
+
+    res.json({
+      success: true,
+      message: 'Nhập dữ liệu sao lưu thành công!',
+      importedCounts
+    });
+  } catch (err: any) {
+    console.error('POST /workspace/backup/import error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi khi nhập dữ liệu sao lưu: ' + err.message });
+  }
+});
+

@@ -1,0 +1,537 @@
+ để tạo ngay vào workspace cá nhân.
+% hoàn thành` : '0 việc hôm nay
+% kỷ luật` : '0 thói quen
+. Các phiên đăng nhập hiện tại sẽ bị hủy ngay lập tức.
+. Khách hàng đã được thông báo kèm lý do.
+. Nó tự động chuyển đổi sang Công việc (Task), Dự án (Project) và Lịch trình.
+.join(' AND ') || 'Tất cả điều kiện
+/ năm` : '0 ₫ (Không áp dụng
+/năm
+/tháng
+1. Bộ Tiêu chí Đánh giá (Criteria Engine
+2. Ma trận So sánh Trọng số (Weighted Decision Matrix
+3. Lựa chọn Phương án (Option Selection
+: '0 ₫ (Không tốn chi phí
+: 'Chi tiêu hôm nay
+: 'Ghi chi tiêu nhanh: /expense [số tiền] [nội dung
+: 'Khởi tạo Lĩnh vực / Module Động Mới
+? 'Không có kết quả khớp với bộ lọc hiện tại. Thử đổi tiêu chí tìm kiếm.
+APPROVED — Đã duyệt
+Biểu tượng cờ quốc gia (Emoji) *
+Bước 2: Quét mã QR chuyển khoản
+Bạn vẫn được sử dụng
+Bắt đầu:
+Bởi:
+CANCELLED — Đã hủy
+Category (Lĩnh vực
+Chưa có mục tiêu nào trong kho lưu trữ.
+Chưa có phiên làm việc nào được ghi nhận.
+Chưa có sự kiện nào trong những ngày tới.
+Chưa có thành viên nào trong nhóm. Nhập email ở trên để thêm thành viên đầu tiên.
+Chưa có tệp nào được đính kèm. Bạn có thể tải lên tài liệu, hình ảnh, PDF để lưu trữ không giới hạn trên R2.
+Chưa kết nối
+Chọn Gói Dịch Vụ Phù Hợp
+Chọn các mẫu tự động hóa được tối ưu sẵn cho Task, Tài chính, Dự án & Học tập
+Chọn gói dịch vụ LifeOS trực tuyến
+Chọn phương thức phục hồi:
+Chọn ảnh hoặc tài liệu bất kỳ để tải trực tiếp lên Cloudflare R2 Bucket
+Constraints? — Các điều kiện khống chế (Mỗi dòng 1 điều kiện
+Các Item Khớp Điều kiện & Hành động Sẽ Diễn Ra:
+Các Luật Tự Động Đang Hoạt Động
+Các biên lai thanh toán bản quyền SaaS trực tuyến
+Các luật chạy định kỳ tự động: Sáng (07:00 Kế hoạch Ngày), Tối (Đánh giá hoàn thành) & Hàng tuần
+Cấu hình tài khoản nhận tiền chuyển khoản của khách hàng khi nâng cấp gói trực tuyến. Không cần hardcode trong mã nguồn.
+Cấu trúc WHEN [Trigger] → IF [Condition] → THEN [Action] | Minh bạch • Không cần AI • Phân tầng Bảo mật Safe-Guard
+Cấu trúc trường
+Cập nhật gần đây
+Danh Sách Thành Viên
+Danh mục:
+Danh sách Rủi ro cho:
+Danh sách Trường Dữ liệu
+Danh sách các phiên làm việc và thiết bị đang đăng nhập tài khoản của bạn.
+Danh sách các yêu cầu thanh toán và hóa đơn đăng ký gói dịch vụ LifeOS
+Danh sách ngôn ngữ
+Danh sách tính năng
+Danh sách tập tin đã lưu trên R2
+Deadline ra Quyết định
+Decision Knowledge Base — Kho thư viện Quyết định Cá nhân
+Decision Review — Đánh giá Dự kiến vs Thực tế (Expected vs Actual
+Duyệt thanh toán QR, quản lý gói dịch vụ, ngôn ngữ hệ thống, người dùng và thông tin ngân hàng
+Dành cho nhóm làm việc. Chủ team được thêm tối đa 5 người dùng cùng dùng đầy đủ tính năng.
+Dự báo & Đánh giá Tác động Phương án
+Dự án & Nhiệm vụ
+Ghi chép minh bạch chi tiết mọi lượt chạy tự động, biến đổi trạng thái và người phê duyệt
+Ghi chép nhanh các sự kiện, việc quan trọng, ý tưởng phát sinh và suy ngẫm trong ngày.
+Ghi chú thêm (Tên người gửi / Mã tham chiếu giao dịch ngân hàng nếu có
+Ghi chú được ghim
+Ghi nhận giao dịch thực tế vào tài khoản ngay
+Giá Gói / Chu kỳ (VND) *
+Giá Hàng Năm (VND, tùy chọn
+Giá mới sẽ áp dụng cho tất cả lượt mua sau thời điểm này. Các đơn hàng/yêu cầu chuyển khoản đã tạo trước đó vẫn giữ nguyên mức giá cũ.
+Giả lập kịch bản tiến độ
+Giữ gói dịch vụ
+Goal Liên quan (Optional
+Goal Score Trung bình:
+Gói bản quyền và thời hạn sử dụng sẽ được tự động kích hoạt cho khách hàng ngay lập tức.
+Gói hiện tại:
+Gỡ mã
+Gợi ý lý do nhanh:
+Gợi ý ngôn ngữ phổ biến:
+Hiển thị theo module:
+Hoàn thành các hành động cụ thể để trực tiếp thúc đẩy tiến độ các mục tiêu.
+Huy hiệu (Badge
+HÀNG NGÀY
+Hàng chờ Phê duyệt Level 3 (Sensitive Confirmations
+Hành động #
+Hạn chót:
+Hạn ra QĐ:
+Hạn:
+Hệ thống hỗ trợ Admin tạo không giới hạn các module lĩnh vực tùy biến theo mô hình dữ liệu động (Dynamic Schema).
+Hệ thống phân tích bài toán, lập ma trận trọng số, quản trị rủi ro & mô phỏng kịch bản ra quyết định.
+Hệ thống đã phân tích tệp sao lưu (Phiên bản:
+Hệ thống đã thêm sự kiện Deep Work tương ứng vào Lịch trình cá nhân của bạn.
+Họ và tên *
+Hỗ trợ chọn ảnh từ máy tính/điện thoại tải trực tiếp lên Cloudflare R2 hoặc dán liên kết URL.
+Hủy đơn hàng này
+Impact Analysis & Opportunity Cost (Chi phí cơ hội
+Khung giờ:
+Khám phá Thư viện Mẫu
+Khôi phục hoặc xóa vĩnh viễn các ghi chú đã lưu trữ hoặc tạm xóa.
+Không có phí vận chuyển. Quyền sử dụng được cấp ngay cho tài khoản của bạn.
+Không có sự kiện nào được lên lịch cho hôm nay.
+Không có yêu cầu thanh toán nào
+Không khả dụng
+Không đạt Must-Have
+Khảo sát cá nhân hóa LifeOS
+Khắc phục
+Khởi tạo Quyết định Mới (Problem Definition
+Khởi tạo:
+Kiểm thử Kích hoạt Ngay
+Kiểm tra điều kiện kích hoạt của luật đối chiếu trực tiếp với dữ liệu thực tế trong Life OS.
+Kích hoạt Ngay
+Kích hoạt, tắt hoặc đặt ngôn ngữ mặc định. Người dùng có thể chuyển đổi giữa các ngôn ngữ đang hoạt động.
+Kết nối dịch vụ lưu trữ đám mây Cloudflare R2 để lưu ảnh đại diện, hóa đơn, chứng từ và file đính kèm với chi phí 0đ truyền tải (Zero Egress Fees).
+Kết quả Kiểm thử:
+Kết quả Phân tích Tác động Thực tế
+Kết quả tìm kiếm cho:
+Liên kết & Backlinks
+Làm lại khảo sát cá nhân hóa (Onboarding
+Làm sạch Workspace của tôi
+Lý do từ chối *
+Lưu Nhận xét
+Lưu Review Đánh giá Thực tế
+Lưu Trữ Tập Tin Cloudflare R2 (S3 Compatible
+Lưu kết quả
+Lưu trữ toàn bộ lịch sử các quyết định theo Năm & Category để rút kinh nghiệm cho tương lai.
+Lịch Sử Đơn Hàng & Giao Dịch
+Lịch biểu & Giờ vàng Deep Work
+Lịch sử Hóa đơn & Giao dịch
+Lịch sử Phiên bản
+Lịch sử hôm nay
+Lịch sử yêu cầu
+Lịch sử yêu cầu thanh toán & Nâng cấp
+Lịch sử Đơn hàng
+MÔ PHỎNG AN TOÀN
+Mã Ngân Hàng VietQR (Bank Code) *
+Mã chuẩn VietQR (ví dụ: MB, VCB, TCB, ACB, BIDV, VPB, TPB, STB, VIB
+Mã khôi phục (Reset Token
+Mã ngôn ngữ (ISO Code, ví dụ: fr, de, es, zh) *
+Mô hình Đăng ký Dịch vụ LifeOS
+Mô hình đánh giá rủi ro 2 chiều:
+Mô tả chức năng module
+Mô tả gói *
+Mật khẩu (tối thiểu 6 ký tự) *
+Mật khẩu mới (tối thiểu 6 ký tự
+Mỗi tài khoản lưu trữ dữ liệu hoàn toàn độc lập và riêng biệt trên PostgreSQL. Bạn có thể nạp dữ liệu mẫu để thử nghiệm hoặc làm sạch dữ liệu của riêng tài khoản này.
+Mở App Ngân hàng bất kỳ để quét mã tự động
+Mở Matrix
+Mở khóa 100% chức năng: Quản lý Công việc, Lịch biểu, Tài chính, Thói quen, Decision Engine và Tự động hóa.
+Mở rộng tức thì
+Mục tiêu Tiết kiệm & Nợ
+Mục tiêu cần chú ý ngay
+Mục tiêu trọng tâm
+Mục tiêu ưu tiên
+Mức độ Quan trọng (Importance
+Mức độ nỗ lực:
+Ngân sách tháng
+Ngân sách:
+Nhóm #
+Nhập địa chỉ email của bạn để nhận liên kết hoặc mã khôi phục mật khẩu.
+Nhật ký Ghi chú Hàng ngày (Daily Notes
+Nhật ký Lịch sử & Audit Log
+Nâng cấp gói ngay
+Nạp Dữ liệu Mẫu
+Nội dung Chi tiết
+Nội dung chuyển khoản chính xác:
+PENDING — Chờ xác nhận
+Phiên hiện tại
+Phát hiện Xung đột Luật (Conflict Engine
+Phân loại
+Phân tích Matrix
+Phân tích trade-off đa chiều: Khi chọn Option A, bạn từ bỏ những nguồn lực và lợi ích gì từ các phương án khác?
+Phân tích tác động thực tế của từng phương án lên ngân sách, thời lượng và rủi ro trước khi thực thi.
+Phê duyệt & Chạy
+Phần mềm sử dụng online, không giao hàng vật lý. Quét mã QR chuyển khoản và gửi yêu cầu để quản trị viên kiểm tra và duyệt nhanh.
+Phần mềm trực tuyến LifeOS - Kích hoạt quyền sử dụng công cụ trực tuyến
+Project Liên quan (Optional
+Quay lại trang chủ
+Quay lại Đăng nhập
+Quy trình ra Quyết định (Decision Lifecycle Pipeline
+Quy tắc Ra quyết định
+Quyết định Quan trọng & Sắp đến hạn
+Quét mã QR bằng ứng dụng ngân hàng bất kỳ để thanh toán nhanh
+Quản lý Gói Dịch vụ & Đội ngũ
+Quản lý Lĩnh vực & Module Động (No-Code Extensions
+Quản lý Tài chính & Ví
+Quản lý Tất cả Luật Tự động
+Quản lý thông tin định danh, gói đăng ký SaaS trực tuyến và lịch sử thanh toán
+Quản lý toàn diện Công việc, Tài chính, Học tập, Mục tiêu và Admin Dashboard Quản trị SaaS. Tích hợp Decision Engine & Template Library mạnh mẽ.
+Quản lý Đội ngũ
+Quản trị & Lên kế hoạch Dự án
+REJECTED — Từ chối
+Restore bản này
+Risk Engine — Quản trị & Dự báo Rủi ro
+Risk Score = Xác suất (Probability 1-5) × Mức độ tác động (Impact 1-5
+Risk Score = Xác suất (Probability 1-5) × Mức độ tác động (Impact 1-5)
+Rủi ro cao / Quan trọng
+Sau khi quyết định được thực hiện, ghi nhận sai lệch chi phí, lợi ích thực tế để đo lường Decision Accuracy.
+Sau ngày này, tài khoản sẽ tự động chuyển về gói Miễn phí (FREE) mà
+Slug định danh URL
+So sánh Trực tiếp Phương án (Side-by-Side Comparison
+Streak tổng:
+Sản phẩm phần mềm & mẫu quy trình kỹ thuật số (Kích hoạt trực tuyến ngay sau khi thanh toán
+Số Tài Khoản Nhận Tiền *
+Số lượng:
+Sức khỏe ban đầu
+Sức khỏe:
+Sử dụng 90 ngày liên tục với chi phí ưu đãi nhất cho cá nhân.
+Sử dụng Template này
+Sử dụng các cấu trúc mẫu đã được tối ưu hóa cho công việc, học tập và quản trị bản thân.
+Sự kiện hôm nay
+Tags Nổi bật
+Thanh Toán Nâng Cấp Gói
+Thanh toán Hàng tháng
+Thao tác này sẽ làm sạch các bản ghi trong không gian làm việc của bạn để bắt đầu chu kỳ ghi nhận mới từ đầu. Các cấu hình tài khoản và phân quyền sẽ được giữ nguyên. Bạn có chắc chắn muốn tiếp tục không?
+Theo dõi tiến độ, sức khỏe và ngân sách các mục tiêu lớn
+Theo dõi trạng thái duyệt của các khoản thanh toán chuyển khoản của bạn
+Thêm Bài tập
+Thêm Công việc Thực tế
+Thêm Cột mốc (Milestone) mới cho Mục tiêu
+Thêm Giao dịch
+Thêm Hành động
+Thêm Môn
+Thêm Nhóm Điều kiện
+Thêm Thành Viên Vào Nhóm
+Thêm bất kỳ lĩnh vực quản lý mới (Bất động sản, Hợp đồng, Xe cộ, Kho sách, Thú cưng,...) trực tiếp từ giao diện Admin mà không cần viết thêm code. Module mới sẽ tự động hiển thị trong thanh menu của người dùng.
+Thêm công việc thực tế
+Thêm Điều kiện
+Thông tin Gói hiện tại
+Thông tin thanh toán ngân hàng
+Thư viện Luật Mẫu Chuẩn Life OS
+Thư viện Mẫu Mục tiêu chuẩn
+Thống kê & Dòng chảy Tri thức
+Thời gian thao tác thủ công giảm bớt
+Thời lượng ước tính (h
+Thực thi Mục tiêu hôm nay
+Thực thi danh sách hôm nay
+Thực:
+Tiến độ hiện tại
+Tiến độ:
+Tiếp tục Focus
+Tiết kiệm 20%
+Tiền Tố Nội Dung Chuyển Khoản *
+Toàn bộ thành viên và chủ team hiện bị tạm khóa quyền sử dụng các tính năng trả phí. Vui lòng gia hạn gói Team để tiếp tục sử dụng.
+Toàn quyền sử dụng
+Trường #
+Trạng thái bán *
+Trạng thái tài khoản
+Trải nghiệm đầy đủ hệ thống quản trị cá nhân LifeOS trong 30 ngày.
+Tác giả:
+Tác vụ Chạy theo Lịch trình (Scheduled Jobs
+Tên Chủ Tài Khoản (In hoa không dấu) *
+Tên Ngân Hàng Thụ Hưởng *
+Tên Quyết định (Decision Title) *
+Tên công việc
+Tên dự án *
+Tên gói *
+Tên lĩnh vực / Module
+Tên ngôn ngữ *
+Tên thói quen *
+Tính toán chính xác số dư thực tế sau khi chi tiêu, kiểm tra hạn mức ngân sách tháng và ghi nhận trực tiếp vào tài khoản của bạn.
+Tính toán ngày hoàn thành thực tế dự kiến dựa trên tốc độ thực thi mục tiêu của bạn.
+Tạo Daily Note hôm nay
+Tạo Decision & Xây Ma trận
+Tạo Decision mới
+Tạo Mục tiêu mới
+Tạo Task Thực thi ngay
+Tạo công việc ngay
+Tạo dự án đầu tiên
+Tạo nhanh ghi chú theo định dạng chuẩn hóa để tích hợp với hệ thống công việc.
+Tải lại trang
+Tất cả chức năng LifeOS đều yêu cầu gói trả phí đang hoạt động. Bạn có thể chọn gói cá nhân linh hoạt hoặc gói đội ngũ để cùng cộng tác.
+Tất cả các chức năng đều như nhau khi có gói dịch vụ còn hạn. Không giới hạn chức năng riêng lẻ.
+Tối đa 5 người dùng
+Tối đa 5 người dùng. Thành viên được thêm sẽ lập tức được kích hoạt toàn bộ tính năng trả phí.
+Tổng Chi phí Dự kiến
+Tổng quan hôm nay
+Tổng trọng số:
+Từ Chối Yêu Cầu Thanh Toán
+Tự động rà soát các luật mâu thuẫn về Trạng thái hoặc có nguy cơ Vòng lặp vô tận (Infinite Loop Risk
+Tự động xử lý trong 24h qua
+Vai trò:
+Vui lòng chuyển khoản đúng số tiền và nội dung chuyển khoản bên dưới để hệ thống nhận diện yêu cầu nhanh nhất.
+Vui lòng chờ quản trị viên xác nhận thanh toán. Hệ thống sẽ kiểm tra giao dịch và tự động kích hoạt gói ngay khi được phê duyệt.
+Vui lòng cung cấp lý do từ chối để khách hàng nắm rõ và có thể thử lại hoặc bổ sung giao dịch.
+Về Bảng điều khiển
+Về Trang chủ
+What? — Vấn đề cần giải quyết (Problem Statement) *
+Why? — Tại sao phải quyết định? (Context & Purpose
+Xem Chi Tiết & Mua Gói
+Xem trước Luồng Thực thi Tự động
+Xung đột giữa
+Xuất toàn bộ công việc, dự án, ghi chú, giao dịch tài chính, thói quen và mục tiêu ra file JSON tiêu chuẩn để lưu trữ an toàn hoặc chuyển đổi thiết bị.
+Xác nhận Duyệt Thanh Toán
+Xác nhận hủy tự động gia hạn?
+Xác nhận làm sạch
+Xác nhận mật khẩu *
+Xác nhận đơn hàng trực tuyến
+Xác nhận đặt lại
+Xác định rõ bản chất bài toán, lý do, hạn chót và rào cản khống chế trước khi xây dựng ma trận phương án.
+Xây dựng quy tắc tự động hóa tùy biến cho bất kỳ module nào trong Life OS
+Xây dựng tính kỷ luật hàng ngày thông qua chuỗi streak nhất quán
+Yêu cầu đã được gửi thành công!
+action: 'Khởi tạo Quyết định mới
+alert('Không có dữ liệu giao dịch để xuất.
+alert('Không thể tải tệp lên: ' + uploadErr.message
+alert('Kích thước tệp không được vượt quá 20MB
+alert('Kích thước ảnh không được vượt quá 10MB
+alert('Lỗi khi xóa tệp: ' + err.message
+alert('Lỗi khi đọc tệp: ' + err.message
+alert('Lỗi khi đọc ảnh: ' + err.message
+alert(err.message || 'Không thể hủy yêu cầu.
+alert(err.message || 'Không thể xóa tập tin
+badge: 'Chi tiêu
+badge: 'Dành cho Đội ngũ
+badge: 'Nhiệm vụ
+badge: 'Phổ biến nhất
+badge: 'Tiết kiệm
+badge: d.importance || 'Chiến lược
+badge: t.priority || 'Trung bình
+badge: tr.type || 'Giao dịch
+bankName: 'MBBank (Ngân hàng TMCP Quân Đội
+benefits: ['Dễ thực hiện
+benefits: ['Đáp ứng 90% yêu cầu', 'Tiết kiệm chi phí
+bản ghi...
+category: 'Học tập
+category: 'Lệnh nhanh
+category: 'Phát triển bản thân
+category: 'Quyết định
+category: 'Sự nghiệp
+category: 'Ăn uống / Sinh hoạt
+category: 'Điều hướng
+category: goal?.category || 'Phát triển bản thân
+category: template ? template.category : 'Tổng hợp
+chỗ trống
+chờ Admin duyệt
+console.warn('Lỗi khi tải cấu hình ngân hàng:', err
+console.warn('Lỗi khi tải danh sách yêu cầu thanh toán:', err
+console.warn('Lỗi khi tải lịch sử kiểm toán gói:', err
+const cat = n.category || 'Khác
+const desc = rawParts.slice(1).join(' ') || 'Chi tiêu nhanh
+const headers = ['Mã Đơn', 'Mã Giao Dịch', 'Email Khách Hàng', 'Tên Khách Hàng', 'Gói', 'Chu Kỳ', 'Số Tiền (VND)', 'Trạng Thái', 'Thời Gian Tạo', 'Người Duyệt', 'Thời Gian Duyệt', 'Ghi Chú
+constraints: ['Ngân sách hợp lý
+constraints: constraintsArray.length > 0 ? constraintsArray : ['Nguồn lực thời gian & ngân sách hợp lý
+cột mốc được thiết lập
+desc: 'Hợp đồng, tiến độ khách hàng, portfolio & thanh toán
+desc: 'Quản lý OKR, dự án cơ quan, báo cáo tuần & họp
+desc: 'Theo dõi môn học, thời khóa biểu, ôn thi & bài tập
+description: 'Giải pháp tiêu chuẩn đảm bảo mục tiêu với chi phí vừa phải.
+description: 'Khi Bài thi (Exam) còn 3 ngày đến hạn → Tự khởi tạo 2 Phiên Tập trung Pomodoro trong Lịch trình
+description: 'Khi Ngân sách danh mục tiêu tốn trên 80% → Tạo Cảnh báo rủi ro & gửi Cảnh báo hạn mức
+description: 'Khi Task còn 24h trước deadline mà chưa Hoàn thành → Tự tăng Ưu tiên lên Cao và gửi Thông báo Cảnh báo
+description: 'Khi có Task hoàn thành thuộc Dự án → Tính toán tỷ lệ % hoàn thành mới của Project
+description: 'Khi mua sắm lớn hơn 10,000,000 VND → Tự khởi tạo bài phân tích Đánh giá Quyết định Mua sắm trong Decision Engine
+description: 'Khi tạo khoản Chi tiêu vượt 5,000,000 VND → Tạm dừng thực thi và đưa vào Hàng chờ Phê duyệt Safe Guard
+description: 'Lộ trình chuẩn hóa 4 kỹ năng tiếng Anh trong 90 ngày.
+description: 'Lựa chọn mặc định
+description: 'Mỗi sáng lúc 07:00 → Tự động gom Lịch trình + Deadline + Habit thành Bảng Kế hoạch Ngày
+description: 'Mỗi tháng đọc xong 1 cuốn sách và viết tóm tắt.
+description: 'Phương pháp Cornell: Cột từ khóa, Ghi chép chính, và Tóm tắt cuối bài.
+description: 'Quản lý tài chính cá nhân tích lũy dòng tiền dự phòng.
+description: 'Sau khi hoàn thành phiên Pomodoro → Tự động cập nhật thời gian thực hiện thực tế vào Task liên kết
+description: 'Tài liệu khởi tạo dự án: Mục tiêu, Phạm vi, Quyết định & Rủi ro.
+description: builderDescription.trim() || 'Tự động hóa tác vụ theo cấu hình WHEN-IF-THEN
+description: forecastNote || 'Chi tiêu thực tế
+details: 'Trạng thái khớp điều kiện TRIGGER & CONDITION
+details: 'Xác định bài toán và đưa vào hệ thống Decision Engine.
+dự án đang chạy
+gián đoạn
+h / ngày
+health: 'Tốt
+hoàn thành` : 'Chưa có mục tiêu
+hành động được thiết lập
+if (selections.budget.includes('Dưới 5')) return 4500000
+if (selections.budget.includes('Trên 20')) return 25000000
+label: 'Học sinh / Sinh viên
+label: 'Người đi làm
+lessonsLearned: revLessons || 'Nên chuẩn bị thêm ngân sách dự phòng.
+let msg = 'Email/Tên đăng nhập hoặc mật khẩu không chính xác.
+luật đang tạm tắt
+m tiết kiệm
+message: err.message || 'Có lỗi xảy ra khi áp dụng mẫu. Vui lòng thử lại.
+msg = 'Bạn đã nhập sai quá nhiều lần. Vui lòng thử lại sau 15 phút hoặc liên hệ Admin.
+msg = err.message || 'Tài khoản của bạn đã bị tạm khóa hoặc vô hiệu hóa.
+name: 'Gói Cá Nhân (1 Tháng
+name: 'Gói Cá Nhân (3 Tháng
+name: 'Gói Đội Ngũ (Team 1 Tháng
+name: 'Phương án A
+name: 'Phương án A (Tối ưu nguồn lực
+ngày
+ngày sử dụng` : 'Hết hạn truy cập
+ngày` : '0 ngày
+nhược điểm
+note: transferNote || 'Khách hàng báo đã hoàn tất chuyển khoản
+notes: 'Tạo từ Spotlight
+phiên đã bắt đầu
+priority: 'Trung bình
+priority: task?.priority || 'Trung bình
+problemStatement: 'Chưa có quyết định nào được chọn.
+projectName: 'Dự án Công việc & Tối ưu Năng suất
+projectName: 'Dự án Khách hàng & Phát triển Thương hiệu
+projectName: 'Kế hoạch Học tập & Phát triển Kỹ năng
+reason: interruptionReason || 'Không rõ
+result: 'Người dùng đã từ chối thực thi
+result: 'Đã phê duyệt và thi hành tác vụ thành công
+setCouponError('Mã giảm giá không hợp lệ hoặc đã hết hạn.
+setCouponError(err.message || 'Mã giảm giá không hợp lệ.
+setError('Vui lòng nhập họ và tên của bạn.
+setError('Vui lòng nhập tên module.
+setError('Vui lòng nhập địa chỉ email.
+setError(err.message || 'Không thể tải danh sách module.
+setError(err.message || 'Không thể tải dữ liệu module.
+setError(err.message || 'Không thể xóa bản ghi.
+setError(err.message || 'Lỗi khi lưu bản ghi.
+setError(err.message || 'Lỗi khi lưu module.
+setError(err.message || 'Lỗi khi xóa module.
+setError(err?.message || 'Không thể gửi yêu cầu đặt lại mật khẩu.
+setError(err?.message || 'Không thể đặt lại mật khẩu.
+setErrorMessage('Kích thước ảnh chụp biên lai không được vượt quá 8MB
+setErrorMessage(err.message || 'Không thể tạo phiên thanh toán. Vui lòng thử lại.
+setErrorMessage(err.message || 'Lỗi khi gửi yêu cầu. Vui lòng thử lại.
+setErrorMessage(err.message || 'Lỗi khi tải ảnh biên lai
+setSuccess('Cập nhật bản ghi thành công!
+setSuccess('Cập nhật module thành công!
+setSuccess('Thêm bản ghi mới thành công!
+setSuccess('Đã xóa bản ghi thành công!
+setSuccess(res.message || 'Tạo module mới thành công!
+setSuccessMsg(res.message || 'Hướng dẫn đặt lại mật khẩu đã được gửi.
+showToast('Vui lòng nhập tên luật tự động
+showToast('Đã cập nhật Luật Tự động thành công!
+showToast('Đã phê duyệt thực thi thành công!
+showToast('Đã tạo Luật Tự động mới thành công!
+showToast('Đã từ chối thực thi tác vụ
+showToast('Đã xóa luật
+showToast('Đã xóa luật tự động
+status: event?.status || 'Đã lên lịch
+subjects: ['Toán & Tư duy Logic (MATH101)', 'Tiếng Anh & Giao tiếp (ENG201
+subtitle: 'Nhảy nhanh đến trang này
+subtitle: 'Nhấn Enter để thêm ngay vào danh sách việc cần làm
+subtitle: 'VD: /expense 50000 Ăn sáng
+syncMessage: 'Đang áp dụng cấu hình và tạo không gian làm việc...
+syncMessage: 'Đã hoàn tất cấu hình không gian làm việc cá nhân!
+tasks: ['Chuẩn bị báo giá & hợp đồng khách mới', 'Lên lịch nội dung & cập nhật portfolio', 'Nghiệm thu dự án & đối soát thanh toán
+tasks: ['Lập kế hoạch OKR và đầu việc trọng tâm tuần', 'Tối ưu quy trình & checklist bàn giao', 'Tổng hợp báo cáo tuần và đề xuất cải tiến
+tasks: ['Tổng hợp giáo trình & đề cương kỳ này', 'Lập thời khóa biểu học & bài tập tuần', 'Luyện tập Tiếng Anh chuyên ngành
+text: 'Cloudflare R2 chưa được cấu hình. Vui lòng thêm các biến R2 vào file .env hoặc Vercel Settings.
+text: 'Cập nhật cấu hình thông tin ngân hàng thành công!
+text: 'Yêu cầu thanh toán đã được ghi nhận thành công! Vui lòng chờ quản trị viên duyệt để kích hoạt gói.
+text: 'Đã đồng bộ và cập nhật danh sách gói dịch vụ về chuẩn chính thức thành công!
+text: err.message || 'Không thể thêm thành viên. Vui lòng kiểm tra lại.
+text: err.message || 'Lỗi khi duyệt thanh toán
+text: err.message || 'Lỗi khi lưu cấu hình
+text: err.message || 'Lỗi khi tải tập tin lên R2.
+text: err.message || 'Lỗi khi từ chối yêu cầu
+text: res.message || 'Đã hủy tự động gia hạn thành công. Bạn vẫn giữ trọn quyền sử dụng gói dịch vụ đến hết chu kỳ.
+throw new Error('Tệp không đúng định dạng sao lưu của LifeOS.
+throw new Error(res?.message || 'Gửi yêu cầu thanh toán không thành công.
+throw new Error(res?.message || 'Không thể cập nhật gói
+throw new Error(res?.message || 'Không thể duyệt thanh toán.
+throw new Error(res?.message || 'Không thể khôi phục gói
+throw new Error(res?.message || 'Không thể lưu cấu hình ngân hàng
+throw new Error(res?.message || 'Không thể tạo phiên thanh toán.
+throw new Error(res?.message || 'Không thể tải file lên R2
+throw new Error(res?.message || 'Không thể từ chối yêu cầu.
+throw new Error(res?.message || 'Không thể xóa ngôn ngữ
+throw new Error(res?.message || 'Không thể áp dụng mẫu
+title: 'Chi tiêu > 10M → Tự tạo Decision Review
+title: 'Chuẩn bị Kế hoạch Ngày mỗi Sáng 07:00
+title: 'Cảnh báo Task sắp trễ hạn & Đẩy Priority lên Cao
+title: 'Cảnh báo Vượt Ngân sách 80%
+title: 'Hoàn thành Phiên Focus → Cộng Actual Hours vào Task
+title: 'Hoàn thành Task → Tự tính lại Progress Dự án
+title: 'Học sinh / Sinh viên
+title: 'Lựa chọn chiến lược
+title: 'Mục mới
+title: 'Người đi làm
+title: 'Phê duyệt Khoản chi lớn (> 5M) Level 3 Confirmation
+title: 'Thi thi Học tập/Sắp thi → Tự lên Lịch Cần tập trung
+title: 'Tiết kiệm 50.000.000 VNĐ Quỹ Khẩn cấp
+title: 'Đạt IELTS 7.0 Quốc tế
+title: 'Đọc 12 cuốn sách Phát triển bản thân
+title: 'Đối tượng kiểm thử giả lập Hệ thống
+tiêu chí thuận lợi` : 'Đánh giá đa tiêu chí
+toàn bộ quyền lợi gói
+trường):
+tuần` : 'Linh hoạt
+type: 'Chi tiêu
+type: event?.type || 'Sự kiện
+unit: 'VNĐ
+unit: 'cuốn
+varianceNotes: revNotes || 'Không có sai lệch đáng kể.
+viewLabel: 'Xem gói dịch vụ
+whyReason: 'Thiết lập quyết định để tối ưu hóa nguồn lực.
+whyReason: newWhy || 'Giải quyết vấn đề hiệu quả và phát triển bền vững.
+x nỗ lực
+Áp dụng Mẫu
+Đang chờ & Đánh giá
+Đang chờ duyệt
+Đang có 1 yêu cầu nâng cấp gói
+Đang thực hiện
+Đang tải cấu hình ngôn ngữ...
+Đây KHÔNG PHẢI là thao tác xóa tài khoản hay xóa dữ liệu của bạn.
+Đã Hủy
+Đã chuyển thành Task
+Đã cấu hình
+Đã ra quyết định / Review
+Đã sinh Execution Task
+Đã tiêu
+Đã đặt ngôn ngữ mặc định thành công!
+Đính kèm ảnh chụp bill chuyển khoản giúp Quản trị viên đối soát và kích hoạt gói nhanh gấp đôi.
+Đăng ký Gói Đội Ngũ ngay (50.000 ₫
+Đăng nhập / Đăng ký để bắt đầu
+Đặt lại Form
+Đặt lại MK
+Đặt lại mật khẩu cho tài khoản
+Để tạo nhóm và thêm tối đa 5 thành viên cùng sử dụng đầy đủ chức năng LifeOS, vui lòng nâng cấp lên
+Để đạt điểm mục tiêu
+Địa chỉ Email
+Địa chỉ Email *
+Đối tượng:
+đang On Track 🟢
+đang hoạt động
+đã hoàn thành /
+đã hoàn tất` : 'Không có sự kiện
+đã trôi qua
+đã được kích hoạt.
+Ảnh hưởng Liên liên kết (Cross-Module Impacts
+Ảnh hưởng:
+Ảnh đại diện (Cloudflare R2 Storage
+Ứng dụng gặp sự cố ngoài dự kiến. Dữ liệu của bạn đã được lưu an toàn.
+• Hết hạn:
+← Đổi gói hoặc thời hạn khác
+⚠️ Nhóm đã đạt tối đa 5 thành viên theo quy định gói Team. Vui lòng xóa bớt thành viên cũ nếu muốn thêm người mới.
+✓ Hoàn tất
+✓ Đã đính kèm ảnh biên lai lên Cloudflare R2
+✓ Đơn hàng kỹ thuật số trực tuyến đã thanh toán & kích hoạt giấy phép thành công trên hệ thống LifeOS.
+🎉 Tuyệt vời! Tất cả mục tiêu đều đang On Track không có cảnh báo rủi ro.
+💡 Lưu ý: Bạn có thể đính kèm tập tin và hình ảnh (Cloudflare R2) sau khi lưu công việc này.

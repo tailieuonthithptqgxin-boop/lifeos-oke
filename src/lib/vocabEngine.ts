@@ -1,0 +1,1215 @@
+// ==============================================================================
+// VOCABULARY MASTER — CORE ENGINE & SPACED REPETITION (SM-2)
+// ==============================================================================
+// Language-First Architecture supporting unlimited languages, Spaced Repetition,
+// Active Recall, Contextual Learning, and User Data Isolation.
+
+export type MasteryState = 'new' | 'learning' | 'reviewing' | 'mastered' | 'difficult';
+
+export interface LearningLanguage {
+  id: string;
+  name: string;
+  originalName: string;
+  flag: string;
+  code: string;
+  speechVoiceCode: string;
+  level: 'beginner' | 'intermediate' | 'advanced';
+  dailyNewWordTarget: number;
+  dailyReviewTarget: number;
+  explanationLanguage: string;
+  createdAt: string;
+}
+
+import oxford3000Raw from '../data/oxford3000.json';
+
+export interface System3000Word {
+  id: string; // e.g. "word_3000_1"
+  index: number;
+  term: string;
+  pos: string;
+  phonetic: string;
+  meaning: string;
+  raw?: string;
+}
+
+export const OXFORD_3000_WORDS: System3000Word[] = oxford3000Raw as System3000Word[];
+
+export interface UserWordProgress {
+  wordId: string;
+  state: MasteryState;
+  repetitionCount: number;
+  easeFactor: number;
+  intervalDays: number;
+  lastReviewedAt?: string;
+  nextReviewAt: string; // YYYY-MM-DD
+  reviewLogs: ReviewLog[];
+  lapses: number;
+  personalNotes?: string;
+  isFavorite?: boolean;
+  bookmarkedCollectionIds?: string[];
+  updatedAt: string;
+}
+
+export interface VocabCollection {
+  id: string;
+  languageId: string;
+  title: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  tags?: string[];
+  systemWordIds?: string[]; // Referenced 3000 word IDs without duplicating data
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ReviewLog {
+  id: string;
+  reviewedAt: string;
+  rating: 1 | 2 | 3 | 4; // 1: Again (Quên), 2: Hard (Khó), 3: Good (Nhớ được), 4: Easy (Dễ)
+  reviewType: 'flashcard' | 'spelling' | 'listening' | 'quiz';
+  intervalBefore: number;
+  intervalAfter: number;
+  easeFactorBefore: number;
+  easeFactorAfter: number;
+}
+
+export interface VocabWord {
+  id: string;
+  languageId: string;
+  collectionId: string;
+  term: string;
+  phonetic?: string;
+  partOfSpeech?: string;
+  meaning: string;
+  secondaryMeanings?: string[];
+  exampleSentence?: string;
+  exampleTranslation?: string;
+  collocations?: string[];
+  synonyms?: string[];
+  antonyms?: string[];
+  mnemonic?: string;
+  notes?: string;
+  imageUrl?: string;
+  audioUrl?: string;
+  isFavorite?: boolean;
+  tags?: string[];
+  verification?: import('./vocabVerificationEngine').WordVerificationReport;
+  
+  // SM-2 Spaced Repetition
+  state: MasteryState;
+  repetitionCount: number;
+  easeFactor: number; // Default: 2.5
+  intervalDays: number; // Days until next review
+  lastReviewedAt?: string;
+  nextReviewAt: string; // ISO date string YYYY-MM-DD
+  reviewLogs: ReviewLog[];
+  lapses: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface VocabUserData {
+  userId: string;
+  activeLanguageId: string;
+  languages: LearningLanguage[];
+  collections: Record<string, VocabCollection[]>; // key: languageId -> collections
+  words: Record<string, VocabWord[]>; // key: languageId -> personal words
+  system3000Progress?: Record<string, UserWordProgress>; // key: word_3000_id -> user progress
+  verificationOverrides?: Record<string, import('./vocabVerificationEngine').WordVerificationReport>;
+  lastStudyDate?: string;
+  streakDays: number;
+}
+
+// ------------------------------------------------------------------------------
+// PRESET LANGUAGES SUPPORT
+// ------------------------------------------------------------------------------
+
+export interface PresetLanguageMeta {
+  id: string;
+  name: string;
+  originalName: string;
+  flag: string;
+  code: string;
+  speechVoiceCode: string;
+  writingSystem: string;
+  samplePlaceholder: string;
+}
+
+export const PRESET_LANGUAGES: PresetLanguageMeta[] = [
+  {
+    id: 'en',
+    name: 'Tiếng Anh',
+    originalName: 'English',
+    flag: '🇬🇧',
+    code: 'en',
+    speechVoiceCode: 'en-US',
+    writingSystem: 'Latin / IPA Phonetics',
+    samplePlaceholder: 'Ví dụ: Serendipity, Resilient...'
+  },
+  {
+    id: 'ja',
+    name: 'Tiếng Nhật',
+    originalName: '日本語',
+    flag: '🇯🇵',
+    code: 'ja',
+    speechVoiceCode: 'ja-JP',
+    writingSystem: 'Kanji / Hiragana / Katakana',
+    samplePlaceholder: 'Ví dụ: 桜 (さくら), 食べる...'
+  },
+  {
+    id: 'zh',
+    name: 'Tiếng Trung',
+    originalName: '中文',
+    flag: '🇨🇳',
+    code: 'zh',
+    speechVoiceCode: 'zh-CN',
+    writingSystem: 'Hán tự / Pinyin',
+    samplePlaceholder: 'Ví dụ: 学习 (xuéxí), 朋友...'
+  },
+  {
+    id: 'ko',
+    name: 'Tiếng Hàn',
+    originalName: '한국어',
+    flag: '🇰🇷',
+    code: 'ko',
+    speechVoiceCode: 'ko-KR',
+    writingSystem: 'Hangul / Romanization',
+    samplePlaceholder: 'Ví dụ: 안녕하세요, 사랑...'
+  },
+  {
+    id: 'fr',
+    name: 'Tiếng Pháp',
+    originalName: 'Français',
+    flag: '🇫🇷',
+    code: 'fr',
+    speechVoiceCode: 'fr-FR',
+    writingSystem: 'Latin / French Accents',
+    samplePlaceholder: 'Ví dụ: Éphémère, Rendez-vous...'
+  },
+  {
+    id: 'de',
+    name: 'Tiếng Đức',
+    originalName: 'Deutsch',
+    flag: '🇩🇪',
+    code: 'de',
+    speechVoiceCode: 'de-DE',
+    writingSystem: 'Latin / German Umlauts',
+    samplePlaceholder: 'Ví dụ: Gemütlichkeit, Sehnsucht...'
+  },
+  {
+    id: 'es',
+    name: 'Tiếng Tây Ban Nha',
+    originalName: 'Español',
+    flag: '🇪🇸',
+    code: 'es',
+    speechVoiceCode: 'es-ES',
+    writingSystem: 'Latin / Spanish Tildes',
+    samplePlaceholder: 'Ví dụ: Esperanza, Sobremesa...'
+  },
+  {
+    id: 'vi',
+    name: 'Tiếng Việt',
+    originalName: 'Tiếng Việt',
+    flag: '🇻🇳',
+    code: 'vi',
+    speechVoiceCode: 'vi-VN',
+    writingSystem: 'Chữ Quốc Ngữ',
+    samplePlaceholder: 'Ví dụ: Kiên trì, Thấu cảm...'
+  }
+];
+
+// ------------------------------------------------------------------------------
+// CURATED INITIAL STARTER COLLECTIONS & WORDS
+// ------------------------------------------------------------------------------
+
+export function getInitialCollectionsAndWords(languageId: string): { collections: VocabCollection[]; words: VocabWord[] } {
+  const today = new Date().toISOString().split('T')[0];
+
+  if (languageId === 'en') {
+    const colId = 'col_en_core';
+    return {
+      collections: [
+        {
+          id: colId,
+          languageId: 'en',
+          title: 'Từ vựng Cốt lõi & Học thuật (Essential Academic)',
+          description: 'Bộ từ vựng nền tảng giàu ngữ cảnh, kèm phát âm, cụm từ và mẹo nhớ.',
+          icon: '🎓',
+          color: '#3b82f6',
+          tags: ['Academic', 'IELTS', 'Core'],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      ],
+      words: [
+        {
+          id: 'word_en_1',
+          languageId: 'en',
+          collectionId: colId,
+          term: 'Resilient',
+          phonetic: '/rɪˈzɪl.jənt/',
+          partOfSpeech: 'adjective',
+          meaning: 'Có khả năng phục hồi nhanh chóng sau khó khăn, kiên cường.',
+          secondaryMeanings: ['Đàn hồi, bền bỉ'],
+          exampleSentence: 'She remained resilient in the face of multiple challenges during her study.',
+          exampleTranslation: 'Cô ấy vẫn kiên cường đối mặt với vô vàn thử thách trong quá trình học tập.',
+          collocations: ['highly resilient', 'resilient economy', 'resilient mindset'],
+          synonyms: ['tough', 'adaptable', 'buoyant'],
+          antonyms: ['fragile', 'vulnerable'],
+          mnemonic: 'Tưởng tượng quả bóng cao su: bị đè bẹp nhưng lập tức "re-silient" bật nảy trở lại.',
+          state: 'new',
+          repetitionCount: 0,
+          easeFactor: 2.5,
+          intervalDays: 0,
+          nextReviewAt: today,
+          reviewLogs: [],
+          lapses: 0,
+          isFavorite: true,
+          tags: ['Personality', 'High-Frequency'],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: 'word_en_2',
+          languageId: 'en',
+          collectionId: colId,
+          term: 'Serendipity',
+          phonetic: '/ˌser.ənˈdɪp.ə.ti/',
+          partOfSpeech: 'noun',
+          meaning: 'Sự tình cờ may mắn, tìm thấy điều tốt đẹp một cách ngẫu nhiên.',
+          secondaryMeanings: ['Cơ duyên bất ngờ'],
+          exampleSentence: 'Finding this bookstore was pure serendipity on a rainy afternoon.',
+          exampleTranslation: 'Tìm thấy hiệu sách này thực sự là một cơ duyên may mắn vào một chiều mưa.',
+          collocations: ['pure serendipity', 'stroke of serendipity'],
+          synonyms: ['fluke', 'happy accident', 'chance'],
+          mnemonic: 'Serene (thanh thản) + Dip (nhúng ngẫu nhiên) -> tình cờ vớt được niềm vui.',
+          state: 'new',
+          repetitionCount: 0,
+          easeFactor: 2.5,
+          intervalDays: 0,
+          nextReviewAt: today,
+          reviewLogs: [],
+          lapses: 0,
+          tags: ['Beauty', 'Vocabulary'],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: 'word_en_3',
+          languageId: 'en',
+          collectionId: colId,
+          term: 'Pragmatic',
+          phonetic: '/præɡˈmæt.ɪk/',
+          partOfSpeech: 'adjective',
+          meaning: 'Thực tế, thực dụng theo hướng hành động hiệu quả thay vì lý thuyết suông.',
+          exampleSentence: 'We need a pragmatic approach to solve this learning obstacle.',
+          exampleTranslation: 'Chúng ta cần một cách tiếp cận thực tế để giải quyết trở ngại học tập này.',
+          collocations: ['pragmatic solution', 'pragmatic approach', 'pragmatic leader'],
+          synonyms: ['practical', 'realistic', 'utilitarian'],
+          antonyms: ['idealistic', 'unrealistic'],
+          mnemonic: 'Practice (thực hành) -> Pragmatic (thực tế, chú trọng áp dụng).',
+          state: 'new',
+          repetitionCount: 0,
+          easeFactor: 2.5,
+          intervalDays: 0,
+          nextReviewAt: today,
+          reviewLogs: [],
+          lapses: 0,
+          tags: ['Critical-Thinking'],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      ]
+    };
+  }
+
+  if (languageId === 'ja') {
+    const colId = 'col_ja_starter';
+    return {
+      collections: [
+        {
+          id: colId,
+          languageId: 'ja',
+          title: 'Từ vựng N5 & Giao tiếp nền tảng',
+          description: 'Học từ vựng tiếng Nhật với Kanji, Hiragana, âm Hán Việt và ví dụ câu.',
+          icon: '🌸',
+          color: '#ec4899',
+          tags: ['JLPT N5', 'Starter'],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      ],
+      words: [
+        {
+          id: 'word_ja_1',
+          languageId: 'ja',
+          collectionId: colId,
+          term: '桜',
+          phonetic: 'さくら (sakura)',
+          partOfSpeech: 'noun',
+          meaning: 'Hoa anh đào (biểu tượng mùa xuân Nhật Bản).',
+          exampleSentence: '春になると、公園の桜がとても綺麗に咲きます。',
+          exampleTranslation: 'Khi mùa xuân đến, hoa anh đào trong công viên nở rất đẹp.',
+          mnemonic: 'Chữ Hán [Anh]: Bộ Mộc (cây gỗ) + Nữ (người con gái) -> cây hoa xinh đẹp.',
+          state: 'new',
+          repetitionCount: 0,
+          easeFactor: 2.5,
+          intervalDays: 0,
+          nextReviewAt: today,
+          reviewLogs: [],
+          lapses: 0,
+          isFavorite: true,
+          tags: ['Nature'],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          id: 'word_ja_2',
+          languageId: 'ja',
+          collectionId: colId,
+          term: '頑張る',
+          phonetic: 'がんばる (ganbaru)',
+          partOfSpeech: 'verb',
+          meaning: 'Cố gắng, nỗ lực hết mình, kiên trì không bỏ cuộc.',
+          exampleSentence: '毎日の勉強を最後まで頑張りましょう！',
+          exampleTranslation: 'Hãy cùng cố gắng học tập mỗi ngày cho đến cùng nhé!',
+          collocations: ['頑張ってください (Chúc bạn cố gắng!)'],
+          synonyms: ['努力する'],
+          state: 'new',
+          repetitionCount: 0,
+          easeFactor: 2.5,
+          intervalDays: 0,
+          nextReviewAt: today,
+          reviewLogs: [],
+          lapses: 0,
+          tags: ['Action'],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      ]
+    };
+  }
+
+  if (languageId === 'zh') {
+    const colId = 'col_zh_starter';
+    return {
+      collections: [
+        {
+          id: colId,
+          languageId: 'zh',
+          title: 'Từ vựng HSK & Giao tiếp thường nhật',
+          description: 'Chữ Hán kèm Pinyin, thanh điệu và ngữ cảnh sử dụng.',
+          icon: '🏮',
+          color: '#ef4444',
+          tags: ['HSK', 'Daily'],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      ],
+      words: [
+        {
+          id: 'word_zh_1',
+          languageId: 'zh',
+          collectionId: colId,
+          term: '学习',
+          phonetic: 'xué xí',
+          partOfSpeech: 'verb / noun',
+          meaning: 'Học tập, rèn luyện kiến thức kỹ năng.',
+          exampleSentence: '每天坚持学习，进步就会非常快。',
+          exampleTranslation: 'Mỗi ngày kiên trì học tập, tiến bộ sẽ rất nhanh chóng.',
+          collocations: ['努力学习 (chăm chỉ học tập)', '学习方法 (phương pháp học)'],
+          mnemonic: 'Học (学): đứa trẻ dưới mái trường tiếp thu kiến thức.',
+          state: 'new',
+          repetitionCount: 0,
+          easeFactor: 2.5,
+          intervalDays: 0,
+          nextReviewAt: today,
+          reviewLogs: [],
+          lapses: 0,
+          isFavorite: true,
+          tags: ['Study'],
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        }
+      ]
+    };
+  }
+
+  // Generic fallback starter
+  const genericColId = `col_${languageId}_starter`;
+  return {
+    collections: [
+      {
+        id: genericColId,
+        languageId,
+        title: 'Bộ từ vựng cơ bản',
+        description: 'Tập hợp từ vựng hàng ngày đầu tiên của bạn.',
+        icon: '📚',
+        color: '#10b981',
+        tags: ['General'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ],
+    words: []
+  };
+}
+
+// ------------------------------------------------------------------------------
+// SM-2 SPACED REPETITION ENGINE
+// ------------------------------------------------------------------------------
+
+import { 
+  scheduleNextReview, 
+  estimateRetentionProbability, 
+  calculateMemoryStability, 
+  generateForgettingCurvePoints, 
+  buildTodayStudyPlan, 
+  sliceStudyBatches,
+  ForgettingCurvePoint,
+  TodayStudyPlan
+} from './spacedRepetitionScheduler';
+
+export {
+  scheduleNextReview,
+  estimateRetentionProbability,
+  calculateMemoryStability,
+  generateForgettingCurvePoints,
+  buildTodayStudyPlan,
+  sliceStudyBatches
+};
+export type { ForgettingCurvePoint, TodayStudyPlan };
+
+export interface Sm2Input {
+  rating: 1 | 2 | 3 | 4; // 1: Again, 2: Hard, 3: Good, 4: Easy
+  repetitionCount: number;
+  easeFactor: number;
+  intervalDays: number;
+  lapses: number;
+  lastReviewedAt?: string;
+  reviewType?: 'flashcard' | 'spelling' | 'listening' | 'quiz' | 'fill_in_blank';
+}
+
+export interface Sm2Output {
+  nextRepetitionCount: number;
+  nextEaseFactor: number;
+  nextIntervalDays: number;
+  nextReviewAt: string; // YYYY-MM-DD
+  nextState: MasteryState;
+  nextLapses: number;
+  reviewLog: ReviewLog;
+}
+
+/**
+ * Calculates new interval, ease factor and next review date based on the advanced SM-2 & Forgetting Curve algorithm.
+ */
+export function calculateNextReview(input: Sm2Input): Sm2Output {
+  const result = scheduleNextReview({
+    rating: input.rating,
+    repetitionCount: input.repetitionCount,
+    easeFactor: input.easeFactor,
+    intervalDays: input.intervalDays,
+    lapses: input.lapses,
+    lastReviewedAt: input.lastReviewedAt,
+    reviewType: input.reviewType
+  });
+
+  return {
+    nextRepetitionCount: result.nextRepetitionCount,
+    nextEaseFactor: result.nextEaseFactor,
+    nextIntervalDays: result.nextIntervalDays,
+    nextReviewAt: result.nextReviewAt,
+    nextState: result.nextState,
+    nextLapses: result.nextLapses,
+    reviewLog: result.reviewLog
+  };
+}
+
+// ------------------------------------------------------------------------------
+// FILTERING & QUEUE BUILDING
+// ------------------------------------------------------------------------------
+
+export interface StudyQueues {
+  dueWords: VocabWord[];
+  newWords: VocabWord[];
+  difficultWords: VocabWord[];
+  allWords: VocabWord[];
+}
+
+export function buildStudyQueues(words: VocabWord[], collectionId?: string): StudyQueues {
+  const today = new Date().toISOString().split('T')[0];
+
+  const pool = collectionId && collectionId !== 'all'
+    ? words.filter(w => w.collectionId === collectionId)
+    : words;
+
+  const dueWords = pool.filter(w => {
+    return w.state !== 'new' && w.nextReviewAt <= today;
+  }).sort((a, b) => (a.nextReviewAt > b.nextReviewAt ? 1 : -1));
+
+  const newWords = pool.filter(w => w.state === 'new');
+  
+  const difficultWords = pool.filter(w => w.state === 'difficult' || w.lapses >= 2);
+
+  return {
+    dueWords,
+    newWords,
+    difficultWords,
+    allWords: pool
+  };
+}
+
+// ------------------------------------------------------------------------------
+// STATS & PROGRESS ANALYTICS
+// ------------------------------------------------------------------------------
+
+export interface LanguageAnalytics {
+  totalWords: number;
+  newWordsCount: number;
+  learningCount: number;
+  reviewingCount: number;
+  masteredCount: number;
+  difficultCount: number;
+  dueTodayCount: number;
+  masteryPercentage: number;
+  retentionRate: number; // Percentage of ratings >= 3
+  totalReviewsCount: number;
+}
+
+export function calculateLanguageAnalytics(words: VocabWord[]): LanguageAnalytics {
+  const today = new Date().toISOString().split('T')[0];
+  const total = words.length;
+
+  let newCount = 0;
+  let learningCount = 0;
+  let reviewingCount = 0;
+  let masteredCount = 0;
+  let difficultCount = 0;
+  let dueTodayCount = 0;
+
+  let totalLogs = 0;
+  let passedLogs = 0;
+
+  for (const w of words) {
+    if (w.state === 'new') newCount++;
+    else if (w.state === 'learning') learningCount++;
+    else if (w.state === 'reviewing') reviewingCount++;
+    else if (w.state === 'mastered') masteredCount++;
+    else if (w.state === 'difficult') difficultCount++;
+
+    if (w.state !== 'new' && w.nextReviewAt <= today) {
+      dueTodayCount++;
+    }
+
+    if (w.reviewLogs && w.reviewLogs.length > 0) {
+      for (const log of w.reviewLogs) {
+        totalLogs++;
+        if (log.rating >= 3) passedLogs++;
+      }
+    }
+  }
+
+  const masteryPercentage = total > 0
+    ? Math.round((masteredCount / total) * 100)
+    : 0;
+
+  const retentionRate = totalLogs > 0
+    ? Math.round((passedLogs / totalLogs) * 100)
+    : 100;
+
+  return {
+    totalWords: total,
+    newWordsCount: newCount,
+    learningCount,
+    reviewingCount,
+    masteredCount,
+    difficultCount,
+    dueTodayCount,
+    masteryPercentage,
+    retentionRate,
+    totalReviewsCount: totalLogs
+  };
+}
+
+// ------------------------------------------------------------------------------
+// SPEECH SYNTHESIS HELPER
+// ------------------------------------------------------------------------------
+
+export function speakWord(text: string, voiceCode: string = 'en-US') {
+  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = voiceCode;
+    utterance.rate = 0.9;
+    window.speechSynthesis.speak(utterance);
+  } catch (e) {
+    console.error('Speech synthesis error:', e);
+  }
+}
+
+// ------------------------------------------------------------------------------
+// LOCAL STORAGE PERSISTENCE LAYER
+// ------------------------------------------------------------------------------
+
+export function loadVocabData(userId: string): VocabUserData {
+  const storageKey = `lifeos_vocab_master_${userId || 'current'}`;
+  if (typeof window !== 'undefined') {
+    const raw = localStorage.getItem(storageKey);
+    if (raw) {
+      try {
+        const parsed: VocabUserData = JSON.parse(raw);
+        if (parsed.languages && parsed.languages.length > 0) {
+          if (!parsed.system3000Progress) {
+            parsed.system3000Progress = {};
+          }
+          if (!parsed.verificationOverrides) {
+            parsed.verificationOverrides = {};
+          }
+          return parsed;
+        }
+      } catch (e) {
+        console.error('Failed to parse vocab data:', e);
+      }
+    }
+  }
+
+  // Create default with English
+  const defaultLang: LearningLanguage = {
+    id: 'en',
+    name: 'Tiếng Anh',
+    originalName: 'English',
+    flag: '🇬🇧',
+    code: 'en',
+    speechVoiceCode: 'en-US',
+    level: 'intermediate',
+    dailyNewWordTarget: 10,
+    dailyReviewTarget: 30,
+    explanationLanguage: 'vi',
+    createdAt: new Date().toISOString()
+  };
+
+  const initial = getInitialCollectionsAndWords('en');
+
+  const defaultData: VocabUserData = {
+    userId: userId || 'current',
+    activeLanguageId: 'en',
+    languages: [defaultLang],
+    collections: {
+      en: initial.collections
+    },
+    words: {
+      en: initial.words
+    },
+    system3000Progress: {},
+    verificationOverrides: {},
+    streakDays: 1,
+    lastStudyDate: new Date().toISOString().split('T')[0]
+  };
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem(storageKey, JSON.stringify(defaultData));
+  }
+
+  return defaultData;
+}
+
+export function saveVocabData(data: VocabUserData): void {
+  const storageKey = `lifeos_vocab_master_${data.userId || 'current'}`;
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(data));
+    } catch (e) {
+      console.error('Error saving vocab data:', e);
+    }
+  }
+}
+
+// ------------------------------------------------------------------------------
+// IMPORT / EXPORT HELPERS (CSV & JSON)
+// ------------------------------------------------------------------------------
+
+export function exportWordsToJson(words: VocabWord[], collectionTitle: string): string {
+  return JSON.stringify({
+    exportedAt: new Date().toISOString(),
+    collection: collectionTitle,
+    words
+  }, null, 2);
+}
+
+export function exportWordsToCsv(words: VocabWord[]): string {
+  const headers = ['Term', 'Phonetic', 'PartOfSpeech', 'Meaning', 'ExampleSentence', 'ExampleTranslation', 'Collocations', 'Tags'];
+  const rows = words.map(w => [
+    `"${(w.term || '').replace(/"/g, '""')}"`,
+    `"${(w.phonetic || '').replace(/"/g, '""')}"`,
+    `"${(w.partOfSpeech || '').replace(/"/g, '""')}"`,
+    `"${(w.meaning || '').replace(/"/g, '""')}"`,
+    `"${(w.exampleSentence || '').replace(/"/g, '""')}"`,
+    `"${(w.exampleTranslation || '').replace(/"/g, '""')}"`,
+    `"${(w.collocations || []).join('; ').replace(/"/g, '""')}"`,
+    `"${(w.tags || []).join(', ').replace(/"/g, '""')}"`
+  ]);
+
+  return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+}
+
+export function parseWordsFromCsv(
+  csvText: string,
+  languageId: string,
+  collectionId: string
+): Partial<VocabWord>[] {
+  const lines = csvText.split(/\r?\n/).filter(line => line.trim().length > 0);
+  if (lines.length < 2) return [];
+
+  const words: Partial<VocabWord>[] = [];
+  // Skip header if it contains 'term' or 'meaning'
+  const startIndex = lines[0].toLowerCase().includes('term') || lines[0].toLowerCase().includes('từ') ? 1 : 0;
+
+  for (let i = startIndex; i < lines.length; i++) {
+    const cols = parseCsvLine(lines[i]);
+    if (cols.length >= 2) {
+      const term = cols[0]?.trim();
+      const meaning = cols[1]?.trim() || (cols.length >= 4 ? cols[3]?.trim() : '');
+      if (term) {
+        words.push({
+          term,
+          meaning: meaning || term,
+          phonetic: cols.length > 2 ? cols[1]?.trim() : undefined,
+          partOfSpeech: cols.length > 3 ? cols[2]?.trim() : undefined,
+          exampleSentence: cols.length > 4 ? cols[4]?.trim() : undefined,
+          exampleTranslation: cols.length > 5 ? cols[5]?.trim() : undefined,
+          languageId,
+          collectionId
+        });
+      }
+    }
+  }
+
+  return words;
+}
+
+function parseCsvLine(text: string): string[] {
+  const result: string[] = [];
+  let cur = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      if (inQuotes && text[i + 1] === '"') {
+        cur += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (c === ',' && !inQuotes) {
+      result.push(cur);
+      cur = '';
+    } else {
+      cur += c;
+    }
+  }
+  result.push(cur);
+  return result;
+}
+
+// ------------------------------------------------------------------------------
+// SYSTEM 3000 WORDS HELPERS & UNIFIED STUDY INTEGRATION
+// ------------------------------------------------------------------------------
+
+/**
+ * Returns all 3,522 System 3000 words extracted from the official document
+ */
+export function getSystem3000Words(): System3000Word[] {
+  return OXFORD_3000_WORDS;
+}
+
+/**
+ * Convert a System 3000 word into a full VocabWord format for the unified study session
+ */
+export function systemWordToVocabWord(
+  sys: System3000Word,
+  progress?: UserWordProgress,
+  defaultCollectionId: string = 'system_3000'
+): VocabWord {
+  const today = new Date().toISOString().split('T')[0];
+  return {
+    id: sys.id,
+    languageId: 'en',
+    collectionId: progress?.bookmarkedCollectionIds?.[0] || defaultCollectionId,
+    term: sys.term,
+    phonetic: sys.phonetic,
+    partOfSpeech: sys.pos,
+    meaning: sys.meaning,
+    notes: progress?.personalNotes,
+    isFavorite: progress?.isFavorite || false,
+    state: progress?.state || 'new',
+    repetitionCount: progress?.repetitionCount || 0,
+    easeFactor: progress?.easeFactor || 2.5,
+    intervalDays: progress?.intervalDays || 0,
+    lastReviewedAt: progress?.lastReviewedAt,
+    nextReviewAt: progress?.nextReviewAt || today,
+    reviewLogs: progress?.reviewLogs || [],
+    lapses: progress?.lapses || 0,
+    tags: ['3000-Thông dụng'],
+    createdAt: progress?.updatedAt || new Date().toISOString(),
+    updatedAt: progress?.updatedAt || new Date().toISOString()
+  };
+}
+
+/**
+ * Calculate analytics specifically for 3000 system words based on user progress map
+ */
+export function calculate3000Analytics(progressMap: Record<string, UserWordProgress> = {}): LanguageAnalytics {
+  const today = new Date().toISOString().split('T')[0];
+  const total = OXFORD_3000_WORDS.length;
+
+  let newCount = 0;
+  let learningCount = 0;
+  let reviewingCount = 0;
+  let masteredCount = 0;
+  let difficultCount = 0;
+  let dueTodayCount = 0;
+  let totalLogs = 0;
+  let passedLogs = 0;
+
+  for (const sys of OXFORD_3000_WORDS) {
+    const prog = progressMap[sys.id];
+    const state = prog?.state || 'new';
+
+    if (state === 'new') newCount++;
+    else if (state === 'learning') learningCount++;
+    else if (state === 'reviewing') reviewingCount++;
+    else if (state === 'mastered') masteredCount++;
+    else if (state === 'difficult') difficultCount++;
+
+    if (state !== 'new' && prog?.nextReviewAt && prog.nextReviewAt <= today) {
+      dueTodayCount++;
+    }
+
+    if (prog?.reviewLogs) {
+      for (const log of prog.reviewLogs) {
+        totalLogs++;
+        if (log.rating >= 3) passedLogs++;
+      }
+    }
+  }
+
+  const masteryPercentage = total > 0 ? Math.round((masteredCount / total) * 100) : 0;
+  const retentionRate = totalLogs > 0 ? Math.round((passedLogs / totalLogs) * 100) : 100;
+
+  return {
+    totalWords: total,
+    newWordsCount: newCount,
+    learningCount,
+    reviewingCount,
+    masteredCount,
+    difficultCount,
+    dueTodayCount,
+    masteryPercentage,
+    retentionRate,
+    totalReviewsCount: totalLogs
+  };
+}
+
+/**
+ * Calculate combined analytics across both personal words and 3000 system words
+ */
+export function calculateCombinedAnalytics(
+  personalWords: VocabWord[],
+  progressMap: Record<string, UserWordProgress> = {}
+): LanguageAnalytics {
+  const a3000 = calculate3000Analytics(progressMap);
+  const aPersonal = calculateLanguageAnalytics(personalWords);
+
+  const total = a3000.totalWords + aPersonal.totalWords;
+  const mastered = a3000.masteredCount + aPersonal.masteredCount;
+  const totalReviews = a3000.totalReviewsCount + aPersonal.totalReviewsCount;
+
+  return {
+    totalWords: total,
+    newWordsCount: a3000.newWordsCount + aPersonal.newWordsCount,
+    learningCount: a3000.learningCount + aPersonal.learningCount,
+    reviewingCount: a3000.reviewingCount + aPersonal.reviewingCount,
+    masteredCount: mastered,
+    difficultCount: a3000.difficultCount + aPersonal.difficultCount,
+    dueTodayCount: a3000.dueTodayCount + aPersonal.dueTodayCount,
+    masteryPercentage: total > 0 ? Math.round((mastered / total) * 100) : 0,
+    retentionRate: totalReviews > 0
+      ? Math.round(((a3000.retentionRate * a3000.totalReviewsCount + aPersonal.retentionRate * aPersonal.totalReviewsCount) / (totalReviews * 100)) * 100)
+      : 100,
+    totalReviewsCount: totalReviews
+  };
+}
+
+/**
+ * Build unified study queues across sources: 3000 words, personal words, or both
+ */
+export function buildUnifiedStudyQueues(
+  personalWords: VocabWord[],
+  progressMap: Record<string, UserWordProgress> = {},
+  source: '3000' | 'personal' | 'all' = 'all',
+  collectionId?: string
+): StudyQueues {
+  const today = new Date().toISOString().split('T')[0];
+  let pool: VocabWord[] = [];
+
+  // 1. Personal words
+  if (source === 'personal' || source === 'all') {
+    if (collectionId && collectionId !== 'all') {
+      pool.push(...personalWords.filter(w => w.collectionId === collectionId));
+    } else {
+      pool.push(...personalWords);
+    }
+  }
+
+  // 2. 3000 words
+  if (source === '3000' || source === 'all') {
+    if (collectionId && collectionId !== 'all') {
+      // Only 3000 words bookmarked into this collection
+      const bookmarked = OXFORD_3000_WORDS.filter(w => {
+        const prog = progressMap[w.id];
+        return prog?.bookmarkedCollectionIds?.includes(collectionId);
+      });
+      pool.push(...bookmarked.map(w => systemWordToVocabWord(w, progressMap[w.id], collectionId)));
+    } else {
+      // All 3000 words
+      pool.push(...OXFORD_3000_WORDS.map(w => systemWordToVocabWord(w, progressMap[w.id])));
+    }
+  }
+
+  const dueWords = pool.filter(w => w.state !== 'new' && w.nextReviewAt <= today)
+    .sort((a, b) => (a.nextReviewAt > b.nextReviewAt ? 1 : -1));
+  const newWords = pool.filter(w => w.state === 'new');
+  const difficultWords = pool.filter(w => w.state === 'difficult' || w.lapses >= 2);
+
+  return {
+    dueWords,
+    newWords,
+    difficultWords,
+    allWords: pool
+  };
+}
+
+/**
+ * Record review outcome for either personal or 3000 system word
+ */
+export function recordReviewOutcome(
+  prevData: VocabUserData,
+  wordId: string,
+  rating: 1 | 2 | 3 | 4,
+  reviewType: 'flashcard' | 'spelling' | 'listening' | 'quiz' = 'flashcard'
+): VocabUserData {
+  const isSystem = wordId.startsWith('word_3000_');
+  const activeLangId = prevData.activeLanguageId;
+
+  if (isSystem) {
+    const currentProg = prevData.system3000Progress?.[wordId];
+    const repCount = currentProg?.repetitionCount || 0;
+    const ef = currentProg?.easeFactor || 2.5;
+    const interval = currentProg?.intervalDays || 0;
+    const lapses = currentProg?.lapses || 0;
+
+    const sm2 = calculateNextReview({
+      rating,
+      repetitionCount: repCount,
+      easeFactor: ef,
+      intervalDays: interval,
+      lapses,
+      lastReviewedAt: currentProg?.lastReviewedAt,
+      reviewType
+    });
+
+    const updatedProg: UserWordProgress = {
+      wordId,
+      state: sm2.nextState,
+      repetitionCount: sm2.nextRepetitionCount,
+      easeFactor: sm2.nextEaseFactor,
+      intervalDays: sm2.nextIntervalDays,
+      lastReviewedAt: new Date().toISOString(),
+      nextReviewAt: sm2.nextReviewAt,
+      reviewLogs: [...(currentProg?.reviewLogs || []), sm2.reviewLog],
+      lapses: sm2.nextLapses,
+      personalNotes: currentProg?.personalNotes,
+      isFavorite: currentProg?.isFavorite,
+      bookmarkedCollectionIds: currentProg?.bookmarkedCollectionIds,
+      updatedAt: new Date().toISOString()
+    };
+
+    return {
+      ...prevData,
+      system3000Progress: {
+        ...(prevData.system3000Progress || {}),
+        [wordId]: updatedProg
+      },
+      lastStudyDate: new Date().toISOString().split('T')[0]
+    };
+  } else {
+    // Personal word
+    const words = prevData.words[activeLangId] || [];
+    const targetWord = words.find(w => w.id === wordId);
+    if (!targetWord) return prevData;
+
+    const sm2 = calculateNextReview({
+      rating,
+      repetitionCount: targetWord.repetitionCount,
+      easeFactor: targetWord.easeFactor,
+      intervalDays: targetWord.intervalDays,
+      lapses: targetWord.lapses,
+      lastReviewedAt: targetWord.lastReviewedAt,
+      reviewType
+    });
+
+    const updatedWords = words.map(w => {
+      if (w.id !== wordId) return w;
+      return {
+        ...w,
+        state: sm2.nextState,
+        repetitionCount: sm2.nextRepetitionCount,
+        easeFactor: sm2.nextEaseFactor,
+        intervalDays: sm2.nextIntervalDays,
+        lastReviewedAt: new Date().toISOString(),
+        nextReviewAt: sm2.nextReviewAt,
+        reviewLogs: [...w.reviewLogs, sm2.reviewLog],
+        lapses: sm2.nextLapses,
+        updatedAt: new Date().toISOString()
+      };
+    });
+
+    return {
+      ...prevData,
+      words: {
+        ...prevData.words,
+        [activeLangId]: updatedWords
+      },
+      lastStudyDate: new Date().toISOString().split('T')[0]
+    };
+  }
+}
+
+/**
+ * Toggle bookmark of a 3000 system word into a personal collection
+ */
+export function toggleBookmark3000Word(
+  prevData: VocabUserData,
+  wordId: string,
+  collectionId: string
+): VocabUserData {
+  const currentProg = prevData.system3000Progress?.[wordId];
+  const bookmarked = currentProg?.bookmarkedCollectionIds || [];
+  const isAlready = bookmarked.includes(collectionId);
+  const nextBookmarked = isAlready
+    ? bookmarked.filter(id => id !== collectionId)
+    : [...bookmarked, collectionId];
+
+  const today = new Date().toISOString().split('T')[0];
+  const updatedProg: UserWordProgress = {
+    wordId,
+    state: currentProg?.state || 'new',
+    repetitionCount: currentProg?.repetitionCount || 0,
+    easeFactor: currentProg?.easeFactor || 2.5,
+    intervalDays: currentProg?.intervalDays || 0,
+    lastReviewedAt: currentProg?.lastReviewedAt,
+    nextReviewAt: currentProg?.nextReviewAt || today,
+    reviewLogs: currentProg?.reviewLogs || [],
+    lapses: currentProg?.lapses || 0,
+    personalNotes: currentProg?.personalNotes,
+    isFavorite: currentProg?.isFavorite,
+    bookmarkedCollectionIds: nextBookmarked,
+    updatedAt: new Date().toISOString()
+  };
+
+  // Also update collection's systemWordIds
+  const langCollections = prevData.collections[prevData.activeLanguageId] || [];
+  const updatedCollections = langCollections.map(col => {
+    if (col.id !== collectionId) return col;
+    const currentSysWords = col.systemWordIds || [];
+    const updatedSysWords = isAlready
+      ? currentSysWords.filter(id => id !== wordId)
+      : [...currentSysWords, wordId];
+    return { ...col, systemWordIds: updatedSysWords, updatedAt: new Date().toISOString() };
+  });
+
+  return {
+    ...prevData,
+    collections: {
+      ...prevData.collections,
+      [prevData.activeLanguageId]: updatedCollections
+    },
+    system3000Progress: {
+      ...(prevData.system3000Progress || {}),
+      [wordId]: updatedProg
+    }
+  };
+}
+
+/**
+ * Directly mark a 3000 word's state (e.g. Mastered / Difficult / New)
+ */
+export function set3000WordState(
+  prevData: VocabUserData,
+  wordId: string,
+  state: MasteryState
+): VocabUserData {
+  const currentProg = prevData.system3000Progress?.[wordId];
+  const today = new Date().toISOString().split('T')[0];
+  const updatedProg: UserWordProgress = {
+    wordId,
+    state,
+    repetitionCount: state === 'mastered' ? Math.max(4, currentProg?.repetitionCount || 4) : (currentProg?.repetitionCount || 0),
+    easeFactor: currentProg?.easeFactor || 2.5,
+    intervalDays: state === 'mastered' ? 30 : (currentProg?.intervalDays || 0),
+    lastReviewedAt: new Date().toISOString(),
+    nextReviewAt: state === 'mastered' ? '2099-12-31' : (currentProg?.nextReviewAt || today),
+    reviewLogs: currentProg?.reviewLogs || [],
+    lapses: state === 'difficult' ? (currentProg?.lapses || 0) + 1 : (currentProg?.lapses || 0),
+    personalNotes: currentProg?.personalNotes,
+    isFavorite: currentProg?.isFavorite,
+    bookmarkedCollectionIds: currentProg?.bookmarkedCollectionIds,
+    updatedAt: new Date().toISOString()
+  };
+
+  return {
+    ...prevData,
+    system3000Progress: {
+      ...(prevData.system3000Progress || {}),
+      [wordId]: updatedProg
+    }
+  };
+}
+
+/**
+ * Save personal notes or memory tip for a 3000 word
+ */
+export function save3000WordNotes(
+  prevData: VocabUserData,
+  wordId: string,
+  personalNotes: string
+): VocabUserData {
+  const currentProg = prevData.system3000Progress?.[wordId];
+  const today = new Date().toISOString().split('T')[0];
+  const updatedProg: UserWordProgress = {
+    wordId,
+    state: currentProg?.state || 'new',
+    repetitionCount: currentProg?.repetitionCount || 0,
+    easeFactor: currentProg?.easeFactor || 2.5,
+    intervalDays: currentProg?.intervalDays || 0,
+    lastReviewedAt: currentProg?.lastReviewedAt,
+    nextReviewAt: currentProg?.nextReviewAt || today,
+    reviewLogs: currentProg?.reviewLogs || [],
+    lapses: currentProg?.lapses || 0,
+    personalNotes,
+    isFavorite: currentProg?.isFavorite,
+    bookmarkedCollectionIds: currentProg?.bookmarkedCollectionIds,
+    updatedAt: new Date().toISOString()
+  };
+
+  return {
+    ...prevData,
+    system3000Progress: {
+      ...(prevData.system3000Progress || {}),
+      [wordId]: updatedProg
+    }
+  };
+}
