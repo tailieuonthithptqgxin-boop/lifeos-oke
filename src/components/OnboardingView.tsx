@@ -15,8 +15,10 @@ import {
   FolderKanban, 
   BookOpen, 
   Loader2, 
-  Layers
+  Layers,
+  Zap
 } from 'lucide-react';
+import { analytics } from '../lib/analytics';
 
 const steps = [
   { id: 'purpose', title: 'Mục đích' },
@@ -50,6 +52,7 @@ export function OnboardingView() {
   const handleNext = async () => {
     // Sync to global state
     setOnboardingPreferences(selections);
+    analytics.track('onboarding_step_completed', { step: currentStep, stepId: steps[currentStep]?.id });
 
     if (currentStep < steps.length - 1) {
       setCurrentStep(s => s + 1);
@@ -72,10 +75,30 @@ export function OnboardingView() {
         setWorkspaceMode(targetMode);
         setCurrentView('dashboard');
         
+        analytics.track('onboarding_completed', { targetMode, selections });
         await completeOnboarding(selections);
       } finally {
         setIsSubmitting(false);
       }
+    }
+  };
+
+  const handleQuickSkip = async () => {
+    setIsSubmitting(true);
+    try {
+      const defaultSelections = {
+        purpose: 'standard',
+        domain: 'worker',
+        focus: ['Công việc', 'Tài chính'],
+        schedule: 'standard',
+        budget: '5.000.000 - 10.000.000 ₫'
+      };
+      setWorkspaceMode('Work');
+      setCurrentView('dashboard');
+      analytics.track('onboarding_completed', { skipped: true, targetMode: 'Work' });
+      await completeOnboarding(defaultSelections);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -471,14 +494,26 @@ export function OnboardingView() {
 
         {/* Navigation Controls */}
         <div className="flex justify-between items-center">
-          <button 
-            type="button"
-            disabled={isSubmitting}
-            onClick={() => setCurrentStep(s => Math.max(0, s - 1))}
-            className={`px-6 py-3 font-medium text-slate-500 hover:text-slate-900 transition-colors ${currentStep === 0 ? 'invisible' : ''}`}
-          >
-            Quay lại
-          </button>
+          <div className="flex items-center gap-3">
+            <button 
+              type="button"
+              disabled={isSubmitting}
+              onClick={() => setCurrentStep(s => Math.max(0, s - 1))}
+              className={`px-4 sm:px-6 py-3 font-medium text-slate-500 hover:text-slate-900 transition-colors ${currentStep === 0 ? 'invisible' : ''}`}
+            >
+              Quay lại
+            </button>
+            {currentStep < steps.length - 1 && (
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={handleQuickSkip}
+                className="text-xs font-semibold text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 transition-colors cursor-pointer"
+              >
+                Bỏ qua & dùng cấu hình mẫu
+              </button>
+            )}
+          </div>
           
           <button 
             type="button"

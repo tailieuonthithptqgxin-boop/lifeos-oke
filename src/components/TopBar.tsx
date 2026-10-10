@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Menu, Moon, Sun, Search, Bell, Plus, Inbox, ShoppingCart, 
   Shield, CheckSquare, DollarSign, Calendar, Target, Zap, 
-  User, LogOut, ChevronDown, CheckCircle2, Globe, Sparkles, Lock 
+  User, LogOut, ChevronDown, CheckCircle2, Globe, Sparkles, Lock, Flame, Award 
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { useTranslation } from '../lib/i18n';
+import { retentionEngine, RetentionProfile } from '../lib/retentionEngine';
 
 export function TopBar() {
   const [showNotifications, setShowNotifications] = useState(false);
@@ -21,6 +22,14 @@ export function TopBar() {
   } = useAppStore();
   
   const t = useTranslation(language);
+
+  const [retentionProfile, setRetentionProfile] = useState<RetentionProfile>(() =>
+    retentionEngine.getProfile(currentUser?.id)
+  );
+
+  useEffect(() => {
+    setRetentionProfile(retentionEngine.getProfile(currentUser?.id));
+  }, [currentUser, currentView]);
 
   const cartItemCount = (cart || []).reduce((sum, item) => sum + item.quantity, 0);
   const userRole = (currentUser?.role || '').toUpperCase();
@@ -61,6 +70,20 @@ export function TopBar() {
       {/* Right Action Cluster */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         
+        {/* Retention Streak Flame Pill */}
+        <button
+          type="button"
+          onClick={() => setCurrentView('dashboard')}
+          title={`Chuỗi kỷ luật: ${retentionProfile.streak} ngày. Level ${retentionProfile.level}: ${retentionProfile.levelTitle}`}
+          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 font-extrabold text-xs shadow-2xs hover:scale-105 active:scale-95 transition-all cursor-pointer"
+        >
+          <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500 animate-pulse" />
+          <span>{retentionProfile.streak} ngày</span>
+          <span className="text-[10px] text-amber-500/70 dark:text-amber-400/70 border-l border-amber-500/20 pl-1.5 font-bold">
+            Lv.{retentionProfile.level}
+          </span>
+        </button>
+
         {/* Primary Action Button: + Tạo mới */}
         <div className="relative">
           <button 

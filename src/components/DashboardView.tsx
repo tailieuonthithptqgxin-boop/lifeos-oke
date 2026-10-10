@@ -341,6 +341,77 @@ export function DashboardView() {
         </div>
       </div>
 
+      {/* 1.5. Continue Where You Left Off / Recommended Next Action */}
+      {pendingTasks.length > 0 && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-blue-500/10 border border-indigo-200 dark:border-indigo-900/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md">
+              <Zap className="w-5 h-5 fill-current" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
+                  Tiếp tục việc quan trọng nhất (Next Focus)
+                </span>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                  pendingTasks[0].priority === 'Cao' || pendingTasks[0].priority === 'Nghiêm trọng'
+                    ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400'
+                    : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400'
+                }`}>
+                  {pendingTasks[0].priority || 'Trung bình'}
+                </span>
+              </div>
+              <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white mt-0.5">
+                {pendingTasks[0].title}
+              </h3>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+            <button
+              type="button"
+              onClick={() => toggleTimer(pendingTasks[0].id)}
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                activeTimerTask === pendingTasks[0].id
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm'
+              }`}
+            >
+              {activeTimerTask === pendingTasks[0].id ? (
+                <>
+                  <Square className="w-3.5 h-3.5 fill-current" />
+                  <span>Dừng ({formatTimer(timerSeconds)})</span>
+                </>
+              ) : (
+                <>
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>Bắt đầu Deep Work</span>
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                updateTask(pendingTasks[0].id, { status: 'Hoàn thành' });
+                retentionEngine.addXp(20, 'Hoàn thành công việc', currentUser?.id);
+                retentionEngine.completeQuest('task', currentUser?.id);
+                if (pendingTasks.length <= 1) {
+                  setCelebration({
+                    title: 'Đỉnh cao kỷ luật! Bạn đã hoàn thành hết mục tiêu!',
+                    subtitle: 'Tất cả công việc đã xong xuôi. Giờ hãy nghỉ ngơi hoặc ôn một chút từ vựng nhé.',
+                    xpAwarded: 50
+                  });
+                }
+              }}
+              className="p-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-emerald-600 border border-slate-200 dark:border-slate-700 rounded-xl transition-colors cursor-pointer"
+              title="Đánh dấu hoàn thành"
+            >
+              <Check className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 2. Core 4 Key Metrics Grid */}
       <div className="space-y-3">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">

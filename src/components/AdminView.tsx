@@ -176,6 +176,7 @@ export function AdminView() {
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState('All');
   const [userStatusFilter, setUserStatusFilter] = useState('All');
+  const [userPlanFilter, setUserPlanFilter] = useState('All');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isSubmittingUser, setIsSubmittingUser] = useState(false);
   const [showResetModal, setShowResetModal] = useState<ManagedUser | null>(null);
@@ -301,9 +302,16 @@ export function AdminView() {
       if (userSearchTerm) params.append('search', userSearchTerm);
       if (roleFilter !== 'All') params.append('role', roleFilter);
       if (userStatusFilter !== 'All') params.append('status', userStatusFilter);
+      if (userPlanFilter !== 'All') params.append('plan', userPlanFilter);
 
       const res = await apiCall(`/api/admin/users?${params.toString()}`);
-      setUsers(res.data || []);
+      let list = res.data || [];
+      if (userPlanFilter === 'PAID') {
+        list = list.filter((u: any) => u.plan && u.plan !== 'FREE');
+      } else if (userPlanFilter === 'FREE') {
+        list = list.filter((u: any) => !u.plan || u.plan === 'FREE');
+      }
+      setUsers(list);
     } catch (err: any) {
       setMessage({ text: err.message || 'Lỗi khi tải danh sách người dùng', type: 'error' });
     } finally {
@@ -1717,6 +1725,15 @@ export function AdminView() {
                 <option value="ACTIVE">Active</option>
                 <option value="SUSPENDED">Suspended</option>
                 <option value="DISABLED">Disabled</option>
+              </select>
+              <select
+                value={userPlanFilter}
+                onChange={e => setUserPlanFilter(e.target.value)}
+                className="px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-bold"
+              >
+                <option value="All">Phân khúc gói</option>
+                <option value="PAID">Đã trả phí (Paid Users)</option>
+                <option value="FREE">Chưa kích hoạt (Free / Unpaid)</option>
               </select>
               <button
                 type="button"
