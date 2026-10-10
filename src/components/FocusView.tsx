@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { FocusSession, FocusMode, FocusStatus, Task, Project } from '../lib/types';
 import { YouTubeFocusPlayer } from './YouTubeFocusPlayer';
+import { StudyCompanionWidget } from './companion/StudyCompanionWidget';
+import { CompanionMood } from '../lib/companionEngine';
 import { retentionEngine } from '../lib/retentionEngine';
 import { analytics } from '../lib/analytics';
 import { soundEngine } from '../lib/soundEngine';
@@ -16,7 +18,7 @@ export function FocusView() {
   const { 
     focusSessions, focusGoals, tasks, projects, 
     addFocusSession, updateFocusSession, updateTask,
-    dailyCapacity
+    dailyCapacity, currentUser
   } = useAppStore();
 
   const [activeSession, setActiveSession] = useState<FocusSession | null>(null);
@@ -28,6 +30,10 @@ export function FocusView() {
   const [selectedTaskId, setSelectedTaskId] = useState<string>('');
   const [isZenMode, setIsZenMode] = useState(false);
   const [showMusicPanel, setShowMusicPanel] = useState(true);
+
+  // Companion Dynamic Mood & Dialogue State
+  const [companionMood, setCompanionMood] = useState<CompanionMood>('idle');
+  const [companionDialogueKey, setCompanionDialogueKey] = useState<any>('greeting');
   
   // Note/Reflection state for when finishing
   const [showFinishModal, setShowFinishModal] = useState(false);
@@ -127,6 +133,10 @@ export function FocusView() {
     accumulatedSecsRef.current = 0;
     sessionStartTsRef.current = Date.now();
     analytics.track('focus_session_started', { mode: selectedMode, plannedMinutes: duration });
+
+    // Companion reaction
+    setCompanionMood('focus');
+    setCompanionDialogueKey('focusStart');
   };
 
   const pauseFocus = () => {
@@ -139,6 +149,10 @@ export function FocusView() {
     setActiveSession(prev => prev ? { ...prev, status: 'Paused' } : null);
     setInterruptionStart(Date.now());
     setShowInterruptionModal(true);
+
+    // Companion reaction
+    setCompanionMood('resting');
+    setCompanionDialogueKey('focusPaused');
   };
 
   const resumeFocus = () => {
@@ -167,12 +181,20 @@ export function FocusView() {
     
     setShowInterruptionModal(false);
     setInterruptionReason('');
+
+    // Companion reaction
+    setCompanionMood('focus');
+    setCompanionDialogueKey('focusMaintain');
   };
 
   const finishFocus = () => {
     if (!activeSession) return;
     updateFocusSession(activeSession.id, { status: 'Paused' }); // Pause background counter
     setShowFinishModal(true);
+
+    // Companion reaction
+    setCompanionMood('celebrate');
+    setCompanionDialogueKey('focusCompleted');
   };
 
   const saveFinishedSession = () => {
@@ -208,6 +230,7 @@ export function FocusView() {
     });
 
     setActiveSession(null);
+    setCompanionMood('achievement');
     setElapsedSeconds(0);
     accumulatedSecsRef.current = 0;
     sessionStartTsRef.current = null;
@@ -578,6 +601,13 @@ export function FocusView() {
           </div>
         </div>
       )}
+
+      {/* AI Study Companion Widget */}
+      <StudyCompanionWidget
+        userId={currentUser?.id}
+        contextMood={companionMood}
+        contextDialogueKey={companionDialogueKey}
+      />
 
     </div>
   );

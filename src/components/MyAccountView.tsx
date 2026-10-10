@@ -30,6 +30,7 @@ import {
 import { useAppStore } from '../lib/store';
 import { apiCall } from '../lib/apiClient';
 import { formatCurrency } from '../lib/utils';
+import { StudyCompanionWidget } from './companion/StudyCompanionWidget';
 
 interface PaymentHistoryItem {
   id: string;
@@ -715,6 +716,29 @@ export function MyAccountView() {
           >
             <Trash2 className="w-4 h-4" /> Làm sạch Workspace của tôi
           </button>
+        </div>
+      </div>
+
+      {/* AI STUDY COMPANION PERSONALIZATION SECTION */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h4 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+              <span>Nhân Vật Đồng Hành Học Tập (AI Study Companion)</span>
+            </h4>
+            <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+              Bạn đồng hành thông minh hỗ trợ trong Focus Mode và Học từ vựng, tự động phản hồi theo thành tựu và không làm bạn phân tâm.
+            </p>
+          </div>
+        </div>
+
+        <div className="pt-2">
+          <StudyCompanionWidget
+            userId={currentUser?.id}
+            mode="embedded"
+            customMessage="Mình luôn sẵn sàng đồng hành cùng bạn trên mọi chặng đường học tập!"
+          />
         </div>
       </div>
 

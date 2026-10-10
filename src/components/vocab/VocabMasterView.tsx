@@ -47,6 +47,7 @@ import { VocabAuditTab } from './VocabAuditTab';
 import { TodayStudyTab } from './TodayStudyTab';
 import { MemoryDashboardTab } from './MemoryDashboardTab';
 import { DedicatedVocabFocusView } from './DedicatedVocabFocusView';
+import { StudyCompanionWidget } from '../companion/StudyCompanionWidget';
 import { isEquivalentAnswer } from '../../lib/vocabVerificationEngine';
 
 interface VocabMasterViewProps {
@@ -1380,6 +1381,13 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
           onOpenNewCollection={() => setShowNewCollectionModal(true)}
         />
       )}
+
+      {/* AI Study Companion Widget */}
+      <StudyCompanionWidget
+        userId={userId}
+        contextMood={studySessionActive ? 'focus' : 'idle'}
+        contextDialogueKey={studySessionActive ? 'focusStart' : 'greeting'}
+      />
 
     </div>
   );

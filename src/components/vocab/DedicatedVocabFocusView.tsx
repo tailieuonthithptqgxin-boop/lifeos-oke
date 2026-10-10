@@ -12,6 +12,8 @@ import {
   calculateSM2Algorithm 
 } from '../../lib/vocabEngine';
 import { YouTubeFocusPlayer } from '../YouTubeFocusPlayer';
+import { StudyCompanionWidget } from '../companion/StudyCompanionWidget';
+import { CompanionMood } from '../../lib/companionEngine';
 import { retentionEngine } from '../../lib/retentionEngine';
 import { analytics } from '../../lib/analytics';
 import { soundEngine } from '../../lib/soundEngine';
@@ -43,6 +45,10 @@ export function DedicatedVocabFocusView({
     remembered: 0,
     forgotten: 0
   });
+
+  // Companion state
+  const [companionMood, setCompanionMood] = useState<CompanionMood>('focus');
+  const [companionDialogueKey, setCompanionDialogueKey] = useState<any>('focusStart');
 
   const sessionStartTimeRef = useRef<number>(Date.now());
 
@@ -89,6 +95,11 @@ export function DedicatedVocabFocusView({
 
     if (rating >= 3) {
       soundEngine.playPop();
+      setCompanionMood('celebrate');
+      setCompanionDialogueKey('vocabCorrect');
+    } else {
+      setCompanionMood('encourage');
+      setCompanionDialogueKey('vocabIncorrect');
     }
 
     // Trigger store update callback if available
@@ -113,6 +124,8 @@ export function DedicatedVocabFocusView({
     } else {
       soundEngine.playSuccess();
       setSessionCompleted(true);
+      setCompanionMood('achievement');
+      setCompanionDialogueKey('vocabRoundCompleted');
       retentionEngine.completeQuest('vocab');
       retentionEngine.completeQuest('study');
     }
@@ -123,6 +136,8 @@ export function DedicatedVocabFocusView({
     setCurrentIndex(0);
     setIsRevealed(false);
     setSessionCompleted(false);
+    setCompanionMood('focus');
+    setCompanionDialogueKey('focusStart');
     setSessionStats({ reviewed: 0, remembered: 0, forgotten: 0 });
     sessionStartTimeRef.current = Date.now();
   };
@@ -430,10 +445,11 @@ export function DedicatedVocabFocusView({
         ) : null}
       </main>
 
-      {/* Bottom Minimal Footer */}
-      <footer className="px-4 py-3 border-t border-white/10 text-center text-[11px] text-slate-500">
-        <span>LifeOS Spaced Repetition (SuperMemo SM-2) · Focus Mode Active</span>
-      </footer>
+      {/* AI Study Companion Widget */}
+      <StudyCompanionWidget
+        contextMood={companionMood}
+        contextDialogueKey={companionDialogueKey}
+      />
     </div>
   );
 }
