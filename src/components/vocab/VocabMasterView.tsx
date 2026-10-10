@@ -46,6 +46,7 @@ import { AddToCollectionModal } from './AddToCollectionModal';
 import { VocabAuditTab } from './VocabAuditTab';
 import { TodayStudyTab } from './TodayStudyTab';
 import { MemoryDashboardTab } from './MemoryDashboardTab';
+import { DedicatedVocabFocusView } from './DedicatedVocabFocusView';
 import { isEquivalentAnswer } from '../../lib/vocabVerificationEngine';
 
 interface VocabMasterViewProps {
@@ -152,6 +153,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
   const [sessionCompleted, setSessionCompleted] = useState(false);
+  const [useDedicatedFocusMode, setUseDedicatedFocusMode] = useState<boolean>(true);
   const [sessionStats, setSessionStats] = useState<{ reviewed: number; passed: number; again: number }>({
     reviewed: 0,
     passed: 0,
@@ -631,27 +633,40 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
 
       {/* 3. MAIN CONTENT BODY */}
 
-      {/* ACTIVE STUDY SESSION RUNNER */}
+      {/* ACTIVE STUDY SESSION RUNNER: DEDICATED FOCUS MODE OR STANDARD MODE */}
       {studySessionActive && (
-        <StudySessionScreen
-          activeLang={activeLang}
-          words={studyQueue}
-          currentIndex={currentCardIndex}
-          mode={studyMode}
-          isRevealed={isAnswerRevealed}
-          isCompleted={sessionCompleted}
-          stats={sessionStats}
-          quizSelectedOption={quizSelectedOption}
-          spellingInput={spellingInput}
-          spellingChecked={spellingChecked}
-          onReveal={() => setIsAnswerRevealed(true)}
-          onRate={handleRateReview}
-          onSelectQuizOption={handleSelectQuizOption}
-          onSpellingChange={setSpellingInput}
-          onCheckSpelling={handleCheckSpelling}
-          onExitSession={() => setStudySessionActive(false)}
-          onRestartSession={() => handleStartStudy(studyMode, studySource, studyTargetQueue)}
-        />
+        useDedicatedFocusMode ? (
+          <DedicatedVocabFocusView
+            topicTitle={`Phiên học: ${activeLang.name} (${studyQueue.length} từ)`}
+            words={studyQueue}
+            activeLang={activeLang}
+            onExit={() => setStudySessionActive(false)}
+            onUpdateWordProgress={(wordId, rating) => {
+              updateVocabData(prev => recordReviewOutcome(prev, wordId, rating, studyMode));
+            }}
+            onToggleFavorite={handleToggleFavorite}
+          />
+        ) : (
+          <StudySessionScreen
+            activeLang={activeLang}
+            words={studyQueue}
+            currentIndex={currentCardIndex}
+            mode={studyMode}
+            isRevealed={isAnswerRevealed}
+            isCompleted={sessionCompleted}
+            stats={sessionStats}
+            quizSelectedOption={quizSelectedOption}
+            spellingInput={spellingInput}
+            spellingChecked={spellingChecked}
+            onReveal={() => setIsAnswerRevealed(true)}
+            onRate={handleRateReview}
+            onSelectQuizOption={handleSelectQuizOption}
+            onSpellingChange={setSpellingInput}
+            onCheckSpelling={handleCheckSpelling}
+            onExitSession={() => setStudySessionActive(false)}
+            onRestartSession={() => handleStartStudy(studyMode, studySource, studyTargetQueue)}
+          />
+        )
       )}
 
       {/* TAB A: DASHBOARD */}
@@ -1150,6 +1165,31 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
                   </div>
                 </button>
               </div>
+            </div>
+
+            {/* Step 4: Chế độ tập trung Dedicated Focus Mode */}
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/30 border border-indigo-200/50 dark:border-indigo-900/40">
+              <div className="space-y-0.5">
+                <span className="text-xs font-bold text-indigo-900 dark:text-indigo-200 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-500" /> Dedicated Vocab Focus Mode (Khuyên dùng)
+                </span>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  Giao diện toàn màn hình không xao nhãng, tích hợp YouTube Lo-Fi và phím tắt thông minh.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setUseDedicatedFocusMode(prev => !prev)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
+                  useDedicatedFocusMode ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-700'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    useDedicatedFocusMode ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
             </div>
 
             {/* Launch Button */}
