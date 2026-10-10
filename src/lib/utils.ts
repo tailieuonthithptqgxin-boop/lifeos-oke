@@ -9,6 +9,22 @@ export function formatCurrency(amount: number) {
   return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
 }
 
+export function formatCompactCurrency(amount: number): string {
+  if (Math.abs(amount) >= 1_000_000_000) {
+    const val = Number((amount / 1_000_000_000).toFixed(1));
+    return `${val} tỷ ₫`;
+  }
+  if (Math.abs(amount) >= 1_000_000) {
+    const val = Number((amount / 1_000_000).toFixed(1));
+    return `${val} tr ₫`;
+  }
+  if (Math.abs(amount) >= 1_000) {
+    const val = Number((amount / 1_000).toFixed(0));
+    return `${val}k ₫`;
+  }
+  return `${amount} ₫`;
+}
+
 export function formatDate(date: Date | string | number | null | undefined): string {
   if (!date) return '';
   try {

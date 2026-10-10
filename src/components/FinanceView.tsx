@@ -4,9 +4,9 @@ import {
   Wallet, TrendingUp, TrendingDown, DollarSign, Plus, 
   CreditCard, Landmark, PiggyBank, Target, ArrowRightLeft,
   PieChart, Activity, AlertTriangle, Building, LayoutDashboard,
-  Edit3, Trash2, X
+  Edit3, Trash2, X, Calendar, Filter, CheckCircle2, Info
 } from 'lucide-react';
-import { formatCurrency } from '../lib/utils';
+import { formatCurrency, formatCompactCurrency } from '../lib/utils';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart as RePieChart, Pie, Cell, Legend } from 'recharts';
 
 
@@ -442,38 +442,108 @@ export function FinanceView() {
   const [forecastCategory, setForecastCategory] = useState<string>('Mua sắm');
   const [forecastNote, setForecastNote] = useState<string>('Chi tiêu theo kế hoạch');
 
+  // Period Filter State for Charts & Analysis
+  const [chartPeriod, setChartPeriod] = useState<'today' | 'week' | 'month' | 'year' | 'all'>('month');
+
   // Computed Values
   const totalBalance = financeAccounts.reduce((sum, a) => sum + (a.balance || 0), 0);
   
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  
-  const monthlyTx = transactions.filter(t => {
-    const d = new Date(t.date);
-    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-  });
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
 
-  const monthlyIncome = monthlyTx.filter(t => t.type === 'Thu nhập').reduce((sum, t) => sum + t.amount, 0);
-  const monthlyExpense = monthlyTx.filter(t => t.type === 'Chi tiêu').reduce((sum, t) => sum + t.amount, 0);
+  // Filter transactions based on selected period
+  const periodFilteredTx = useMemo(() => {
+    return transactions.filter(t => {
+      if (!t.date) return false;
+      const tDate = new Date(t.date);
+      if (isNaN(tDate.getTime())) return false;
+
+      if (chartPeriod === 'today') {
+        return t.date.startsWith(todayStr);
+      }
+      if (chartPeriod === 'week') {
+        const diffTime = now.getTime() - tDate.getTime();
+        const diffDays = diffTime / (1000 * 3600 * 24);
+        return diffDays >= 0 && diffDays <= 7;
+      }
+      if (chartPeriod === 'month') {
+        return tDate.getMonth() === currentMonth && tDate.getFullYear() === currentYear;
+      }
+      if (chartPeriod === 'year') {
+        return tDate.getFullYear() === currentYear;
+      }
+      return true; // 'all'
+    });
+  }, [transactions, chartPeriod, todayStr, currentMonth, currentYear]);
+
+  // Keep monthlyTx for backwards-compatible monthly-scoped widgets
+  const monthlyTx = useMemo(() => {
+    return transactions.filter(t => {
+      if (!t.date) return false;
+      const d = new Date(t.date);
+      return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    });
+  }, [transactions, currentMonth, currentYear]);
+
+  const periodIncome = useMemo(() => {
+    return periodFilteredTx.filter(t => t.type === 'Thu nhập').reduce((sum, t) => sum + t.amount, 0);
+  }, [periodFilteredTx]);
+
+  const periodExpense = useMemo(() => {
+    return periodFilteredTx.filter(t => t.type === 'Chi tiêu').reduce((sum, t) => sum + t.amount, 0);
+  }, [periodFilteredTx]);
+
+  const periodNetIncome = periodIncome - periodExpense;
+
+  const monthlyIncome = useMemo(() => {
+    return monthlyTx.filter(t => t.type === 'Thu nhập').reduce((sum, t) => sum + t.amount, 0);
+  }, [monthlyTx]);
+
+  const monthlyExpense = useMemo(() => {
+    return monthlyTx.filter(t => t.type === 'Chi tiêu').reduce((sum, t) => sum + t.amount, 0);
+  }, [monthlyTx]);
+
   const netIncome = monthlyIncome - monthlyExpense;
 
+  // Total allocated budget limit (scaled to period if needed, defaults to monthly budget limit)
+  const totalBudgetLimit = useMemo(() => {
+    const rawMonthlyLimit = budgets.reduce((sum: number, b: any) => sum + (b.limit || 0), 0);
+    if (chartPeriod === 'today') return Math.round(rawMonthlyLimit / 30);
+    if (chartPeriod === 'week') return Math.round((rawMonthlyLimit / 30) * 7);
+    if (chartPeriod === 'year') return rawMonthlyLimit * 12;
+    return rawMonthlyLimit;
+  }, [budgets, chartPeriod]);
+
+  // Budget remaining and utilization percentage
+  const budgetRemaining = Math.max(0, totalBudgetLimit - periodExpense);
+  const budgetUtilizationPercent = totalBudgetLimit > 0 
+    ? Math.round((periodExpense / totalBudgetLimit) * 100) 
+    : null;
+
   const categoryData = useMemo(() => {
-    const expenses = transactions.filter(t => t.type === 'Chi tiêu');
+    const expenses = periodFilteredTx.filter(t => t.type === 'Chi tiêu');
     const categoryMap: any = {};
     expenses.forEach(t => {
       categoryMap[t.category] = (categoryMap[t.category] || 0) + t.amount;
     });
     return Object.keys(categoryMap).map(key => ({ name: key, value: categoryMap[key] }));
-  }, [transactions]);
+  }, [periodFilteredTx]);
   
   const COLORS = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef', '#f43f5e'];
 
+  // Comparison Bar Chart Data: Thu nhập vs Chi tiêu vs Ngân sách
   const incomeExpenseData = useMemo(() => {
-    return [
-      { name: 'Thu nhập', amount: monthlyIncome },
-      { name: 'Chi tiêu', amount: monthlyExpense },
+    const list = [
+      { name: 'Thu nhập', amount: periodIncome, color: '#22c55e' },
+      { name: 'Chi tiêu', amount: periodExpense, color: '#ef4444' },
     ];
-  }, [monthlyIncome, monthlyExpense]);
+    if (totalBudgetLimit > 0) {
+      list.push({ name: 'Ngân sách', amount: totalBudgetLimit, color: '#3b82f6' });
+    }
+    return list;
+  }, [periodIncome, periodExpense, totalBudgetLimit]);
 
 
   const getAccountIcon = (type: string) => {
@@ -540,41 +610,230 @@ export function FinanceView() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
             {/* Charts */}
+            {/* Charts Section */}
             <div className="lg:col-span-2 space-y-6">
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 h-[350px]">
-                <h3 className="font-bold text-slate-900 mb-4">Thu nhập vs Chi tiêu (Tháng này)</h3>
-                <ResponsiveContainer width="100%" height="85%">
-                  <BarChart data={incomeExpenseData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} />
-                    <YAxis axisLine={false} tickLine={false} tickFormatter={(value) => (value / 1000000) + 'tr'} />
-                    <RechartsTooltip formatter={(value: number) => formatCurrency(value)} />
-                    <Bar dataKey="amount" fill="#3b82f6" radius={[4, 4, 0, 0]}>
-                      {incomeExpenseData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.name === 'Thu nhập' ? '#22c55e' : '#ef4444'} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+              
+              {/* Primary Comparison Chart: Đã chi tiêu vs Ngân sách vs Thu nhập */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 p-5 sm:p-6 space-y-4">
+                
+                {/* Header with Title and Period Filter Segmented Control */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100 dark:border-slate-800">
+                  <div>
+                    <h3 className="font-black text-slate-900 dark:text-white text-base flex items-center gap-2">
+                      <span>Theo dõi Chi tiêu & Sử dụng Ngân sách</span>
+                      {periodFilteredTx.length > 0 && (
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                          {periodFilteredTx.length} giao dịch
+                        </span>
+                      )}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Đối chiếu trực quan số tiền đã chi thực tế so với hạn mức ngân sách và thu nhập.
+                    </p>
+                  </div>
+
+                  {/* Period Switcher Buttons */}
+                  <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl self-start sm:self-auto shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setChartPeriod('today')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        chartPeriod === 'today' 
+                          ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs' 
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      }`}
+                    >
+                      Hôm nay
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setChartPeriod('week')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        chartPeriod === 'week' 
+                          ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs' 
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      }`}
+                    >
+                      Tuần này
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setChartPeriod('month')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        chartPeriod === 'month' 
+                          ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs' 
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      }`}
+                    >
+                      Tháng này
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setChartPeriod('year')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        chartPeriod === 'year' 
+                          ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs' 
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      }`}
+                    >
+                      Năm nay
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setChartPeriod('all')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                        chartPeriod === 'all' 
+                          ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs' 
+                          : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                      }`}
+                    >
+                      Tất cả
+                    </button>
+                  </div>
+                </div>
+
+                {/* 4 Essential KPI Badges: Đã chi tiêu, Ngân sách, Còn lại, Tỷ lệ sử dụng */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Đã chi tiêu</span>
+                    <div className="text-base sm:text-lg font-black text-rose-600 dark:text-rose-400 font-mono">
+                      {formatCurrency(periodExpense)}
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Hạn mức ngân sách</span>
+                    <div className="text-base sm:text-lg font-black text-slate-800 dark:text-slate-200 font-mono">
+                      {totalBudgetLimit > 0 ? formatCurrency(totalBudgetLimit) : 'Chưa thiết lập'}
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Ngân sách còn lại</span>
+                    <div className={`text-base sm:text-lg font-black font-mono ${totalBudgetLimit > 0 ? (budgetRemaining > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600') : 'text-slate-400'}`}>
+                      {totalBudgetLimit > 0 ? formatCurrency(budgetRemaining) : '---'}
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Tỷ lệ sử dụng</span>
+                    <div className="text-base sm:text-lg font-black font-mono flex items-center gap-1.5">
+                      {budgetUtilizationPercent !== null ? (
+                        <>
+                          <span className={budgetUtilizationPercent > 100 ? 'text-rose-600' : budgetUtilizationPercent >= 80 ? 'text-amber-500' : 'text-blue-600'}>
+                            {budgetUtilizationPercent}%
+                          </span>
+                          {budgetUtilizationPercent > 100 && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 font-bold">Vượt trần</span>
+                          )}
+                        </>
+                      ) : (
+                        <span className="text-xs text-slate-400 font-normal">Chưa có ngân sách</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* The Bar Chart Container with Dynamic Y-Axis Scale */}
+                <div className="h-[280px] w-full pt-2">
+                  {periodExpense === 0 && periodIncome === 0 && totalBudgetLimit === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-2">
+                      <PieChart className="w-8 h-8 opacity-40" />
+                      <p className="text-xs">Chưa có giao dịch thu chi nào trong khoảng thời gian này.</p>
+                      <button
+                        type="button"
+                        onClick={() => setShowTxModal(true)}
+                        className="px-3 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 text-xs font-bold hover:bg-blue-100 cursor-pointer"
+                      >
+                        + Ghi nhận giao dịch đầu tiên
+                      </button>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={incomeExpenseData} margin={{ top: 15, right: 10, left: 10, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" strokeOpacity={0.6} />
+                        <XAxis 
+                          dataKey="name" 
+                          axisLine={false} 
+                          tickLine={false}
+                          tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }}
+                        />
+                        <YAxis 
+                          axisLine={false} 
+                          tickLine={false}
+                          domain={[0, 'auto']}
+                          tickFormatter={(value) => formatCompactCurrency(value)}
+                          tick={{ fill: '#94a3b8', fontSize: 11 }}
+                          width={65}
+                        />
+                        <RechartsTooltip 
+                          formatter={(value: number, name: string) => [formatCurrency(value), name]}
+                          contentStyle={{ 
+                            borderRadius: '16px', 
+                            border: '1px solid #e2e8f0', 
+                            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
+                            backgroundColor: '#ffffff',
+                            fontWeight: 600,
+                            fontSize: '12px'
+                          }}
+                        />
+                        <Bar dataKey="amount" radius={[8, 8, 0, 0]} maxBarSize={60}>
+                          {incomeExpenseData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
               </div>
-              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 h-[350px]">
-                <h3 className="font-bold text-slate-900 mb-4">Cơ cấu Chi tiêu</h3>
-                {categoryData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="85%">
-                    <RePieChart>
-                      <Pie data={categoryData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={60} outerRadius={100} label>
-                        {categoryData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <RechartsTooltip formatter={(value: number) => formatCurrency(value)} />
-                      <Legend />
-                    </RePieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="flex h-full items-center justify-center text-slate-500">Chưa có giao dịch chi tiêu</div>
-                )}
+
+              {/* Secondary Breakdown Chart: Cơ cấu Chi tiêu */}
+              <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 p-5 sm:p-6 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                  <div>
+                    <h3 className="font-black text-slate-900 dark:text-white text-base">Cơ cấu Chi tiêu theo Danh mục</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Phân bổ các khoản tiền đã chi trong khoảng thời gian đang chọn.
+                    </p>
+                  </div>
+                  <span className="text-xs font-bold text-slate-500 font-mono">
+                    Tổng: {formatCurrency(periodExpense)}
+                  </span>
+                </div>
+
+                <div className="h-[280px] w-full">
+                  {categoryData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RePieChart>
+                        <Pie 
+                          data={categoryData} 
+                          dataKey="value" 
+                          nameKey="name" 
+                          cx="50%" 
+                          cy="50%" 
+                          innerRadius={65} 
+                          outerRadius={95} 
+                          paddingAngle={3}
+                          label={({ name, percent }: any) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                        >
+                          {categoryData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip formatter={(value: number) => formatCurrency(value)} />
+                        <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                      </RePieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex flex-col h-full items-center justify-center text-slate-400 space-y-1">
+                      <PieChart className="w-8 h-8 opacity-40" />
+                      <span className="text-xs">Chưa có giao dịch chi tiêu trong giai đoạn này.</span>
+                    </div>
+                  )}
+                </div>
               </div>
+
             </div>
 
             {/* Accounts Summary */}
