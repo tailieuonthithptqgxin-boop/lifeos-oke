@@ -6,6 +6,7 @@ import { DecisionEngineService } from '../services/decisionEngine.service.js';
 import { AutomationEngineService } from '../services/automationEngine.service.js';
 import { subscriptionService, OFFICIAL_PLANS } from '../services/subscription.service.js';
 import { teamService } from '../services/team.service.js';
+import { gmailService } from '../services/gmailNotification.service.js';
 import { r2Router } from './r2.routes.js';
 import { customModulesRouter } from './customModules.routes.js';
 import { paymentRateLimiter, couponRateLimiter } from '../security/rateLimiter.js';
@@ -1750,6 +1751,22 @@ apiRouter.post('/admin/payments/:id/approve', requireAdmin, async (req: AuthRequ
       }
     });
 
+    // 4.1. Send Gmail notification to customer
+    if (updatedUser?.email) {
+      gmailService.sendNotification({
+        to: updatedUser.email,
+        recipientName: updatedUser.name || 'Khách hàng',
+        subject: `🎉 [Life OS] Đơn thanh toán đã được duyệt - Kích hoạt gói ${planToActivate}`,
+        category: 'PAYMENT',
+        headline: `Chúc mừng bạn! Gói ${planToActivate} đã được kích hoạt`,
+        content: `Yêu cầu thanh toán của bạn (Mã: <strong>${payment.txReference || payment.orderId}</strong>, số tiền: <strong>${(payment.amount || 0).toLocaleString('vi-VN')} ₫</strong>) đã được quản trị viên xác nhận và duyệt thành công.<br/><br/>Tài khoản của bạn đã được nâng cấp lên gói <strong>${planToActivate}</strong>, hạn dùng đến ngày <strong>${new Date(planExpiresAt).toLocaleDateString('vi-VN')}</strong>. Bạn có thể sử dụng đầy đủ mọi tính năng cao cấp của Life OS ngay bây giờ.`,
+        actionLabel: 'Truy cập Life OS ngay',
+        actionUrl: 'http://localhost:5173',
+        badgeText: 'Thanh toán thành công',
+        badgeColor: '#10b981'
+      }).catch(e => console.error('[Gmail] Error sending payment approve email:', e));
+    }
+
     // 5. Create Audit Log
     await dbService.createAuditLog(
       adminId,
@@ -1787,7 +1804,8 @@ apiRouter.post('/admin/payments/:id/reject', requireAdmin, validateBody(AdminRej
 
   try {
     const payment = await prisma.payment.findUnique({
-      where: { id: paymentId }
+      where: { id: paymentId },
+      include: { user: true }
     });
 
     if (!payment) {
@@ -1823,7 +1841,7 @@ apiRouter.post('/admin/payments/:id/reject', requireAdmin, validateBody(AdminRej
       data: { status: 'REJECTED' }
     });
 
-    // Notify customer
+    // Notify customer in-app
     await prisma.notification.create({
       data: {
         userId: payment.userId,
@@ -1833,6 +1851,23 @@ apiRouter.post('/admin/payments/:id/reject', requireAdmin, validateBody(AdminRej
         read: false
       }
     });
+
+    // Send Gmail notification to customer
+    const targetEmail = payment.user?.email || payment.customerEmail;
+    if (targetEmail) {
+      gmailService.sendNotification({
+        to: targetEmail,
+        recipientName: payment.user?.name || 'Khách hàng',
+        subject: `⚠️ [Life OS] Thông báo về yêu cầu thanh toán gói ${payment.planRequested}`,
+        category: 'PAYMENT',
+        headline: 'Yêu cầu thanh toán không được phê duyệt',
+        content: `Yêu cầu thanh toán của bạn cho mã đơn <strong>${payment.txReference || payment.orderId}</strong> chưa được xác nhận bởi quản trị viên.<br/><br/><strong>Lý do từ chối:</strong> ${reason || 'Thông tin chuyển khoản không trùng khớp hoặc chưa nhận được tiền.'}<br/><br/>Nếu có thắc mắc hoặc cần hỗ trợ, vui lòng phản hồi lại email này hoặc liên hệ quản trị viên để được kiểm tra lại.`,
+        actionLabel: 'Kiểm tra tài khoản',
+        actionUrl: 'http://localhost:5173',
+        badgeText: 'Từ chối thanh toán',
+        badgeColor: '#ef4444'
+      }).catch(e => console.error('[Gmail] Error sending payment reject email:', e));
+    }
 
     // Audit Log
     await dbService.createAuditLog(
@@ -3361,3 +3396,82 @@ apiRouter.post('/workspace/backup/import', requireAuth, async (req: AuthRequest,
   }
 });
 
+// ==========================================
+// ADMIN GMAIL & NOTIFICATION SYSTEM ROUTES
+// ==========================================
+
+// 1. Get current Gmail configuration (App password masked for security)
+apiRouter.get('/admin/gmail/config', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const config = await gmailService.getConfig();
+    // Mask sensitive app password
+    const safeConfig = {
+      ...config,
+      appPassword: config.appPassword ? '••••••••••••••••' : ''
+    };
+    res.json({
+      success: true,
+      config: safeConfig
+    });
+  } catch (err: any) {
+    console.error('GET /admin/gmail/config error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi khi tải cấu hình Gmail: ' + err.message });
+  }
+});
+
+// 2. Update Gmail configuration
+apiRouter.put('/admin/gmail/config', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const payload = req.body || {};
+    const updated = await gmailService.saveConfig(payload, req.userId);
+
+    await dbService.createAuditLog(
+      req.userId!,
+      'ADMIN_UPDATE_GMAIL_CONFIG',
+      'system_settings',
+      'gmail_notification_config',
+      null,
+      { enabled: updated.enabled, user: updated.user, fromName: updated.fromName }
+    );
+
+    res.json({
+      success: true,
+      message: 'Cập nhật cấu hình Gmail thành công!',
+      config: {
+        ...updated,
+        appPassword: updated.appPassword ? '••••••••••••••••' : ''
+      }
+    });
+  } catch (err: any) {
+    console.error('PUT /admin/gmail/config error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi khi lưu cấu hình Gmail: ' + err.message });
+  }
+});
+
+// 3. Test Gmail connection & send test email
+apiRouter.post('/admin/gmail/test', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { testEmail } = req.body;
+    const recipient = testEmail || req.user.email;
+    const result = await gmailService.testConnection(recipient);
+
+    res.json(result);
+  } catch (err: any) {
+    console.error('POST /admin/gmail/test error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi kiểm tra kết nối: ' + err.message });
+  }
+});
+
+// 4. Get recent notification logs (live monitor)
+apiRouter.get('/admin/gmail/logs', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const logs = gmailService.getNotificationLogs();
+    res.json({
+      success: true,
+      logs
+    });
+  } catch (err: any) {
+    console.error('GET /admin/gmail/logs error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi tải nhật ký gửi email: ' + err.message });
+  }
+});
