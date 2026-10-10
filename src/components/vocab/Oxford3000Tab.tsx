@@ -48,9 +48,9 @@ const STATUS_FILTERS = [
 ];
 
 export function Oxford3000Tab({
-  systemWords,
-  progressMap,
-  collections,
+  systemWords = [],
+  progressMap = {},
+  collections = [],
   onOpenWordDetail,
   onOpenAddToCollection,
   onStartStudyWords,

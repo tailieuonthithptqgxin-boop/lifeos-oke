@@ -1,0 +1,71 @@
+{
+  "name": "QUẢN LÍ CÁ NHÂN",
+  "short_name": "QUẢN LÍ",
+  "description": "Hệ thống quản lý cá nhân toàn diện: công việc, thói quen, học tập, tài chính và mục tiêu.",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "lang": "vi",
+  "dir": "ltr",
+  "categories": ["productivity", "education", "utilities", "finance"],
+  "icons": [
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Bảng Điều Khiển",
+      "short_name": "Tổng Quan",
+      "description": "Xem tổng quan tiến độ hôm nay",
+      "url": "/?view=dashboard",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Tập Trung Focus",
+      "short_name": "Focus",
+      "description": "Bật đồng hồ Pomodoro làm việc sâu",
+      "url": "/?view=focus",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Học Từ Vựng",
+      "short_name": "Từ Vựng",
+      "description": "Ôn tập từ vựng Spaced Repetition",
+      "url": "/?view=study",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Công Việc Hôm Nay",
+      "short_name": "Nhiệm Vụ",
+      "description": "Xem danh sách việc cần làm",
+      "url": "/?view=tasks",
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
+    }
+  ],
+  "prefer_related_applications": false
+}

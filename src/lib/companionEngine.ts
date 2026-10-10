@@ -1,14 +1,17 @@
 /**
  * AI Study Companion Engine
  * Architecture:
- * - Mascot profiles (Lumi, Kitsu, Nova) with customizable accessories
- * - State management (greeting, focus, thinking, encourage, celebrate, resting, error)
- * - Intelligent dialogue generator with debounce, anti-repetition memory & context awareness
- * - Real user settings persistence (frequency, audio, bubble, mascot choice, quiet mode, position)
- * - Unlocks & milestone rewards integration (XP & level connection)
+ * - Mascot profiles (Lumi - Starlight Buddy, Kitsu, Nova) with customizable accessories
+ * - State management (greeting, focus, thinking, motivate, encourage, celebrate, resting, achievement)
+ * - Continuous live animation integration with 60 FPS micro-physics
+ * - 120+ Contextual quotes repository with sliding-window anti-repeat engine
+ * - 2-3 minute randomized motivation cycle
+ * - Focus modes: 'normal' (2-3m), 'quiet' (6-10m, silent), 'minimal' (events only), 'off'
  */
 
-export type CompanionMascotId = 'lumi' | 'kitsu' | 'nova';
+import { quoteEngine, QuoteCategory, MOTIVATIONAL_QUOTES_POOL } from './companionQuotes';
+
+export type CompanionMascotId = 'lumi' | 'bunny' | 'cat' | 'bear' | 'fox' | 'panda' | 'kitsu' | 'nova';
 
 export type CompanionMood = 
   | 'greeting' 
@@ -16,11 +19,14 @@ export type CompanionMood =
   | 'idle'
   | 'thinking' 
   | 'celebrate' 
+  | 'motivate'
   | 'encourage' 
   | 'resting' 
   | 'achievement';
 
 export type InteractionFrequency = 'minimal' | 'moderate' | 'chatty';
+
+export type CompanionFocusMode = 'normal' | 'quiet' | 'minimal' | 'off';
 
 export interface CompanionAccessory {
   id: string;
@@ -39,12 +45,16 @@ export interface CompanionProfile {
   glowColor: string;
   quote: string;
   unlockedLevel: number;
+  imageReference?: string;
+  traits?: string[];
+  badge?: string;
 }
 
 export interface CompanionSettings {
   enabled: boolean;
   mascotId: CompanionMascotId;
   frequency: InteractionFrequency;
+  focusCompanionMode: CompanionFocusMode;
   showSpeechBubble: boolean;
   soundEnabled: boolean;
   quietMode: boolean; // Absolute silence mode for deep focus
@@ -57,13 +67,81 @@ export const MASCOT_PROFILES: Record<CompanionMascotId, CompanionProfile> = {
   lumi: {
     id: 'lumi',
     name: 'Lumi',
-    title: 'Ngọn Đèn Tinh Thần',
-    description: 'Bé đom đóm tri thức phát sáng dịu nhẹ, luôn bên bạn những đêm học tập miệt mài.',
-    avatar: '💡',
-    themeColor: '#3b82f6',
-    glowColor: 'rgba(59, 130, 246, 0.35)',
-    quote: 'Chỉ cần bạn bước một bước nhỏ, mình sẽ thắp sáng phần còn lại!',
-    unlockedLevel: 1
+    title: 'Bé Sao Nhỏ Đồng Hành',
+    description: 'Bé bông ấm áp giữ ngôi sao may mắn, luôn chuyển động nhẹ nhàng và tiếp sức cho bạn trong mỗi phiên học.',
+    avatar: '⭐',
+    themeColor: '#f97316',
+    glowColor: 'rgba(251, 146, 60, 0.45)',
+    quote: 'Chỉ cần bạn bước thêm một bước, Lumi sẽ thắp sáng ngôi sao cùng bạn!',
+    unlockedLevel: 1,
+    imageReference: '/assets/mascot/lumi_reference.png',
+    badge: 'Chữa lành & Ấm áp',
+    traits: ['Ân cần', 'Ấm áp', 'Cổ vũ bền bỉ']
+  },
+  bunny: {
+    id: 'bunny',
+    name: 'Bunny',
+    title: 'Thỏ Ngọc Năng Lượng',
+    description: 'Bé thỏ siêu tươi vui với cà rốt may mắn, luôn tiếp thêm 200% năng lượng chiến đấu cho bạn.',
+    avatar: '🐰',
+    themeColor: '#10b981',
+    glowColor: 'rgba(16, 185, 129, 0.35)',
+    quote: 'Năng lượng 100%! Bật chế độ tập trung và chiến đấu thôi nào bạn ơiii! 🥕',
+    unlockedLevel: 1,
+    badge: 'Năng động & Tràn trề sinh lực',
+    traits: ['Nhiệt huyết', 'Vui tính', 'Nhắc uống nước']
+  },
+  cat: {
+    id: 'cat',
+    name: 'Miu',
+    title: 'Mèo Thiền Định',
+    description: 'Bé mèo xám điềm đạm đeo chuông nhỏ, đôi mắt lim dim thông thái, giúp bạn loại bỏ mọi xao nhãng.',
+    avatar: '🐱',
+    themeColor: '#6366f1',
+    glowColor: 'rgba(99, 102, 241, 0.35)',
+    quote: 'Tâm tĩnh như nước, tập trung tuyệt đối vào khoảnh khắc này.',
+    unlockedLevel: 1,
+    badge: 'Tĩnh tâm & Sâu sắc',
+    traits: ['Điềm đạm', 'Deep work', 'Chống xao nhãng']
+  },
+  bear: {
+    id: 'bear',
+    name: 'Kuma',
+    title: 'Gấu Nâu Kiên Trì',
+    description: 'Bé gấu nâu mũm mĩm ôm hũ mật ong, điểm tựa vững chãi giúp bạn vượt qua mọi kỳ thi và mục tiêu lớn.',
+    avatar: '🐻',
+    themeColor: '#d97706',
+    glowColor: 'rgba(217, 119, 6, 0.35)',
+    quote: 'Chậm mà chắc, từng bước một, không có ngọn núi nào là không thể vượt qua!',
+    unlockedLevel: 1,
+    badge: 'Vững vàng & Bền bỉ',
+    traits: ['Kiên định', 'Chắc chắn', 'Đáng tin cậy']
+  },
+  fox: {
+    id: 'fox',
+    name: 'Kitsu',
+    title: 'Cáo Cam Thông Thái',
+    description: 'Cáo nhỏ lanh lợi cầm sách, chuyên gia chiến lược học Spaced Repetition và tối ưu thời gian.',
+    avatar: '🦊',
+    themeColor: '#ea580c',
+    glowColor: 'rgba(234, 88, 12, 0.35)',
+    quote: 'Học thông minh hơn, ghi nhớ sâu hơn với phương pháp khoa học!',
+    unlockedLevel: 1,
+    badge: 'Chiến lược gia học tập',
+    traits: ['Spaced Repetition', 'Mẹo ghi nhớ', 'Sắc sảo']
+  },
+  panda: {
+    id: 'panda',
+    name: 'Bao',
+    title: 'Gấu Trúc Thư Thái',
+    description: 'Bé gấu trúc hiền lành ôm cành trúc xanh, giúp bạn giữ tinh thần cân bằng, chống kiệt sức và luôn vui vẻ.',
+    avatar: '🐼',
+    themeColor: '#0d9488',
+    glowColor: 'rgba(13, 148, 136, 0.35)',
+    quote: 'Học là hành trình cả đời, hãy giữ cho tâm hồn luôn mỉm cười và thảnh thơi~',
+    unlockedLevel: 1,
+    badge: 'Cân bằng & Chống Burnout',
+    traits: ['Thư thái', 'Anti-burnout', 'Hài hòa']
   },
   kitsu: {
     id: 'kitsu',
@@ -71,8 +149,8 @@ export const MASCOT_PROFILES: Record<CompanionMascotId, CompanionProfile> = {
     title: 'Hồ Ly Kỷ Luật',
     description: 'Cáo nhỏ thông thái thích đọc sách, tràn đầy năng lượng và kiên trì không bỏ cuộc.',
     avatar: '🦊',
-    themeColor: '#f97316',
-    glowColor: 'rgba(249, 115, 22, 0.35)',
+    themeColor: '#ea580c',
+    glowColor: 'rgba(234, 88, 12, 0.35)',
     quote: 'Kỷ luật hôm nay là tự do của ngày mai!',
     unlockedLevel: 1
   },
@@ -101,8 +179,9 @@ export const DEFAULT_COMPANION_SETTINGS: CompanionSettings = {
   enabled: true,
   mascotId: 'lumi',
   frequency: 'moderate',
+  focusCompanionMode: 'normal',
   showSpeechBubble: true,
-  soundEnabled: true,
+  soundEnabled: false, // Default off per user instruction: "Không tự động phát âm thanh nếu người dùng chưa bật"
   quietMode: false,
   position: 'bottom-right',
   size: 'normal'
@@ -122,173 +201,7 @@ export interface CompanionDialoguePool {
   levelUp: string[];
 }
 
-export const COMPANION_DIALOGUES: Record<CompanionMascotId, CompanionDialoguePool> = {
-  lumi: {
-    greeting: [
-      'Chào bạn! Hôm nay chúng mình lại cùng nhau tiến bộ nhé!',
-      'Lumi đã sẵn sàng! Bạn muốn chinh phục nội dung nào trước?',
-      'Một ngày tuyệt vời để nạp thêm kiến thức mới!'
-    ],
-    focusStart: [
-      'Vào phiên tập trung rồi, mình sẽ giữ yên lặng để bạn làm việc thật tốt nhé.',
-      'Hít thở sâu một hơi nào! Mình luôn đồng hành cùng bạn.',
-      'Không gian yên tĩnh bắt đầu, bạn làm rất tốt!'
-    ],
-    focusMaintain: [
-      'Dòng chảy tập trung của bạn thật tuyệt vời...',
-      'Cứ bình tĩnh từng bước một nhé.',
-      'Bạn đang đi đúng hướng rồi!'
-    ],
-    focusPaused: [
-      'Nghỉ tay chớp mắt chút xíu rồi chúng mình tiếp tục nhé.',
-      'Cần uống ngụm nước không bạn? Mình đợi bạn quay lại.',
-      'Tạm dừng một nhịp để nạp lại năng lượng nào.'
-    ],
-    focusCompleted: [
-      'Tuyệt vời quá! Phiên tập trung đã hoàn thành trọn vẹn!',
-      'Chúc mừng bạn! Cảm giác hoàn thành thật là dễ chịu đúng không?',
-      'Bạn vừa tiến một bước lớn trong hành trình hôm nay!'
-    ],
-    vocabCorrect: [
-      'Chính xác rồi! Trí nhớ của bạn thật đáng nể!',
-      'Chuẩn xác! Cứ giữ vững phong độ này nhé.',
-      'Từ này đã vào sâu trong bộ nhớ dài hạn rồi đó!'
-    ],
-    vocabIncorrect: [
-      'Không sao cả, sai sót là một phần để nhớ sâu hơn mà!',
-      'Gặp lại lần nữa là nhớ ngay thôi, đừng nản lòng nhé!',
-      'Mỗi lần ôn lại là một lần não bộ củng cố liên kết!'
-    ],
-    vocabRoundCompleted: [
-      'Hoan hô! Bạn đã ôn xong toàn bộ danh sách từ hôm nay!',
-      'Xuất sắc! Bộ từ vựng đã được hoàn thành gọn gàng.',
-      'Thành quả học từ hôm nay rất đáng tự hào!'
-    ],
-    breakTime: [
-      'Đến lúc thả lỏng mắt và duỗi người rồi bạn ơi.',
-      'Nghỉ ngơi chất lượng sẽ giúp phiên sau hiệu quả hơn gấp đôi!'
-    ],
-    idleReminder: [
-      'Bạn vẫn ở đó chứ? Khi nào sẵn sàng thì chúng mình học tiếp nhé.',
-      'Nghỉ ngơi xong thì bấm tiếp tục nha!'
-    ],
-    levelUp: [
-      'Woa! Bạn vừa lên cấp mới! Bạn đỉnh thật sự!',
-      'Thành tựu mới mở khóa! Lumi rất tự hào về bạn!'
-    ]
-  },
-  kitsu: {
-    greeting: [
-      'Kitsu chào bạn! Đã đến giờ rèn luyện kỷ luật rồi!',
-      'Sách vở đã mở, tâm trí đã sẵn sàng chưa bạn ơi?',
-      'Cùng biến hôm nay thành một ngày năng suất vượt bậc nào!'
-    ],
-    focusStart: [
-      'Bắt đầu chế độ tập trung cao độ! Không xao nhãng!',
-      'Kitsu sẽ đứng gác cho bạn làm việc thật hiệu quả.',
-      'Tập trung tối đa, kết quả tối ưu!'
-    ],
-    focusMaintain: [
-      'Phong độ của bạn đang rất cao, giữ vững nhé!',
-      'Sự kiên trì đang tạo nên phép màu đấy.',
-      'Từng phút giây đều có giá trị!'
-    ],
-    focusPaused: [
-      'Tạm nghỉ một chút, nhưng đừng lướt mạng xã hội nhé!',
-      'Nghỉ ngơi đúng lúc để duy trì sự dẻo dai nào.',
-      'Uống nước và vươn vai thư giãn chút thôi bạn nhé.'
-    ],
-    focusCompleted: [
-      'Hoàn thành xuất sắc! Kỷ luật của bạn thật đáng ngưỡng mộ!',
-      'Mục tiêu đã được chinh phục! Làm tốt lắm!',
-      'Cảm giác chiến thắng chính mình thật tuyệt!'
-    ],
-    vocabCorrect: [
-      'Đúng chuẩn! Phản xạ từ vựng cực kỳ nhanh!',
-      'Chính xác! Não bộ của bạn đang hoạt động hết công suất!',
-      'Rất tốt! Thêm một từ được thu phục!'
-    ],
-    vocabIncorrect: [
-      'Không vấn đề gì! Kitsu sẽ ghi nhớ từ này để cùng bạn ôn lại.',
-      'Đừng lo lắng, cao thủ nào cũng từng ôn từ nhiều lần!',
-      'Bình tĩnh nhìn lại nghĩa và thử lại nhé!'
-    ],
-    vocabRoundCompleted: [
-      'Chiến thắng giòn giã! Bạn đã chinh phục trọn vẹn danh sách từ!',
-      'Kitsu ấn tượng với sự bền bỉ của bạn hôm nay!',
-      'Hoàn tất phiên ôn luyện một cách đầy tự hào!'
-    ],
-    breakTime: [
-      'Hạ hỏa chút xíu nào, cho mắt nghỉ 5 phút nhé!',
-      'Đứng dậy đi lại một vòng để máu lưu thông tốt hơn nào!'
-    ],
-    idleReminder: [
-      'Kitsu đang đợi bạn trở lại võ đài tri thức đây!',
-      'Nạp đủ năng lượng rồi thì chúng mình tăng tốc tiếp nhé!'
-    ],
-    levelUp: [
-      'Cột mốc mới được thiết lập! Đẳng cấp đã nâng tầm!',
-      'Chúc mừng bạn thăng hạng! Phong độ tuyệt đỉnh!'
-    ]
-  },
-  nova: {
-    greeting: [
-      'Trạm không gian Nova đã kết nối! Chào mừng phi hành gia!',
-      'Sẵn sàng khởi động hành trình khám phá hôm nay chưa?',
-      'Tọa độ mục tiêu đã định vị, chúng ta cùng bay nào!'
-    ],
-    focusStart: [
-      'Đang vào vùng không trọng lực Focus Mode. Giữ yên lặng...',
-      'Mọi động cơ tập trung đã kích hoạt! Chúc bạn bay êm!',
-      'Tách khỏi mọi nhiễu loạn bên ngoài, bắt đầu Deep Work.'
-    ],
-    focusMaintain: [
-      'Quỹ đạo tập trung đang cực kỳ ổn định...',
-      'Năng lượng học tập đang ở mức tối đa!',
-      'Tiến độ đang tăng tốc đều đặn.'
-    ],
-    focusPaused: [
-      'Tạm dừng chuyến bay để tiếp nhiên liệu nhé.',
-      'Bảo trì năng lượng một lát rồi kích hoạt lại nào.',
-      'Thở đều và kiểm tra lại trạng thái trước khi cất cánh tiếp.'
-    ],
-    focusCompleted: [
-      'Hạ cánh an toàn! Một phiên tập trung siêu thành công!',
-      'Nhiệm vụ đã hoàn thành trọn vẹn! Bạn làm quá tuyệt!',
-      'Ghi nhận thành tích bay xuất sắc vào nhật ký không gian!'
-    ],
-    vocabCorrect: [
-      'Tín hiệu chuẩn xác! Ghi nhận từ vựng thành công!',
-      'Phát hiện đáp án đúng 100%! Cực kỳ nhạy bén!',
-      'Chuẩn xác tuyệt đối, tiếp tục giữ đà nào!'
-    ],
-    vocabIncorrect: [
-      'Tín hiệu lệch nhẹ, điều chỉnh lại bộ nhớ và thử lại nhé!',
-      'Không sao cả, trạm không gian sẽ lưu từ này để quét lại.',
-      'Mỗi lỗi sai là một dữ liệu quý để nâng cấp phản xạ!'
-    ],
-    vocabRoundCompleted: [
-      'Nhiệm vụ quét từ vựng hôm nay đã hoàn tất 100%!',
-      'Kho dữ liệu ngôn ngữ của bạn vừa mở rộng thêm một bậc!',
-      'Thành quả phi thường! Chúc mừng phi hành gia!'
-    ],
-    breakTime: [
-      'Ngắt kết nối màn hình để bảo dưỡng thị lực 5 phút nhé.',
-      'Thời gian nghỉ ngơi để não bộ sắp xếp lại dữ liệu.'
-    ],
-    idleReminder: [
-      'Tàu đang ở chế độ chờ, sẵn sàng khi bạn phát lệnh tiếp tục!',
-      'Nghỉ ngơi xong thì ấn nút bay tiếp nhé!'
-    ],
-    levelUp: [
-      'Cảnh báo thăng cấp! Bạn vừa mở khóa tầng quỹ đạo mới!',
-      'Thành tựu vũ trụ đã được mở! Xin chúc mừng!'
-    ]
-  }
-};
-
 class CompanionEngineService {
-  private recentMessages: string[] = [];
   private lastTriggerTime: number = 0;
 
   getSettingsKey(userId?: string): string {
@@ -322,41 +235,69 @@ class CompanionEngineService {
   }
 
   /**
-   * Intelligently picks a contextual message, avoiding recent repeats
+   * Intelligently picks a contextual message using the 120+ quotes anti-repeat engine
    */
   pickMessage(
     mascotId: CompanionMascotId, 
-    context: keyof CompanionDialoguePool
+    context: keyof CompanionDialoguePool | QuoteCategory
   ): string {
-    const pool = COMPANION_DIALOGUES[mascotId]?.[context] || COMPANION_DIALOGUES.lumi[context] || [];
-    if (pool.length === 0) return 'Cố gắng lên nhé!';
+    // Map legacy dialogue pool keys to new rich quote categories
+    const categoryMap: Record<string, QuoteCategory> = {
+      greeting: 'restart',
+      focusStart: 'start',
+      focusMaintain: 'flow',
+      focusPaused: 'endurance',
+      focusCompleted: 'victory',
+      vocabCorrect: 'micro_progress',
+      vocabIncorrect: 'mistake',
+      vocabRoundCompleted: 'victory',
+      breakTime: 'endurance',
+      idleReminder: 'restart',
+      levelUp: 'victory',
+      start: 'start',
+      flow: 'flow',
+      endurance: 'endurance',
+      obstacle: 'obstacle',
+      mistake: 'mistake',
+      micro_progress: 'micro_progress',
+      finishing: 'finishing',
+      victory: 'victory',
+      restart: 'restart',
+      surprise: 'surprise'
+    };
 
-    // Filter out recently spoken messages
-    const candidates = pool.filter(msg => !this.recentMessages.includes(msg));
-    const chosen = candidates.length > 0 
-      ? candidates[Math.floor(Math.random() * candidates.length)]
-      : pool[Math.floor(Math.random() * pool.length)];
+    const targetCategory = categoryMap[context as string] || 'flow';
+    const quote = quoteEngine.getRandomQuote(targetCategory);
+    return quote.text;
+  }
 
-    // Track in anti-repetition memory (keep last 4)
-    this.recentMessages.push(chosen);
-    if (this.recentMessages.length > 4) {
-      this.recentMessages.shift();
-    }
-
-    return chosen;
+  /**
+   * Gets a randomized periodic quote for the 2-3 minute background cycle
+   */
+  getPeriodicMotivationQuote(sessionMinutes: number = 0): string {
+    return quoteEngine.getContextualQuote({
+      event: 'periodic',
+      sessionDurationMinutes: sessionMinutes
+    }).text;
   }
 
   /**
    * Checks if an interaction should be spoken based on frequency settings
    */
   canTriggerInteraction(settings: CompanionSettings, isUrgentEvent: boolean = false): boolean {
-    if (!settings.enabled || settings.quietMode) return false;
+    if (!settings.enabled || settings.focusCompanionMode === 'off') return false;
+    if (settings.quietMode || settings.focusCompanionMode === 'quiet') {
+      return isUrgentEvent;
+    }
+    if (settings.focusCompanionMode === 'minimal') {
+      return isUrgentEvent;
+    }
     if (isUrgentEvent) return true;
 
     const now = Date.now();
     const minDelay = settings.frequency === 'minimal' 
-      ? 45000 
-      : (settings.frequency === 'moderate' ? 20000 : 8000);
+      ? 180000 
+      : (settings.frequency === 'moderate' ? 120000 : 90000);
 
     if (now - this.lastTriggerTime < minDelay) {
       return false;
@@ -368,3 +309,4 @@ class CompanionEngineService {
 }
 
 export const companionEngine = new CompanionEngineService();
+export { quoteEngine, MOTIVATIONAL_QUOTES_POOL };

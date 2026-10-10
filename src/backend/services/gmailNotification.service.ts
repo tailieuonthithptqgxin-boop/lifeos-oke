@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { getPrisma } from './db.js';
+import { getPrisma } from '../db.js';
 
 export interface GmailSmtpConfig {
   enabled: boolean;

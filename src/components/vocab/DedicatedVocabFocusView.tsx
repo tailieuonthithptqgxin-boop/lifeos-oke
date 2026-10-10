@@ -11,9 +11,10 @@ import {
   speakWord, 
   calculateSM2Algorithm 
 } from '../../lib/vocabEngine';
+import { verifyWord } from '../../lib/vocabVerificationEngine';
 import { YouTubeFocusPlayer } from '../YouTubeFocusPlayer';
-import { StudyCompanionWidget } from '../companion/StudyCompanionWidget';
 import { CompanionMood } from '../../lib/companionEngine';
+import { companionEventBus } from '../../lib/companion/companionEventBus';
 import { retentionEngine } from '../../lib/retentionEngine';
 import { analytics } from '../../lib/analytics';
 import { soundEngine } from '../../lib/soundEngine';
@@ -49,6 +50,17 @@ export function DedicatedVocabFocusView({
   // Companion state
   const [companionMood, setCompanionMood] = useState<CompanionMood>('focus');
   const [companionDialogueKey, setCompanionDialogueKey] = useState<any>('focusStart');
+
+  // Emit events to global companion overlay
+  useEffect(() => {
+    if (companionMood) {
+      companionEventBus.emit({
+        type: 'mood_change',
+        mood: companionMood,
+        category: companionDialogueKey
+      });
+    }
+  }, [companionMood, companionDialogueKey]);
 
   const sessionStartTimeRef = useRef<number>(Date.now());
 
@@ -126,7 +138,6 @@ export function DedicatedVocabFocusView({
       setSessionCompleted(true);
       setCompanionMood('achievement');
       setCompanionDialogueKey('vocabRoundCompleted');
-      retentionEngine.completeQuest('vocab');
       retentionEngine.completeQuest('study');
     }
   };
@@ -264,93 +275,169 @@ export function DedicatedVocabFocusView({
             </div>
 
             {/* Flashcard container */}
-            <div 
-              onClick={() => setIsRevealed(!isRevealed)}
-              className="w-full min-h-[340px] sm:min-h-[380px] p-6 sm:p-10 rounded-3xl bg-gradient-to-b from-slate-900 via-slate-900 to-slate-900/90 border border-white/15 hover:border-indigo-500/50 shadow-2xl flex flex-col justify-between cursor-pointer transition-all duration-300 relative group select-none"
-            >
-              {/* Card Header metadata */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md bg-white/10 text-indigo-300">
-                    {currentWord.partOfSpeech || 'Word'}
-                  </span>
-                  {currentWord.isFavorite && (
-                    <Star className="w-3.5 h-3.5 text-amber-400 fill-current" />
-                  )}
-                </div>
+            {(() => {
+              const report = currentWord.verification || verifyWord({
+                id: currentWord.id,
+                term: currentWord.term,
+                pos: currentWord.partOfSpeech,
+                phonetic: currentWord.phonetic,
+                meaning: currentWord.meaning,
+                exampleSentence: currentWord.exampleSentence,
+                exampleTranslation: currentWord.exampleTranslation
+              });
 
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      playPronunciation();
-                    }}
-                    className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-indigo-300 hover:text-white transition-colors cursor-pointer"
-                    title="Nghe phát âm chuẩn"
-                  >
-                    <Volume2 className="w-4 h-4" />
-                  </button>
-                  {onToggleFavorite && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onToggleFavorite(currentWord.id);
-                      }}
-                      className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-400 hover:text-amber-400 transition-colors cursor-pointer"
-                    >
-                      <Star className={`w-4 h-4 ${currentWord.isFavorite ? 'text-amber-400 fill-current' : ''}`} />
-                    </button>
-                  )}
-                </div>
-              </div>
+              return (
+                <div 
+                  onClick={() => setIsRevealed(!isRevealed)}
+                  className="w-full min-h-[340px] sm:min-h-[380px] p-6 sm:p-10 rounded-3xl bg-gradient-to-b from-slate-900 via-slate-900 to-slate-900/90 border border-white/15 hover:border-indigo-500/50 shadow-2xl flex flex-col justify-between cursor-pointer transition-all duration-300 relative group select-none"
+                >
+                  {/* Card Header metadata */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-md bg-white/10 text-indigo-300">
+                        {currentWord.partOfSpeech || 'Word'}
+                      </span>
+                      {currentWord.isFavorite && (
+                        <Star className="w-3.5 h-3.5 text-amber-400 fill-current" />
+                      )}
 
-              {/* Card Center: Term & Pronunciation */}
-              <div className="text-center my-auto space-y-3">
-                <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
-                  {currentWord.term}
-                </h1>
-                
-                {currentWord.phonetic && (
-                  <p className="font-mono text-sm sm:text-base text-slate-400">
-                    {currentWord.phonetic}
-                  </p>
-                )}
+                      {/* Linguistic Verification Badge */}
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${
+                        report.status === 'lexical_verified'
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          : report.status === 'needs_review'
+                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                          : report.primarySource === 'ai_generated'
+                          ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30'
+                          : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'
+                      }`}>
+                        {report.status === 'lexical_verified' ? '🛡️ Đối chiếu nguồn' :
+                         report.status === 'needs_review' ? '⚠️ Cần xem xét' :
+                         report.primarySource === 'ai_generated' ? '🤖 Đề xuất AI' : '📋 Chuẩn hóa'}
+                      </span>
 
-                {/* Back revealed content */}
-                {isRevealed ? (
-                  <div className="pt-6 border-t border-white/10 space-y-4 animate-in fade-in duration-200">
-                    <p className="text-xl sm:text-2xl font-bold text-emerald-400">
-                      {currentWord.meaning}
-                    </p>
+                      {report.dialectVariation && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                          🇬🇧 / 🇺🇸
+                        </span>
+                      )}
+                    </div>
 
-                    {currentWord.exampleSentence && (
-                      <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 text-xs text-left space-y-1">
-                        <p className="font-medium text-slate-200 italic">
-                          "{currentWord.exampleSentence}"
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          playPronunciation();
+                        }}
+                        className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-indigo-300 hover:text-white transition-colors cursor-pointer"
+                        title="Nghe phát âm chuẩn (US)"
+                      >
+                        <Volume2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          speakWord(currentWord.term, 'en-GB');
+                        }}
+                        className="p-1.5 px-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition-colors text-[10px] font-bold cursor-pointer"
+                        title="Nghe phát âm chuẩn (UK)"
+                      >
+                        UK
+                      </button>
+                      {onToggleFavorite && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleFavorite(currentWord.id);
+                          }}
+                          className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-slate-400 hover:text-amber-400 transition-colors cursor-pointer"
+                        >
+                          <Star className={`w-4 h-4 ${currentWord.isFavorite ? 'text-amber-400 fill-current' : ''}`} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Card Center: Term & Pronunciation */}
+                  <div className="text-center my-auto space-y-3">
+                    <h1 className="text-3xl sm:text-5xl font-black text-white tracking-tight">
+                      {currentWord.term}
+                    </h1>
+                    
+                    {currentWord.phonetic && (
+                      <p className="font-mono text-sm sm:text-base text-slate-400">
+                        {currentWord.phonetic}
+                      </p>
+                    )}
+
+                    {/* Back revealed content */}
+                    {isRevealed ? (
+                      <div className="pt-6 border-t border-white/10 space-y-3.5 animate-in fade-in duration-200">
+                        <p className="text-xl sm:text-2xl font-bold text-emerald-400">
+                          {currentWord.meaning}
                         </p>
-                        {currentWord.exampleTranslation && (
-                          <p className="text-indigo-300">
-                            → {currentWord.exampleTranslation}
-                          </p>
+
+                        {/* Dialect note if any */}
+                        {report.dialectVariation && (
+                          <div className="p-2.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs text-indigo-200 text-left">
+                            <span className="font-bold block">🇬🇧 BrE: {report.dialectVariation.bre} • 🇺🇸 NAmE: {report.dialectVariation.name}</span>
+                            <p className="text-[11px] text-indigo-300 italic">{report.dialectVariation.distinction}</p>
+                          </div>
                         )}
+
+                        {/* Confusable warning alert if any */}
+                        {report.confusables && report.confusables.length > 0 && (
+                          <div className="p-2.5 rounded-xl bg-purple-950/40 border border-purple-500/30 text-xs text-purple-200 text-left space-y-0.5">
+                            <span className="font-bold flex items-center gap-1 text-purple-300">
+                              💡 Tránh nhầm với "{report.confusables[0].word}":
+                            </span>
+                            <p className="text-[11px] text-purple-200">{report.confusables[0].distinction}</p>
+                          </div>
+                        )}
+
+                        {/* Multi-meaning breakdown if any */}
+                        {report.multiMeanings && report.multiMeanings.length > 1 && (
+                          <div className="p-2.5 rounded-xl bg-teal-950/30 border border-teal-500/30 text-xs text-teal-200 text-left space-y-1">
+                            <span className="font-bold block text-teal-300">Các nét nghĩa riêng:</span>
+                            {report.multiMeanings.slice(0, 3).map(s => (
+                              <p key={s.senseNumber} className="text-[11px] text-teal-100">
+                                #{s.senseNumber}. {s.definition}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+
+                        {currentWord.exampleSentence && (
+                          <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 text-xs text-left space-y-1">
+                            <p className="font-medium text-slate-200 italic">
+                              "{currentWord.exampleSentence}"
+                            </p>
+                            {currentWord.exampleTranslation && (
+                              <p className="text-indigo-300">
+                                → {currentWord.exampleTranslation}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="pt-6 text-xs text-slate-500 font-semibold flex items-center justify-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
+                        <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                        <span>Nhấn hoặc gõ Phím Cách để xem nghĩa</span>
                       </div>
                     )}
                   </div>
-                ) : (
-                  <div className="pt-6 text-xs text-slate-500 font-semibold flex items-center justify-center gap-1.5 opacity-80 group-hover:opacity-100 transition-opacity">
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Nhấn hoặc gõ Phím Cách để xem nghĩa</span>
-                  </div>
-                )}
-              </div>
 
-              {/* Card footer indicator */}
-              <div className="text-center text-[10px] text-slate-500">
-                {isRevealed ? 'Đánh giá mức độ nhớ bên dưới' : 'Chạm để lật thẻ (Tap to flip)'}
-              </div>
-            </div>
+                  {/* Card footer indicator */}
+                  <div className="text-center text-[10px] text-slate-500">
+                    Thẻ Flashcard Ôn tập • Độc lập với đánh giá trí nhớ SM-2
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* SM-2 Recall Rating Actions Bar */}
             {isRevealed ? (
@@ -445,11 +532,6 @@ export function DedicatedVocabFocusView({
         ) : null}
       </main>
 
-      {/* AI Study Companion Widget */}
-      <StudyCompanionWidget
-        contextMood={companionMood}
-        contextDialogueKey={companionDialogueKey}
-      />
     </div>
   );
 }

@@ -2,7 +2,9 @@
 // VOCABULARY MASTER — VERIFICATION & DATA QUALITY AUDIT ENGINE
 // ==============================================================================
 // Comprehensive Linguistic Verification, IPA Checks, Confusables Detection,
-// Transparent Source Tracking, Audit Trails, and Spaced Repetition Equivalence.
+// Dialect Variations (BrE vs NAmE), Multi-Meaning Parsing, Modern English Grammar,
+// AI Content Guardrails, Transparent Source Tracking, Non-Destructive Audit Trails,
+// and Spaced Repetition Decoupled Equivalence.
 
 import { System3000Word, VocabWord, VocabUserData } from './vocabEngine';
 
@@ -28,6 +30,29 @@ export interface FieldCheck {
   suggestedFix?: string;
 }
 
+export interface FieldStatuses {
+  term: VerificationStatus;
+  pos: VerificationStatus;
+  phonetic: VerificationStatus;
+  meaning: VerificationStatus;
+  example: VerificationStatus;
+}
+
+export interface MultiMeaningSense {
+  senseNumber: number;
+  pos?: string;
+  definition: string;
+  exampleEn?: string;
+  exampleVn?: string;
+}
+
+export interface DialectVariation {
+  bre: string;
+  name: string;
+  distinction: string;
+  type: 'spelling' | 'vocabulary';
+}
+
 export interface ProposedEdit {
   term?: string;
   partOfSpeech?: string;
@@ -43,7 +68,7 @@ export interface ProposedEdit {
 
 export interface AuditLogEntry {
   timestamp: string;
-  action: 'SCANNED' | 'PROPOSED' | 'APPROVED' | 'REJECTED' | 'MANUAL_EDIT' | 'VERIFIED';
+  action: 'SCANNED' | 'PROPOSED' | 'APPROVED' | 'REJECTED' | 'MANUAL_EDIT' | 'VERIFIED' | 'ROLLBACK';
   actor: string;
   details: string;
   previousValue?: any;
@@ -59,8 +84,10 @@ export interface WordVerificationReport {
   lastAuditedAt: string;
   referenceSource?: string;
   referenceUrl?: string;
+  auditor?: string;
 
-  // Field-level checks
+  // Field-level verification & checks
+  fieldStatuses: FieldStatuses;
   termCheck: FieldCheck;
   posCheck: FieldCheck;
   phoneticCheck: FieldCheck;
@@ -74,7 +101,8 @@ export interface WordVerificationReport {
     exampleAlert: string;
   }>;
   isPhraseOrIdiom: boolean;
-  dialectVariation?: string; // e.g. "BrE: colour, NAmE: color"
+  dialectVariation?: DialectVariation;
+  multiMeanings?: MultiMeaningSense[];
 
   // Audit trails & proposals
   proposedEdit?: ProposedEdit;
@@ -93,6 +121,8 @@ export interface QualityAuditSummary {
   missingPhoneticCount: number;
   missingExampleCount: number;
   potentialConfusablesCount: number;
+  dialectVariationsCount: number;
+  multiMeaningCount: number;
   proposedEditsCount: number;
 
   averageQualityScore: number;
@@ -199,7 +229,7 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
   {
     term: 'principle',
     confusedWith: 'principal',
-    distinction: '"Principle" là nguyên tắc, đạo lý; "Principal" là hiệu trưởng trường hoặc số tiền vốn gốc.',
+    distinction: '"Principle" là nguyên tắc, đạo lý; "Principal" là hiệu trưởng trường hoặc số tiền vốn gốc / quan trọng nhất.',
     exampleAlert: 'Stick to your moral principles (n.). The school principal (n.) gave a speech.'
   },
   {
@@ -207,6 +237,18 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
     confusedWith: 'principle',
     distinction: '"Principal" là người đứng đầu/chính yếu; "Principle" kết thúc bằng -le là nguyên lý, quy tắc.',
     exampleAlert: 'Our principal (adj.) goal is quality.'
+  },
+  {
+    term: 'complement',
+    confusedWith: 'compliment',
+    distinction: '"Complement" (chữ e) là phần bù, bổ sung cho nhau trọn vẹn; "Compliment" (chữ i) là lời khen ngợi.',
+    exampleAlert: 'Wine that complements (v.) cheese. Paid her a nice compliment (n.).'
+  },
+  {
+    term: 'compliment',
+    confusedWith: 'complement',
+    distinction: '"Compliment" là lời khen hoặc khen ngợi; tránh nhầm với "Complement" (bổ trợ, bổ sung).',
+    exampleAlert: 'He received many compliments (n.) on his presentation.'
   },
   {
     term: 'wander',
@@ -259,7 +301,129 @@ export const CONFUSABLE_PAIRS: ConfusablePair[] = [
 ];
 
 // ------------------------------------------------------------------------------
-// 2. STANDARD PARTS OF SPEECH DICTIONARY
+// 2. DIALECT VARIATIONS DATABASE (BrE vs NAmE)
+// ------------------------------------------------------------------------------
+
+export const DIALECT_VARIATIONS: DialectVariation[] = [
+  // Spelling differences
+  { bre: 'colour', name: 'color', distinction: 'Khác biệt chính tả Anh-Anh (-our) và Anh-Mỹ (-or)', type: 'spelling' },
+  { bre: 'flavour', name: 'flavor', distinction: 'Khác biệt chính tả Anh-Anh (-our) và Anh-Mỹ (-or)', type: 'spelling' },
+  { bre: 'honour', name: 'honor', distinction: 'Khác biệt chính tả Anh-Anh (-our) và Anh-Mỹ (-or)', type: 'spelling' },
+  { bre: 'humour', name: 'humor', distinction: 'Khác biệt chính tả Anh-Anh (-our) và Anh-Mỹ (-or)', type: 'spelling' },
+  { bre: 'labour', name: 'labor', distinction: 'Khác biệt chính tả Anh-Anh (-our) và Anh-Mỹ (-or)', type: 'spelling' },
+  { bre: 'neighbour', name: 'neighbor', distinction: 'Khác biệt chính tả Anh-Anh (-our) và Anh-Mỹ (-or)', type: 'spelling' },
+  { bre: 'rumour', name: 'rumor', distinction: 'Khác biệt chính tả Anh-Anh (-our) và Anh-Mỹ (-or)', type: 'spelling' },
+  { bre: 'centre', name: 'center', distinction: 'Khác biệt chính tả Anh-Anh (-re) và Anh-Mỹ (-er)', type: 'spelling' },
+  { bre: 'theatre', name: 'theater', distinction: 'Khác biệt chính tả Anh-Anh (-re) và Anh-Mỹ (-er)', type: 'spelling' },
+  { bre: 'metre', name: 'meter', distinction: 'Khác biệt chính tả Anh-Anh (-re) và Anh-Mỹ (-er)', type: 'spelling' },
+  { bre: 'litre', name: 'liter', distinction: 'Khác biệt chính tả Anh-Anh (-re) và Anh-Mỹ (-er)', type: 'spelling' },
+  { bre: 'realise', name: 'realize', distinction: 'Anh-Anh thường chuộng đuôi -ise; Anh-Mỹ luôn dùng -ize', type: 'spelling' },
+  { bre: 'organise', name: 'organize', distinction: 'Anh-Anh thường chuộng đuôi -ise; Anh-Mỹ luôn dùng -ize', type: 'spelling' },
+  { bre: 'recognise', name: 'recognize', distinction: 'Anh-Anh thường chuộng đuôi -ise; Anh-Mỹ luôn dùng -ize', type: 'spelling' },
+  { bre: 'analyse', name: 'analyze', distinction: 'Anh-Anh dùng -yse; Anh-Mỹ dùng -yze', type: 'spelling' },
+  { bre: 'catalogue', name: 'catalog', distinction: 'Anh-Anh giữ đuôi -ue; Anh-Mỹ giản lược', type: 'spelling' },
+  { bre: 'dialogue', name: 'dialog', distinction: 'Anh-Anh giữ đuôi -ue; Anh-Mỹ giản lược', type: 'spelling' },
+  { bre: 'programme', name: 'program', distinction: 'BrE dùng programme (trừ ngành máy tính); NAmE dùng program', type: 'spelling' },
+  { bre: 'cheque', name: 'check', distinction: 'Tấm séc ngân hàng: BrE viết cheque, NAmE viết check', type: 'spelling' },
+  { bre: 'tyre', name: 'tire', distinction: 'Lốp xe: BrE viết tyre, NAmE viết tire', type: 'spelling' },
+  { bre: 'defence', name: 'defense', distinction: 'BrE viết -ce; NAmE viết -se', type: 'spelling' },
+  { bre: 'offence', name: 'offense', distinction: 'BrE viết -ce; NAmE viết -se', type: 'spelling' },
+
+  // Vocabulary distinctions
+  { bre: 'flat', name: 'apartment', distinction: 'Căn hộ: BrE dùng "flat", NAmE dùng "apartment"', type: 'vocabulary' },
+  { bre: 'lift', name: 'elevator', distinction: 'Thang máy: BrE dùng "lift", NAmE dùng "elevator"', type: 'vocabulary' },
+  { bre: 'pavement', name: 'sidewalk', distinction: 'Vỉa hè: BrE dùng "pavement", NAmE dùng "sidewalk"', type: 'vocabulary' },
+  { bre: 'holiday', name: 'vacation', distinction: 'Kỳ nghỉ: BrE dùng "holiday", NAmE chuộng "vacation"', type: 'vocabulary' },
+  { bre: 'autumn', name: 'fall', distinction: 'Mùa thu: BrE dùng "autumn", NAmE dùng "fall"', type: 'vocabulary' },
+  { bre: 'biscuit', name: 'cookie', distinction: 'Bánh quy: BrE gọi "biscuit", NAmE gọi "cookie"', type: 'vocabulary' },
+  { bre: 'rubbish', name: 'garbage', distinction: 'Rác thải: BrE dùng "rubbish", NAmE dùng "garbage/trash"', type: 'vocabulary' },
+  { bre: 'underground', name: 'subway', distinction: 'Tàu điện ngầm: BrE dùng "underground/tube", NAmE dùng "subway"', type: 'vocabulary' },
+  { bre: 'lorry', name: 'truck', distinction: 'Xe tải: BrE dùng "lorry", NAmE dùng "truck"', type: 'vocabulary' },
+  { bre: 'petrol', name: 'gasoline', distinction: 'Xăng dầu: BrE gọi "petrol", NAmE gọi "gasoline/gas"', type: 'vocabulary' },
+  { bre: 'cinema', name: 'movie theater', distinction: 'Rạp chiếu phim: BrE dùng "cinema", NAmE dùng "movie theater"', type: 'vocabulary' },
+  { bre: 'crisps', name: 'chips', distinction: 'Khoai tây chiên giòn lát: BrE gọi "crisps", NAmE gọi "chips"', type: 'vocabulary' },
+  { bre: 'chips', name: 'fries', distinction: 'Khoai tây chiên que: BrE gọi "chips", NAmE gọi "french fries"', type: 'vocabulary' },
+  { bre: 'post', name: 'mail', distinction: 'Bưu điện / thư từ: BrE dùng "post", NAmE dùng "mail"', type: 'vocabulary' },
+  { bre: 'tap', name: 'faucet', distinction: 'Vòi nước: BrE dùng "tap", NAmE dùng "faucet"', type: 'vocabulary' },
+  { bre: 'torch', name: 'flashlight', distinction: 'Đèn pin: BrE dùng "torch", NAmE dùng "flashlight"', type: 'vocabulary' },
+  { bre: 'wardrobe', name: 'closet', distinction: 'Tủ quần áo: BrE dùng "wardrobe", NAmE dùng "closet"', type: 'vocabulary' },
+  { bre: 'motorway', name: 'highway', distinction: 'Đường cao tốc: BrE dùng "motorway", NAmE dùng "highway/freeway"', type: 'vocabulary' },
+  { bre: 'trousers', name: 'pants', distinction: 'Quần dài: BrE dùng "trousers", NAmE dùng "pants"', type: 'vocabulary' },
+  { bre: 'football', name: 'soccer', distinction: 'Bóng đá: BrE gọi "football", NAmE gọi "soccer"', type: 'vocabulary' }
+];
+
+export function detectDialectVariation(term: string): DialectVariation | undefined {
+  if (!term) return undefined;
+  const clean = term.trim().toLowerCase();
+  return DIALECT_VARIATIONS.find(v => v.bre.toLowerCase() === clean || v.name.toLowerCase() === clean);
+}
+
+// ------------------------------------------------------------------------------
+// 3. MULTI-MEANING PARSER & DETECTOR
+// ------------------------------------------------------------------------------
+
+export function parseMultiMeanings(meaning: string, pos?: string): MultiMeaningSense[] {
+  if (!meaning || !meaning.trim()) return [];
+  const trimmed = meaning.trim();
+
+  // Pattern 1: Numbered format like "1. ... 2. ..." OR "1) ... 2) ..." OR "(1) ... (2) ..."
+  const numberedRegex = /(?:^|\s)(?:(\d+)[\.\)]|\((\d+)\))\s*/g;
+  const matches = Array.from(trimmed.matchAll(numberedRegex));
+  if (matches.length >= 2) {
+    const senses: MultiMeaningSense[] = [];
+    for (let i = 0; i < matches.length; i++) {
+      const match = matches[i];
+      const nextMatch = matches[i + 1];
+      const startIdx = match.index! + match[0].length;
+      const endIdx = nextMatch ? nextMatch.index! : trimmed.length;
+      const rawChunk = trimmed.substring(startIdx, endIdx).trim().replace(/;$/, '');
+      const num = parseInt(match[1] || match[2] || `${i + 1}`, 10);
+      if (rawChunk) {
+        senses.push({
+          senseNumber: num,
+          pos: pos,
+          definition: rawChunk
+        });
+      }
+    }
+    if (senses.length > 0) return senses;
+  }
+
+  // Pattern 2: Explicit POS markers inside meaning (e.g., "n. sự thành công // v. kế vị")
+  const posSplits = trimmed.split(/(?=\b(?:n|v|adj|adv|prep|conj|pron)\.\s*)/i).map(s => s.trim()).filter(Boolean);
+  if (posSplits.length >= 2) {
+    return posSplits.map((chunk, idx) => {
+      const m = chunk.match(/^([a-z]+\.)\s*(.+)$/i);
+      return {
+        senseNumber: idx + 1,
+        pos: m ? m[1].toLowerCase() : pos,
+        definition: (m ? m[2] : chunk).trim().replace(/;$/, '')
+      };
+    });
+  }
+
+  // Pattern 3: Semicolon separation (common dictionary formatting for discrete senses)
+  if (trimmed.includes(';')) {
+    const parts = trimmed.split(';').map(p => p.trim()).filter(Boolean);
+    if (parts.length >= 2) {
+      return parts.map((part, idx) => ({
+        senseNumber: idx + 1,
+        pos: pos,
+        definition: part
+      }));
+    }
+  }
+
+  // Single default sense
+  return [{
+    senseNumber: 1,
+    pos: pos,
+    definition: trimmed
+  }];
+}
+
+// ------------------------------------------------------------------------------
+// 4. STANDARD PARTS OF SPEECH DICTIONARY
 // ------------------------------------------------------------------------------
 
 export const STANDARD_POS_MAP: Record<string, { standard: string; vn: string; category: string }> = {
@@ -283,7 +447,7 @@ export const STANDARD_POS_MAP: Record<string, { standard: string; vn: string; ca
 };
 
 // ------------------------------------------------------------------------------
-// 3. INDIVIDUAL FIELD AUDITING FUNCTIONS
+// 5. INDIVIDUAL FIELD AUDITING FUNCTIONS
 // ------------------------------------------------------------------------------
 
 /**
@@ -301,22 +465,22 @@ export function auditTerm(term: string): FieldCheck {
 
   const clean = term.trim();
 
-  // Check invalid leading/trailing characters
+  // Check invalid leading/trailing punctuation characters
   if (clean.endsWith(':') || clean.endsWith(';') || clean.endsWith('.')) {
     warnings.push('Từ có dấu chấm câu thừa ở cuối.');
     score -= 10;
   }
 
-  // Check for suspicious numeric or corrupted characters
-  if (/[0-9]/.test(clean) && !['1st', '2nd', '3rd', '4th'].some(num => clean.includes(num))) {
+  // Check for suspicious numeric characters
+  if (/[0-9]/.test(clean) && !['1st', '2nd', '3rd', '4th', '5th'].some(num => clean.includes(num))) {
     warnings.push('Từ chứa chữ số bất thường.');
     score -= 15;
   }
 
-  // Check for multi-word phrase
+  // Check for multi-word phrase length
   const isPhrase = clean.includes(' ');
   if (isPhrase && clean.split(' ').length > 6) {
-    warnings.push('Cụm từ quá dài (hơn 6 từ), có thể là một đoạn câu thay vì từ vựng mục tiêu.');
+    warnings.push('Cụm từ quá dài (hơn 6 từ), có thể là một đoạn văn thay vì từ vựng mục tiêu.');
     score -= 20;
   }
 
@@ -344,18 +508,18 @@ export function auditPartOfSpeech(pos: string, term: string): FieldCheck {
 
   const cleanPos = pos.trim().toLowerCase();
 
-  // Check if known in standard map
+  // Check if recognized in standard map
   const isRecognized = Object.keys(STANDARD_POS_MAP).some(k => cleanPos.includes(k.replace('.', ''))) ||
-    ['noun', 'verb', 'adjective', 'adverb', 'preposition', 'conjunction', 'phrase'].some(p => cleanPos.includes(p));
+    ['noun', 'verb', 'adjective', 'adverb', 'preposition', 'conjunction', 'phrase', 'interjection'].some(p => cleanPos.includes(p));
 
   if (!isRecognized) {
-    warnings.push(`Từ loại "${pos}" chưa chuẩn hóa theo hệ thống phân loại ngữ pháp.`);
+    warnings.push(`Từ loại "${pos}" chưa chuẩn hóa theo hệ thống phân loại ngữ pháp quốc tế.`);
     score -= 25;
   }
 
   // Multi-POS validation
   if (cleanPos.includes(',') || cleanPos.includes('/')) {
-    warnings.push('Mục từ này có nhiều từ loại kết hợp (ví dụ: vừa danh từ vừa động từ). Nên hiển thị từng nghĩa riêng.');
+    warnings.push('Mục từ có nhiều từ loại kết hợp (vừa danh từ vừa động từ). Đã kích hoạt tách nghĩa theo từng từ loại.');
     score -= 5;
   }
 
@@ -376,12 +540,11 @@ export function auditPhonetic(phonetic: string | undefined, term: string): Field
   let score = 100;
 
   if (!phonetic || !phonetic.trim()) {
-    // Phrases often don't have IPA
     if (term.includes(' ')) {
-      warnings.push('Cụm từ chưa có phiên âm IPA (chấp nhận được đối với thành ngữ/cụm từ ghép).');
+      warnings.push('Cụm từ chưa có phiên âm IPA (chấp nhận được đối với thành ngữ / cụm từ ghép).');
       score = 70;
     } else {
-      warnings.push('Từ đơn thiếu phiên âm IPA chuẩn.');
+      warnings.push('Từ đơn thiếu phiên âm IPA chuẩn từ điển.');
       score = 40;
     }
     return { valid: true, score, warnings, errors };
@@ -395,13 +558,13 @@ export function auditPhonetic(phonetic: string | undefined, term: string): Field
     score -= 15;
   }
 
-  // Check for common corrupted characters from bad encoding (replacement char)
+  // Check for common corrupted characters from bad encoding
   if (clean.includes('\uFFFD') || (clean.includes('?') && !clean.includes('ɡ'))) {
     errors.push('Phiên âm chứa ký tự lỗi font mã hóa (corrupted Unicode glyph).');
     score -= 60;
   }
 
-  // Check for presence of valid IPA symbols
+  // Check for presence of valid IPA vowels/consonants
   const hasIpaVowels = /[əæɪʊʌɒeɪaɪɔɪəʊaʊiːuːɔːɜːɑː]/i.test(clean);
   if (!hasIpaVowels && clean.length > 4) {
     warnings.push('Phiên âm có thể sử dụng ký tự phát âm phi chuẩn thay vì bảng mẫu tự IPA quốc tế.');
@@ -445,7 +608,6 @@ export function auditMeaning(meaning: string): FieldCheck {
 
   // Check if meaning contains multiple definitions separated by semicolons
   if (clean.includes(';') || clean.includes(',')) {
-    // Positive: comprehensive definition
     score = Math.min(100, score + 5);
   }
 
@@ -458,7 +620,7 @@ export function auditMeaning(meaning: string): FieldCheck {
 }
 
 /**
- * Audit Example Sentence
+ * Audit Example Sentence & Grammar Context
  */
 export function auditExample(example?: string, translation?: string, term?: string): FieldCheck {
   const warnings: string[] = [];
@@ -479,10 +641,23 @@ export function auditExample(example?: string, translation?: string, term?: stri
     score -= 10;
   }
 
-  // Terminal punctuation check
+  // Terminal punctuation check (. ! ? or quotes)
   if (!/[.!?]["']?$/.test(cleanEx)) {
     warnings.push('Câu ví dụ thiếu dấu câu kết thúc (. ! ?).');
     score -= 10;
+  }
+
+  // Sentence minimum length check
+  const wordCount = cleanEx.split(/\s+/).length;
+  if (wordCount < 3) {
+    warnings.push('Câu ví dụ quá ngắn (ít hơn 3 từ), khó thể hiện đầy đủ ngữ cảnh sử dụng.');
+    score -= 15;
+  }
+
+  // Artifact & Placeholder detection
+  if (/\[insert\]|<word>|TODO|N\/A|example:|ví dụ:/i.test(cleanEx)) {
+    errors.push('Câu ví dụ chứa ký tự giữ chỗ (placeholder) hoặc mẫu chưa điền nội dung.');
+    score -= 50;
   }
 
   // Check if target term (or root of term) appears in the sentence
@@ -498,6 +673,9 @@ export function auditExample(example?: string, translation?: string, term?: stri
   if (example && (!translation || !translation.trim())) {
     warnings.push('Có câu ví dụ tiếng Anh nhưng chưa có câu dịch tiếng Việt.');
     score -= 15;
+  } else if (translation && translation.trim().toLowerCase() === cleanEx.toLowerCase()) {
+    errors.push('Câu dịch tiếng Việt giống hệt câu tiếng Anh (chưa được dịch).');
+    score -= 40;
   }
 
   return {
@@ -509,7 +687,7 @@ export function auditExample(example?: string, translation?: string, term?: stri
 }
 
 // ------------------------------------------------------------------------------
-// 4. FULL SINGLE-WORD VERIFIER
+// 6. FULL SINGLE-WORD VERIFIER
 // ------------------------------------------------------------------------------
 
 export function verifyWord(
@@ -531,6 +709,22 @@ export function verifyWord(
   const meaningCheck = auditMeaning(word.meaning);
   const exampleCheck = auditExample(word.exampleSentence, word.exampleTranslation, word.term);
 
+  // Derive field-level statuses
+  const getFieldStatus = (check: FieldCheck): VerificationStatus => {
+    if (check.errors.length > 0) return 'flagged_error';
+    if (check.warnings.length > 0) return 'needs_review';
+    if (check.score >= 90) return 'lexical_verified';
+    return 'format_checked';
+  };
+
+  const fieldStatuses: FieldStatuses = {
+    term: getFieldStatus(termCheck),
+    pos: getFieldStatus(posCheck),
+    phonetic: getFieldStatus(phoneticCheck),
+    meaning: getFieldStatus(meaningCheck),
+    example: getFieldStatus(exampleCheck)
+  };
+
   // Calculate weighted overall score
   const overallScore = Math.round(
     termCheck.score * 0.25 +
@@ -548,11 +742,16 @@ export function verifyWord(
     exampleAlert: p.exampleAlert
   }));
 
-  // Determine status
-  let status: VerificationStatus = 'format_checked';
+  // Dialect check (BrE vs NAmE)
+  const dialectVariation = detectDialectVariation(word.term);
 
-  const totalErrors = termCheck.errors.length + meaningCheck.errors.length + phoneticCheck.errors.length;
-  const totalWarnings = termCheck.warnings.length + posCheck.warnings.length + phoneticCheck.warnings.length + meaningCheck.warnings.length;
+  // Multi-meaning extraction
+  const multiMeanings = parseMultiMeanings(word.meaning, word.pos);
+
+  // Determine overall status
+  let status: VerificationStatus = 'format_checked';
+  const totalErrors = termCheck.errors.length + meaningCheck.errors.length + phoneticCheck.errors.length + exampleCheck.errors.length;
+  const totalWarnings = termCheck.warnings.length + posCheck.warnings.length + phoneticCheck.warnings.length + meaningCheck.warnings.length + exampleCheck.warnings.length;
 
   if (totalErrors > 0) {
     status = 'flagged_error';
@@ -578,14 +777,18 @@ export function verifyWord(
     primarySource: override?.primarySource || primarySource,
     qualityScore: overallScore,
     lastAuditedAt: new Date().toISOString(),
-    referenceSource: override?.referenceSource || 'Oxford 3000™ / DOCX Core Reference',
+    referenceSource: override?.referenceSource || 'Oxford 3000™ / CEFR Corpus Reference',
     referenceUrl: override?.referenceUrl,
+    auditor: override?.auditor || 'Linguistic Quality Guard Engine',
+    fieldStatuses,
     termCheck,
     posCheck,
     phoneticCheck,
     meaningCheck,
     exampleCheck,
     confusables: matchedConfusables.length > 0 ? matchedConfusables : undefined,
+    dialectVariation,
+    multiMeanings: multiMeanings.length > 1 ? multiMeanings : undefined,
     isPhraseOrIdiom: word.term.includes(' ') || (word.pos || '').toLowerCase().includes('phrase'),
     auditTrail: override?.auditTrail || [
       {
@@ -595,6 +798,7 @@ export function verifyWord(
         details: `Đã quét chất lượng: Điểm tin cậy đạt ${overallScore}/100. Trạng thái: ${status}.`
       }
     ],
+    proposedEdit: override?.proposedEdit,
     reviewerNotes: override?.reviewerNotes
   };
 
@@ -602,7 +806,7 @@ export function verifyWord(
 }
 
 // ------------------------------------------------------------------------------
-// 5. COMPREHENSIVE BATCH QUALITY SCANNER
+// 7. COMPREHENSIVE BATCH QUALITY SCANNER
 // ------------------------------------------------------------------------------
 
 export function runFullQualityAudit(
@@ -626,6 +830,8 @@ export function runFullQualityAudit(
   let missingPhoneticCount = 0;
   let missingExampleCount = 0;
   let potentialConfusablesCount = 0;
+  let dialectVariationsCount = 0;
+  let multiMeaningCount = 0;
   let proposedEditsCount = 0;
   let totalScoreSum = 0;
 
@@ -661,10 +867,12 @@ export function runFullQualityAudit(
 
     if (!sys.phonetic || !sys.phonetic.trim()) missingPhoneticCount++;
     if (rep.confusables && rep.confusables.length > 0) potentialConfusablesCount++;
+    if (rep.dialectVariation) dialectVariationsCount++;
+    if (rep.multiMeanings && rep.multiMeanings.length > 1) multiMeaningCount++;
     if (rep.proposedEdit) proposedEditsCount++;
 
     // Group problematic
-    if (rep.status === 'flagged_error' || rep.status === 'needs_review' || (rep.confusables && rep.confusables.length > 0)) {
+    if (rep.status === 'flagged_error' || rep.status === 'needs_review' || (rep.confusables && rep.confusables.length > 0) || rep.dialectVariation || (rep.multiMeanings && rep.multiMeanings.length > 1)) {
       problematicReports.push(rep);
     }
   }
@@ -695,9 +903,11 @@ export function runFullQualityAudit(
     if (!pw.phonetic || !pw.phonetic.trim()) missingPhoneticCount++;
     if (!pw.exampleSentence || !pw.exampleSentence.trim()) missingExampleCount++;
     if (rep.confusables && rep.confusables.length > 0) potentialConfusablesCount++;
+    if (rep.dialectVariation) dialectVariationsCount++;
+    if (rep.multiMeanings && rep.multiMeanings.length > 1) multiMeaningCount++;
     if (rep.proposedEdit) proposedEditsCount++;
 
-    if (rep.status === 'flagged_error' || rep.status === 'needs_review' || (rep.confusables && rep.confusables.length > 0)) {
+    if (rep.status === 'flagged_error' || rep.status === 'needs_review' || (rep.confusables && rep.confusables.length > 0) || rep.dialectVariation || (rep.multiMeanings && rep.multiMeanings.length > 1)) {
       problematicReports.push(rep);
     }
   }
@@ -715,6 +925,8 @@ export function runFullQualityAudit(
     missingPhoneticCount,
     missingExampleCount,
     potentialConfusablesCount,
+    dialectVariationsCount,
+    multiMeaningCount,
     proposedEditsCount,
     averageQualityScore,
     sourcesDistribution,
@@ -729,11 +941,103 @@ export function runFullQualityAudit(
 }
 
 // ------------------------------------------------------------------------------
-// 6. SPORADIC EQUIVALENCE CHECKER (FOR ACCURATE SPACED REPETITION QUIZ/SPELLING)
+// 8. AI CONTENT GUARDRAILS (QUIZZES, MNEMONICS, GENERATED CONTENT)
+// ------------------------------------------------------------------------------
+
+export interface AiQuizAuditInput {
+  targetTerm: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation?: string;
+}
+
+export interface AiQuizAuditResult {
+  valid: boolean;
+  score: number;
+  warnings: string[];
+  errors: string[];
+  guardrailVerdict: 'SAFE_AND_VERIFIED' | 'NEEDS_HUMAN_REVIEW' | 'REJECTED_DEFECTIVE';
+  normalizedKey?: string;
+}
+
+export function auditAiQuizContent(quiz: AiQuizAuditInput): AiQuizAuditResult {
+  const warnings: string[] = [];
+  const errors: string[] = [];
+  let score = 100;
+
+  if (!quiz.question || !quiz.question.trim()) {
+    errors.push('Câu hỏi trắc nghiệm bị bỏ trống.');
+    score = 0;
+  }
+
+  if (!Array.isArray(quiz.options) || quiz.options.length < 2) {
+    errors.push('Câu trắc nghiệm phải có ít nhất 2 phương án lựa chọn.');
+    score -= 50;
+  } else {
+    // Check duplicate options
+    const normalizedOpts = quiz.options.map(o => normalizeText(o));
+    const uniqueOpts = new Set(normalizedOpts);
+    if (uniqueOpts.size < normalizedOpts.length) {
+      errors.push('Các phương án lựa chọn có nội dung trùng lặp.');
+      score -= 40;
+    }
+  }
+
+  if (quiz.correctIndex < 0 || quiz.correctIndex >= (quiz.options?.length || 0)) {
+    errors.push(`Chỉ số đáp án đúng (${quiz.correctIndex}) nằm ngoài phạm vi các phương án.`);
+    score = 0;
+  }
+
+  // Target term relevance check
+  const termLower = quiz.targetTerm?.trim().toLowerCase() || '';
+  if (termLower) {
+    const questionLower = quiz.question?.toLowerCase() || '';
+    const optionsLower = (quiz.options || []).map(o => o.toLowerCase());
+    const foundInQuestion = questionLower.includes(termLower);
+    const foundInOptions = optionsLower.some(o => o.includes(termLower));
+    if (!foundInQuestion && !foundInOptions) {
+      warnings.push(`Từ vựng mục tiêu ("${quiz.targetTerm}") không xuất hiện trong câu hỏi lẫn các phương án.`);
+      score -= 20;
+    }
+  }
+
+  // Explanation coherence
+  if (quiz.explanation) {
+    const expLower = quiz.explanation.toLowerCase();
+    const chosenOpt = quiz.options?.[quiz.correctIndex]?.toLowerCase() || '';
+    if (chosenOpt && !expLower.includes(chosenOpt) && !expLower.includes(termLower)) {
+      warnings.push('Phần giải thích chưa liên kết rõ ràng với đáp án đúng hoặc từ vựng mục tiêu.');
+      score -= 10;
+    }
+  } else {
+    warnings.push('Chưa có lời giải thích chi tiết cho câu trắc nghiệm.');
+    score -= 15;
+  }
+
+  let guardrailVerdict: 'SAFE_AND_VERIFIED' | 'NEEDS_HUMAN_REVIEW' | 'REJECTED_DEFECTIVE' = 'NEEDS_HUMAN_REVIEW';
+  if (errors.length > 0) {
+    guardrailVerdict = 'REJECTED_DEFECTIVE';
+  } else if (score >= 90 && warnings.length === 0) {
+    guardrailVerdict = 'NEEDS_HUMAN_REVIEW'; // AI content strictly remains in review status until explicitly signed off
+  }
+
+  return {
+    valid: errors.length === 0,
+    score: Math.max(0, score),
+    warnings,
+    errors,
+    guardrailVerdict,
+    normalizedKey: quiz.options?.[quiz.correctIndex]
+  };
+}
+
+// ------------------------------------------------------------------------------
+// 9. ANSWER EQUIVALENCE CHECKER (FOR ACCURATE SPACED REPETITION QUIZ/SPELLING)
 // ------------------------------------------------------------------------------
 
 /**
- * Checks if student answer is equivalent to expected answer
+ * Checks if student answer is equivalent to expected answer.
  * Tolerates reasonable synonyms, alternative spellings, punctuation, and minor spacing.
  */
 export function isEquivalentAnswer(
@@ -775,6 +1079,12 @@ export function isEquivalentAnswer(
     return { isMatch: true, isExact: false, feedback: 'Chính xác (khớp một trong các nghĩa hợp lệ)!' };
   }
 
+  // Check parenthetical tolerance (e.g. "(sự) thành công" matches "thành công")
+  const strippedParens = expectedText.replace(/\([^)]*\)/g, '').trim();
+  if (normalizeText(strippedParens) === normStudent) {
+    return { isMatch: true, isExact: false, feedback: 'Chính xác (khớp nghĩa chính không tính phần trong ngoặc)!' };
+  }
+
   // Check partial containment if student answer matches substantial part (length >= 3)
   if (normExpected.includes(normStudent) && normStudent.length >= 4 && normStudent.length / normExpected.length >= 0.6) {
     return { isMatch: true, isExact: false, feedback: 'Chấp nhận (đúng nghĩa cốt lõi)!' };
@@ -787,10 +1097,66 @@ export function isEquivalentAnswer(
   };
 }
 
-function normalizeText(text: string): string {
+export function normalizeText(text: string): string {
   return text
     .toLowerCase()
     .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"']/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+// ------------------------------------------------------------------------------
+// 10. EXPORT REPORT GENERATOR (JSON / CSV)
+// ------------------------------------------------------------------------------
+
+export function exportQualityAuditReport(
+  reports: WordVerificationReport[],
+  format: 'json' | 'csv'
+): string {
+  if (format === 'json') {
+    return JSON.stringify(reports, null, 2);
+  }
+
+  // CSV format
+  const headers = [
+    'Word ID',
+    'Term',
+    'Quality Score',
+    'Status',
+    'Primary Source',
+    'Reference Source',
+    'Dialect Variation',
+    'Multi-meanings Count',
+    'Confusable Pairs',
+    'Term Valid',
+    'POS Valid',
+    'Phonetic Valid',
+    'Meaning Valid',
+    'Example Valid',
+    'Warnings Count',
+    'Errors Count',
+    'Audited At'
+  ];
+
+  const rows = reports.map(r => [
+    `"${r.wordId}"`,
+    `"${(r.term || '').replace(/"/g, '""')}"`,
+    r.qualityScore,
+    `"${r.status}"`,
+    `"${r.primarySource}"`,
+    `"${(r.referenceSource || '').replace(/"/g, '""')}"`,
+    `"${(r.dialectVariation ? `${r.dialectVariation.bre} (BrE) / ${r.dialectVariation.name} (NAmE)` : '').replace(/"/g, '""')}"`,
+    r.multiMeanings ? r.multiMeanings.length : 1,
+    `"${(r.confusables ? r.confusables.map(c => c.word).join(', ') : '').replace(/"/g, '""')}"`,
+    r.termCheck.valid ? 'YES' : 'NO',
+    r.posCheck.valid ? 'YES' : 'NO',
+    r.phoneticCheck.valid ? 'YES' : 'NO',
+    r.meaningCheck.valid ? 'YES' : 'NO',
+    r.exampleCheck.valid ? 'YES' : 'NO',
+    r.termCheck.warnings.length + r.posCheck.warnings.length + r.phoneticCheck.warnings.length + r.meaningCheck.warnings.length + r.exampleCheck.warnings.length,
+    r.termCheck.errors.length + r.meaningCheck.errors.length + r.phoneticCheck.errors.length + r.exampleCheck.errors.length,
+    `"${r.lastAuditedAt}"`
+  ]);
+
+  return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
 }

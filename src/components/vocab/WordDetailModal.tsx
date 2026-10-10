@@ -110,14 +110,24 @@ export function WordDetailModal({
               <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
                 {word.term}
               </h2>
-              <button
-                type="button"
-                onClick={() => speakWord(word.term, 'en-US')}
-                className="p-2 rounded-xl bg-blue-100 hover:bg-blue-200 dark:bg-blue-950/60 dark:hover:bg-blue-900 text-blue-600 dark:text-blue-400 transition cursor-pointer"
-                title="Nghe phát âm chuẩn"
-              >
-                <Volume2 className="w-5 h-5" />
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => speakWord(word.term, 'en-US')}
+                  className="px-2.5 py-1 rounded-xl bg-blue-100 hover:bg-blue-200 dark:bg-blue-950/60 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold text-xs transition cursor-pointer flex items-center gap-1"
+                  title="Nghe giọng chuẩn Anh-Mỹ (US)"
+                >
+                  <Volume2 className="w-3.5 h-3.5" /> 🇺🇸 US
+                </button>
+                <button
+                  type="button"
+                  onClick={() => speakWord(word.term, 'en-GB')}
+                  className="px-2.5 py-1 rounded-xl bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 font-bold text-xs transition cursor-pointer flex items-center gap-1"
+                  title="Nghe giọng chuẩn Anh-Anh (UK)"
+                >
+                  <Volume2 className="w-3.5 h-3.5" /> 🇬🇧 UK
+                </button>
+              </div>
             </div>
 
             {word.phonetic && (
@@ -248,7 +258,7 @@ export function WordDetailModal({
                 </div>
 
                 {/* Field-level check pills */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[11px]">
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 text-[11px]">
                   <div className={`p-1.5 rounded-lg border text-center font-medium ${
                     report.termCheck.valid 
                       ? 'bg-emerald-50/60 border-emerald-200/60 text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-800/40 dark:text-emerald-300' 
@@ -277,7 +287,45 @@ export function WordDetailModal({
                   }`}>
                     Nghĩa dịch: {report.meaningCheck.valid ? '✓ Rõ ràng' : '⚠️ Xem lại'}
                   </div>
+                  <div className={`p-1.5 rounded-lg border text-center font-medium ${
+                    report.exampleCheck.valid 
+                      ? 'bg-emerald-50/60 border-emerald-200/60 text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-800/40 dark:text-emerald-300' 
+                      : 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-950/30 dark:border-amber-800'
+                  }`}>
+                    Ví dụ: {report.exampleCheck.valid ? '✓ Đạt' : '⚠️ Cần ví dụ'}
+                  </div>
                 </div>
+
+                {/* Dialect Variation Banner if any */}
+                {report.dialectVariation && (
+                  <div className="p-3 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-900/40 text-xs space-y-1">
+                    <span className="font-bold text-indigo-900 dark:text-indigo-200 block">
+                      🇬🇧 / 🇺🇸 Phương ngữ Anh - Mỹ:
+                    </span>
+                    <p className="text-indigo-800 dark:text-indigo-300">
+                      BrE: <strong className="font-mono">{report.dialectVariation.bre}</strong> • NAmE: <strong className="font-mono">{report.dialectVariation.name}</strong>
+                    </p>
+                    <p className="text-[11px] text-indigo-600 dark:text-indigo-400 italic">
+                      {report.dialectVariation.distinction}
+                    </p>
+                  </div>
+                )}
+
+                {/* Multi-meanings list if any */}
+                {report.multiMeanings && report.multiMeanings.length > 1 && (
+                  <div className="p-3 rounded-xl bg-teal-50/80 dark:bg-teal-950/30 border border-teal-200 dark:border-teal-900/40 text-xs space-y-1">
+                    <span className="font-bold text-teal-900 dark:text-teal-200 block">
+                      📚 Phân tách các nét nghĩa ({report.multiMeanings.length} nghĩa):
+                    </span>
+                    <div className="space-y-0.5">
+                      {report.multiMeanings.map(s => (
+                        <p key={s.senseNumber} className="text-teal-800 dark:text-teal-300">
+                          <strong>#{s.senseNumber}:</strong> {s.definition}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* Confusables alert if any */}
                 {report.confusables && report.confusables.length > 0 && (
@@ -295,6 +343,18 @@ export function WordDetailModal({
                           💡 {c.exampleAlert}
                         </p>
                       </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Audit trail summary */}
+                {report.auditTrail && report.auditTrail.length > 0 && (
+                  <div className="pt-1 text-[11px] text-slate-500 space-y-1">
+                    <span className="font-bold uppercase tracking-wider block text-slate-400">Lịch sử kiểm toán gần nhất:</span>
+                    {report.auditTrail.slice(-2).map((entry, idx) => (
+                      <p key={idx} className="text-slate-600 dark:text-slate-400 font-mono">
+                        [{new Date(entry.timestamp).toLocaleDateString('vi-VN')}] {entry.action} - {entry.details}
+                      </p>
                     ))}
                   </div>
                 )}

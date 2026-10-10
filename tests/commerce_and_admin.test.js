@@ -25,6 +25,19 @@ describe('Commerce, Decision & Admin Operations Test Suite', () => {
     });
     assert.strictEqual(regRes.status, 201);
     userCookie = regRes.headers.get('set-cookie').split(';')[0];
+    const regData = await regRes.json();
+
+    // Grant active PRO subscription to Commerce Tester in test database so workspace CRUD is authorized
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+    await prisma.user.update({
+      where: { id: regData.user.id },
+      data: {
+        plan: 'PRO',
+        planExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      }
+    });
+    await prisma.$disconnect();
   });
 
   it('2. Coupon validation rejects invalid coupon and accepts valid coupon', async () => {
@@ -178,7 +191,10 @@ describe('Commerce, Decision & Admin Operations Test Suite', () => {
     // Request forgot password
     const forgotRes = await fetch(`${BASE_URL}/api/auth/forgot-password`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-bypass-csrf-for-test': 'true'
+      },
       body: JSON.stringify({ email: userEmail })
     });
     assert.strictEqual(forgotRes.status, 200);
@@ -228,14 +244,15 @@ describe('Commerce, Decision & Admin Operations Test Suite', () => {
 
   after(async () => {
     try {
-      const { getPrisma } = await import('../src/backend/db.js');
-      const prisma = getPrisma();
+      const { PrismaClient } = await import('@prisma/client');
+      const prisma = new PrismaClient();
       await prisma.user.deleteMany({
         where: { email: { in: [userEmail, adminEmail] } }
       });
       if (activeCouponCode) {
         await prisma.coupon.deleteMany({ where: { code: activeCouponCode } });
       }
+      await prisma.$disconnect();
     } catch (e) {}
   });
 });

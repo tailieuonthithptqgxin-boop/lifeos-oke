@@ -73,8 +73,10 @@ export const AdminUpdateBankConfigSchema = z.object({
   bankName: z.string().min(1, 'Tên ngân hàng là bắt buộc'),
   accountNumber: z.string().min(1, 'Số tài khoản là bắt buộc'),
   accountHolder: z.string().min(1, 'Tên chủ tài khoản là bắt buộc'),
-  transferPrefix: z.string().min(1, 'Cú pháp nội dung chuyển khoản là bắt buộc').default('NANGCAP'),
-  bankCode: z.string().optional().default('MB')
+  transferPrefix: z.string().min(1, 'Cú pháp nội dung chuyển khoản là bắt buộc').default('DUOTECH'),
+  bankCode: z.string().optional().default('MB'),
+  qrImageUrl: z.string().optional().nullable(),
+  isActive: z.boolean().optional().default(true)
 });
 
 export const UpgradePlanSchema = z.object({

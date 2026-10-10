@@ -94,39 +94,47 @@ apiRouter.get('/payments/plans', async (req: any, res: Response) => {
 // Protect all /api endpoints with authentication
 apiRouter.use(requireAuth);
 
-// Universal Subscription Enforcement Gate:
-// Non-admin users MUST have an ACTIVE subscription to mutate workspace data or use paid capabilities.
-// Read-only GET requests on workspace data are permitted for UI preview/demo behind the locked screen.
+// Universal Subscription & Access Control Gate:
+// Non-admin users MUST have an ACTIVE, non-expired subscription (or active Team membership) to access paid workspace modules or mutate data.
 apiRouter.use(async (req: AuthRequest, res: Response, next: any) => {
   const path = req.path;
   const method = req.method.toUpperCase();
 
-  // 1. Always allowed for all authenticated users (Billing, Checkout, Support, Notifications, Profile, Language)
+  // 1. Always allowed for all authenticated users (Billing, Checkout, Support, Notifications, Profile, Language, Team status & join)
   const isAlwaysAllowed =
     path.startsWith('/payments') ||
     path.startsWith('/coupons') ||
     path.startsWith('/cart') ||
+    path.startsWith('/data/cart') ||
     path.startsWith('/checkout') ||
     path.startsWith('/admin') ||
     path.startsWith('/notifications') ||
     path.startsWith('/supportTickets') ||
     path.startsWith('/settings') ||
     path.startsWith('/languages') ||
-    path.startsWith('/r2') ||
-    path === '/team/my-team';
+    path.startsWith('/team/my-team') ||
+    path.startsWith('/team/join') ||
+    (path.startsWith('/r2/upload-base64') && req.body?.folder === 'receipts');
 
   if (isAlwaysAllowed) {
     return next();
   }
 
-  // 2. Read-only (GET) preview access: allow workspace data inspection for previewing demo data
+  // 2. Public / Free collections allowed for read-only (GET) by all users
   if (method === 'GET') {
-    if (path.startsWith('/data') || path.startsWith('/today') || path.startsWith('/tasks') || path.startsWith('/custom-modules')) {
+    if (
+      path === '/data/products' ||
+      path === '/data/notifications' ||
+      path === '/data/supportTickets' ||
+      path === '/data/cart' ||
+      path === '/data/cartItems' ||
+      path === '/data/orders'
+    ) {
       return next();
     }
   }
 
-  // 3. For any data mutations (POST, PUT, DELETE) on workspace collections or action engines:
+  // 3. For all other workspace data (tasks, projects, calendarEvents, focus, finance, study, habits, goals, notes, decisions, automation, custom-modules, R2 backups):
   // Strictly enforce active subscription on server-side
   return requireActiveSubscription(req, res, next);
 });
@@ -797,8 +805,10 @@ const DEFAULT_BANK_CONFIG = {
   bankName: 'MBBank (Ngân hàng TMCP Quân Đội)',
   accountNumber: '888899998888',
   accountHolder: 'CONG TY CONG NGHE LIFEOS',
-  transferPrefix: 'NANGCAP',
-  bankCode: 'MB'
+  transferPrefix: 'DUOTECH',
+  bankCode: 'MB',
+  qrImageUrl: '',
+  isActive: true
 };
 
 async function getPaymentBankConfig() {
@@ -1343,8 +1353,18 @@ apiRouter.post('/payments/checkout-session', paymentRateLimiter, validateBody(Sa
     // Get dynamic bank config
     const bankConfig = await getPaymentBankConfig();
 
+    if (bankConfig.isActive === false) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'PAYMENT_METHOD_INACTIVE', message: 'Phương thức thanh toán chuyển khoản ngân hàng hiện đang tạm ngưng.' },
+        message: 'Phương thức thanh toán chuyển khoản ngân hàng hiện đang tạm ngưng.'
+      });
+      return;
+    }
+
     const orderId = `ORD_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
-    const txReference = `${bankConfig.transferPrefix || 'NANGCAP'}-${orderId}`;
+    const prefix = (bankConfig.transferPrefix || 'DUOTECH').trim();
+    const txReference = `${prefix} ${orderId}`;
 
     const orderMetadata = {
       plan: planConfig.id,
@@ -1399,7 +1419,8 @@ apiRouter.post('/payments/checkout-session', paymentRateLimiter, validateBody(Sa
       })
     ]);
 
-    const qrUrl = `https://img.vietqr.io/image/${bankConfig.bankCode || 'MB'}-${bankConfig.accountNumber}-compact2.png?amount=${total}&addInfo=${encodeURIComponent(txReference)}&accountName=${encodeURIComponent(bankConfig.accountHolder)}`;
+    const dynamicQrUrl = `https://img.vietqr.io/image/${bankConfig.bankCode || 'MB'}-${bankConfig.accountNumber}-compact2.png?amount=${total}&addInfo=${encodeURIComponent(txReference)}&accountName=${encodeURIComponent(bankConfig.accountHolder)}`;
+    const qrUrl = bankConfig.qrImageUrl && bankConfig.qrImageUrl.trim() ? bankConfig.qrImageUrl : dynamicQrUrl;
 
     res.json({
       success: true,
@@ -1421,9 +1442,12 @@ apiRouter.post('/payments/checkout-session', paymentRateLimiter, validateBody(Sa
           bankName: bankConfig.bankName,
           accountNumber: bankConfig.accountNumber,
           accountHolder: bankConfig.accountHolder,
+          bankCode: bankConfig.bankCode || 'MB',
           amount: total,
           transferMemo: txReference,
-          qrUrl
+          qrUrl,
+          dynamicQrUrl,
+          customQrUrl: bankConfig.qrImageUrl || null
         },
         status: 'PENDING'
       }
@@ -2003,6 +2027,32 @@ apiRouter.delete('/team/members/:userId', async (req: AuthRequest, res: Response
     res.status(400).json({
       success: false,
       error: { code: 'REMOVE_MEMBER_FAILED', message: err.message },
+      message: err.message
+    });
+  }
+});
+
+apiRouter.get('/team/invite-code', async (req: AuthRequest, res: Response) => {
+  try {
+    const result = await teamService.getOrGenerateInviteCode(req.userId!);
+    res.json(result);
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+apiRouter.post('/team/join', async (req: AuthRequest, res: Response) => {
+  try {
+    const { code } = req.body;
+    if (!code || !code.trim()) {
+      return res.status(400).json({ success: false, message: 'Vui lòng cung cấp mã mời.' });
+    }
+    const result = await teamService.joinTeamByCode(req.userId!, code);
+    res.json(result);
+  } catch (err: any) {
+    res.status(400).json({
+      success: false,
+      error: { code: (err as any).code || 'JOIN_TEAM_FAILED', message: err.message },
       message: err.message
     });
   }

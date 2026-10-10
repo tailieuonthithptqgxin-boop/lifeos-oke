@@ -170,6 +170,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             ...s,
             isAuthenticated: true,
             currentUser: user,
+            subscriptionStatus: res.subscriptionStatus || s.subscriptionStatus,
             hasCompletedOnboarding: !!user.onboardingCompleted,
             onboardingPreferences: storedPrefs,
             workspaceMode: initialMode
@@ -239,9 +240,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const res = await apiCall('/api/auth/me');
         if (res && (res.user || res.id)) {
           const u = res.user || res;
+          const sub = res.subscriptionStatus;
           setState(s => {
             if (!s.currentUser) return s;
-            if (s.currentUser.plan !== u.plan || s.currentUser.planExpiresAt !== u.planExpiresAt || s.currentUser.role !== u.role) {
+            const planChanged = s.currentUser.plan !== u.plan || s.currentUser.planExpiresAt !== u.planExpiresAt || s.currentUser.role !== u.role;
+            const subChanged = sub && JSON.stringify(sub) !== JSON.stringify(s.subscriptionStatus);
+            if (planChanged || subChanged) {
               const isNewlyUpgraded = (s.currentUser.plan === 'FREE' || !s.currentUser.plan) && (u.plan !== 'FREE');
               if (isNewlyUpgraded) {
                 setTimeout(() => {
@@ -251,6 +255,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               return {
                 ...s,
                 currentUser: { ...s.currentUser, ...u },
+                ...(sub ? { subscriptionStatus: sub } : {}),
                 ...(isNewlyUpgraded ? {
                   syncState: 'success' as const,
                   syncMessage: `🎉 Chúc mừng! Tài khoản đã được nâng cấp lên gói ${u.plan} thành công!`

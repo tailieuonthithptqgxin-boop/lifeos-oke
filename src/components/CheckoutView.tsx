@@ -69,6 +69,7 @@ export function CheckoutView({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
+  const [qrDisplayMode, setQrDisplayMode] = useState<'vietqr' | 'custom'>('vietqr');
 
   const handleReceiptFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -637,12 +638,42 @@ export function CheckoutView({
 
                 {/* QR and Transfer Info */}
                 <div className="grid md:grid-cols-2 gap-6 items-center p-6 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
-                  {/* VietQR Code Frame */}
+                  {/* QR Code Frame with Dynamic VietQR / Custom QR Toggle */}
                   <div className="flex flex-col items-center justify-center text-center p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-xs">
+                    {checkoutData.bankInfo?.customQrUrl && (
+                      <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl mb-3">
+                        <button
+                          type="button"
+                          onClick={() => setQrDisplayMode('vietqr')}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                            qrDisplayMode === 'vietqr'
+                              ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs'
+                              : 'text-slate-500 hover:text-slate-700'
+                          }`}
+                        >
+                          VietQR Tự Động
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setQrDisplayMode('custom')}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                            qrDisplayMode === 'custom'
+                              ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs'
+                              : 'text-slate-500 hover:text-slate-700'
+                          }`}
+                        >
+                          Ảnh QR Ngân Hàng
+                        </button>
+                      </div>
+                    )}
                     <div className="w-52 h-52 bg-white rounded-xl p-2 flex items-center justify-center border border-slate-100">
                       <img
-                        src={checkoutData.bankInfo?.qrUrl}
-                        alt="VietQR Code"
+                        src={
+                          qrDisplayMode === 'custom' && checkoutData.bankInfo?.customQrUrl
+                            ? checkoutData.bankInfo.customQrUrl
+                            : (checkoutData.bankInfo?.dynamicQrUrl || checkoutData.bankInfo?.qrUrl)
+                        }
+                        alt="QR Code"
                         className="w-full h-full object-contain"
                       />
                     </div>

@@ -19,6 +19,8 @@ import { PublicLandingView } from './components/PublicLandingView';
 import { LoginView } from './components/LoginView';
 import { AccountStatusBanner } from './components/AccountStatusBanner';
 import { LockedWorkspaceOverlay } from './components/LockedWorkspaceOverlay';
+import { GlobalCompanionOverlay } from './components/companion/GlobalCompanionOverlay';
+import { PwaPromptBanner } from './components/PwaPromptBanner';
 
 // Lazy-load heavier / secondary views to optimize initial bundle size & load speed
 const CalendarView = React.lazy(() => import('./components/CalendarView').then(m => ({ default: m.CalendarView })));
@@ -218,9 +220,8 @@ function AppContent() {
   }
 
   const userRole = (currentUser?.role || '').toUpperCase();
-  const userPlan = (currentUser?.plan || 'FREE').toUpperCase();
   const isAdmin = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
-  const hasSubAccess = isAdmin || (subscriptionStatus?.hasAccess ?? (userPlan !== 'FREE'));
+  const hasSubAccess = isAdmin || Boolean(subscriptionStatus?.hasAccess);
 
   if (!hasCompletedOnboarding && userRole === 'USER') {
     return (
@@ -349,6 +350,8 @@ function AppContent() {
         </main>
         <BottomNav />
       </div>
+      <GlobalCompanionOverlay />
+      <PwaPromptBanner />
     </div>
   );
 }

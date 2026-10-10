@@ -49,6 +49,8 @@ export function SubscriptionManagementView() {
   const [teamNameInput, setTeamNameInput] = useState('');
   const [isSavingTeamName, setIsSavingTeamName] = useState(false);
   const [isRemovingMember, setIsRemovingMember] = useState<string | null>(null);
+  const [joinCodeInput, setJoinCodeInput] = useState('');
+  const [isJoiningTeam, setIsJoiningTeam] = useState(false);
 
   // Payment & Checkout Modal state
   const [selectedPlanForCheckout, setSelectedPlanForCheckout] = useState<string | null>(null);
@@ -209,6 +211,54 @@ export function SubscriptionManagementView() {
       }
     } catch (err: any) {
       setStatusMessage({ text: err.message || 'Lỗi khi xóa thành viên', type: 'error' });
+    } finally {
+      setIsRemovingMember(null);
+    }
+  };
+
+  // Team: Join existing team via Invite Code
+  const handleJoinTeam = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!joinCodeInput.trim()) return;
+    try {
+      setIsJoiningTeam(true);
+      setStatusMessage(null);
+      const res = await apiCall('/api/team/join', 'POST', { code: joinCodeInput.trim() });
+      if (res && res.success) {
+        setStatusMessage({ text: res.message || 'Tham gia nhóm thành công! Toàn bộ tính năng LifeOS đã được mở khóa.', type: 'success' });
+        setJoinCodeInput('');
+        await loadTeam();
+        await loadSubscription();
+        await fetchSubscriptionStatus();
+      } else {
+        throw new Error(res?.message || 'Không thể tham gia nhóm.');
+      }
+    } catch (err: any) {
+      setStatusMessage({ text: err.message || 'Lỗi khi tham gia nhóm', type: 'error' });
+    } finally {
+      setIsJoiningTeam(false);
+    }
+  };
+
+  // Team: Leave current team
+  const handleLeaveTeam = async () => {
+    if (!currentUser?.id) return;
+    if (!window.confirm('Bạn có chắc chắn muốn rời khỏi nhóm này? Quyền sử dụng các tính năng trả phí của bạn sẽ kết thúc.')) {
+      return;
+    }
+    try {
+      setIsRemovingMember(currentUser.id);
+      const res = await apiCall(`/api/team/members/${currentUser.id}`, 'DELETE');
+      if (res && res.success) {
+        setStatusMessage({ text: res.message || 'Đã rời khỏi nhóm thành công.', type: 'success' });
+        await loadTeam();
+        await loadSubscription();
+        await fetchSubscriptionStatus();
+      } else {
+        throw new Error(res?.message || 'Không thể rời nhóm.');
+      }
+    } catch (err: any) {
+      setStatusMessage({ text: err.message || 'Lỗi khi rời khỏi nhóm', type: 'error' });
     } finally {
       setIsRemovingMember(null);
     }
@@ -596,28 +646,66 @@ export function SubscriptionManagementView() {
               </div>
             ) : !isTeamOwner && !isTeamMember ? (
               /* User has no team and is not a member */
-              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 sm:p-12 text-center max-w-xl mx-auto space-y-4">
-                <div className="w-16 h-16 rounded-2xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center mx-auto">
-                  <Users className="w-8 h-8" />
+              <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                {/* Option 1: Buy Team Plan */}
+                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 text-center space-y-4 shadow-xs flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="w-14 h-14 rounded-2xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center mx-auto">
+                      <Users className="w-7 h-7" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                      Tạo Đội Ngũ Mới
+                    </h3>
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      Trở thành Chủ nhóm và mời tối đa 5 thành viên cùng sử dụng đầy đủ chức năng LifeOS với <b>Gói Đội Ngũ (50.000 ₫/tháng)</b>.
+                    </p>
+                  </div>
+                  <div className="pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTab('plans');
+                        handleStartCheckout('TEAM_1M');
+                      }}
+                      className="w-full py-3 px-6 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md transition-all inline-flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Users className="w-4 h-4" />
+                      Đăng ký Gói Đội Ngũ (50.000 ₫)
+                    </button>
+                  </div>
                 </div>
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                  Bạn chưa tham gia Đội ngũ nào
-                </h3>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Để tạo nhóm và thêm tối đa 5 thành viên cùng sử dụng đầy đủ chức năng LifeOS, vui lòng nâng cấp lên <b>Gói Đội Ngũ (Team 1 Tháng - 50.000 ₫)</b>.
-                </p>
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveTab('plans');
-                      handleStartCheckout('TEAM_1M');
-                    }}
-                    className="py-3 px-6 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md transition-all inline-flex items-center gap-2 cursor-pointer"
-                  >
-                    <Users className="w-4 h-4" />
-                    Đăng ký Gói Đội Ngũ ngay (50.000 ₫)
-                  </button>
+
+                {/* Option 2: Join Existing Team via Code */}
+                <div className="bg-white dark:bg-slate-900 border border-blue-200 dark:border-blue-900/60 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xs flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="w-14 h-14 rounded-2xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto">
+                      <UserPlus className="w-7 h-7" />
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white text-center">
+                      Tham Gia Nhóm Bằng Mã Mời
+                    </h3>
+                    <p className="text-xs text-slate-500 leading-relaxed text-center">
+                      Nếu đồng nghiệp hoặc chủ nhóm đã gửi cho bạn mã mời tham gia, hãy nhập mã vào đây để nhận quyền sử dụng gói Team ngay lập tức.
+                    </p>
+                  </div>
+
+                  <form onSubmit={handleJoinTeam} className="space-y-3 pt-2">
+                    <input
+                      type="text"
+                      value={joinCodeInput}
+                      onChange={e => setJoinCodeInput(e.target.value.toUpperCase())}
+                      placeholder="Nhập mã mời (ví dụ: TEAM-A1B2C3D4)..."
+                      className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono uppercase text-slate-900 dark:text-white outline-none focus:border-blue-600"
+                    />
+                    <button
+                      type="submit"
+                      disabled={isJoiningTeam || !joinCodeInput.trim()}
+                      className="w-full py-3 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs shadow-md transition-all inline-flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      <Check className="w-4 h-4" />
+                      {isJoiningTeam ? 'Đang xác thực mã...' : 'Tham Gia Nhóm Ngay'}
+                    </button>
+                  </form>
                 </div>
               </div>
             ) : (
@@ -637,7 +725,7 @@ export function SubscriptionManagementView() {
                             ? 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300'
                             : 'bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300'
                         }`}>
-                          {teamData?.role === 'OWNER' ? 'Chủ nhóm (Quản trị viên)' : 'Thành viên'}
+                          {teamData?.role === 'OWNER' ? 'Chủ nhóm (Quản trị viên)' : 'Thành viên nhóm'}
                         </span>
                       </div>
                       <p className="text-xs text-slate-500">
@@ -656,6 +744,18 @@ export function SubscriptionManagementView() {
                       <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center font-black text-sm">
                         {Math.max(0, (teamData?.team?.maxMembers || 5) - (teamData?.team?.currentMemberCount || 0))} chỗ
                       </div>
+
+                      {/* If Member: Leave Team button */}
+                      {!isTeamOwner && isTeamMember && (
+                        <button
+                          type="button"
+                          onClick={handleLeaveTeam}
+                          className="ml-2 px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                        >
+                          <UserMinus className="w-3.5 h-3.5" />
+                          <span>Rời nhóm</span>
+                        </button>
+                      )}
                     </div>
                   </div>
 
@@ -692,17 +792,17 @@ export function SubscriptionManagementView() {
                   )}
                 </div>
 
-                {/* Team Owner: Add Member Form */}
+                {/* Team Owner: Invite Members & Share Invite Code */}
                 {isTeamOwner && (
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                           <UserPlus className="w-4 h-4 text-purple-600" />
-                          Thêm Thành Viên Vào Nhóm
+                          Mời Thành Viên Vào Nhóm
                         </h3>
                         <p className="text-xs text-slate-500 mt-0.5">
-                          Tối đa 5 người dùng. Thành viên được thêm sẽ lập tức được kích hoạt toàn bộ tính năng trả phí.
+                          Tối đa 5 người dùng. Thành viên được thêm sẽ lập tức được kích hoạt toàn bộ tính năng trả phí theo gói Team.
                         </p>
                       </div>
 
@@ -715,26 +815,59 @@ export function SubscriptionManagementView() {
                       </span>
                     </div>
 
-                    <form onSubmit={handleAddMember} className="flex flex-col sm:flex-row items-center gap-3 pt-2">
-                      <div className="flex-1 w-full">
-                        <input
-                          type="email"
-                          value={newMemberEmail}
-                          onChange={(e) => setNewMemberEmail(e.target.value)}
-                          placeholder="Nhập địa chỉ email của thành viên (ví dụ: member@lifeos.com)..."
-                          disabled={!teamData?.team?.canAddMembers || isAddingMember}
-                          className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white outline-none focus:border-purple-600 transition-colors disabled:opacity-50"
-                        />
+                    {/* Method 1: Invite by Email */}
+                    <div className="space-y-2">
+                      <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                        Cách 1: Thêm trực tiếp bằng địa chỉ email
+                      </span>
+                      <form onSubmit={handleAddMember} className="flex flex-col sm:flex-row items-center gap-3">
+                        <div className="flex-1 w-full">
+                          <input
+                            type="email"
+                            value={newMemberEmail}
+                            onChange={(e) => setNewMemberEmail(e.target.value)}
+                            placeholder="Nhập địa chỉ email của thành viên (ví dụ: member@lifeos.com)..."
+                            disabled={!teamData?.team?.canAddMembers || isAddingMember}
+                            className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white outline-none focus:border-purple-600 transition-colors disabled:opacity-50"
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          disabled={!teamData?.team?.canAddMembers || isAddingMember || !newMemberEmail.trim()}
+                          className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md shadow-purple-500/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+                        >
+                          <UserPlus className="w-4 h-4" />
+                          {isAddingMember ? 'Đang thêm...' : 'Thêm thành viên'}
+                        </button>
+                      </form>
+                    </div>
+
+                    {/* Method 2: Share Invite Code & Link */}
+                    {teamData?.team?.inviteCode && (
+                      <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          Cách 2: Gửi mã mời hoặc liên kết để thành viên tự tham gia
+                        </span>
+                        <div className="flex flex-col sm:flex-row items-center gap-3">
+                          <div className="flex-1 w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-purple-200 dark:border-purple-900/60 bg-purple-50/50 dark:bg-purple-950/30">
+                            <span className="font-mono font-black text-sm text-purple-700 dark:text-purple-300 select-all">
+                              {teamData.team.inviteCode}
+                            </span>
+                            <span className="text-[11px] text-purple-600 dark:text-purple-400 font-semibold">
+                              Mã mời tham gia nhóm
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleCopy(teamData.team.inviteCode, 'team_code')}
+                            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>{copySuccess === 'team_code' ? 'Đã sao chép!' : 'Sao chép mã'}</span>
+                          </button>
+                        </div>
                       </div>
-                      <button
-                        type="submit"
-                        disabled={!teamData?.team?.canAddMembers || isAddingMember || !newMemberEmail.trim()}
-                        className="w-full sm:w-auto px-6 py-3 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md shadow-purple-500/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
-                      >
-                        <UserPlus className="w-4 h-4" />
-                        {isAddingMember ? 'Đang thêm...' : 'Thêm thành viên'}
-                      </button>
-                    </form>
+                    )}
 
                     {(teamData?.team?.remainingSlots || 0) <= 0 && (
                       <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
@@ -752,7 +885,7 @@ export function SubscriptionManagementView() {
 
                   {(!teamData?.team?.members || teamData.team.members.length === 0) ? (
                     <div className="p-8 text-center text-slate-400 text-xs">
-                      Chưa có thành viên nào trong nhóm. Nhập email ở trên để thêm thành viên đầu tiên.
+                      Chưa có thành viên nào trong nhóm. Nhập email hoặc gửi mã mời ở trên để thêm thành viên đầu tiên.
                     </div>
                   ) : (
                     <div className="overflow-x-auto">
@@ -775,7 +908,9 @@ export function SubscriptionManagementView() {
                                   alt={m.name}
                                   className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 object-cover"
                                 />
-                                <span className="font-bold text-slate-900 dark:text-white">{m.name}</span>
+                                <span className="font-bold text-slate-900 dark:text-white">
+                                  {m.name} {m.userId === currentUser?.id ? '(Bạn)' : ''}
+                                </span>
                               </td>
                               <td className="py-3.5 px-4 font-mono text-slate-600 dark:text-slate-400">{m.email}</td>
                               <td className="py-3.5 px-4">
@@ -787,7 +922,7 @@ export function SubscriptionManagementView() {
                                 {m.addedAt ? new Date(m.addedAt).toLocaleDateString('vi-VN') : '—'}
                               </td>
                               <td className="py-3.5 px-4 text-right">
-                                {isTeamOwner && (
+                                {isTeamOwner ? (
                                   <button
                                     type="button"
                                     onClick={() => handleRemoveMember(m.userId, m.name)}
@@ -797,7 +932,15 @@ export function SubscriptionManagementView() {
                                   >
                                     <Trash2 className="w-4 h-4" />
                                   </button>
-                                )}
+                                ) : m.userId === currentUser?.id ? (
+                                  <button
+                                    type="button"
+                                    onClick={handleLeaveTeam}
+                                    className="px-2.5 py-1 rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/60 font-semibold text-xs transition-all cursor-pointer"
+                                  >
+                                    Rời nhóm
+                                  </button>
+                                ) : null}
                               </td>
                             </tr>
                           ))}

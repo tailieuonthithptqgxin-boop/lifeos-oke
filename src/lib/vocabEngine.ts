@@ -21,6 +21,7 @@ export interface LearningLanguage {
 }
 
 import oxford3000Raw from '../data/oxford3000.json';
+import chineseHskRaw from '../data/chineseHskWords.json';
 
 export interface System3000Word {
   id: string; // e.g. "word_3000_1"
@@ -32,7 +33,23 @@ export interface System3000Word {
   raw?: string;
 }
 
+export interface SystemChineseHskWord {
+  id: string; // e.g. "zh_hsk_1_1"
+  index: number;
+  sheet: string; // e.g. "HSK 1", "HSK 2", ... "HSK 7-9"
+  hskLevel: number;
+  term: string;
+  pinyin: string;
+  pos: string;
+  meaning: string;
+  exampleSentence?: string;
+  examplePinyin?: string;
+  exampleTranslation?: string;
+  needsReview?: boolean;
+}
+
 export const OXFORD_3000_WORDS: System3000Word[] = oxford3000Raw as System3000Word[];
+export const CHINESE_HSK_WORDS: SystemChineseHskWord[] = chineseHskRaw as SystemChineseHskWord[];
 
 export interface UserWordProgress {
   wordId: string;
@@ -116,6 +133,7 @@ export interface VocabUserData {
   collections: Record<string, VocabCollection[]>; // key: languageId -> collections
   words: Record<string, VocabWord[]>; // key: languageId -> personal words
   system3000Progress?: Record<string, UserWordProgress>; // key: word_3000_id -> user progress
+  systemChineseHskProgress?: Record<string, UserWordProgress>; // key: zh_hsk_..._id -> user progress
   verificationOverrides?: Record<string, import('./vocabVerificationEngine').WordVerificationReport>;
   lastStudyDate?: string;
   streakDays: number;
@@ -480,6 +498,7 @@ export {
   sliceStudyBatches
 };
 export type { ForgettingCurvePoint, TodayStudyPlan };
+export { calculateNextReview as calculateSM2Algorithm };
 
 export interface Sm2Input {
   rating: 1 | 2 | 3 | 4; // 1: Again, 2: Hard, 3: Good, 4: Easy
@@ -664,6 +683,9 @@ export function loadVocabData(userId: string): VocabUserData {
           if (!parsed.system3000Progress) {
             parsed.system3000Progress = {};
           }
+          if (!parsed.systemChineseHskProgress) {
+            parsed.systemChineseHskProgress = {};
+          }
           if (!parsed.verificationOverrides) {
             parsed.verificationOverrides = {};
           }
@@ -703,6 +725,7 @@ export function loadVocabData(userId: string): VocabUserData {
       en: initial.words
     },
     system3000Progress: {},
+    systemChineseHskProgress: {},
     verificationOverrides: {},
     streakDays: 1,
     lastStudyDate: new Date().toISOString().split('T')[0]
@@ -913,44 +936,152 @@ export function calculate3000Analytics(progressMap: Record<string, UserWordProgr
   };
 }
 
-/**
- * Calculate combined analytics across both personal words and 3000 system words
- */
-export function calculateCombinedAnalytics(
-  personalWords: VocabWord[],
-  progressMap: Record<string, UserWordProgress> = {}
-): LanguageAnalytics {
-  const a3000 = calculate3000Analytics(progressMap);
-  const aPersonal = calculateLanguageAnalytics(personalWords);
+// ------------------------------------------------------------------------------
+// SYSTEM CHINESE HSK WORDS HELPERS & UNIFIED STUDY INTEGRATION
+// ------------------------------------------------------------------------------
 
-  const total = a3000.totalWords + aPersonal.totalWords;
-  const mastered = a3000.masteredCount + aPersonal.masteredCount;
-  const totalReviews = a3000.totalReviewsCount + aPersonal.totalReviewsCount;
+/**
+ * Returns all 10,240 Chinese HSK words extracted from the uploaded dataset
+ */
+export function getSystemChineseWords(level?: number): SystemChineseHskWord[] {
+  if (level) {
+    return CHINESE_HSK_WORDS.filter(w => w.hskLevel === level);
+  }
+  return CHINESE_HSK_WORDS;
+}
+
+/**
+ * Convert a System Chinese HSK word into a full VocabWord format for the study session
+ */
+export function systemChineseWordToVocabWord(
+  sys: SystemChineseHskWord,
+  progress?: UserWordProgress,
+  defaultCollectionId: string = 'system_chinese_hsk'
+): VocabWord {
+  const today = new Date().toISOString().split('T')[0];
+  return {
+    id: sys.id,
+    languageId: 'zh',
+    collectionId: progress?.bookmarkedCollectionIds?.[0] || defaultCollectionId,
+    term: sys.term,
+    phonetic: sys.pinyin,
+    partOfSpeech: sys.pos,
+    meaning: sys.meaning,
+    exampleSentence: sys.exampleSentence,
+    exampleTranslation: sys.exampleTranslation,
+    notes: progress?.personalNotes,
+    isFavorite: progress?.isFavorite || false,
+    state: progress?.state || 'new',
+    repetitionCount: progress?.repetitionCount || 0,
+    easeFactor: progress?.easeFactor || 2.5,
+    intervalDays: progress?.intervalDays || 0,
+    lastReviewedAt: progress?.lastReviewedAt,
+    nextReviewAt: progress?.nextReviewAt || today,
+    reviewLogs: progress?.reviewLogs || [],
+    lapses: progress?.lapses || 0,
+    tags: [sys.sheet, `HSK ${sys.hskLevel}`],
+    createdAt: progress?.updatedAt || new Date().toISOString(),
+    updatedAt: progress?.updatedAt || new Date().toISOString()
+  };
+}
+
+/**
+ * Calculate analytics specifically for Chinese HSK system words based on user progress map
+ */
+export function calculateChineseHskAnalytics(progressMap: Record<string, UserWordProgress> = {}): LanguageAnalytics {
+  const today = new Date().toISOString().split('T')[0];
+  const total = CHINESE_HSK_WORDS.length;
+
+  let newCount = 0;
+  let learningCount = 0;
+  let reviewingCount = 0;
+  let masteredCount = 0;
+  let difficultCount = 0;
+  let dueTodayCount = 0;
+  let totalLogs = 0;
+  let passedLogs = 0;
+
+  for (const sys of CHINESE_HSK_WORDS) {
+    const prog = progressMap[sys.id];
+    const state = prog?.state || 'new';
+
+    if (state === 'new') newCount++;
+    else if (state === 'learning') learningCount++;
+    else if (state === 'reviewing') reviewingCount++;
+    else if (state === 'mastered') masteredCount++;
+    else if (state === 'difficult') difficultCount++;
+
+    if (state !== 'new' && prog?.nextReviewAt && prog.nextReviewAt <= today) {
+      dueTodayCount++;
+    }
+
+    if (prog?.reviewLogs) {
+      for (const log of prog.reviewLogs) {
+        totalLogs++;
+        if (log.rating >= 3) passedLogs++;
+      }
+    }
+  }
+
+  const masteryPercentage = total > 0 ? Math.round((masteredCount / total) * 100) : 0;
+  const retentionRate = totalLogs > 0 ? Math.round((passedLogs / totalLogs) * 100) : 100;
 
   return {
     totalWords: total,
-    newWordsCount: a3000.newWordsCount + aPersonal.newWordsCount,
-    learningCount: a3000.learningCount + aPersonal.learningCount,
-    reviewingCount: a3000.reviewingCount + aPersonal.reviewingCount,
+    newWordsCount: newCount,
+    learningCount,
+    reviewingCount,
+    masteredCount,
+    difficultCount,
+    dueTodayCount,
+    masteryPercentage,
+    retentionRate,
+    totalReviewsCount: totalLogs
+  };
+}
+
+/**
+ * Calculate combined analytics across both personal words and system words (supporting EN and ZH)
+ */
+export function calculateCombinedAnalytics(
+  personalWords: VocabWord[],
+  progressMap: Record<string, UserWordProgress> = {},
+  languageId: string = 'en'
+): LanguageAnalytics {
+  const aSystem = languageId === 'zh'
+    ? calculateChineseHskAnalytics(progressMap)
+    : calculate3000Analytics(progressMap);
+  const aPersonal = calculateLanguageAnalytics(personalWords);
+
+  const total = aSystem.totalWords + aPersonal.totalWords;
+  const mastered = aSystem.masteredCount + aPersonal.masteredCount;
+  const totalReviews = aSystem.totalReviewsCount + aPersonal.totalReviewsCount;
+
+  return {
+    totalWords: total,
+    newWordsCount: aSystem.newWordsCount + aPersonal.newWordsCount,
+    learningCount: aSystem.learningCount + aPersonal.learningCount,
+    reviewingCount: aSystem.reviewingCount + aPersonal.reviewingCount,
     masteredCount: mastered,
-    difficultCount: a3000.difficultCount + aPersonal.difficultCount,
-    dueTodayCount: a3000.dueTodayCount + aPersonal.dueTodayCount,
+    difficultCount: aSystem.difficultCount + aPersonal.difficultCount,
+    dueTodayCount: aSystem.dueTodayCount + aPersonal.dueTodayCount,
     masteryPercentage: total > 0 ? Math.round((mastered / total) * 100) : 0,
     retentionRate: totalReviews > 0
-      ? Math.round(((a3000.retentionRate * a3000.totalReviewsCount + aPersonal.retentionRate * aPersonal.totalReviewsCount) / (totalReviews * 100)) * 100)
+      ? Math.round(((aSystem.retentionRate * aSystem.totalReviewsCount + aPersonal.retentionRate * aPersonal.totalReviewsCount) / (totalReviews * 100)) * 100)
       : 100,
     totalReviewsCount: totalReviews
   };
 }
 
 /**
- * Build unified study queues across sources: 3000 words, personal words, or both
+ * Build unified study queues across sources: system words (Oxford 3000 or Chinese HSK), personal words, or both
  */
 export function buildUnifiedStudyQueues(
   personalWords: VocabWord[],
   progressMap: Record<string, UserWordProgress> = {},
   source: '3000' | 'personal' | 'all' = 'all',
-  collectionId?: string
+  collectionId?: string,
+  languageId: string = 'en'
 ): StudyQueues {
   const today = new Date().toISOString().split('T')[0];
   let pool: VocabWord[] = [];
@@ -964,18 +1095,28 @@ export function buildUnifiedStudyQueues(
     }
   }
 
-  // 2. 3000 words
+  // 2. System words (3000 or Chinese HSK)
   if (source === '3000' || source === 'all') {
-    if (collectionId && collectionId !== 'all') {
-      // Only 3000 words bookmarked into this collection
-      const bookmarked = OXFORD_3000_WORDS.filter(w => {
-        const prog = progressMap[w.id];
-        return prog?.bookmarkedCollectionIds?.includes(collectionId);
-      });
-      pool.push(...bookmarked.map(w => systemWordToVocabWord(w, progressMap[w.id], collectionId)));
+    if (languageId === 'zh') {
+      if (collectionId && collectionId !== 'all') {
+        const bookmarked = CHINESE_HSK_WORDS.filter(w => {
+          const prog = progressMap[w.id];
+          return prog?.bookmarkedCollectionIds?.includes(collectionId);
+        });
+        pool.push(...bookmarked.map(w => systemChineseWordToVocabWord(w, progressMap[w.id], collectionId)));
+      } else {
+        pool.push(...CHINESE_HSK_WORDS.map(w => systemChineseWordToVocabWord(w, progressMap[w.id])));
+      }
     } else {
-      // All 3000 words
-      pool.push(...OXFORD_3000_WORDS.map(w => systemWordToVocabWord(w, progressMap[w.id])));
+      if (collectionId && collectionId !== 'all') {
+        const bookmarked = OXFORD_3000_WORDS.filter(w => {
+          const prog = progressMap[w.id];
+          return prog?.bookmarkedCollectionIds?.includes(collectionId);
+        });
+        pool.push(...bookmarked.map(w => systemWordToVocabWord(w, progressMap[w.id], collectionId)));
+      } else {
+        pool.push(...OXFORD_3000_WORDS.map(w => systemWordToVocabWord(w, progressMap[w.id])));
+      }
     }
   }
 
@@ -1001,11 +1142,15 @@ export function recordReviewOutcome(
   rating: 1 | 2 | 3 | 4,
   reviewType: 'flashcard' | 'spelling' | 'listening' | 'quiz' = 'flashcard'
 ): VocabUserData {
-  const isSystem = wordId.startsWith('word_3000_');
+  const isOxford = wordId.startsWith('word_3000_');
+  const isChineseHsk = wordId.startsWith('zh_hsk_');
   const activeLangId = prevData.activeLanguageId;
 
-  if (isSystem) {
-    const currentProg = prevData.system3000Progress?.[wordId];
+  if (isOxford || isChineseHsk) {
+    const progressMap = isChineseHsk
+      ? (prevData.systemChineseHskProgress || {})
+      : (prevData.system3000Progress || {});
+    const currentProg = progressMap[wordId];
     const repCount = currentProg?.repetitionCount || 0;
     const ef = currentProg?.easeFactor || 2.5;
     const interval = currentProg?.intervalDays || 0;
@@ -1036,6 +1181,17 @@ export function recordReviewOutcome(
       bookmarkedCollectionIds: currentProg?.bookmarkedCollectionIds,
       updatedAt: new Date().toISOString()
     };
+
+    if (isChineseHsk) {
+      return {
+        ...prevData,
+        systemChineseHskProgress: {
+          ...(prevData.systemChineseHskProgress || {}),
+          [wordId]: updatedProg
+        },
+        lastStudyDate: new Date().toISOString().split('T')[0]
+      };
+    }
 
     return {
       ...prevData,
@@ -1089,14 +1245,19 @@ export function recordReviewOutcome(
 }
 
 /**
- * Toggle bookmark of a 3000 system word into a personal collection
+ * Toggle bookmark of a system word (3000 or Chinese HSK) into a personal collection
  */
-export function toggleBookmark3000Word(
+export function toggleBookmarkSystemWord(
   prevData: VocabUserData,
   wordId: string,
   collectionId: string
 ): VocabUserData {
-  const currentProg = prevData.system3000Progress?.[wordId];
+  const isChineseHsk = wordId.startsWith('zh_hsk_');
+  const progressMap = isChineseHsk
+    ? (prevData.systemChineseHskProgress || {})
+    : (prevData.system3000Progress || {});
+
+  const currentProg = progressMap[wordId];
   const bookmarked = currentProg?.bookmarkedCollectionIds || [];
   const isAlready = bookmarked.includes(collectionId);
   const nextBookmarked = isAlready
@@ -1131,6 +1292,20 @@ export function toggleBookmark3000Word(
     return { ...col, systemWordIds: updatedSysWords, updatedAt: new Date().toISOString() };
   });
 
+  if (isChineseHsk) {
+    return {
+      ...prevData,
+      collections: {
+        ...prevData.collections,
+        [prevData.activeLanguageId]: updatedCollections
+      },
+      systemChineseHskProgress: {
+        ...(prevData.systemChineseHskProgress || {}),
+        [wordId]: updatedProg
+      }
+    };
+  }
+
   return {
     ...prevData,
     collections: {
@@ -1144,15 +1319,22 @@ export function toggleBookmark3000Word(
   };
 }
 
+export const toggleBookmark3000Word = toggleBookmarkSystemWord;
+
 /**
- * Directly mark a 3000 word's state (e.g. Mastered / Difficult / New)
+ * Directly mark a system word's state (e.g. Mastered / Difficult / New)
  */
-export function set3000WordState(
+export function setSystemWordState(
   prevData: VocabUserData,
   wordId: string,
   state: MasteryState
 ): VocabUserData {
-  const currentProg = prevData.system3000Progress?.[wordId];
+  const isChineseHsk = wordId.startsWith('zh_hsk_');
+  const progressMap = isChineseHsk
+    ? (prevData.systemChineseHskProgress || {})
+    : (prevData.system3000Progress || {});
+
+  const currentProg = progressMap[wordId];
   const today = new Date().toISOString().split('T')[0];
   const updatedProg: UserWordProgress = {
     wordId,
@@ -1170,6 +1352,16 @@ export function set3000WordState(
     updatedAt: new Date().toISOString()
   };
 
+  if (isChineseHsk) {
+    return {
+      ...prevData,
+      systemChineseHskProgress: {
+        ...(prevData.systemChineseHskProgress || {}),
+        [wordId]: updatedProg
+      }
+    };
+  }
+
   return {
     ...prevData,
     system3000Progress: {
@@ -1179,15 +1371,22 @@ export function set3000WordState(
   };
 }
 
+export const set3000WordState = setSystemWordState;
+
 /**
- * Save personal notes or memory tip for a 3000 word
+ * Save personal notes or memory tip for a system word
  */
-export function save3000WordNotes(
+export function saveSystemWordNotes(
   prevData: VocabUserData,
   wordId: string,
   personalNotes: string
 ): VocabUserData {
-  const currentProg = prevData.system3000Progress?.[wordId];
+  const isChineseHsk = wordId.startsWith('zh_hsk_');
+  const progressMap = isChineseHsk
+    ? (prevData.systemChineseHskProgress || {})
+    : (prevData.system3000Progress || {});
+
+  const currentProg = progressMap[wordId];
   const today = new Date().toISOString().split('T')[0];
   const updatedProg: UserWordProgress = {
     wordId,
@@ -1205,6 +1404,16 @@ export function save3000WordNotes(
     updatedAt: new Date().toISOString()
   };
 
+  if (isChineseHsk) {
+    return {
+      ...prevData,
+      systemChineseHskProgress: {
+        ...(prevData.systemChineseHskProgress || {}),
+        [wordId]: updatedProg
+      }
+    };
+  }
+
   return {
     ...prevData,
     system3000Progress: {
@@ -1213,3 +1422,5 @@ export function save3000WordNotes(
     }
   };
 }
+
+export const save3000WordNotes = saveSystemWordNotes;

@@ -672,15 +672,30 @@ export const translations: Record<string, TranslationDictionary> = {
     'Cập nhật thành công!': 'Updated successfully!',
     'Tạo mới thành công!': 'Created successfully!',
     'Đã lưu thay đổi.': 'Changes saved.',
-    'Xóa thành công!': 'Deleted successfully!',
-    'Đã xảy ra lỗi. Vui lòng thử lại.': 'An error occurred. Please try again.',
-    'Vui lòng nhập đầy đủ các trường bắt buộc.': 'Please fill in all required fields.',
-    'Mật khẩu không khớp.': 'Passwords do not match.',
-    'Bạn có chắc chắn muốn thực hiện thao tác này?': 'Are you sure you want to proceed?',
-    'Thao tác này không thể hoàn tác.': 'This action cannot be undone.',
     ...fullTranslations
   }
 };
+
+// Common Curated Overrides (Always high precedence over fullTranslations generated map)
+Object.assign(translations.en, {
+  'Xóa': 'Delete',
+  'xóa': 'delete',
+  'Từ chối': 'Rejected',
+  'từ chối': 'rejected',
+  'Hủy bỏ': 'Cancel',
+  'hủy bỏ': 'cancel',
+  'Lưu thay đổi': 'Save Changes',
+  'Đang hoạt động': 'Active',
+  'Chờ duyệt': 'Pending Review',
+  'Đã duyệt': 'Approved',
+  'Mật khẩu không khớp.': 'Passwords do not match.',
+  'Vui lòng nhập họ và tên của bạn.': 'Please enter your full name.',
+  'Vui lòng nhập đầy đủ các trường bắt buộc.': 'Please fill in all required fields.',
+  'Bạn có chắc chắn muốn thực hiện thao tác này?': 'Are you sure you want to proceed?',
+  'Thao tác này không thể hoàn tác.': 'This action cannot be undone.',
+  'Xóa thành công!': 'Deleted successfully!',
+  'Đã xảy ra lỗi. Vui lòng thử lại.': 'An error occurred. Please try again.'
+});
 
 // Build reverse dictionary for Vietnamese lookup of English keys/phrases
 const enToViMap: Record<string, string> = {};

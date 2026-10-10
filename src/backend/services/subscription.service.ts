@@ -200,6 +200,25 @@ export const subscriptionService = {
       };
     }
 
+    // Direct plan set on User model with valid planExpiresAt (e.g. manual grant or legacy profile)
+    if (user.plan && user.plan !== 'FREE') {
+      if (!user.planExpiresAt || new Date(user.planExpiresAt).getTime() > now.getTime()) {
+        const remainingDays = user.planExpiresAt
+          ? Math.max(0, Math.ceil((new Date(user.planExpiresAt).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)))
+          : 30;
+        return {
+          hasAccess: true,
+          lifecycleStatus: 'ACTIVE',
+          planId: user.plan,
+          planType: user.plan === 'TEAM' ? 'TEAM' : 'PERSONAL',
+          planName: user.plan === 'TEAM' ? 'Gói Đội Ngũ' : 'Gói Pro Cá Nhân',
+          status: 'ACTIVE',
+          remainingDays,
+          role: user.role
+        };
+      }
+    }
+
     // Check if there is an active pending payment request awaiting approval
     const activePending = await prisma.payment.findFirst({
       where: { userId, status: 'PENDING' },

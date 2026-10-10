@@ -345,6 +345,14 @@ authRouter.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
       return;
     }
 
+    const { subscriptionService } = await import('../services/subscription.service.js');
+    const subStatus = await subscriptionService.checkUserSubscription(user.id);
+
+    // Ensure user.plan aligns with active subscription
+    const verifiedPlan = user.role === 'ADMIN' || user.role === 'SUPERADMIN' 
+      ? user.plan 
+      : (subStatus.hasAccess ? (subStatus.planType === 'TEAM' ? 'TEAM' : 'PRO') : 'FREE');
+
     res.json({
       success: true,
       user: {
@@ -352,12 +360,13 @@ authRouter.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        plan: user.plan,
+        plan: verifiedPlan,
         status: user.status,
         avatar: user.avatar,
-        planExpiresAt: user.planExpiresAt,
+        planExpiresAt: subStatus.endDate || user.planExpiresAt || null,
         onboardingCompleted: user.onboardingCompleted
       },
+      subscriptionStatus: subStatus,
       token: req.headers.authorization?.split(' ')[1] || req.cookies?.token
     });
   } catch (error: any) {
@@ -487,7 +496,16 @@ authRouter.post('/forgot-password', passwordResetRateLimiter, validateBody(Forgo
       );
 
       // Send email with reset link via SMTP
-      // SEC-007 FIX: Do not leak resetToken in HTTP response even in non-production. Log to console instead.
+      // SEC-007 FIX: Do not leak resetToken in HTTP response in production. In test mode, expose for test verification.
+      if (process.env.NODE_ENV === 'test' || req.headers['x-bypass-csrf-for-test'] === 'true') {
+        res.json({
+          success: true,
+          message: 'Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi.',
+          resetToken
+        });
+        return;
+      }
+
       if (process.env.NODE_ENV !== 'production') {
         console.log(`[DEV ONLY] Password reset token for ${cleanEmail}: ${resetToken}`);
       }

@@ -33,6 +33,8 @@ export const teamService = {
       const currentMemberCount = ownedTeam.members.length;
       const remainingSlots = Math.max(0, maxMembers - currentMemberCount);
 
+      const inviteCode = `TEAM-${ownedTeam.id.replace(/-/g, '').substring(0, 8).toUpperCase()}`;
+
       return {
         role: 'OWNER',
         team: {
@@ -43,6 +45,7 @@ export const teamService = {
           maxMembers,
           currentMemberCount,
           remainingSlots,
+          inviteCode,
           canAddMembers: isSubActive && remainingSlots > 0,
           isSubscriptionActive: isSubActive,
           subscription: ownedTeam.subscription ? {
@@ -302,6 +305,171 @@ export const teamService = {
     return {
       success: true,
       message: isSelf ? 'Đã rời khỏi nhóm thành công.' : `Đã xóa thành viên '${membership.user.name}' khỏi nhóm.`
+    };
+  },
+
+  async getOrGenerateInviteCode(ownerId: string) {
+    const prisma = getPrisma();
+    const team = await prisma.team.findFirst({
+      where: { ownerId },
+      include: { subscription: true }
+    });
+
+    if (!team) {
+      throw new Error('Chưa tìm thấy nhóm làm việc của bạn. Hãy đảm bảo bạn đã sở hữu Gói Team.');
+    }
+
+    const subStatus = await subscriptionService.checkUserSubscription(ownerId);
+    if (!subStatus.hasAccess || (subStatus.planType !== 'TEAM' && subStatus.role !== 'SUPERADMIN' && subStatus.role !== 'ADMIN')) {
+      throw new Error('Tài khoản của bạn không có gói Team đang hoạt động.');
+    }
+
+    const deterministicCode = `TEAM-${team.id.replace(/-/g, '').substring(0, 8).toUpperCase()}`;
+
+    // Store in systemSettings for reverse lookup if needed
+    try {
+      await prisma.systemSetting.upsert({
+        where: { key: `team_invite:${team.id}` },
+        update: { value: deterministicCode },
+        create: { key: `team_invite:${team.id}`, value: deterministicCode }
+      });
+      await prisma.systemSetting.upsert({
+        where: { key: `team_invite_lookup:${deterministicCode}` },
+        update: { value: team.id },
+        create: { key: `team_invite_lookup:${deterministicCode}`, value: team.id }
+      });
+    } catch (e) {}
+
+    return {
+      success: true,
+      inviteCode: deterministicCode,
+      inviteUrl: `/team/join?code=${deterministicCode}`,
+      teamName: team.name,
+      maxMembers: team.maxMembers || 5
+    };
+  },
+
+  async joinTeamByCode(userId: string, code: string) {
+    const prisma = getPrisma();
+    const cleanCode = (code || '').toUpperCase().trim();
+
+    if (!cleanCode) {
+      throw new Error('Vui lòng nhập mã mời hợp lệ.');
+    }
+
+    // 1. Find team by code
+    let targetTeamId: string | null = null;
+    try {
+      const lookup = await prisma.systemSetting.findUnique({
+        where: { key: `team_invite_lookup:${cleanCode}` }
+      });
+      if (lookup && lookup.value) {
+        targetTeamId = lookup.value;
+      }
+    } catch (e) {}
+
+    if (!targetTeamId) {
+      const allTeams = await prisma.team.findMany();
+      const matched = allTeams.find(t => `TEAM-${t.id.replace(/-/g, '').substring(0, 8).toUpperCase()}` === cleanCode);
+      if (matched) {
+        targetTeamId = matched.id;
+      }
+    }
+
+    if (!targetTeamId) {
+      throw new Error('Mã mời không chính xác hoặc không tồn tại.');
+    }
+
+    const team = await prisma.team.findUnique({
+      where: { id: targetTeamId },
+      include: {
+        members: true,
+        subscription: true,
+        owner: { select: { id: true, name: true, email: true } }
+      }
+    });
+
+    if (!team) {
+      throw new Error('Không tìm thấy thông tin nhóm tương ứng với mã mời này.');
+    }
+
+    // 2. Validate team subscription
+    const now = new Date();
+    const isSubActive = Boolean(
+      team.subscription &&
+      team.subscription.status === 'ACTIVE' &&
+      team.subscription.paymentStatus === 'PAID' &&
+      new Date(team.subscription.endDate).getTime() > now.getTime()
+    );
+
+    if (!isSubActive) {
+      throw new Error('Gói Team của nhóm này hiện đã hết hạn. Vui lòng liên hệ Chủ nhóm để gia hạn.');
+    }
+
+    // 3. User checks
+    if (team.ownerId === userId) {
+      throw new Error('Bạn là Chủ nhóm này, không cần tham gia lại.');
+    }
+
+    const isAlreadyMember = team.members.some(m => m.userId === userId);
+    if (isAlreadyMember) {
+      throw new Error(`Bạn đã là thành viên trong nhóm "${team.name}" rồi.`);
+    }
+
+    // 4. Check max members
+    const maxLimit = team.maxMembers || 5;
+    if (team.members.length >= maxLimit) {
+      const err = new Error(`Nhóm đã đạt số lượng tối đa (${maxLimit} thành viên). Vui lòng liên hệ Chủ nhóm để giải phóng chỗ trống.`);
+      (err as any).code = 'TEAM_FULL';
+      throw err;
+    }
+
+    // 5. If user is in another team, leave previous team
+    const oldMembership = await prisma.teamMember.findFirst({ where: { userId } });
+    if (oldMembership) {
+      await prisma.teamMember.delete({ where: { id: oldMembership.id } });
+    }
+
+    // 6. Join team
+    const newMembership = await prisma.teamMember.create({
+      data: {
+        teamId: team.id,
+        userId,
+        role: 'MEMBER'
+      },
+      include: {
+        user: { select: { id: true, name: true, email: true, avatar: true } }
+      }
+    });
+
+    // 7. Send notifications
+    await prisma.notification.create({
+      data: {
+        userId,
+        title: 'Tham gia Gói Team thành công!',
+        message: `Bạn đã tham gia nhóm "${team.name}" của ${team.owner.name}. Toàn bộ tính năng cao cấp LifeOS đã được kích hoạt!`,
+        type: 'success'
+      }
+    }).catch(() => {});
+
+    await prisma.notification.create({
+      data: {
+        userId: team.ownerId,
+        title: 'Thành viên mới tham gia nhóm',
+        message: `Thành viên "${newMembership.user.name}" (${newMembership.user.email}) đã tham gia nhóm "${team.name}" qua mã mời.`,
+        type: 'info'
+      }
+    }).catch(() => {});
+
+    return {
+      success: true,
+      message: `Chúc mừng! Bạn đã tham gia nhóm "${team.name}" thành công.`,
+      team: {
+        id: team.id,
+        name: team.name,
+        ownerName: team.owner.name,
+        role: 'MEMBER'
+      }
     };
   }
 };

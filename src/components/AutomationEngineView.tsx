@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { companionContextEngine } from '../lib/companion/companionContextEngine';
 import { useAppStore } from '../lib/store';
 import { 
   AutomationRule, 
@@ -83,6 +84,10 @@ export function AutomationEngineView() {
   const [activeTab, setActiveTab] = useState<
     'dashboard' | 'rules' | 'builder' | 'templates' | 'approvals' | 'simulation' | 'scheduled' | 'analytics' | 'history' | 'conflicts'
   >('dashboard');
+
+  useEffect(() => {
+    companionContextEngine.setLiveContext({ viewId: 'automation', activeTab });
+  }, [activeTab]);
 
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');

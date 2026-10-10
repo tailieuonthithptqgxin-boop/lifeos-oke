@@ -70,6 +70,18 @@ describe('LifeOS Production Core Test Suite', () => {
     const data = await res.json();
     assert.strictEqual(data.success, true);
     assert.strictEqual(data.user.id, userAId);
+
+    // Grant active PRO subscription to User A in test database so workspace CRUD is authorized
+    const { PrismaClient } = await import('@prisma/client');
+    const prisma = new PrismaClient();
+    await prisma.user.update({
+      where: { id: userAId },
+      data: {
+        plan: 'PRO',
+        planExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      }
+    });
+    await prisma.$disconnect();
   });
 
   it('5. User A creates a task and finance account', async () => {
@@ -135,9 +147,15 @@ describe('LifeOS Production Core Test Suite', () => {
     const bTasksRes = await fetch(`${BASE_URL}/api/data/tasks`, {
       headers: { 'Cookie': userBCookie }
     });
-    const bTasks = await bTasksRes.json();
-    const leakedTask = bTasks.find(t => t.id === userATaskId);
-    assert.strictEqual(leakedTask, undefined, 'User B must not see User A task in collection');
+    // Unpaid user B gets 403 or empty array, strictly isolating User A's data
+    if (bTasksRes.status === 200) {
+      const bTasks = await bTasksRes.json();
+      const list = Array.isArray(bTasks) ? bTasks : (bTasks.data || []);
+      const leakedTask = list.find(t => t.id === userATaskId);
+      assert.strictEqual(leakedTask, undefined, 'User B must not see User A task in collection');
+    } else {
+      assert.ok([401, 403].includes(bTasksRes.status), 'User B without active plan must be forbidden from accessing tasks');
+    }
 
     // User B tries to directly GET /api/data/tasks/:userATaskId (if route existed) or UPDATE it
     const updateRes = await fetch(`${BASE_URL}/api/data/tasks/${userATaskId}`, {

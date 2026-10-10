@@ -8,8 +8,8 @@ import {
 } from 'lucide-react';
 import { FocusSession, FocusMode, FocusStatus, Task, Project } from '../lib/types';
 import { YouTubeFocusPlayer } from './YouTubeFocusPlayer';
-import { StudyCompanionWidget } from './companion/StudyCompanionWidget';
 import { CompanionMood } from '../lib/companionEngine';
+import { companionEventBus } from '../lib/companion/companionEventBus';
 import { retentionEngine } from '../lib/retentionEngine';
 import { analytics } from '../lib/analytics';
 import { soundEngine } from '../lib/soundEngine';
@@ -34,6 +34,17 @@ export function FocusView() {
   // Companion Dynamic Mood & Dialogue State
   const [companionMood, setCompanionMood] = useState<CompanionMood>('idle');
   const [companionDialogueKey, setCompanionDialogueKey] = useState<any>('greeting');
+  
+  // Emit events to global companion overlay
+  useEffect(() => {
+    if (companionMood) {
+      companionEventBus.emit({
+        type: 'mood_change',
+        mood: companionMood,
+        category: companionDialogueKey
+      });
+    }
+  }, [companionMood, companionDialogueKey]);
   
   // Note/Reflection state for when finishing
   const [showFinishModal, setShowFinishModal] = useState(false);
@@ -132,7 +143,7 @@ export function FocusView() {
     setElapsedSeconds(0);
     accumulatedSecsRef.current = 0;
     sessionStartTsRef.current = Date.now();
-    analytics.track('focus_session_started', { mode: selectedMode, plannedMinutes: duration });
+    analytics.track('first_meaningful_action', { action: 'focus_session_started', mode: selectedMode, plannedMinutes: duration });
 
     // Companion reaction
     setCompanionMood('focus');
@@ -601,13 +612,6 @@ export function FocusView() {
           </div>
         </div>
       )}
-
-      {/* AI Study Companion Widget */}
-      <StudyCompanionWidget
-        userId={currentUser?.id}
-        contextMood={companionMood}
-        contextDialogueKey={companionDialogueKey}
-      />
 
     </div>
   );
