@@ -94,34 +94,39 @@ apiRouter.get('/payments/plans', async (req: any, res: Response) => {
 apiRouter.use(requireAuth);
 
 // Universal Subscription Enforcement Gate:
-// Non-admin users MUST have an ACTIVE, non-expired subscription to use LifeOS workspace features.
-// Exempt paths for browsing plans, verifying subscription, checking out, admin operations, and support.
+// Non-admin users MUST have an ACTIVE subscription to mutate workspace data or use paid capabilities.
+// Read-only GET requests on workspace data are permitted for UI preview/demo behind the locked screen.
 apiRouter.use(async (req: AuthRequest, res: Response, next: any) => {
   const path = req.path;
-  const isExempt =
+  const method = req.method.toUpperCase();
+
+  // 1. Always allowed for all authenticated users (Billing, Checkout, Support, Notifications, Profile, Language)
+  const isAlwaysAllowed =
     path.startsWith('/payments') ||
     path.startsWith('/coupons') ||
     path.startsWith('/cart') ||
     path.startsWith('/checkout') ||
-    path.startsWith('/data') ||
-    path.startsWith('/finance') ||
-    path.startsWith('/today') ||
-    path.startsWith('/r2') ||
-    path.startsWith('/custom-modules') ||
-    path.startsWith('/tasks') ||
-    path.startsWith('/languages') ||
-    path.startsWith('/decisions') ||
-    path.startsWith('/automations') ||
-    path === '/team/my-team' ||
     path.startsWith('/admin') ||
     path.startsWith('/notifications') ||
     path.startsWith('/supportTickets') ||
-    path.startsWith('/settings');
+    path.startsWith('/settings') ||
+    path.startsWith('/languages') ||
+    path.startsWith('/r2') ||
+    path === '/team/my-team';
 
-  if (isExempt) {
+  if (isAlwaysAllowed) {
     return next();
   }
 
+  // 2. Read-only (GET) preview access: allow workspace data inspection for previewing demo data
+  if (method === 'GET') {
+    if (path.startsWith('/data') || path.startsWith('/today') || path.startsWith('/tasks') || path.startsWith('/custom-modules')) {
+      return next();
+    }
+  }
+
+  // 3. For any data mutations (POST, PUT, DELETE) on workspace collections or action engines:
+  // Strictly enforce active subscription on server-side
   return requireActiveSubscription(req, res, next);
 });
 
@@ -2112,6 +2117,224 @@ apiRouter.post('/auth/upgrade-plan', requireAdmin, validateBody(UpgradePlanSchem
       success: true,
       message: `Đã cập nhật gói thành công sang ${plan}`,
       user: updatedUser
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------
+// SAAS CUSTOMER OPERATIONS & LIFECYCLE MANAGEMENT ENDPOINTS
+// --------------------------------------------------------------------------
+
+// 16. Admin SaaS KPI Metrics & Revenue Dashboard
+apiRouter.get('/admin/saas-metrics', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const metrics = await subscriptionService.getSaaSMetrics();
+    res.json({
+      success: true,
+      metrics
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 17. Admin Grant / Extend Subscription manually
+apiRouter.post('/admin/users/:id/grant-subscription', requireAdmin, async (req: AuthRequest, res: Response) => {
+  const targetUserId = req.params.id;
+  const adminId = req.userId!;
+  const adminEmail = req.user.email;
+  const { planId, durationDays, reason } = req.body;
+
+  try {
+    const duration = parseInt(durationDays) || 30;
+    const subscription = await subscriptionService.grantSubscription(
+      targetUserId,
+      planId || 'PERSONAL_1M',
+      duration,
+      adminEmail,
+      reason || 'Cấp quyền thủ công bởi Admin'
+    );
+
+    await dbService.createAuditLog(
+      adminId,
+      'ADMIN_GRANT_SUBSCRIPTION',
+      'subscriptions',
+      subscription.id,
+      null,
+      { targetUserId, planId: subscription.planId, durationDays: duration, reason }
+    );
+
+    res.json({
+      success: true,
+      message: `Đã cấp quyền sử dụng gói ${subscription.planName} (${duration} ngày) thành công!`,
+      subscription
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 18. Admin Revoke Subscription manually
+apiRouter.post('/admin/users/:id/revoke-subscription', requireAdmin, async (req: AuthRequest, res: Response) => {
+  const targetUserId = req.params.id;
+  const adminId = req.userId!;
+  const adminEmail = req.user.email;
+  const { reason } = req.body;
+
+  try {
+    const updatedUser = await subscriptionService.revokeSubscription(
+      targetUserId,
+      adminEmail,
+      reason || 'Thu hồi bởi quản trị viên'
+    );
+
+    await dbService.createAuditLog(
+      adminId,
+      'ADMIN_REVOKE_SUBSCRIPTION',
+      'users',
+      targetUserId,
+      null,
+      { reason, revokedBy: adminEmail }
+    );
+
+    res.json({
+      success: true,
+      message: 'Đã thu hồi gói dịch vụ của khách hàng thành công. Tài khoản trở về trạng thái chưa kích hoạt.',
+      user: updatedUser
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 19. Admin Get Customer Operational Detail
+apiRouter.get('/admin/users/:id/detail', requireAdmin, async (req: AuthRequest, res: Response) => {
+  const targetUserId = req.params.id;
+  const prisma = getPrisma();
+
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        plan: true,
+        status: true,
+        avatar: true,
+        planExpiresAt: true,
+        createdAt: true,
+        updatedAt: true,
+        onboardingCompleted: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy khách hàng' });
+    }
+
+    const [subscriptions, payments, subStatus, internalNoteSetting] = await Promise.all([
+      prisma.subscription.findMany({
+        where: { userId: targetUserId },
+        orderBy: { createdAt: 'desc' },
+        take: 20
+      }),
+      prisma.payment.findMany({
+        where: { userId: targetUserId },
+        orderBy: { createdAt: 'desc' },
+        take: 20
+      }),
+      subscriptionService.checkUserSubscription(targetUserId),
+      prisma.systemSetting.findUnique({
+        where: { key: `admin_note_user_${targetUserId}` }
+      })
+    ]);
+
+    res.json({
+      success: true,
+      user,
+      subscriptionStatus: subStatus,
+      subscriptions,
+      payments,
+      adminNote: internalNoteSetting?.value || ''
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 20. Admin Save Internal Customer Note
+apiRouter.put('/admin/users/:id/admin-notes', requireAdmin, async (req: AuthRequest, res: Response) => {
+  const targetUserId = req.params.id;
+  const { note } = req.body;
+  const prisma = getPrisma();
+
+  try {
+    await prisma.systemSetting.upsert({
+      where: { key: `admin_note_user_${targetUserId}` },
+      update: { value: String(note || '') },
+      create: { key: `admin_note_user_${targetUserId}`, value: String(note || '') }
+    });
+
+    res.json({
+      success: true,
+      message: 'Đã lưu ghi chú vận hành nội bộ thành công!'
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 21. Automated Webhook / Instant Payment Simulation
+apiRouter.post('/payments/webhook-simulate', requireAdmin, async (req: AuthRequest, res: Response) => {
+  const { orderId, txReference } = req.body;
+  const prisma = getPrisma();
+
+  try {
+    const payment = await prisma.payment.findFirst({
+      where: {
+        OR: [
+          ...(orderId ? [{ orderId: String(orderId) }] : []),
+          ...(txReference ? [{ txReference: String(txReference) }] : [])
+        ]
+      }
+    });
+
+    if (!payment) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy giao dịch tương ứng.' });
+    }
+
+    if (payment.status === 'APPROVED' || payment.status === 'Paid') {
+      return res.json({ success: true, message: 'Giao dịch đã được duyệt trước đó (Idempotent).', payment });
+    }
+
+    // Activate subscription
+    const sub = await subscriptionService.activateSubscription(payment.userId, payment.planRequested, {
+      txReference: payment.txReference || `WH_${Date.now()}`,
+      paymentId: payment.id
+    });
+
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: 'APPROVED',
+        approvedAt: new Date(),
+        approvedBy: 'SYSTEM_WEBHOOK'
+      }
+    });
+
+    await prisma.order.updateMany({
+      where: { orderId: payment.orderId },
+      data: { status: 'APPROVED' }
+    });
+
+    res.json({
+      success: true,
+      message: `Xác nhận webhook tự động thành công! Đã kích hoạt gói ${sub.planName}.`,
+      subscription: sub
     });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });

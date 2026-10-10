@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Menu, Moon, Sun, Search, Bell, Plus, Inbox, ShoppingCart, 
   Shield, CheckSquare, DollarSign, Calendar, Target, Zap, 
-  User, LogOut, ChevronDown, CheckCircle2, Globe, Sparkles 
+  User, LogOut, ChevronDown, CheckCircle2, Globe, Sparkles, Lock 
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { useTranslation } from '../lib/i18n';
@@ -25,6 +25,7 @@ export function TopBar() {
   const cartItemCount = (cart || []).reduce((sum, item) => sum + item.quantity, 0);
   const userRole = (currentUser?.role || '').toUpperCase();
   const isAdmin = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
+  const hasSubAccess = isAdmin || (subscriptionStatus?.hasAccess ?? ((currentUser?.plan || 'FREE').toUpperCase() !== 'FREE'));
   const unreadCount = notifications?.filter(n => !n.read).length || 0;
   const inboxCount = inbox?.length || 0;
 
@@ -71,69 +72,97 @@ export function TopBar() {
             }}
             className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-xs cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
+            {!hasSubAccess ? <Lock className="w-3.5 h-3.5 text-amber-300" /> : <Plus className="w-4 h-4" />}
             <span className="hidden sm:inline">{t('Tạo mới')}</span>
           </button>
 
           {showCreateMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowCreateMenu(false)}></div>
-              <div className="absolute top-full right-0 mt-2 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentView('tasks');
-                    setShowCreateMenu(false);
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
-                >
-                  <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
-                    <CheckSquare className="w-4 h-4" />
+              <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 p-2 space-y-1 animate-in fade-in zoom-in-95 duration-100">
+                {!hasSubAccess ? (
+                  <div className="p-3 text-center space-y-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto border border-amber-500/20">
+                      <Lock className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-xs text-slate-900 dark:text-white">
+                        {t('Tính năng đang khóa')}
+                      </div>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+                        {t('Kích hoạt gói dịch vụ để tạo mới công việc, giao dịch tài chính, lịch và mục tiêu.')}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCurrentView('subscription');
+                        setShowCreateMenu(false);
+                      }}
+                      className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                    >
+                      {t('Mở khóa bản quyền')}
+                    </button>
                   </div>
-                  <span>{t('Công việc mới')}</span>
-                </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCurrentView('tasks');
+                        setShowCreateMenu(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
+                    >
+                      <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+                        <CheckSquare className="w-4 h-4" />
+                      </div>
+                      <span>{t('Công việc mới')}</span>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentView('finance');
-                    setShowCreateMenu(false);
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
-                >
-                  <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
-                    <DollarSign className="w-4 h-4" />
-                  </div>
-                  <span>{t('Khoản thu / chi tiêu')}</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCurrentView('finance');
+                        setShowCreateMenu(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
+                    >
+                      <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                        <DollarSign className="w-4 h-4" />
+                      </div>
+                      <span>{t('Khoản thu / chi tiêu')}</span>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentView('calendar');
-                    setShowCreateMenu(false);
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
-                >
-                  <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
-                    <Calendar className="w-4 h-4" />
-                  </div>
-                  <span>{t('Sự kiện lịch')}</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCurrentView('calendar');
+                        setShowCreateMenu(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
+                    >
+                      <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
+                        <Calendar className="w-4 h-4" />
+                      </div>
+                      <span>{t('Sự kiện lịch')}</span>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentView('goals');
-                    setShowCreateMenu(false);
-                  }}
-                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
-                >
-                  <div className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400">
-                    <Target className="w-4 h-4" />
-                  </div>
-                  <span>{t('Mục tiêu mới')}</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCurrentView('goals');
+                        setShowCreateMenu(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
+                    >
+                      <div className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400">
+                        <Target className="w-4 h-4" />
+                      </div>
+                      <span>{t('Mục tiêu mới')}</span>
+                    </button>
+                  </>
+                )}
               </div>
             </>
           )}

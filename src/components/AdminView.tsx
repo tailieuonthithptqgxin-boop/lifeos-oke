@@ -181,6 +181,27 @@ export function AdminView() {
   const [showResetModal, setShowResetModal] = useState<ManagedUser | null>(null);
   const [newPassword, setNewPassword] = useState('');
 
+  const [saasMetrics, setSaasMetrics] = useState<{
+    totalUsers: number;
+    activeSubscribers: number;
+    unpaidUsers: number;
+    pendingApprovalCount: number;
+    expiredUsers: number;
+    totalRevenue: number;
+    mrr: number;
+    conversionRatePercent: number;
+  } | null>(null);
+  const [selectedUserDetail, setSelectedUserDetail] = useState<any>(null);
+  const [isLoadingUserDetail, setIsLoadingUserDetail] = useState(false);
+  const [grantModalUser, setGrantModalUser] = useState<ManagedUser | null>(null);
+  const [grantPlanId, setGrantPlanId] = useState('PERSONAL_1M');
+  const [grantDurationDays, setGrantDurationDays] = useState(30);
+  const [grantReason, setGrantReason] = useState('Kích hoạt bởi Admin');
+  const [isGranting, setIsGranting] = useState(false);
+  const [isRevoking, setIsRevoking] = useState(false);
+  const [adminNoteText, setAdminNoteText] = useState('');
+  const [isSavingAdminNote, setIsSavingAdminNote] = useState(false);
+
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
@@ -287,6 +308,105 @@ export function AdminView() {
       setMessage({ text: err.message || 'Lỗi khi tải danh sách người dùng', type: 'error' });
     } finally {
       setIsLoadingUsers(false);
+    }
+  };
+
+  const fetchSaasMetrics = async () => {
+    try {
+      const res = await apiCall('/api/admin/saas-metrics');
+      if (res && res.success && res.metrics) {
+        setSaasMetrics(res.metrics);
+      }
+    } catch (e) {
+      console.warn('Lỗi khi tải SaaS metrics:', e);
+    }
+  };
+
+  const handleOpenUserDetail = async (userId: string) => {
+    try {
+      setIsLoadingUserDetail(true);
+      const res = await apiCall(`/api/admin/users/${userId}/detail`);
+      if (res && res.success) {
+        setSelectedUserDetail(res);
+        setAdminNoteText(res.adminNote || '');
+      } else {
+        setMessage({ text: res.message || 'Không thể tải chi tiết khách hàng', type: 'error' });
+      }
+    } catch (err: any) {
+      setMessage({ text: err.message || 'Lỗi khi tải chi tiết khách hàng', type: 'error' });
+    } finally {
+      setIsLoadingUserDetail(false);
+    }
+  };
+
+  const handleSaveAdminNote = async (userId: string) => {
+    try {
+      setIsSavingAdminNote(true);
+      const res = await apiCall(`/api/admin/users/${userId}/admin-notes`, 'PUT', { note: adminNoteText });
+      if (res && res.success) {
+        setMessage({ text: 'Đã lưu ghi chú vận hành nội bộ thành công!', type: 'success' });
+      }
+    } catch (err: any) {
+      setMessage({ text: err.message || 'Lỗi khi lưu ghi chú', type: 'error' });
+    } finally {
+      setIsSavingAdminNote(false);
+    }
+  };
+
+  const handleGrantSubscription = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!grantModalUser) return;
+    try {
+      setIsGranting(true);
+      const res = await apiCall(`/api/admin/users/${grantModalUser.id}/grant-subscription`, 'POST', {
+        planId: grantPlanId,
+        durationDays: grantDurationDays,
+        reason: grantReason
+      });
+
+      if (res && res.success) {
+        setMessage({ text: res.message || 'Cấp gói thành công!', type: 'success' });
+        setGrantModalUser(null);
+        await fetchUsers();
+        await fetchSaasMetrics();
+        if (selectedUserDetail?.user?.id === grantModalUser.id) {
+          await handleOpenUserDetail(grantModalUser.id);
+        }
+      } else {
+        setMessage({ text: res.message || 'Không thể cấp gói', type: 'error' });
+      }
+    } catch (err: any) {
+      setMessage({ text: err.message || 'Lỗi khi cấp gói', type: 'error' });
+    } finally {
+      setIsGranting(false);
+    }
+  };
+
+  const handleRevokeSubscription = async (userId: string, userName: string) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn thu hồi toàn bộ quyền sử dụng gói trả phí của khách hàng "${userName}"? Khách hàng sẽ bị khóa các tính năng chỉnh sửa ngay lập tức.`)) {
+      return;
+    }
+
+    try {
+      setIsRevoking(true);
+      const res = await apiCall(`/api/admin/users/${userId}/revoke-subscription`, 'POST', {
+        reason: 'Thu hồi bởi Quản trị viên'
+      });
+
+      if (res && res.success) {
+        setMessage({ text: 'Đã thu hồi gói dịch vụ của khách hàng thành công!', type: 'success' });
+        await fetchUsers();
+        await fetchSaasMetrics();
+        if (selectedUserDetail?.user?.id === userId) {
+          await handleOpenUserDetail(userId);
+        }
+      } else {
+        setMessage({ text: res.message || 'Không thể thu hồi gói', type: 'error' });
+      }
+    } catch (err: any) {
+      setMessage({ text: err.message || 'Lỗi khi thu hồi gói', type: 'error' });
+    } finally {
+      setIsRevoking(false);
     }
   };
 
@@ -1500,14 +1620,14 @@ export function AdminView() {
       )}
 
       {/* ============================================================= */}
-      {/* TAB 4: QUẢN LÝ NGƯỜI DÙNG (USER MANAGEMENT)                   */}
+      {/* TAB 4: KHÁCH HÀNG & VẬN HÀNH SAAS (USER & CUSTOMER OPS)        */}
       {/* ============================================================= */}
       {activeTab === 'users' && (
         <div className="space-y-6 animate-in fade-in duration-150">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h3 className="font-bold text-slate-900 dark:text-white text-base">Danh sách Người dùng</h3>
-              <p className="text-xs text-slate-500">Phân quyền, điều chỉnh gói và trạng thái tài khoản</p>
+              <h3 className="font-bold text-slate-900 dark:text-white text-base">Vận Hành & Quản Trị Khách Hàng SaaS</h3>
+              <p className="text-xs text-slate-500">Giám sát vòng đời tài khoản, cấp/thu hồi gói và ghi chú khách hàng</p>
             </div>
             <button
               type="button"
@@ -1517,6 +1637,53 @@ export function AdminView() {
               <Plus className="w-4 h-4" /> Cấp Tài Khoản Mới
             </button>
           </div>
+
+          {/* SaaS KPI Metrics Overview Cards */}
+          {saasMetrics && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Tổng khách hàng</span>
+                <div className="text-xl font-black text-slate-900 dark:text-white mt-1">
+                  {saasMetrics.totalUsers}
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 border border-emerald-500/20 rounded-2xl p-3.5 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Đang hoạt động</span>
+                <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
+                  {saasMetrics.activeSubscribers}
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-3.5 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Chưa trả phí</span>
+                <div className="text-xl font-black text-slate-700 dark:text-slate-300 mt-1">
+                  {saasMetrics.unpaidUsers}
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 border border-amber-500/20 rounded-2xl p-3.5 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">Chờ duyệt</span>
+                <div className="text-xl font-black text-amber-600 dark:text-amber-400 mt-1">
+                  {saasMetrics.pendingApprovalCount}
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 border border-blue-500/20 rounded-2xl p-3.5 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400">MRR (Doanh thu tháng)</span>
+                <div className="text-base sm:text-lg font-black text-blue-600 dark:text-blue-400 mt-1 truncate">
+                  {formatCurrency(saasMetrics.mrr)}
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-900 border border-purple-500/20 rounded-2xl p-3.5 shadow-2xs">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-purple-600 dark:text-purple-400">Tỷ lệ chuyển đổi</span>
+                <div className="text-xl font-black text-purple-600 dark:text-purple-400 mt-1">
+                  {saasMetrics.conversionRatePercent}%
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Filter and Search */}
           <div className="flex flex-col sm:flex-row items-center gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
@@ -1553,9 +1720,10 @@ export function AdminView() {
               </select>
               <button
                 type="button"
-                onClick={fetchUsers}
+                onClick={() => { fetchUsers(); fetchSaasMetrics(); }}
                 disabled={isLoadingUsers}
                 className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-blue-600 cursor-pointer"
+                title="Làm mới"
               >
                 <RefreshCw className={`w-4 h-4 ${isLoadingUsers ? 'animate-spin' : ''}`} />
               </button>
@@ -1568,88 +1736,124 @@ export function AdminView() {
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase font-semibold">
                   <tr>
-                    <th className="px-6 py-4">Người dùng</th>
-                    <th className="px-6 py-4">Vai trò</th>
-                    <th className="px-6 py-4">Gói dịch vụ</th>
-                    <th className="px-6 py-4">Trạng thái</th>
-                    <th className="px-6 py-4">Ngày tạo</th>
-                    <th className="px-6 py-4 text-right">Thao tác</th>
+                    <th className="px-5 py-3.5">Khách hàng</th>
+                    <th className="px-4 py-3.5">Vai trò</th>
+                    <th className="px-4 py-3.5">Gói hiện tại</th>
+                    <th className="px-4 py-3.5">Trạng thái</th>
+                    <th className="px-4 py-3.5">Ngày tạo</th>
+                    <th className="px-5 py-3.5 text-right">Vận hành</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                  {users.map(u => (
-                    <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <img
-                            src={u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}`}
-                            alt={u.name}
-                            className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 object-cover"
-                          />
-                          <div>
-                            <div className="font-semibold text-slate-900 dark:text-white">{u.name}</div>
-                            <div className="text-xs text-slate-400">{u.email}</div>
+                  {users.map(u => {
+                    const isPaidPlan = u.plan && u.plan !== 'FREE';
+
+                    return (
+                      <tr key={u.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name)}`}
+                              alt={u.name}
+                              className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 object-cover shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <div className="font-semibold text-slate-900 dark:text-white truncate">{u.name}</div>
+                              <div className="text-[11px] text-slate-400 truncate">{u.email}</div>
+                            </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-block px-2.5 py-1 rounded-lg text-xs font-semibold ${
-                            u.role === 'SUPERADMIN'
-                              ? 'bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400'
-                              : u.role === 'ADMIN'
-                              ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400'
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span
+                            className={`inline-block px-2.5 py-0.5 rounded-lg text-[11px] font-semibold ${
+                              u.role === 'SUPERADMIN'
+                                ? 'bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400'
+                                : u.role === 'ADMIN'
+                                ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                            }`}
+                          >
+                            {u.role}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold ${
+                            isPaidPlan
+                              ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60'
                               : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                          }`}
-                        >
-                          {u.role}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <select
-                          value={u.plan}
-                          onChange={e => handlePlanChange(u.id, e.target.value)}
-                          className="px-2 py-1 rounded-lg text-xs font-medium bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700"
-                        >
-                          <option value="FREE">Chưa kích hoạt (FREE)</option>
-                          <option value="PERSONAL_1M">Cá Nhân 1 Tháng</option>
-                          <option value="PERSONAL_3M">Cá Nhân 3 Tháng</option>
-                          <option value="TEAM_1M">Team 1 Tháng</option>
-                          <option value="PRO">PRO (Cũ)</option>
-                          <option value="TEAM">TEAM (Cũ)</option>
-                        </select>
-                      </td>
-                      <td className="px-6 py-4">
-                        <select
-                          value={u.status}
-                          onChange={e => handleStatusChange(u.id, e.target.value)}
-                          className={`px-2 py-1 rounded-lg text-xs font-semibold border ${
-                            u.status === 'ACTIVE'
-                              ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border-emerald-200 dark:border-emerald-800'
-                              : u.status === 'SUSPENDED'
-                              ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 border-amber-200 dark:border-amber-800'
-                              : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 border-rose-200 dark:border-rose-800'
-                          }`}
-                        >
-                          <option value="ACTIVE">ACTIVE</option>
-                          <option value="SUSPENDED">SUSPENDED</option>
-                          <option value="DISABLED">DISABLED</option>
-                        </select>
-                      </td>
-                      <td className="px-6 py-4 text-xs text-slate-500">
-                        {new Date(u.createdAt).toLocaleDateString('vi-VN')}
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          type="button"
-                          onClick={() => setShowResetModal(u)}
-                          className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
-                        >
-                          <KeyRound className="w-3.5 h-3.5" /> Đặt lại MK
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${isPaidPlan ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                            <span>{u.plan === 'FREE' ? 'Chưa kích hoạt' : u.plan}</span>
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <select
+                            value={u.status}
+                            onChange={e => handleStatusChange(u.id, e.target.value)}
+                            className={`px-2 py-1 rounded-lg text-xs font-semibold border ${
+                              u.status === 'ACTIVE'
+                                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 border-emerald-200 dark:border-emerald-800'
+                                : u.status === 'SUSPENDED'
+                                ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-600 border-amber-200 dark:border-amber-800'
+                                : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 border-rose-200 dark:border-rose-800'
+                            }`}
+                          >
+                            <option value="ACTIVE">ACTIVE</option>
+                            <option value="SUSPENDED">SUSPENDED</option>
+                            <option value="DISABLED">DISABLED</option>
+                          </select>
+                        </td>
+                        <td className="px-4 py-3.5 text-xs text-slate-500 whitespace-nowrap">
+                          {new Date(u.createdAt).toLocaleDateString('vi-VN')}
+                        </td>
+                        <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleOpenUserDetail(u.id)}
+                              className="p-1.5 rounded-lg text-slate-600 dark:text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 transition-colors cursor-pointer"
+                              title="Xem chi tiết & lịch sử"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setGrantModalUser(u);
+                                setGrantPlanId('PERSONAL_1M');
+                                setGrantDurationDays(30);
+                              }}
+                              className="p-1.5 rounded-lg text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer"
+                              title="Cấp / Gia hạn gói nhanh"
+                            >
+                              <Zap className="w-3.5 h-3.5" />
+                            </button>
+
+                            {isPaidPlan && (
+                              <button
+                                type="button"
+                                onClick={() => handleRevokeSubscription(u.id, u.name)}
+                                className="p-1.5 rounded-lg text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                                title="Thu hồi quyền gói trả phí"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={() => setShowResetModal(u)}
+                              className="p-1.5 rounded-lg text-slate-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 transition-colors cursor-pointer"
+                              title="Đặt lại mật khẩu"
+                            >
+                              <KeyRound className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -2411,6 +2615,316 @@ export function AdminView() {
                   className="px-4 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-xl cursor-pointer"
                 >
                   Xác nhận đặt lại
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================= */}
+      {/* MODAL: CHI TIẾT KHÁCH HÀNG & LỊCH SỬ VẬN HÀNH                  */}
+      {/* ============================================================= */}
+      {selectedUserDetail && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-100">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-3.5">
+                <img
+                  src={selectedUserDetail.user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(selectedUserDetail.user.name)}`}
+                  alt=""
+                  className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 object-cover"
+                />
+                <div>
+                  <h3 className="font-black text-slate-900 dark:text-white text-base">
+                    {selectedUserDetail.user.name}
+                  </h3>
+                  <div className="text-xs text-slate-400">
+                    {selectedUserDetail.user.email} • ID: <span className="font-mono">{selectedUserDetail.user.id.slice(0, 8)}...</span>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedUserDetail(null)}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 space-y-6 overflow-y-auto flex-1 text-xs">
+              {/* Status Overview Card */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block">Gói hiện tại</span>
+                  <span className="font-bold text-slate-900 dark:text-white mt-0.5 block">
+                    {selectedUserDetail.subscriptionStatus?.planName || selectedUserDetail.user.plan}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block">Hạn sử dụng</span>
+                  <span className="font-bold text-slate-900 dark:text-white mt-0.5 block">
+                    {selectedUserDetail.subscriptionStatus?.endDate
+                      ? new Date(selectedUserDetail.subscriptionStatus.endDate).toLocaleDateString('vi-VN')
+                      : 'Chưa có'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block">Số ngày còn lại</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 block">
+                    {selectedUserDetail.subscriptionStatus?.remainingDays || 0} ngày
+                  </span>
+                </div>
+                <div>
+                  <span className="text-[10px] font-bold uppercase text-slate-400 block">Trạng thái tài khoản</span>
+                  <span className="font-bold text-slate-900 dark:text-white mt-0.5 block">
+                    {selectedUserDetail.user.status}
+                  </span>
+                </div>
+              </div>
+
+              {/* Internal Admin Operational Notes */}
+              <div className="space-y-2 bg-blue-50/50 dark:bg-blue-950/20 p-4 rounded-2xl border border-blue-100 dark:border-blue-900/40">
+                <div className="flex items-center justify-between">
+                  <label className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider flex items-center gap-1.5">
+                    <Edit className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Ghi chú vận hành nội bộ (Internal Notes)</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => handleSaveAdminNote(selectedUserDetail.user.id)}
+                    disabled={isSavingAdminNote}
+                    className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-bold text-[11px] rounded-lg shadow-2xs transition-colors cursor-pointer"
+                  >
+                    {isSavingAdminNote ? 'Đang lưu...' : 'Lưu ghi chú'}
+                  </button>
+                </div>
+                <textarea
+                  rows={2}
+                  value={adminNoteText}
+                  onChange={e => setAdminNoteText(e.target.value)}
+                  placeholder="Nhập ghi chú hỗ trợ, ưu đãi đặc biệt hoặc thông tin liên hệ của khách hàng..."
+                  className="w-full p-2.5 rounded-xl border border-blue-200 dark:border-blue-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white text-xs focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Subscriptions History */}
+              <div className="space-y-2">
+                <h4 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider">
+                  Lịch sử đăng ký & gia hạn gói ({selectedUserDetail.subscriptions?.length || 0})
+                </h4>
+                {selectedUserDetail.subscriptions?.length === 0 ? (
+                  <p className="text-slate-400 py-2">Khách hàng chưa có lịch sử gói dịch vụ.</p>
+                ) : (
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-400 font-semibold uppercase text-[10px]">
+                        <tr>
+                          <th className="py-2 px-3">Gói</th>
+                          <th className="py-2 px-3">Trạng thái</th>
+                          <th className="py-2 px-3">Thời hạn</th>
+                          <th className="py-2 px-3">Số tiền</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-[11px]">
+                        {selectedUserDetail.subscriptions.map((s: any) => (
+                          <tr key={s.id}>
+                            <td className="py-2 px-3 font-semibold text-slate-900 dark:text-white">{s.planName}</td>
+                            <td className="py-2 px-3">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                s.status === 'ACTIVE' ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'
+                              }`}>
+                                {s.status}
+                              </span>
+                            </td>
+                            <td className="py-2 px-3 text-slate-500">
+                              {new Date(s.startDate).toLocaleDateString('vi-VN')} → {new Date(s.endDate).toLocaleDateString('vi-VN')}
+                            </td>
+                            <td className="py-2 px-3 font-mono">{formatCurrency(s.amount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Payments History */}
+              <div className="space-y-2">
+                <h4 className="font-bold text-slate-900 dark:text-white text-xs uppercase tracking-wider">
+                  Lịch sử thanh toán & chuyển khoản ({selectedUserDetail.payments?.length || 0})
+                </h4>
+                {selectedUserDetail.payments?.length === 0 ? (
+                  <p className="text-slate-400 py-2">Chưa có giao dịch chuyển khoản nào.</p>
+                ) : (
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+                    <table className="w-full text-left">
+                      <thead className="bg-slate-50 dark:bg-slate-800/60 text-slate-400 font-semibold uppercase text-[10px]">
+                        <tr>
+                          <th className="py-2 px-3">Mã GD</th>
+                          <th className="py-2 px-3">Gói</th>
+                          <th className="py-2 px-3">Số tiền</th>
+                          <th className="py-2 px-3">Trạng thái</th>
+                          <th className="py-2 px-3">Thời gian</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-[11px]">
+                        {selectedUserDetail.payments.map((p: any) => (
+                          <tr key={p.id}>
+                            <td className="py-2 px-3 font-mono text-blue-600">{p.txReference || p.orderId}</td>
+                            <td className="py-2 px-3">{p.planRequested}</td>
+                            <td className="py-2 px-3 font-mono font-bold">{formatCurrency(p.amount)}</td>
+                            <td className="py-2 px-3">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                p.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800' : p.status === 'PENDING' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+                              }`}>
+                                {p.status}
+                              </span>
+                            </td>
+                            <td className="py-2 px-3 text-slate-500">{new Date(p.createdAt).toLocaleString('vi-VN')}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setGrantModalUser(selectedUserDetail.user);
+                    setGrantPlanId('PERSONAL_1M');
+                    setGrantDurationDays(30);
+                  }}
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  <span>Cấp / Gia hạn gói</span>
+                </button>
+
+                {selectedUserDetail.user.plan !== 'FREE' && (
+                  <button
+                    type="button"
+                    onClick={() => handleRevokeSubscription(selectedUserDetail.user.id, selectedUserDetail.user.name)}
+                    disabled={isRevoking}
+                    className="px-3.5 py-2 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>{isRevoking ? 'Đang thu hồi...' : 'Thu hồi gói'}</span>
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedUserDetail(null)}
+                className="px-4 py-2 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-xs rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============================================================= */}
+      {/* MODAL: CẤP / GIA HẠN GÓI THỦ CÔNG                              */}
+      {/* ============================================================= */}
+      {grantModalUser && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-100">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-inner">
+              <Zap className="w-8 h-8" />
+            </div>
+
+            <div className="text-center space-y-1">
+              <h3 className="text-lg font-black text-slate-900 dark:text-white">
+                Cấp Quyền / Gia Hạn Gói Dịch Vụ
+              </h3>
+              <p className="text-xs text-slate-500">
+                Cấp quyền trực tiếp cho khách hàng <strong>{grantModalUser.name}</strong> ({grantModalUser.email}).
+              </p>
+            </div>
+
+            <form onSubmit={handleGrantSubscription} className="space-y-4 text-xs">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Chọn gói dịch vụ *
+                </label>
+                <select
+                  value={grantPlanId}
+                  onChange={e => setGrantPlanId(e.target.value)}
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                >
+                  <option value="PERSONAL_1M">Gói Cá Nhân (1 Tháng - 15.000 ₫)</option>
+                  <option value="PERSONAL_3M">Gói Cá Nhân (3 Tháng - 40.000 ₫)</option>
+                  <option value="TEAM_1M">Gói Đội Ngũ (Team 1 Tháng - 50.000 ₫, 5 thành viên)</option>
+                  <option value="PRO">Gói Pro (199.000 ₫)</option>
+                  <option value="TEAM">Gói Team (499.000 ₫)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Thời hạn cấp thêm (Số ngày) *
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[30, 90, 365].map(days => (
+                    <button
+                      key={days}
+                      type="button"
+                      onClick={() => setGrantDurationDays(days)}
+                      className={`py-2 rounded-xl font-bold border transition-all cursor-pointer ${
+                        grantDurationDays === days
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                          : 'border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                      }`}
+                    >
+                      {days === 365 ? '1 Năm (365 ngày)' : `${days} ngày`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Lý do cấp quyền / Ghi chú *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={grantReason}
+                  onChange={e => setGrantReason(e.target.value)}
+                  placeholder="Ví dụ: Đã nhận tiền qua ngân hàng, Tặng tri ân khách hàng..."
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setGrantModalUser(null)}
+                  disabled={isGranting}
+                  className="flex-1 py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="submit"
+                  disabled={isGranting}
+                  className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-emerald-600/25 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Zap className="w-4 h-4" />
+                  <span>{isGranting ? 'Đang kích hoạt...' : 'Xác nhận Cấp gói'}</span>
                 </button>
               </div>
             </form>

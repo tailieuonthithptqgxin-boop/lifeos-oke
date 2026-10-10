@@ -17,6 +17,8 @@ import { CommandCenter } from './components/CommandCenter';
 import { OnboardingView } from './components/OnboardingView';
 import { PublicLandingView } from './components/PublicLandingView';
 import { LoginView } from './components/LoginView';
+import { AccountStatusBanner } from './components/AccountStatusBanner';
+import { LockedWorkspaceOverlay } from './components/LockedWorkspaceOverlay';
 
 // Lazy-load heavier / secondary views to optimize initial bundle size & load speed
 const CalendarView = React.lazy(() => import('./components/CalendarView').then(m => ({ default: m.CalendarView })));
@@ -308,6 +310,23 @@ function AppContent() {
     }
   };
 
+  const renderViewContent = () => {
+    const isUnrestrictedView =
+      currentView === 'subscription' ||
+      currentView === 'checkout' ||
+      currentView === 'account' ||
+      currentView === 'admin';
+
+    return (
+      <div className="relative min-h-full flex flex-col flex-1">
+        {renderView()}
+        {!hasSubAccess && !isUnrestrictedView && (
+          <LockedWorkspaceOverlay />
+        )}
+      </div>
+    );
+  };
+
   return (
     <div key={language} className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans text-slate-900 dark:text-slate-100 transition-colors duration-200">
       <CommandCenter />
@@ -315,7 +334,8 @@ function AppContent() {
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0 relative">
         <TopBar />
-        <main className="flex-1 overflow-y-auto pb-20 md:pb-0">
+        <AccountStatusBanner />
+        <main className="flex-1 overflow-y-auto pb-20 md:pb-0 relative">
           <React.Suspense
             fallback={
               <div className="flex-1 flex flex-col items-center justify-center p-12 min-h-[300px] text-slate-500">
@@ -324,7 +344,7 @@ function AppContent() {
               </div>
             }
           >
-            {renderView()}
+            {renderViewContent()}
           </React.Suspense>
         </main>
         <BottomNav />

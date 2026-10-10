@@ -102,8 +102,11 @@ export const OFFICIAL_PLANS: PlanDefinition[] = [
   }
 ];
 
+export type AccountLifecycleStatus = 'UNPAID' | 'PENDING' | 'ACTIVE' | 'EXPIRED' | 'SUSPENDED' | 'DISABLED';
+
 export interface UserSubscriptionStatus {
   hasAccess: boolean;
+  lifecycleStatus: AccountLifecycleStatus;
   planId: string;
   planType: 'PERSONAL' | 'TEAM' | 'NONE';
   planName: string;
@@ -119,6 +122,7 @@ export interface UserSubscriptionStatus {
   teamOwnerEmail?: string;
   subscriptionId?: string;
   role?: string;
+  activePending?: any;
 }
 
 export const subscriptionService = {
@@ -137,15 +141,16 @@ export const subscriptionService = {
     const prisma = getPrisma();
     const now = new Date();
 
-    // 1. Check user role
+    // 1. Check user model & role
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, role: true, plan: true, planExpiresAt: true }
+      select: { id: true, email: true, role: true, plan: true, planExpiresAt: true, status: true }
     });
 
     if (!user) {
       return {
         hasAccess: false,
+        lifecycleStatus: 'UNPAID',
         planId: 'NONE',
         planType: 'NONE',
         planName: 'Không xác định',
@@ -154,10 +159,38 @@ export const subscriptionService = {
       };
     }
 
+    // Suspended or Disabled user accounts
+    if (user.status === 'DISABLED') {
+      return {
+        hasAccess: false,
+        lifecycleStatus: 'DISABLED',
+        planId: 'DISABLED',
+        planType: 'NONE',
+        planName: 'Tài khoản vô hiệu hóa',
+        status: 'NONE',
+        remainingDays: 0,
+        role: user.role
+      };
+    }
+
+    if (user.status === 'SUSPENDED') {
+      return {
+        hasAccess: false,
+        lifecycleStatus: 'SUSPENDED',
+        planId: 'SUSPENDED',
+        planType: 'NONE',
+        planName: 'Tài khoản tạm khóa',
+        status: 'NONE',
+        remainingDays: 0,
+        role: user.role
+      };
+    }
+
     // Admins and SuperAdmins always have full operational access
     if (user.role === 'SUPERADMIN' || user.role === 'ADMIN') {
       return {
         hasAccess: true,
+        lifecycleStatus: 'ACTIVE',
         planId: 'ADMIN',
         planType: 'TEAM',
         planName: 'Quản trị viên Hệ thống',
@@ -166,6 +199,12 @@ export const subscriptionService = {
         role: user.role
       };
     }
+
+    // Check if there is an active pending payment request awaiting approval
+    const activePending = await prisma.payment.findFirst({
+      where: { userId, status: 'PENDING' },
+      orderBy: { createdAt: 'desc' }
+    });
 
     // 2. Check direct personal or team-owner active subscription
     const directSub = await prisma.subscription.findFirst({
@@ -185,6 +224,7 @@ export const subscriptionService = {
       const remainingDays = Math.max(0, Math.ceil((new Date(directSub.endDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
       return {
         hasAccess: true,
+        lifecycleStatus: 'ACTIVE',
         planId: directSub.planId,
         planType: (directSub.planType as any) || (directSub.planId.includes('TEAM') ? 'TEAM' : 'PERSONAL'),
         planName: directSub.planName,
@@ -197,7 +237,8 @@ export const subscriptionService = {
         isTeamMember: false,
         teamId: directSub.team?.id,
         teamName: directSub.team?.name,
-        subscriptionId: directSub.id
+        subscriptionId: directSub.id,
+        activePending: activePending || null
       };
     }
 
@@ -228,6 +269,7 @@ export const subscriptionService = {
         const remainingDays = Math.max(0, Math.ceil((new Date(teamSub.endDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
         return {
           hasAccess: true,
+          lifecycleStatus: 'ACTIVE',
           planId: teamSub.planId,
           planType: 'TEAM',
           planName: `${teamSub.planName} (Thành viên nhóm)`,
@@ -241,7 +283,8 @@ export const subscriptionService = {
           teamId: team.id,
           teamName: team.name,
           teamOwnerEmail: team.owner.email,
-          subscriptionId: teamSub.id
+          subscriptionId: teamSub.id,
+          activePending: activePending || null
         };
       }
     }
@@ -255,6 +298,7 @@ export const subscriptionService = {
     if (latestSub) {
       return {
         hasAccess: false,
+        lifecycleStatus: activePending ? 'PENDING' : 'EXPIRED',
         planId: latestSub.planId,
         planType: (latestSub.planType as any) || 'PERSONAL',
         planName: latestSub.planName,
@@ -263,31 +307,32 @@ export const subscriptionService = {
         startDate: latestSub.startDate.toISOString(),
         endDate: latestSub.endDate.toISOString(),
         remainingDays: 0,
-        subscriptionId: latestSub.id
+        subscriptionId: latestSub.id,
+        activePending: activePending || null
       };
     }
 
-    // 5. No subscription found
+    // 5. No subscription found -> PENDING if has payment request, or UNPAID
     return {
       hasAccess: false,
+      lifecycleStatus: activePending ? 'PENDING' : 'UNPAID',
       planId: 'NONE',
       planType: 'NONE',
       planName: 'Chưa kích hoạt gói',
       status: 'NONE',
-      remainingDays: 0
+      remainingDays: 0,
+      activePending: activePending || null
     };
   },
 
-  async activateSubscription(userId: string, planId: string, paymentInfo?: { txReference?: string; paymentId?: string }): Promise<any> {
-    const plan = this.getPlanById(planId);
-    if (!plan) {
-      throw new Error(`Gói dịch vụ '${planId}' không hợp lệ.`);
-    }
+  async activateSubscription(userId: string, planId: string, paymentInfo?: { txReference?: string; paymentId?: string; customDurationDays?: number }): Promise<any> {
+    const plan = this.getPlanById(planId) || OFFICIAL_PLANS[0];
+    const durationDays = paymentInfo?.customDurationDays || plan.durationDays || 30;
 
     const prisma = getPrisma();
     const now = new Date();
 
-    // Check if user currently has active subscription of same or personal type to extend
+    // Check if user currently has active subscription to extend
     const existingActive = await prisma.subscription.findFirst({
       where: {
         userId,
@@ -299,7 +344,7 @@ export const subscriptionService = {
     });
 
     const baseDate = existingActive ? new Date(existingActive.endDate) : now;
-    const endDate = new Date(baseDate.getTime() + plan.durationDays * 24 * 60 * 60 * 1000);
+    const endDate = new Date(baseDate.getTime() + durationDays * 24 * 60 * 60 * 1000);
 
     // Deactivate previous active subscriptions to keep one primary active
     await prisma.subscription.updateMany({
@@ -315,7 +360,7 @@ export const subscriptionService = {
         planName: plan.name,
         amount: plan.price,
         billingCycle: plan.billingCycle,
-        durationDays: plan.durationDays,
+        durationDays,
         paymentStatus: 'PAID',
         status: 'ACTIVE',
         txReference: paymentInfo?.txReference || `ACT_${Date.now()}`,
@@ -360,5 +405,132 @@ export const subscriptionService = {
     }
 
     return subscription;
+  },
+
+  /**
+   * Admin explicitly revokes a user's active subscription immediately
+   */
+  async revokeSubscription(userId: string, adminEmail: string, reason?: string) {
+    const prisma = getPrisma();
+    const now = new Date();
+
+    // 1. Mark all active subscriptions as CANCELLED and set endDate to past
+    await prisma.subscription.updateMany({
+      where: { userId, status: 'ACTIVE' },
+      data: {
+        status: 'CANCELLED',
+        endDate: now
+      }
+    });
+
+    // 2. Revert user to FREE and nullify planExpiresAt
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        plan: 'FREE',
+        planExpiresAt: null
+      },
+      select: { id: true, name: true, email: true, role: true, plan: true, planExpiresAt: true, status: true }
+    });
+
+    // 3. Notify user
+    await prisma.notification.create({
+      data: {
+        userId,
+        title: 'Quyền sử dụng gói dịch vụ đã bị thu hồi',
+        message: `Quyền truy cập gói dịch vụ của bạn đã bị thu hồi bởi quản trị viên (${adminEmail}). Lý do: ${reason || 'Theo chính sách vận hành'}.`,
+        type: 'Warning',
+        read: false
+      }
+    });
+
+    return updatedUser;
+  },
+
+  /**
+   * Admin grants or extends a subscription manually
+   */
+  async grantSubscription(userId: string, planId: string, durationDays: number, adminEmail: string, reason?: string) {
+    const subscription = await this.activateSubscription(userId, planId, {
+      txReference: `MANUAL_GRANT_${Date.now()}`,
+      customDurationDays: durationDays
+    });
+
+    const prisma = getPrisma();
+    await prisma.notification.create({
+      data: {
+        userId,
+        title: `Gói ${subscription.planName} đã được cấp thành công`,
+        message: `Quản trị viên (${adminEmail}) đã cấp quyền sử dụng gói ${subscription.planName} (${durationDays} ngày) cho tài khoản của bạn. Hạn dùng đến ${new Date(subscription.endDate).toLocaleDateString('vi-VN')}.`,
+        type: 'Success',
+        read: false
+      }
+    });
+
+    return subscription;
+  },
+
+  /**
+   * SaaS Operational Metrics & KPIs for Admin Dashboard
+   */
+  async getSaaSMetrics() {
+    const prisma = getPrisma();
+    const now = new Date();
+
+    const [totalUsers, activeSubCount, pendingPaymentsCount, allPayments, expiredSubsCount] = await Promise.all([
+      prisma.user.count(),
+      prisma.subscription.count({
+        where: {
+          status: 'ACTIVE',
+          paymentStatus: 'PAID',
+          endDate: { gt: now }
+        }
+      }),
+      prisma.payment.count({
+        where: { status: 'PENDING' }
+      }),
+      prisma.payment.findMany({
+        where: { status: { in: ['APPROVED', 'Paid'] } },
+        select: { amount: true, createdAt: true, planRequested: true }
+      }),
+      prisma.subscription.count({
+        where: {
+          status: { in: ['EXPIRED', 'CANCELLED'] },
+          endDate: { lte: now }
+        }
+      })
+    ]);
+
+    const totalRevenue = allPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+
+    // Approximate Monthly Recurring Revenue (MRR) based on active subs
+    const activeSubs = await prisma.subscription.findMany({
+      where: {
+        status: 'ACTIVE',
+        paymentStatus: 'PAID',
+        endDate: { gt: now }
+      },
+      select: { amount: true, durationDays: true }
+    });
+
+    const mrr = activeSubs.reduce((sum, sub) => {
+      const days = sub.durationDays || 30;
+      const monthlyFactor = 30 / days;
+      return sum + Math.round(sub.amount * monthlyFactor);
+    }, 0);
+
+    const unpaidUsers = Math.max(0, totalUsers - activeSubCount - pendingPaymentsCount);
+    const conversionRatePercent = totalUsers > 0 ? Math.round((activeSubCount / totalUsers) * 1000) / 10 : 0;
+
+    return {
+      totalUsers,
+      activeSubscribers: activeSubCount,
+      unpaidUsers,
+      pendingApprovalCount: pendingPaymentsCount,
+      expiredUsers: expiredSubsCount,
+      totalRevenue,
+      mrr,
+      conversionRatePercent
+    };
   }
 };

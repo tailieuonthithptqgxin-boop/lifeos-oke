@@ -19,8 +19,11 @@ export type ViewState =
   | 'admin'
   | (string & {});
 
+export type AccountLifecycleStatus = 'UNPAID' | 'PENDING' | 'ACTIVE' | 'EXPIRED' | 'SUSPENDED' | 'DISABLED';
+
 export interface UserSubscriptionStatus {
   hasAccess: boolean;
+  lifecycleStatus?: AccountLifecycleStatus;
   currentPlan: string;
   planType: 'PERSONAL' | 'TEAM' | 'NONE';
   planName: string;

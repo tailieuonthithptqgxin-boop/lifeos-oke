@@ -113,6 +113,27 @@ authRouter.post('/register', authRateLimiter, validateBody(RegisterSchema), asyn
       { email: newUser.email, name: newUser.name, ip: clientIp }
     );
 
+    // Automation: Dispatch welcome and payment guidance notifications
+    const prisma = getPrisma();
+    await prisma.notification.createMany({
+      data: [
+        {
+          userId: newUser.id,
+          title: '🎉 Chào mừng bạn đến với LifeOS!',
+          message: 'Tài khoản của bạn đã được khởi tạo thành công. Bạn đang ở chế độ xem thử (Preview) không gian làm việc.',
+          type: 'info',
+          read: false
+        },
+        {
+          userId: newUser.id,
+          title: '⚡ Hướng dẫn kích hoạt bản quyền LifeOS',
+          message: 'Để mở khóa toàn bộ các phân hệ quản lý công việc, tài chính, thói quen và mục tiêu, vui lòng chọn gói dịch vụ tại mục "Gói cước & Đội ngũ" và quét mã VietQR để kích hoạt.',
+          type: 'warning',
+          read: false
+        }
+      ]
+    }).catch(e => console.warn('Registration notifications creation warning:', e));
+
     const safeUser = {
       id: newUser.id,
       name: newUser.name,
