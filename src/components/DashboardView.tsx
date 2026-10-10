@@ -5,17 +5,21 @@ import {
   CheckSquare, Calendar, Wallet, Target, Activity, Clock, 
   Zap, ArrowRight, BookOpen, Flame, X, Check, Play, Pause, Square, AlertTriangle, Plus,
   FolderKanban, TrendingUp, TrendingDown, PiggyBank, ArrowUpRight, ChevronRight, ChevronLeft,
-  PieChart, Building, MoreHorizontal, FileEdit, RotateCcw, ChevronDown, ChevronUp
+  PieChart, Building, MoreHorizontal, FileEdit, RotateCcw, ChevronDown, ChevronUp, Sparkles, Award
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '../lib/utils';
 import { ResponsiveContainer, RadialBarChart, RadialBar, Cell } from 'recharts';
+import { retentionEngine } from '../lib/retentionEngine';
+import { RetentionWidget } from './RetentionWidget';
+import { CelebrationModal } from './CelebrationModal';
+import { EmptyState } from './EmptyState';
 
 export function DashboardView() {
   const { 
     tasks, events, transactions, goals, habits, habitRecords, subjects,
     focusSessions, focusGoals, studyAssignments, projects = [], financeAccounts = [],
     addTask, updateTask, addTransaction, updateHabit, addHabitRecord, lifeScore, dailyCapacity,
-    setCurrentView, clearWorkspace, workspaceMode, onboardingPreferences, language
+    setCurrentView, clearWorkspace, workspaceMode, onboardingPreferences, language, currentUser
   } = useAppStore();
 
   const t = useTranslation(language);
@@ -29,6 +33,13 @@ export function DashboardView() {
   const [showQuickTaskModal, setShowQuickTaskModal] = useState(false);
   const [showMoreActions, setShowMoreActions] = useState(false);
   const [showExtendedMetrics, setShowExtendedMetrics] = useState(false);
+  const [celebration, setCelebration] = useState<{
+    title: string;
+    subtitle: string;
+    xpAwarded?: number;
+    streakCount?: number;
+    badgeName?: string;
+  } | null>(null);
   const [quickTaskTitle, setQuickTaskTitle] = useState('');
   const [quickTaskPriority, setQuickTaskPriority] = useState<any>('Trung bình');
   const [quickTaskHours, setQuickTaskHours] = useState<number>(1);
@@ -210,6 +221,15 @@ export function DashboardView() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
+  const getGreeting = () => {
+    const hour = currentTime.getHours();
+    if (hour >= 5 && hour < 12) return { text: 'Chào buổi sáng', sub: 'Sẵn sàng khởi động ngày mới tràn đầy năng lượng!' };
+    if (hour >= 12 && hour < 18) return { text: 'Chào buổi chiều', sub: 'Duy trì sự tập trung và chinh phục các mục tiêu hôm nay!' };
+    if (hour >= 18 && hour < 22) return { text: 'Chào buổi tối', sub: 'Đánh giá tiến độ hôm nay và chuẩn bị cho ngày mai nhẹ nhàng.' };
+    return { text: 'Khuya rồi', sub: 'Hãy hoàn thành nhanh để nghỉ ngơi tái tạo năng lượng bạn nhé.' };
+  };
+  const greeting = getGreeting();
+
   const scoreData = [
     { name: 'Score', value: dailyScore, fill: dailyScore >= 75 ? '#10b981' : dailyScore >= 40 ? '#f59e0b' : '#ef4444' },
     { name: 'Remaining', value: 100 - dailyScore, fill: '#f1f5f9' }
@@ -217,115 +237,106 @@ export function DashboardView() {
 
   return (
     <div className="p-3.5 sm:p-6 max-w-7xl mx-auto space-y-5 sm:space-y-6">
-      {/* 1. Simplified, Clear Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
-            {t('Tổng quan hôm nay')}
-          </h2>
-          <div className="flex items-center gap-2 mt-0.5 text-xs sm:text-sm text-slate-500 dark:text-slate-400">
-            <span>{formatDate(selectedDate)}</span>
-            <span>·</span>
-            <span className="font-mono font-medium">
-              {currentTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-            </span>
+      {/* 1. Bento Hero Banner with Dynamic Greeting, Streak & Quick Actions */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-950 p-5 sm:p-7 text-white shadow-xl border border-indigo-500/20">
+        {/* Ambient mesh background effects */}
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-3 max-w-xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-indigo-200 text-xs font-semibold">
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <span>{formatDate(selectedDate)} · {currentTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+            </div>
+
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-2">
+                <span>{greeting.text}, {currentUser?.name || 'Bạn'}!</span>
+                <span className="inline-block animate-wave text-2xl">⚡</span>
+              </h1>
+              <p className="text-sm text-slate-300 mt-1 leading-relaxed">
+                {pendingTasks.length > 0 
+                  ? `Bạn có ${pendingTasks.length} việc cần hoàn thành hôm nay. ${greeting.sub}`
+                  : `Tất cả việc hôm nay đã sẵn sàng! ${greeting.sub}`}
+              </p>
+            </div>
+
+            {/* Quick Actions Cluster (1-click workflows) */}
+            <div className="flex flex-wrap items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowQuickTaskModal(true)}
+                className="px-3.5 py-1.5 rounded-xl bg-white text-slate-950 hover:bg-slate-100 font-bold text-xs flex items-center gap-1.5 shadow-md transition-all active:scale-95 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5 stroke-[2.5] text-indigo-600" />
+                <span>+ Thêm Task</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentView('finance')}
+                className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/15 flex items-center gap-1.5 backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+              >
+                <Wallet className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Ghi chi tiêu</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentView('focus')}
+                className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/15 flex items-center gap-1.5 backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+              >
+                <Clock className="w-3.5 h-3.5 text-amber-400" />
+                <span>Bật Pomodoro</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setCurrentView('study')}
+                className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs border border-white/15 flex items-center gap-1.5 backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-purple-400" />
+                <span>Ôn Từ Vựng</span>
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* Action Bar: Grouped Date Controls + Primary Action + More Options */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          {/* Date Selector Segmented Control */}
-          <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl border border-slate-200 dark:border-slate-700">
-            <button 
-              type="button"
-              onClick={() => setSelectedDate(new Date(selectedDate.getTime() - 86400000))}
-              aria-label={t('Ngày trước')}
-              className="p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-lg transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </button>
-            <button 
-              type="button"
-              onClick={() => setSelectedDate(new Date())}
-              className="px-2.5 py-1 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-700 rounded-lg transition-colors"
-            >
-              {t('Hôm nay')}
-            </button>
-            <button 
-              type="button"
-              onClick={() => setSelectedDate(new Date(selectedDate.getTime() + 86400000))}
-              aria-label={t('Ngày sau')}
-              className="p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-lg transition-colors"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
+          {/* Right Hero Cluster: Date Switcher & Embedded Retention Widget */}
+          <div className="flex flex-col sm:flex-row lg:flex-col items-start lg:items-end justify-between gap-4 border-t lg:border-t-0 border-white/10 pt-4 lg:pt-0">
+            {/* Date Selector Segmented Control */}
+            <div className="flex items-center bg-white/10 backdrop-blur-md p-1 rounded-2xl border border-white/15 text-xs">
+              <button 
+                type="button"
+                onClick={() => setSelectedDate(new Date(selectedDate.getTime() - 86400000))}
+                aria-label={t('Ngày trước')}
+                className="p-1.5 text-slate-300 hover:text-white rounded-xl transition-colors cursor-pointer"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button 
+                type="button"
+                onClick={() => setSelectedDate(new Date())}
+                className="px-3 py-1 font-bold text-white hover:bg-white/20 rounded-xl transition-colors cursor-pointer"
+              >
+                {t('Hôm nay')}
+              </button>
+              <button 
+                type="button"
+                onClick={() => setSelectedDate(new Date(selectedDate.getTime() + 86400000))}
+                aria-label={t('Ngày sau')}
+                className="p-1.5 text-slate-300 hover:text-white rounded-xl transition-colors cursor-pointer"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
 
-          {/* Primary Action Button: + Thêm việc */}
-          <button 
-            type="button"
-            onClick={() => setShowQuickTaskModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition-colors shadow-xs"
-          >
-            <Plus className="w-4 h-4" />
-            <span>{t('Thêm việc')}</span>
-          </button>
-
-          {/* More Options Menu */}
-          <div className="relative">
-            <button 
-              type="button"
-              onClick={() => setShowMoreActions(!showMoreActions)}
-              className="p-1.5 sm:p-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl transition-colors"
-              title={t('Tùy chọn khác')}
-            >
-              <MoreHorizontal className="w-4 h-4" />
-            </button>
-
-            {showMoreActions && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setShowMoreActions(false)}></div>
-                <div className="absolute top-full right-0 mt-2 w-52 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 p-1.5 space-y-1 text-xs animate-in fade-in zoom-in-95 duration-100">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCurrentView('notes');
-                      setShowMoreActions(false);
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
-                  >
-                    <FileEdit className="w-4 h-4 text-blue-500" />
-                    <span>{t('Viết nhật ký / Đánh giá ngày')}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCurrentView('goals');
-                      setShowMoreActions(false);
-                    }}
-                    className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
-                  >
-                    <Target className="w-4 h-4 text-rose-500" />
-                    <span>{t('Xem tất cả mục tiêu')}</span>
-                  </button>
-
-                  <div className="pt-1 border-t border-slate-100 dark:border-slate-800">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowClearConfirm(true);
-                        setShowMoreActions(false);
-                      }}
-                      className="w-full flex items-center gap-2 px-3 py-2 rounded-xl text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors text-left"
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                      <span>{t('Làm sạch dữ liệu hôm nay')}</span>
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
+            {/* Retention Widget: Streak & Daily Quests */}
+            <div className="w-full sm:w-auto min-w-[280px]">
+              <RetentionWidget onQuestClick={(cat) => {
+                if (cat === 'task') setShowQuickTaskModal(true);
+                else if (cat === 'vocab') setCurrentView('study');
+                else if (cat === 'finance') setCurrentView('finance');
+                else if (cat === 'focus') setCurrentView('focus');
+              }} />
+            </div>
           </div>
         </div>
       </div>
@@ -658,28 +669,47 @@ export function DashboardView() {
             </div>
             
             {todayTasks.length === 0 ? (
-              <div className="p-8 text-center text-slate-500 space-y-3">
-                <p className="text-sm">{t('Chưa có công việc nào được lên lịch cho ngày này.')}</p>
-                <button
-                  onClick={() => setShowQuickTaskModal(true)}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors shadow-sm cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" /> {t('Thêm công việc thực tế')}
-                </button>
+              <div className="p-6">
+                <EmptyState
+                  icon={CheckSquare}
+                  title="Chưa có công việc nào hôm nay"
+                  description="Hãy lên kế hoạch cho 3 nhiệm vụ quan trọng nhất (Top 3 Priority) để giữ vững hiệu suất làm việc đỉnh cao."
+                  actionLabel="Thêm việc mới"
+                  onAction={() => setShowQuickTaskModal(true)}
+                  secondaryActionLabel="Mở To-do List"
+                  onSecondaryAction={() => setCurrentView('tasks')}
+                />
               </div>
             ) : (
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-slate-100 dark:divide-slate-800">
                 {todayTasks.map(task => {
                   const isTimerActive = activeTimerTask === task.id;
                   const isCompleted = task.status === 'Hoàn thành';
                   return (
                     <div key={task.id} className={`p-4 flex items-center gap-4 hover:bg-slate-50 dark:bg-slate-800/50 transition-colors ${isCompleted ? 'bg-slate-50 dark:bg-slate-800/50/50' : ''}`}>
                       <button 
-                        onClick={() => updateTask(task.id, { status: isCompleted ? 'Chưa làm' : 'Hoàn thành' })}
-                        className={`w-5 h-5 rounded flex items-center justify-center border transition-colors shrink-0
-                          ${isCompleted ? 'bg-blue-600 border-blue-600 text-white' : 'border-slate-300 text-transparent hover:border-blue-500'}`}
+                        onClick={() => {
+                          const nextStatus = isCompleted ? 'Chưa làm' : 'Hoàn thành';
+                          updateTask(task.id, { status: nextStatus });
+                          if (!isCompleted) {
+                            retentionEngine.addXp(20, 'Hoàn thành công việc', currentUser?.id);
+                            retentionEngine.completeQuest('task', currentUser?.id);
+                            
+                            // Check if this was the last pending task
+                            if (pendingTasks.length <= 1) {
+                              setCelebration({
+                                title: 'Tuyệt vời! Hoàn thành toàn bộ mục tiêu hôm nay!',
+                                subtitle: 'Bạn đã hoàn tất tất cả các công việc dự kiến trong ngày. Đỉnh cao của sự kỷ luật!',
+                                xpAwarded: 50,
+                                streakCount: retentionEngine.getProfile(currentUser?.id).streak
+                              });
+                            }
+                          }
+                        }}
+                        className={`w-5 h-5 rounded flex items-center justify-center border transition-colors shrink-0 cursor-pointer
+                          ${isCompleted ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300 dark:border-slate-600 text-transparent hover:border-indigo-500'}`}
                       >
-                        <Check className="w-3.5 h-3.5" />
+                        <Check className="w-3.5 h-3.5 stroke-[3]" />
                       </button>
                       
                       <div className="flex-1 min-w-0">
@@ -819,11 +849,16 @@ export function DashboardView() {
                             status: isCompleted ? 'Missed' : 'Completed',
                             actualValue: isCompleted ? 0 : (habit.target || 1)
                           });
+
+                          if (!isCompleted) {
+                            retentionEngine.addXp(15, `Duy trì thói quen: ${habit.name}`, currentUser?.id);
+                            retentionEngine.completeQuest('habit', currentUser?.id);
+                          }
                         }}
-                        className={`w-6 h-6 rounded-md flex items-center justify-center border-2 transition-colors
-                          ${isCompleted ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-300 hover:border-amber-400'}`}
+                        className={`w-6 h-6 rounded-md flex items-center justify-center border-2 transition-colors cursor-pointer
+                          ${isCompleted ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-300 dark:border-slate-600 hover:border-amber-400'}`}
                       >
-                        {isCompleted && <Check className="w-4 h-4" />}
+                        {isCompleted && <Check className="w-4 h-4 stroke-[3]" />}
                       </button>
                       <span className={`text-sm font-medium ${isCompleted ? 'text-slate-500 line-through' : 'text-slate-800 dark:text-slate-200'}`}>
                         {habit.name}
@@ -999,6 +1034,18 @@ export function DashboardView() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Celebration Modal for Wow moments */}
+      {celebration && (
+        <CelebrationModal
+          title={celebration.title}
+          subtitle={celebration.subtitle}
+          xpAwarded={celebration.xpAwarded}
+          streakCount={celebration.streakCount}
+          badgeName={celebration.badgeName}
+          onClose={() => setCelebration(null)}
+        />
       )}
     </div>
   );
