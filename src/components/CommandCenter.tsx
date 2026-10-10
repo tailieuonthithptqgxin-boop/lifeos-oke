@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '../lib/utils';
 import { ViewState } from '../lib/types';
+import { soundEngine } from '../lib/soundEngine';
 
 interface SearchResultItem {
   id: string;
@@ -142,6 +143,7 @@ export function CommandCenter() {
             const amt = parseInt(rawParts[0].replace(/\D/g, '')) || 0;
             const desc = rawParts.slice(1).join(' ') || 'Chi tiêu nhanh';
             if (amt > 0) {
+              soundEngine.playPop();
               addTransaction({
                 amount: amt,
                 type: 'Chi tiêu',
@@ -152,6 +154,38 @@ export function CommandCenter() {
               setSuccessToast(`Đã ghi chi tiêu ${formatCurrency(amt)}: "${desc}"`);
               setTimeout(() => { toggleCommand(); setSuccessToast(null); }, 600);
             }
+          }
+        });
+      }
+
+      if ('vocab'.startsWith(cmd) || 'hoc'.startsWith(cmd) || 'study'.startsWith(cmd)) {
+        list.push({
+          id: 'cmd-vocab',
+          title: 'Mở Học Từ Vựng (Vocabulary Master)',
+          subtitle: 'Luyện tập Flashcard Spaced Repetition SM-2 ngay lập tức',
+          category: 'Lệnh nhanh',
+          icon: BookOpen,
+          badge: 'Học tập',
+          action: () => {
+            soundEngine.playPop();
+            setCurrentView('study');
+            toggleCommand();
+          }
+        });
+      }
+
+      if ('focus'.startsWith(cmd) || 'pomo'.startsWith(cmd)) {
+        list.push({
+          id: 'cmd-focus',
+          title: 'Bật Chế Độ Tập Trung (Focus Mode & Lo-Fi Music)',
+          subtitle: 'Bật đồng hồ Pomodoro và phát nhạc YouTube nền',
+          category: 'Lệnh nhanh',
+          icon: Clock,
+          badge: 'Deep Work',
+          action: () => {
+            soundEngine.playPop();
+            setCurrentView('focus');
+            toggleCommand();
           }
         });
       }

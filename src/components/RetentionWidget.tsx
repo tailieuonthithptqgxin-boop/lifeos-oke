@@ -12,6 +12,7 @@ import {
 import { retentionEngine, RetentionProfile } from '../lib/retentionEngine';
 import { useAppStore } from '../lib/store';
 import { CelebrationModal } from './CelebrationModal';
+import { soundEngine } from '../lib/soundEngine';
 
 interface RetentionWidgetProps {
   onQuestClick?: (category: string) => void;
@@ -39,6 +40,7 @@ export function RetentionWidget({ onQuestClick, compact = false }: RetentionWidg
   const handleCompleteQuest = (category: any) => {
     const success = retentionEngine.completeQuest(category, currentUser?.id);
     if (success) {
+      soundEngine.playSuccess();
       const updated = retentionEngine.getProfile(currentUser?.id);
       setProfile(updated);
       setCelebration({

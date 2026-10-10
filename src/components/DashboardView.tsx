@@ -13,6 +13,9 @@ import { retentionEngine } from '../lib/retentionEngine';
 import { RetentionWidget } from './RetentionWidget';
 import { CelebrationModal } from './CelebrationModal';
 import { EmptyState } from './EmptyState';
+import { soundEngine } from '../lib/soundEngine';
+import { GenZMood, MOOD_PRESETS, getTodayMood, setTodayMood } from '../lib/moodEngine';
+import { ShareStoryModal } from './ShareStoryModal';
 
 export function DashboardView() {
   const { 
@@ -40,6 +43,9 @@ export function DashboardView() {
     streakCount?: number;
     badgeName?: string;
   } | null>(null);
+  const [todayMood, setTodayMoodState] = useState<GenZMood>(() => getTodayMood());
+  const [showShareStory, setShowShareStory] = useState(false);
+  const [showMoodPicker, setShowMoodPicker] = useState(false);
   const [quickTaskTitle, setQuickTaskTitle] = useState('');
   const [quickTaskPriority, setQuickTaskPriority] = useState<any>('Trung bình');
   const [quickTaskHours, setQuickTaskHours] = useState<number>(1);
@@ -245,16 +251,77 @@ export function DashboardView() {
         
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-3 max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-indigo-200 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-              <span>{formatDate(selectedDate)} · {currentTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-indigo-200 text-xs font-semibold">
+                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+                <span>{formatDate(selectedDate)} · {currentTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+              </div>
+
+              {/* Gen Z Mood of the Day Picker */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowMoodPicker(prev => !prev)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold backdrop-blur-md transition-all cursor-pointer hover:scale-105 active:scale-95 ${MOOD_PRESETS[todayMood].badgeBg}`}
+                >
+                  <span>{MOOD_PRESETS[todayMood].emoji}</span>
+                  <span>{MOOD_PRESETS[todayMood].label}</span>
+                </button>
+
+                {showMoodPicker && (
+                  <>
+                    <div className="fixed inset-0 z-30" onClick={() => setShowMoodPicker(false)} />
+                    <div className="absolute left-0 top-full mt-2 w-64 bg-slate-900 border border-slate-800 rounded-2xl p-2 shadow-2xl z-40 space-y-1 text-xs animate-in fade-in zoom-in-95">
+                      <span className="text-[10px] uppercase font-black text-slate-400 px-2 tracking-wider block">Chọn Vibe Hôm Nay</span>
+                      {(Object.keys(MOOD_PRESETS) as GenZMood[]).map(key => {
+                        const m = MOOD_PRESETS[key];
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => {
+                              soundEngine.playPop();
+                              setTodayMood(key);
+                              setTodayMoodState(key);
+                              setShowMoodPicker(false);
+                            }}
+                            className={`w-full flex items-center gap-2.5 p-2 rounded-xl text-left transition-colors cursor-pointer ${todayMood === key ? 'bg-indigo-600 text-white font-bold' : 'text-slate-300 hover:bg-slate-800'}`}
+                          >
+                            <span className="text-base">{m.emoji}</span>
+                            <div className="min-w-0">
+                              <span className="block truncate">{m.label}</span>
+                              <span className="text-[10px] text-slate-400 block truncate">{m.vibe}</span>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Flex Story Modal Trigger */}
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  setShowShareStory(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/30 text-pink-300 hover:text-white hover:bg-pink-500/30 text-xs font-bold transition-all cursor-pointer active:scale-95"
+              >
+                <span>📸</span>
+                <span>Flex Story</span>
+              </button>
             </div>
 
             <div>
               <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-2">
                 <span>{greeting.text}, {currentUser?.name || 'Bạn'}!</span>
-                <span className="inline-block animate-wave text-2xl">⚡</span>
+                <span className="inline-block animate-wave text-2xl">{MOOD_PRESETS[todayMood].emoji}</span>
               </h1>
+              <p className="text-xs text-indigo-200/90 italic mt-0.5">
+                {MOOD_PRESETS[todayMood].quote}
+              </p>
               <p className="text-sm text-slate-300 mt-1 leading-relaxed">
                 {pendingTasks.length > 0 
                   ? `Bạn có ${pendingTasks.length} việc cần hoàn thành hôm nay. ${greeting.sub}`
@@ -266,7 +333,10 @@ export function DashboardView() {
             <div className="flex flex-wrap items-center gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => setShowQuickTaskModal(true)}
+                onClick={() => {
+                  soundEngine.playPop();
+                  setShowQuickTaskModal(true);
+                }}
                 className="px-3.5 py-1.5 rounded-xl bg-white text-slate-950 hover:bg-slate-100 font-bold text-xs flex items-center gap-1.5 shadow-md transition-all active:scale-95 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5 stroke-[2.5] text-indigo-600" />
@@ -763,11 +833,13 @@ export function DashboardView() {
                           const nextStatus = isCompleted ? 'Chưa làm' : 'Hoàn thành';
                           updateTask(task.id, { status: nextStatus });
                           if (!isCompleted) {
+                            soundEngine.playPop();
                             retentionEngine.addXp(20, 'Hoàn thành công việc', currentUser?.id);
                             retentionEngine.completeQuest('task', currentUser?.id);
                             
                             // Check if this was the last pending task
                             if (pendingTasks.length <= 1) {
+                              soundEngine.playSuccess();
                               setCelebration({
                                 title: 'Tuyệt vời! Hoàn thành toàn bộ mục tiêu hôm nay!',
                                 subtitle: 'Bạn đã hoàn tất tất cả các công việc dự kiến trong ngày. Đỉnh cao của sự kỷ luật!',
@@ -1118,6 +1190,17 @@ export function DashboardView() {
           onClose={() => setCelebration(null)}
         />
       )}
+
+      {/* Gen Z Viral Share Story Modal */}
+      <ShareStoryModal
+        isOpen={showShareStory}
+        onClose={() => setShowShareStory(false)}
+        profile={retentionEngine.getProfile(currentUser?.id)}
+        userName={currentUser?.name || 'Life OS Member'}
+        todayCompletedTasks={completedTasks.length}
+        moodEmoji={MOOD_PRESETS[todayMood].emoji}
+        moodLabel={MOOD_PRESETS[todayMood].label}
+      />
     </div>
   );
 }

@@ -10,6 +10,7 @@ import { FocusSession, FocusMode, FocusStatus, Task, Project } from '../lib/type
 import { YouTubeFocusPlayer } from './YouTubeFocusPlayer';
 import { retentionEngine } from '../lib/retentionEngine';
 import { analytics } from '../lib/analytics';
+import { soundEngine } from '../lib/soundEngine';
 
 export function FocusView() {
   const { 
@@ -196,6 +197,7 @@ export function FocusView() {
     }
 
     // Award XP & Complete Retention Quest
+    soundEngine.playBell();
     retentionEngine.addXp(35, `Hoàn thành phiên ${activeSession.mode} Focus (${actualMinutes} phút)`);
     retentionEngine.completeQuest('focus');
     analytics.track('focus_session_completed', {

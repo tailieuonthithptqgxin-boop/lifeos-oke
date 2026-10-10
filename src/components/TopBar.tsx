@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { 
   Menu, Moon, Sun, Search, Bell, Plus, Inbox, ShoppingCart, 
   Shield, CheckSquare, DollarSign, Calendar, Target, Zap, 
-  User, LogOut, ChevronDown, CheckCircle2, Globe, Sparkles, Lock, Flame, Award 
+  User, LogOut, ChevronDown, CheckCircle2, Globe, Sparkles, Lock, Flame, Award, Volume2, VolumeX
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { useTranslation } from '../lib/i18n';
 import { retentionEngine, RetentionProfile } from '../lib/retentionEngine';
+import { soundEngine } from '../lib/soundEngine';
 
 export function TopBar() {
   const [showNotifications, setShowNotifications] = useState(false);
@@ -400,6 +401,30 @@ export function TopBar() {
                         <>
                           <Moon className="w-3.5 h-3.5 text-slate-600" />
                           <span>{t('Sáng')}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Sound FX Dopamine Toggle */}
+                  <div className="flex items-center justify-between px-3 py-1.5 text-slate-600 dark:text-slate-400">
+                    <span>Âm thanh Dopamine</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        soundEngine.toggle();
+                      }}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 font-semibold transition-colors"
+                    >
+                      {soundEngine.isEnabled() ? (
+                        <>
+                          <Volume2 className="w-3.5 h-3.5 text-emerald-500" />
+                          <span className="text-emerald-600 dark:text-emerald-400">Bật</span>
+                        </>
+                      ) : (
+                        <>
+                          <VolumeX className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Tắt</span>
                         </>
                       )}
                     </button>

@@ -14,6 +14,7 @@ import {
 import { YouTubeFocusPlayer } from '../YouTubeFocusPlayer';
 import { retentionEngine } from '../../lib/retentionEngine';
 import { analytics } from '../../lib/analytics';
+import { soundEngine } from '../../lib/soundEngine';
 
 interface DedicatedVocabFocusViewProps {
   topicTitle: string;
@@ -55,6 +56,7 @@ export function DedicatedVocabFocusView({
 
       if (e.code === 'Space') {
         e.preventDefault();
+        soundEngine.playFlip();
         setIsRevealed(prev => !prev);
       } else if (e.key === 'ArrowRight' && isRevealed) {
         handleRateWord(3); // Good
@@ -85,6 +87,10 @@ export function DedicatedVocabFocusView({
   const handleRateWord = (rating: 1 | 2 | 3 | 4) => {
     if (!currentWord) return;
 
+    if (rating >= 3) {
+      soundEngine.playPop();
+    }
+
     // Trigger store update callback if available
     if (onUpdateWordProgress) {
       onUpdateWordProgress(currentWord.id, rating);
@@ -105,6 +111,7 @@ export function DedicatedVocabFocusView({
       setCurrentIndex(prev => prev + 1);
       setIsRevealed(false);
     } else {
+      soundEngine.playSuccess();
       setSessionCompleted(true);
       retentionEngine.completeQuest('vocab');
       retentionEngine.completeQuest('study');
