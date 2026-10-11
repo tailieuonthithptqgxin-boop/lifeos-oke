@@ -33,7 +33,7 @@ export function MyGradesTab({
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'good' | 'improving' | 'at_risk' | 'insufficient_data'>('all');
 
-  const currentSemester = profile.semesters.find((s: any) => s.id === profile.currentSemesterId) || profile.semesters[0] || {
+  const currentSemester = (profile?.semesters || []).find((s: any) => s.id === profile?.currentSemesterId) || (profile?.semesters || [])[0] || {
     id: 'default',
     name: 'Học kỳ 1 (2024 - 2025)',
     year: '2024 - 2025',
@@ -41,13 +41,13 @@ export function MyGradesTab({
   };
 
   // Subjects in current semester
-  const semesterSubjects = subjects.filter((s: any) => {
-    const rec = profile.subjectGrades?.[s.id];
+  const semesterSubjects = (subjects || []).filter((s: any) => {
+    const rec = profile?.subjectGrades?.[s.id];
     return !rec || !rec.semesterId || rec.semesterId === currentSemester.id;
   });
 
-  const subjectIds = semesterSubjects.map((s: any) => s.id);
-  const allSubjectIds = subjects.map((s: any) => s.id);
+  const subjectIds = (semesterSubjects || []).map((s: any) => s.id);
+  const allSubjectIds = (subjects || []).map((s: any) => s.id);
 
   // Analytics
   const semAnalytics = useMemo(() => {
@@ -58,7 +58,7 @@ export function MyGradesTab({
     return calculateCumulativeGpa(profile, allSubjectIds);
   }, [profile, subjects]);
 
-  const targetGpa = currentSemester.targetGpa || profile.targetOverallGpa || 8.0;
+  const targetGpa = currentSemester.targetGpa || profile?.targetOverallGpa || 8.0;
   const gpaProgress = targetGpa > 0 ? Math.min(Math.round((semAnalytics.gpa / targetGpa) * 100), 100) : 0;
 
   // Filtered list
@@ -80,20 +80,20 @@ export function MyGradesTab({
           <div className="flex flex-wrap items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 flex items-center gap-1">
               <School className="w-3.5 h-3.5" />
-              {profile.environment === 'DAI_HOC' ? 'Đại học (Tín chỉ)' : profile.environment === 'THPT' ? 'THPT (Thông tư 22)' : 'Hệ Tùy chỉnh'}
+              {profile?.environment === 'DAI_HOC' ? 'Đại học (Tín chỉ)' : profile?.environment === 'THPT' ? 'THPT (Thông tư 22)' : 'Hệ Tùy chỉnh'}
             </span>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-              Thang {profile.scaleMax}
+              Thang {profile?.scaleMax || 10}
             </span>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-              Điểm qua môn: {profile.passingScore}
+              Điểm qua môn: {profile?.passingScore || 5.0}
             </span>
           </div>
 
           <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <span>{profile.schoolName || 'Chưa đặt trường'}</span>
+            <span>{profile?.schoolName || 'Chưa đặt trường'}</span>
             <span className="text-slate-400 font-normal">•</span>
-            <span className="text-blue-600 dark:text-blue-400 font-semibold text-base">{profile.programName || 'Khối/Lớp'}</span>
+            <span className="text-blue-600 dark:text-blue-400 font-semibold text-base">{profile?.programName || 'Khối/Lớp'}</span>
           </h3>
 
           <p className="text-xs text-slate-500 dark:text-slate-400">
@@ -104,7 +104,7 @@ export function MyGradesTab({
         <div className="flex flex-wrap items-center gap-2 self-start md:self-auto">
           {/* Semester pills */}
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-            {profile.semesters.map((sem: any) => (
+            {(profile?.semesters || []).map((sem: any) => (
               <button
                 key={sem.id}
                 type="button"

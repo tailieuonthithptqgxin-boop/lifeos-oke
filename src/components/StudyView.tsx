@@ -69,7 +69,20 @@ export function StudyView() {
       const saved = localStorage.getItem(profileKey);
       if (saved) {
         try {
-          return JSON.parse(saved);
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed === 'object') {
+            const defaultProf = createDefaultAcademicProfile(userId, parsed.environment || 'THPT');
+            if (!Array.isArray(parsed.semesters) || parsed.semesters.length === 0) {
+              parsed.semesters = defaultProf.semesters;
+            }
+            if (!parsed.currentSemesterId && parsed.semesters.length > 0) {
+              parsed.currentSemesterId = parsed.semesters[0].id;
+            }
+            if (!parsed.subjectGrades || typeof parsed.subjectGrades !== 'object') {
+              parsed.subjectGrades = {};
+            }
+            return parsed;
+          }
         } catch (e) {
           console.error('Error loading academic profile', e);
         }
@@ -86,13 +99,13 @@ export function StudyView() {
   // Synchronize profile subject records with store subjects
   useEffect(() => {
     let hasChanges = false;
-    const currentSemId = profile.currentSemesterId || profile.semesters[0]?.id || 'sem_default_1';
-    const updatedSubjectGrades = { ...profile.subjectGrades };
+    const currentSemId = profile?.currentSemesterId || profile?.semesters?.[0]?.id || 'sem_default_1';
+    const updatedSubjectGrades = { ...(profile?.subjectGrades || {}) };
 
-    for (const sub of subjects) {
+    for (const sub of (subjects || [])) {
       if (!updatedSubjectGrades[sub.id]) {
         hasChanges = true;
-        let schema: GradingSchema = JSON.parse(JSON.stringify(GRADE_PRESETS[profile.environment || 'THPT'].schema));
+        let schema: GradingSchema = JSON.parse(JSON.stringify(GRADE_PRESETS[profile?.environment || 'THPT']?.schema || GRADE_PRESETS.THPT.schema));
         if (typeof window !== 'undefined') {
           const savedSubSchema = localStorage.getItem(`lifeos_grade_schema_${sub.id}`);
           if (savedSubSchema) {
@@ -118,11 +131,14 @@ export function StudyView() {
         localStorage.setItem(profileKey, JSON.stringify(nextProfile));
       }
     }
-  }, [subjects, profile.environment]);
+  }, [subjects, profile?.environment]);
 
   const saveProfile = (updater: (prev: AcademicProfile) => AcademicProfile) => {
     setProfile(prev => {
       const next = updater(prev);
+      if (!Array.isArray(next.semesters) || next.semesters.length === 0) {
+        next.semesters = prev?.semesters || createDefaultAcademicProfile(userId, next.environment || 'THPT').semesters;
+      }
       if (typeof window !== 'undefined') {
         localStorage.setItem(profileKey, JSON.stringify(next));
       }
@@ -394,7 +410,7 @@ export function StudyView() {
           onSaveSemester={(newSem: AcademicSemester) => {
             saveProfile(prev => ({
               ...prev,
-              semesters: [...prev.semesters, newSem],
+              semesters: [...(prev.semesters || []), newSem],
               currentSemesterId: newSem.id
             }));
             setShowSemesterModal(false);

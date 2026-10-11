@@ -29,7 +29,7 @@ interface MemoryDashboardTabProps {
 
 export function MemoryDashboardTab({
   activeLang,
-  allWords,
+  allWords = [],
   onStartStudyWords,
   onOpenWordDetail
 }: MemoryDashboardTabProps) {
@@ -475,7 +475,7 @@ export function MemoryDashboardTab({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto pr-1">
-              {filteredTierWords.slice(0, 48).map(w => (
+              {(filteredTierWords || []).slice(0, 48).map(w => (
                 <div key={w.id} className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
                   <div className="min-w-0 pr-2">
                     <span className="font-bold text-slate-900 dark:text-white block truncate">{w.term}</span>
@@ -518,13 +518,13 @@ export function MemoryDashboardTab({
             )}
           </div>
 
-          {analytics.dueTodayWords.length === 0 ? (
+          {(!analytics?.dueTodayWords || analytics.dueTodayWords.length === 0) ? (
             <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 text-xs text-slate-500">
               🎉 Bạn đã hoàn thành toàn bộ từ cần ôn hôm nay! Hãy quay lại vào ngày mai nhé.
             </div>
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-80 overflow-y-auto pr-1">
-              {analytics.dueTodayWords.slice(0, 15).map(w => (
+              {(analytics.dueTodayWords || []).slice(0, 15).map(w => (
                 <div key={w.id} className="py-2.5 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
@@ -542,7 +542,7 @@ export function MemoryDashboardTab({
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       type="button"
-                      onClick={() => speakWord(w.term, activeLang.speechVoiceCode)}
+                      onClick={() => speakWord(w.term, activeLang?.speechVoiceCode || 'en-US')}
                       className="p-1 text-slate-400 hover:text-emerald-600 rounded cursor-pointer"
                     >
                       <Volume2 className="w-3.5 h-3.5" />
@@ -566,11 +566,11 @@ export function MemoryDashboardTab({
           <div className="flex items-center justify-between">
             <div>
               <h4 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-1.5 text-rose-600">
-                <AlertTriangle className="w-4 h-4" /> Từ đang yếu / Hay quên ({analytics.weakWords.length} từ)
+                <AlertTriangle className="w-4 h-4" /> Từ đang yếu / Hay quên ({(analytics?.weakWords || []).length} từ)
               </h4>
               <p className="text-xs text-slate-500">Những từ bạn thường xuyên trả lời sai hoặc có số lần quên cao.</p>
             </div>
-            {analytics.weakWords.length > 0 && (
+            {analytics?.weakWords && analytics.weakWords.length > 0 && (
               <button
                 type="button"
                 onClick={() => onStartStudyWords(analytics.weakWords, selectedModeForReview)}
@@ -581,13 +581,13 @@ export function MemoryDashboardTab({
             )}
           </div>
 
-          {analytics.weakWords.length === 0 ? (
+          {(!analytics?.weakWords || analytics.weakWords.length === 0) ? (
             <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 text-xs text-slate-500">
               🎉 Tuyệt vời! Hiện không có từ nào rơi vào nhóm nguy cơ cao.
             </div>
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-80 overflow-y-auto pr-1">
-              {analytics.weakWords.slice(0, 15).map(w => (
+              {(analytics.weakWords || []).slice(0, 15).map(w => (
                 <div key={w.id} className="py-2.5 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
@@ -633,7 +633,7 @@ export function MemoryDashboardTab({
 
         {isLoadingHistory ? (
           <div className="p-8 text-center text-xs text-slate-400">Đang tải lịch sử ôn tập từ database...</div>
-        ) : historyLogs.length === 0 ? (
+        ) : (!historyLogs || historyLogs.length === 0) ? (
           <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 text-xs text-slate-500">
             Chưa có lịch sử ôn tập gần đây. Hãy bắt đầu một phiên học ngay nhé!
           </div>
@@ -651,7 +651,7 @@ export function MemoryDashboardTab({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {historyLogs.slice(0, 10).map((log, idx) => {
+                {(historyLogs || []).slice(0, 10).map((log, idx) => {
                   const dateStr = log.reviewedAt ? new Date(log.reviewedAt).toLocaleString('vi-VN') : 'Vừa xong';
                   return (
                     <tr key={log.id || idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">

@@ -26,7 +26,7 @@ interface TodayStudyTabProps {
 
 export function TodayStudyTab({
   activeLang,
-  allWords,
+  allWords = [],
   onStartStudyBatch,
   onOpenWordDetail
 }: TodayStudyTabProps) {
@@ -37,23 +37,23 @@ export function TodayStudyTab({
   // Compute Today's Study Plan
   const plan = useMemo(() => {
     return buildTodayStudyPlan(
-      allWords, 
-      activeLang.dailyNewWordTarget || 10, 
-      activeLang.dailyReviewTarget || 30
+      allWords || [], 
+      activeLang?.dailyNewWordTarget || 10, 
+      activeLang?.dailyReviewTarget || 30
     );
-  }, [allWords, activeLang.dailyNewWordTarget, activeLang.dailyReviewTarget]);
+  }, [allWords, activeLang?.dailyNewWordTarget, activeLang?.dailyReviewTarget]);
 
   // Combined queue in strict priority order: Overdue -> Due Today -> Difficult -> New
   const prioritizedQueue = useMemo(() => {
     const map = new Map<string, VocabWord>();
     // 1. Overdue first
-    plan.overdueWords.forEach(w => map.set(w.id, w));
+    (plan?.overdueWords || []).forEach(w => map.set(w.id, w));
     // 2. Due today
-    plan.dueTodayWords.forEach(w => map.set(w.id, w));
+    (plan?.dueTodayWords || []).forEach(w => map.set(w.id, w));
     // 3. Difficult
-    plan.difficultWords.forEach(w => map.set(w.id, w));
+    (plan?.difficultWords || []).forEach(w => map.set(w.id, w));
     // 4. New
-    plan.newWords.forEach(w => map.set(w.id, w));
+    (plan?.newWords || []).forEach(w => map.set(w.id, w));
     return Array.from(map.values());
   }, [plan]);
 
@@ -65,10 +65,10 @@ export function TodayStudyTab({
   // Filtered words for list view
   const displayWords = useMemo(() => {
     switch (viewFilter) {
-      case 'overdue': return plan.overdueWords;
-      case 'due': return plan.dueTodayWords;
-      case 'difficult': return plan.difficultWords;
-      case 'new': return plan.newWords;
+      case 'overdue': return plan?.overdueWords || [];
+      case 'due': return plan?.dueTodayWords || [];
+      case 'difficult': return plan?.difficultWords || [];
+      case 'new': return plan?.newWords || [];
       default: return prioritizedQueue;
     }
   }, [viewFilter, plan, prioritizedQueue]);
@@ -294,7 +294,7 @@ export function TodayStudyTab({
               Các chùm phiên học đã được chia tự động ({batches.length} phiên):
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              {batches.map((batch, idx) => (
+              {(batches || []).map((batch, idx) => (
                 <div
                   key={idx}
                   className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between"
@@ -389,7 +389,7 @@ export function TodayStudyTab({
           </div>
         ) : (
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {displayWords.map(w => {
+            {(displayWords || []).map(w => {
               const retention = estimateRetentionProbability(w.lastReviewedAt, w.intervalDays, w.easeFactor, w.lapses);
               
               const getRetentionBadge = () => {

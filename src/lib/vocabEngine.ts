@@ -616,10 +616,11 @@ export function computeMemoryLevel(repetitionCount: number = 0, intervalDays: nu
   return 2;
 }
 
-export function calculateMemoryPyramid(words: VocabWord[]): MemoryPyramidStats {
+export function calculateMemoryPyramid(words: VocabWord[] = []): MemoryPyramidStats {
+  const safeWords = Array.isArray(words) ? words : [];
   const today = new Date().toISOString().split('T')[0];
   const stats: MemoryPyramidStats = {
-    total: words.length,
+    total: safeWords.length,
     level0_new: 0,
     level1_learning: 0,
     level2_uncertain: 0,
@@ -631,7 +632,7 @@ export function calculateMemoryPyramid(words: VocabWord[]): MemoryPyramidStats {
     completionPercent: 0
   };
 
-  for (const w of words) {
+  for (const w of safeWords) {
     const lvl = w.memoryLevel !== undefined ? w.memoryLevel : computeMemoryLevel(w.repetitionCount, w.intervalDays, w.lapses);
     if (lvl === 0) stats.level0_new++;
     else if (lvl === 1) stats.level1_learning++;
@@ -662,10 +663,11 @@ export function calculateMemoryPyramid(words: VocabWord[]): MemoryPyramidStats {
  * 5. Từ thường xuyên sai (incorrectCount > correctCount)
  * 6. Sau đó mới đến từ đã nhớ tốt
  */
-export function buildSmartReviewQueue(words: VocabWord[]): VocabWord[] {
+export function buildSmartReviewQueue(words: VocabWord[] = []): VocabWord[] {
+  const safeWords = Array.isArray(words) ? words : [];
   const today = new Date().toISOString().split('T')[0];
   
-  return [...words].map(w => {
+  return [...safeWords].map(w => {
     let priority = 0;
     const lvl = w.memoryLevel !== undefined ? w.memoryLevel : computeMemoryLevel(w.repetitionCount, w.intervalDays, w.lapses);
     
@@ -713,9 +715,10 @@ export interface LanguageAnalytics {
   totalReviewsCount: number;
 }
 
-export function calculateLanguageAnalytics(words: VocabWord[]): LanguageAnalytics {
+export function calculateLanguageAnalytics(words: VocabWord[] = []): LanguageAnalytics {
+  const safeWords = Array.isArray(words) ? words : [];
   const today = new Date().toISOString().split('T')[0];
-  const total = words.length;
+  const total = safeWords.length;
 
   let newCount = 0;
   let learningCount = 0;
@@ -727,7 +730,7 @@ export function calculateLanguageAnalytics(words: VocabWord[]): LanguageAnalytic
   let totalLogs = 0;
   let passedLogs = 0;
 
-  for (const w of words) {
+  for (const w of safeWords) {
     if (w.state === 'new') newCount++;
     else if (w.state === 'learning') learningCount++;
     else if (w.state === 'reviewing') reviewingCount++;
@@ -796,7 +799,49 @@ export function loadVocabData(userId: string): VocabUserData {
     if (raw) {
       try {
         const parsed: VocabUserData = JSON.parse(raw);
-        if (parsed.languages && parsed.languages.length > 0) {
+        if (parsed && typeof parsed === 'object') {
+          // Ensure languages array is valid
+          if (!Array.isArray(parsed.languages) || parsed.languages.length === 0) {
+            parsed.languages = [
+              {
+                id: 'en',
+                name: 'Tiếng Anh',
+                originalName: 'English',
+                flag: '🇬🇧',
+                code: 'en',
+                speechVoiceCode: 'en-US',
+                level: 'intermediate',
+                dailyNewWordTarget: 10,
+                dailyReviewTarget: 30,
+                explanationLanguage: 'vi',
+                createdAt: new Date().toISOString()
+              }
+            ];
+          }
+
+          if (!parsed.activeLanguageId || !parsed.languages.some(l => l.id === parsed.activeLanguageId)) {
+            parsed.activeLanguageId = parsed.languages[0].id;
+          }
+
+          if (!parsed.collections || typeof parsed.collections !== 'object') {
+            parsed.collections = {};
+          }
+          if (!parsed.words || typeof parsed.words !== 'object') {
+            parsed.words = {};
+          }
+
+          // Ensure active language has collections & words arrays
+          for (const lang of parsed.languages) {
+            if (!Array.isArray(parsed.collections[lang.id])) {
+              const starter = getInitialCollectionsAndWords(lang.id);
+              parsed.collections[lang.id] = starter.collections;
+            }
+            if (!Array.isArray(parsed.words[lang.id])) {
+              const starter = getInitialCollectionsAndWords(lang.id);
+              parsed.words[lang.id] = starter.words;
+            }
+          }
+
           if (!parsed.system3000Progress) {
             parsed.system3000Progress = {};
           }
@@ -1161,14 +1206,15 @@ export function calculateChineseHskAnalytics(progressMap: Record<string, UserWor
  * Calculate combined analytics across both personal words and system words (supporting EN and ZH)
  */
 export function calculateCombinedAnalytics(
-  personalWords: VocabWord[],
+  personalWords: VocabWord[] = [],
   progressMap: Record<string, UserWordProgress> = {},
   languageId: string = 'en'
 ): LanguageAnalytics {
+  const safePersonalWords = Array.isArray(personalWords) ? personalWords : [];
   const aSystem = languageId === 'zh'
-    ? calculateChineseHskAnalytics(progressMap)
-    : calculate3000Analytics(progressMap);
-  const aPersonal = calculateLanguageAnalytics(personalWords);
+    ? calculateChineseHskAnalytics(progressMap || {})
+    : calculate3000Analytics(progressMap || {});
+  const aPersonal = calculateLanguageAnalytics(safePersonalWords);
 
   const total = aSystem.totalWords + aPersonal.totalWords;
   const mastered = aSystem.masteredCount + aPersonal.masteredCount;
@@ -1194,7 +1240,7 @@ export function calculateCombinedAnalytics(
  * Build unified study queues across sources: system words (Oxford 3000 or Chinese HSK), personal words, or both
  */
 export function buildUnifiedStudyQueues(
-  personalWords: VocabWord[],
+  personalWords: VocabWord[] = [],
   progressMap: Record<string, UserWordProgress> = {},
   source: '3000' | 'personal' | 'all' = 'all',
   collectionId?: string,
@@ -1202,13 +1248,14 @@ export function buildUnifiedStudyQueues(
 ): StudyQueues {
   const today = new Date().toISOString().split('T')[0];
   let pool: VocabWord[] = [];
+  const safePersonal = Array.isArray(personalWords) ? personalWords : [];
 
   // 1. Personal words
   if (source === 'personal' || source === 'all') {
     if (collectionId && collectionId !== 'all') {
-      pool.push(...personalWords.filter(w => w.collectionId === collectionId));
+      pool.push(...safePersonal.filter(w => w.collectionId === collectionId));
     } else {
-      pool.push(...personalWords);
+      pool.push(...safePersonal);
     }
   }
 

@@ -23,10 +23,10 @@ interface MyCollectionsTabProps {
 }
 
 export function MyCollectionsTab({
-  collections,
-  personalWords,
-  systemWords,
-  progressMap,
+  collections = [],
+  personalWords = [],
+  systemWords = [],
+  progressMap = {},
   onNewCollection,
   onOpenCollection,
   onStartStudyCollection,
@@ -35,15 +35,15 @@ export function MyCollectionsTab({
 
   const getCollectionWords = (colId: string): VocabWord[] => {
     // 1. Personal words belonging to this collection
-    const personal = personalWords.filter(w => w.collectionId === colId);
+    const personal = (personalWords || []).filter(w => w.collectionId === colId);
 
     // 2. 3000 system words bookmarked into this collection
-    const bookmarkedSys = systemWords.filter(sys => {
-      const prog = progressMap[sys.id];
+    const bookmarkedSys = (systemWords || []).filter(sys => {
+      const prog = progressMap?.[sys.id];
       return prog?.bookmarkedCollectionIds?.includes(colId);
     });
 
-    const sysAsVocab = bookmarkedSys.map(s => systemWordToVocabWord(s, progressMap[s.id], colId));
+    const sysAsVocab = bookmarkedSys.map(s => systemWordToVocabWord(s, progressMap?.[s.id], colId));
 
     return [...personal, ...sysAsVocab];
   };
@@ -55,7 +55,7 @@ export function MyCollectionsTab({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-5 sm:p-6 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs">
         <div>
           <h3 className="font-bold text-slate-900 dark:text-white text-lg">
-            Bộ sưu tập của tôi ({collections.length})
+            Bộ sưu tập của tôi ({(collections || []).length})
           </h3>
           <p className="text-xs text-slate-400 mt-0.5">
             Tổ chức từ vựng theo giáo trình, môn học, kỳ thi hoặc chủ đề bạn quan tâm.
@@ -73,9 +73,9 @@ export function MyCollectionsTab({
 
       {/* 2. COLLECTIONS GRID */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {collections.map(col => {
+        {(collections || []).map(col => {
           const colWords = getCollectionWords(col.id);
-          const personalCount = personalWords.filter(w => w.collectionId === col.id).length;
+          const personalCount = (personalWords || []).filter(w => w.collectionId === col.id).length;
           const bookmarkedCount = colWords.length - personalCount;
           const today = new Date().toISOString().split('T')[0];
           const dueCount = colWords.filter(w => w.state !== 'new' && w.nextReviewAt <= today).length;

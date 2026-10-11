@@ -61,9 +61,9 @@ export function SubjectGradeDetailModal({
 
     setSchema(prev => ({
       ...prev,
-      components: prev.components.map(c => {
+      components: (prev?.components || []).map(c => {
         if (c.id === compId) {
-          return { ...c, scores: [...c.scores, val] };
+          return { ...c, scores: [...(c.scores || []), val] };
         }
         return c;
       })
@@ -75,9 +75,9 @@ export function SubjectGradeDetailModal({
   const handleRemoveScore = (compId: string, sIdx: number) => {
     setSchema(prev => ({
       ...prev,
-      components: prev.components.map(c => {
+      components: (prev?.components || []).map(c => {
         if (c.id === compId) {
-          const nextScores = [...c.scores];
+          const nextScores = [...(c.scores || [])];
           nextScores.splice(sIdx, 1);
           return { ...c, scores: nextScores };
         }
@@ -165,7 +165,7 @@ export function SubjectGradeDetailModal({
                 onChange={e => setSelectedSemesterId(e.target.value)}
                 className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold"
               >
-                {profile.semesters.map((sem: any) => (
+                {(profile?.semesters || []).map((sem: any) => (
                   <option key={sem.id} value={sem.id}>{sem.name}</option>
                 ))}
               </select>
@@ -187,13 +187,13 @@ export function SubjectGradeDetailModal({
 
             <div>
               <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1">
-                Điểm mục tiêu (1 - {profile.scaleMax})
+                Điểm mục tiêu (1 - {profile?.scaleMax || 10})
               </label>
               <input
                 type="number"
                 step="0.1"
                 min="1"
-                max={profile.scaleMax}
+                max={profile?.scaleMax || 10}
                 value={targetGrade}
                 onChange={e => setTargetGrade(parseFloat(e.target.value) || 0)}
                 className="w-full px-3 py-1.5 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-blue-600 dark:text-blue-400 text-center"
@@ -231,14 +231,15 @@ export function SubjectGradeDetailModal({
                 Các thành phần điểm & Điểm thực tế đã có
               </h4>
               <span className="text-[11px] text-slate-400">
-                Tổng trọng số: {getTotalWeight(schema.components).toFixed(0)}%
+                Tổng trọng số: {getTotalWeight(schema?.components || []).toFixed(0)}%
               </span>
             </div>
 
             <div className="space-y-3">
-              {schema.components.map((comp) => {
-                const compAvg = comp.scores.length > 0
-                  ? (comp.scores.reduce((a, b) => a + b, 0) / comp.scores.length).toFixed(1)
+              {(schema?.components || []).map((comp) => {
+                const compScores = comp.scores || [];
+                const compAvg = compScores.length > 0
+                  ? (compScores.reduce((a, b) => a + b, 0) / compScores.length).toFixed(1)
                   : null;
 
                 return (
@@ -294,7 +295,7 @@ export function SubjectGradeDetailModal({
                       <div className="flex flex-wrap items-center gap-2">
                         {/* Scores chips */}
                         <div className="flex flex-wrap items-center gap-1">
-                          {comp.scores.map((score, sIdx) => (
+                          {(comp.scores || []).map((score, sIdx) => (
                             <span
                               key={sIdx}
                               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border border-blue-200 dark:border-blue-800"

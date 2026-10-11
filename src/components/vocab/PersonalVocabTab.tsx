@@ -28,8 +28,8 @@ interface PersonalVocabTabProps {
 }
 
 export function PersonalVocabTab({
-  words,
-  collections,
+  words = [],
+  collections = [],
   selectedCollectionId,
   onSelectCollection,
   onNewWord,
@@ -201,9 +201,9 @@ export function PersonalVocabTab({
               onChange={e => onSelectCollection(e.target.value)}
               className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-300"
             >
-              <option value="all">Tất cả bộ sưu tập ({words.length})</option>
-              {collections.map(c => {
-                const count = words.filter(w => w.collectionId === c.id).length;
+              <option value="all">Tất cả bộ sưu tập ({(words || []).length})</option>
+              {(collections || []).map(c => {
+                const count = (words || []).filter(w => w.collectionId === c.id).length;
                 return (
                   <option key={c.id} value={c.id}>
                     {c.icon || '📚'} {c.title} ({count})
@@ -288,8 +288,8 @@ export function PersonalVocabTab({
           </div>
         ) : (
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
-            {filteredWords.map(word => {
-              const col = collections.find(c => c.id === word.collectionId);
+            {(filteredWords || []).map(word => {
+              const col = (collections || []).find(c => c.id === word.collectionId);
               return (
                 <div
                   key={word.id}

@@ -91,20 +91,20 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
     if (!currentWord || mode !== 'quiz') return [];
     
     // Choose distractor pool from whole vocabulary pool if available
-    const pool = distractorPool.length >= 10 ? distractorPool : words;
+    const pool = (distractorPool && distractorPool.length >= 10) ? distractorPool : (words || []);
     const filtered = pool.filter(
-      (w: any) => w.id !== currentWord.id && w.meaning !== currentWord.meaning
+      (w: any) => w && w.id !== currentWord.id && w.meaning !== currentWord.meaning
     );
 
     const shuffledDistractors = [...filtered]
       .sort(() => Math.random() - 0.5)
       .slice(0, 3)
-      .map((w: any) => w.meaning);
+      .map((w: any) => w?.meaning || '');
 
     // Guaranteed 4 distinct options
     const options = [currentWord.meaning, ...shuffledDistractors];
     return options.sort(() => Math.random() - 0.5);
-  }, [currentWord?.id, mode, distractorPool, words]);
+  }, [currentWord?.id, currentWord?.meaning, mode, distractorPool, words]);
 
   // Memory Level Badge
   const memoryLevelInfo = useMemo(() => {
@@ -335,7 +335,7 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
 
             {/* 4 Quiz Options Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 py-2">
-              {quizOptions.map((opt: string, idx: number) => {
+              {(quizOptions || []).map((opt: string, idx: number) => {
                 const isSelected = quizSelectedOption === opt;
                 const isCorrectOption = opt === currentWord.meaning;
                 let btnStyle = 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-slate-800 dark:text-slate-200 hover:border-emerald-500';

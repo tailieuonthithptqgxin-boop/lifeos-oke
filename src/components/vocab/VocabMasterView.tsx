@@ -93,45 +93,57 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
 
   // Active Language Workspace
   const activeLang = useMemo(() => {
-    return vocabData.languages.find(l => l.id === vocabData.activeLanguageId) || vocabData.languages[0];
-  }, [vocabData.languages, vocabData.activeLanguageId]);
+    return (vocabData?.languages || []).find(l => l.id === vocabData?.activeLanguageId) || vocabData?.languages?.[0] || {
+      id: 'en',
+      name: 'Tiếng Anh',
+      originalName: 'English',
+      flag: '🇬🇧',
+      code: 'en',
+      speechVoiceCode: 'en-US',
+      level: 'intermediate',
+      dailyNewWordTarget: 10,
+      dailyReviewTarget: 30,
+      explanationLanguage: 'vi',
+      createdAt: new Date().toISOString()
+    };
+  }, [vocabData?.languages, vocabData?.activeLanguageId]);
 
   const langCollections: VocabCollection[] = useMemo(() => {
-    return (vocabData.collections && vocabData.collections[activeLang.id]) || [];
-  }, [vocabData.collections, activeLang.id]);
+    return (vocabData?.collections && activeLang && vocabData.collections[activeLang.id]) || [];
+  }, [vocabData?.collections, activeLang?.id]);
 
   const langWords: VocabWord[] = useMemo(() => {
-    return (vocabData.words && vocabData.words[activeLang.id]) || [];
-  }, [vocabData.words, activeLang.id]);
+    return (vocabData?.words && activeLang && vocabData.words[activeLang.id]) || [];
+  }, [vocabData?.words, activeLang?.id]);
 
   // System 3000 words extracted from official DOCX
   const system3000Words: System3000Word[] = useMemo(() => {
-    return getSystem3000Words();
+    return getSystem3000Words() || [];
   }, []);
 
   const progress3000 = useMemo(() => {
-    return vocabData.system3000Progress || {};
-  }, [vocabData.system3000Progress]);
+    return vocabData?.system3000Progress || {};
+  }, [vocabData?.system3000Progress]);
 
   // System Chinese HSK words (10,240 words)
   const systemChineseWords: SystemChineseHskWord[] = useMemo(() => {
-    return getSystemChineseWords();
+    return getSystemChineseWords() || [];
   }, []);
 
   const progressChinese = useMemo(() => {
-    return vocabData.systemChineseHskProgress || {};
-  }, [vocabData.systemChineseHskProgress]);
+    return vocabData?.systemChineseHskProgress || {};
+  }, [vocabData?.systemChineseHskProgress]);
 
   // Combined Analytics
   const combinedAnalytics = useMemo(() => {
-    if (activeLang.id === 'en') {
+    if (activeLang?.id === 'en') {
       return calculateCombinedAnalytics(langWords, progress3000, 'en');
     }
-    if (activeLang.id === 'zh') {
+    if (activeLang?.id === 'zh') {
       return calculateCombinedAnalytics(langWords, progressChinese, 'zh');
     }
     return calculateLanguageAnalytics(langWords);
-  }, [activeLang.id, langWords, progress3000, progressChinese]);
+  }, [activeLang?.id, langWords, progress3000, progressChinese]);
 
   // Analytics specifically for 3000
   const analytics3000 = useMemo(() => {
@@ -150,14 +162,14 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
 
   // Unified Pool of all available words for active language
   const allCombinedWords: VocabWord[] = useMemo(() => {
-    const list: VocabWord[] = [...langWords];
-    if (activeLang.id === 'en') {
-      list.push(...system3000Words.map(w => systemWordToVocabWord(w, progress3000[w.id])));
-    } else if (activeLang.id === 'zh') {
-      list.push(...systemChineseWords.map(w => systemChineseWordToVocabWord(w, progressChinese[w.id])));
+    const list: VocabWord[] = [...(langWords || [])];
+    if (activeLang?.id === 'en') {
+      list.push(...(system3000Words || []).map(w => systemWordToVocabWord(w, progress3000?.[w.id])));
+    } else if (activeLang?.id === 'zh') {
+      list.push(...(systemChineseWords || []).map(w => systemChineseWordToVocabWord(w, progressChinese?.[w.id])));
     }
     return list;
-  }, [langWords, activeLang.id, system3000Words, progress3000, systemChineseWords, progressChinese]);
+  }, [langWords, activeLang?.id, system3000Words, progress3000, systemChineseWords, progressChinese]);
 
   // Today's Study Plan computed dynamically
   const todayStudyPlan = useMemo(() => {
@@ -503,13 +515,13 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
 
         {/* Language selector & quick actions */}
         <div className="flex items-center gap-2 flex-wrap self-start md:self-auto">
-          {vocabData.languages.map(lang => (
+          {(vocabData?.languages || []).map(lang => (
             <button
               key={lang.id}
               type="button"
               onClick={() => handleSwitchLanguage(lang.id)}
               className={`btn-squishy px-3.5 py-2 rounded-2xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
-                lang.id === activeLang.id
+                lang.id === activeLang?.id
                   ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/25'
                   : 'bg-white/80 hover:bg-purple-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-purple-100/60 dark:border-slate-700'
               }`}
@@ -893,17 +905,17 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
           onUpdateSettings={(updates: Partial<LearningLanguage>) => {
             updateVocabData(prev => ({
               ...prev,
-              languages: prev.languages.map(l => l.id === activeLang.id ? { ...l, ...updates } : l)
+              languages: (prev.languages || []).map(l => l.id === activeLang?.id ? { ...l, ...updates } : l)
             }));
             alert('Đã lưu cấu hình học tập cho ngôn ngữ này!');
           }}
           onDeleteLanguage={() => {
-            if (vocabData.languages.length <= 1) {
+            if ((vocabData?.languages || []).length <= 1) {
               return alert('Bạn cần giữ ít nhất 1 ngôn ngữ trong hệ thống!');
             }
             if (confirm(`Bạn có chắc muốn xóa không gian học "${activeLang.name}" và toàn bộ từ vựng thuộc ngôn ngữ này?`)) {
               updateVocabData(prev => {
-                const remaining = prev.languages.filter(l => l.id !== activeLang.id);
+                const remaining = (prev.languages || []).filter(l => l.id !== activeLang?.id);
                 return {
                   ...prev,
                   activeLanguageId: remaining[0].id,

@@ -294,7 +294,7 @@ export function scheduleNextReview(input: SchedulerInput): SchedulerOutput {
  * Prioritizes: Overdue (Critical) -> Due Today -> Difficult/Lapsed -> New Words (daily cap)
  */
 export function buildTodayStudyPlan(
-  allWords: VocabWord[],
+  allWords: VocabWord[] = [],
   dailyNewWordTarget: number = 10,
   dailyReviewTarget: number = 30,
   todayStr: string = new Date().toISOString().split('T')[0]
@@ -304,8 +304,9 @@ export function buildTodayStudyPlan(
   const difficultWords: VocabWord[] = [];
   const newWordsPool: VocabWord[] = [];
   let completedTodayCount = 0;
+  const safeWords = Array.isArray(allWords) ? allWords : [];
 
-  for (const w of allWords) {
+  for (const w of safeWords) {
     // Check if reviewed today
     if (w.lastReviewedAt && w.lastReviewedAt.startsWith(todayStr)) {
       completedTodayCount++;
@@ -356,11 +357,12 @@ export function buildTodayStudyPlan(
  * Slices a massive review list into bite-sized study sessions (e.g., batches of 15-20)
  * to prevent cognitive fatigue.
  */
-export function sliceStudyBatches(words: VocabWord[], batchSize: number = 20): VocabWord[][] {
-  if (words.length === 0) return [];
+export function sliceStudyBatches(words: VocabWord[] = [], batchSize: number = 20): VocabWord[][] {
+  const safeWords = Array.isArray(words) ? words : [];
+  if (safeWords.length === 0) return [];
   const batches: VocabWord[][] = [];
-  for (let i = 0; i < words.length; i += batchSize) {
-    batches.push(words.slice(i, i + batchSize));
+  for (let i = 0; i < safeWords.length; i += batchSize) {
+    batches.push(safeWords.slice(i, i + batchSize));
   }
   return batches;
 }

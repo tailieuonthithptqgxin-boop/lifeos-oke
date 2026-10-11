@@ -140,14 +140,14 @@ export function GradeForecastTab({
   const handleUpdateComponent = (id: string, updates: Partial<GradeComponent>) => {
     updateSchema(prev => ({
       ...prev,
-      components: prev.components.map(c => c.id === id ? { ...c, ...updates } : c)
+      components: (prev?.components || []).map(c => c.id === id ? { ...c, ...updates } : c)
     }));
   };
 
   const handleSetTargetComponent = (id: string) => {
     updateSchema(prev => ({
       ...prev,
-      components: prev.components.map(c => ({
+      components: (prev?.components || []).map(c => ({
         ...c,
         isTargetExam: c.id === id
       }))
@@ -162,9 +162,9 @@ export function GradeForecastTab({
 
     updateSchema(prev => ({
       ...prev,
-      components: prev.components.map(c => {
+      components: (prev?.components || []).map(c => {
         if (c.id === compId) {
-          return { ...c, scores: [...c.scores, val] };
+          return { ...c, scores: [...(c.scores || []), val] };
         }
         return c;
       })
@@ -176,9 +176,9 @@ export function GradeForecastTab({
   const handleRemoveScoreFromComponent = (compId: string, scoreIndex: number) => {
     updateSchema(prev => ({
       ...prev,
-      components: prev.components.map(c => {
+      components: (prev?.components || []).map(c => {
         if (c.id === compId) {
-          const nextScores = [...c.scores];
+          const nextScores = [...(c.scores || [])];
           nextScores.splice(scoreIndex, 1);
           return { ...c, scores: nextScores };
         }
@@ -238,7 +238,7 @@ export function GradeForecastTab({
               onChange={e => setSelectedSubId(e.target.value)}
               className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm font-bold text-slate-800 dark:text-slate-100 cursor-pointer"
             >
-              {subjects.map((s: any) => (
+              {(subjects || []).map((s: any) => (
                 <option key={s.id} value={s.id}>
                   {s.name} {s.code ? `(${s.code})` : ''}
                 </option>
@@ -347,9 +347,10 @@ export function GradeForecastTab({
 
             {/* Component Cards / Rows */}
             <div className="space-y-3">
-              {schema.components.map((comp) => {
-                const compAverage = comp.scores.length > 0
-                  ? (comp.scores.reduce((a, b) => a + b, 0) / comp.scores.length).toFixed(1)
+              {(schema?.components || []).map((comp) => {
+                const compScores = comp.scores || [];
+                const compAverage = compScores.length > 0
+                  ? (compScores.reduce((a, b) => a + b, 0) / compScores.length).toFixed(1)
                   : null;
 
                 return (
