@@ -29,7 +29,7 @@ export function BottomNav() {
     <nav
       id="mobile-bottom-nav"
       aria-label={t('Thanh điều hướng di động')}
-      className="md:hidden fixed bottom-2.5 left-3 right-3 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-purple-100/70 dark:border-purple-900/40 rounded-3xl shadow-2xl px-2 py-1.5 transition-all"
+      className="md:hidden fixed bottom-2.5 left-3 right-3 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-2xl px-2 py-1.5 transition-all"
     >
       <div className="flex items-center justify-around max-w-lg mx-auto">
         {PRIMARY_TABS.map(tab => {
@@ -43,14 +43,14 @@ export function BottomNav() {
               onClick={() => setCurrentView(tab.id)}
               className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl transition-all relative btn-squishy ${
                 isActive
-                  ? 'bg-gradient-to-r from-violet-500/15 via-purple-500/15 to-pink-500/15 text-purple-600 dark:text-purple-300 font-black'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-300 font-semibold'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-black'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-300 font-semibold'
               }`}
             >
               <div className="relative">
-                <Icon className={`w-5 h-5 transition-transform ${isActive ? 'scale-115 text-purple-600 dark:text-purple-300' : ''}`} />
+                <Icon className={`w-5 h-5 transition-transform ${isActive ? 'scale-115 text-emerald-600 dark:text-emerald-400' : ''}`} />
                 {tab.id === 'tasks' && pendingTaskCount > 0 && (
-                  <span className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-2xs">
+                  <span className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-emerald-600 text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-2xs">
                     {pendingTaskCount > 99 ? '99+' : pendingTaskCount}
                   </span>
                 )}

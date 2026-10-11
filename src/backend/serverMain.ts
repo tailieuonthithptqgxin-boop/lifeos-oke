@@ -174,34 +174,7 @@ async function startServer() {
       }
     }
 
-    // Provision default test user for quick demo login button ONLY in development
-    if (!isProduction) {
-      const existingTestUser = await prisma.user.findFirst({
-        where: { email: 'user@test.com' }
-      });
 
-      if (!existingTestUser) {
-        console.log('Development setup: Provisioning test user account (user@test.com)...');
-        const salt = await bcrypt.genSalt(10);
-        const passwordHash = await bcrypt.hash('User@123456', salt);
-
-        const createdUser = await dbService.createUser({
-          name: 'Alex Nguyen',
-          email: 'user@test.com',
-          username: 'user',
-          passwordHash,
-          role: 'USER',
-          plan: 'PRO',
-          status: 'ACTIVE',
-          avatar: 'https://ui-avatars.com/api/?name=Alex+Nguyen&background=10b981&color=fff',
-        });
-        await prisma.user.update({
-          where: { id: createdUser.id },
-          data: { onboardingCompleted: true }
-        });
-        console.log('✅ Test user created: user@test.com');
-      }
-    }
 
     // Seed default system templates if empty
     const templates = await dbService.getSystemTemplates();

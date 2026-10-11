@@ -1,12 +1,18 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import {
   Volume2,
   Sparkles,
   ArrowLeft,
   RotateCcw,
-  Eye
+  Eye,
+  CheckCircle2,
+  XCircle,
+  Headphones,
+  ArrowRight,
+  Brain,
+  HelpCircle
 } from 'lucide-react';
-import { speakWord } from '../../lib/vocabEngine';
+import { speakWord, computeMemoryLevel } from '../../lib/vocabEngine';
 import { isEquivalentAnswer } from '../../lib/vocabVerificationEngine';
 import { CompanionMood, CompanionDialoguePool } from '../../lib/companionEngine';
 import { companionEventBus } from '../../lib/companion/companionEventBus';
@@ -23,6 +29,7 @@ interface StudySessionScreenProps {
   quizSelectedOption: string | null;
   spellingInput: string;
   spellingChecked: boolean;
+  distractorPool?: any[];
   onReveal: () => void;
   onRate: (rating: 1 | 2 | 3 | 4) => void;
   onSelectQuizOption: (option: string) => void;
@@ -43,6 +50,7 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
   quizSelectedOption,
   spellingInput,
   spellingChecked,
+  distractorPool = [],
   onReveal,
   onRate,
   onSelectQuizOption,
@@ -58,6 +66,13 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
     isCompleted ? 'vocabRoundCompleted' : undefined
   );
 
+  // Play audio automatically in spelling mode on each new card
+  useEffect(() => {
+    if (currentWord && mode === 'spelling') {
+      speakWord(currentWord.term, activeLang?.speechVoiceCode || 'en-US');
+    }
+  }, [currentWord?.id, mode, activeLang?.speechVoiceCode]);
+
   const handleRateWithCompanion = (rating: 1 | 2 | 3 | 4) => {
     if (rating >= 3) {
       setCompanionMood('celebrate');
@@ -71,16 +86,43 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
     onRate(rating);
   };
 
-  // Options for Quiz mode
+  // 4 Distractors for Quiz mode with random positioning and real dictionary data
   const quizOptions = useMemo(() => {
     if (!currentWord || mode !== 'quiz') return [];
-    const wrongOptions = words
-      .filter((w: any) => w.id !== currentWord.id)
-      .map((w: any) => w.meaning)
+    
+    // Choose distractor pool from whole vocabulary pool if available
+    const pool = distractorPool.length >= 10 ? distractorPool : words;
+    const filtered = pool.filter(
+      (w: any) => w.id !== currentWord.id && w.meaning !== currentWord.meaning
+    );
+
+    const shuffledDistractors = [...filtered]
       .sort(() => Math.random() - 0.5)
-      .slice(0, 3);
-    return [currentWord.meaning, ...wrongOptions].sort(() => Math.random() - 0.5);
-  }, [currentWord, mode, words]);
+      .slice(0, 3)
+      .map((w: any) => w.meaning);
+
+    // Guaranteed 4 distinct options
+    const options = [currentWord.meaning, ...shuffledDistractors];
+    return options.sort(() => Math.random() - 0.5);
+  }, [currentWord?.id, mode, distractorPool, words]);
+
+  // Memory Level Badge
+  const memoryLevelInfo = useMemo(() => {
+    if (!currentWord) return { level: 0, label: 'Level 0 — Chưa học', color: 'bg-slate-100 text-slate-700' };
+    const lvl = currentWord.memoryLevel !== undefined
+      ? currentWord.memoryLevel
+      : computeMemoryLevel(currentWord.repetitionCount, currentWord.intervalDays, currentWord.lapses);
+
+    switch (lvl) {
+      case 0: return { level: 0, label: 'Level 0 — Chưa học', color: 'bg-slate-100 text-slate-700 border-slate-200' };
+      case 1: return { level: 1, label: 'Level 1 — Mới học', color: 'bg-rose-100 text-rose-800 border-rose-200' };
+      case 2: return { level: 2, label: 'Level 2 — Đang ghi nhớ', color: 'bg-amber-100 text-amber-800 border-amber-200' };
+      case 3: return { level: 3, label: 'Level 3 — Nhớ khá', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' };
+      case 4: return { level: 4, label: 'Level 4 — Nhớ tốt', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
+      case 5: return { level: 5, label: 'Level 5 — Thành thạo', color: 'bg-blue-100 text-blue-800 border-blue-200' };
+      default: return { level: 0, label: 'Level 0 — Chưa học', color: 'bg-slate-100 text-slate-700 border-slate-200' };
+    }
+  }, [currentWord]);
 
   if (isCompleted || !currentWord) {
     return (
@@ -94,7 +136,7 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
             Hoàn thành Phiên học Xuất sắc!
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Hệ thống đã tự động lưu tiến độ và lên lịch ôn ngắt quãng cho từng từ vựng.
+            Hệ thống đã lưu tiến độ vào Tháp trí nhớ và đồng bộ lên cơ sở dữ liệu.
           </p>
         </div>
 
@@ -124,7 +166,7 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
           <button
             type="button"
             onClick={onRestartSession}
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
+            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
           >
             <RotateCcw className="w-4 h-4" /> Tiếp tục Ôn tập
           </button>
@@ -140,6 +182,20 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
   }
 
   const progressPercent = Math.round(((currentIndex + 1) / words.length) * 100);
+
+  // Check spelling accuracy
+  const spellingMatch = spellingChecked
+    ? isEquivalentAnswer(spellingInput, currentWord.term)
+    : null;
+
+  // Check quiz accuracy
+  const quizMatch = quizSelectedOption
+    ? isEquivalentAnswer(quizSelectedOption, currentWord.meaning, currentWord.secondaryMeanings)
+    : null;
+
+  // Language short name
+  const isChinese = activeLang?.id === 'zh';
+  const foreignLangShort = isChinese ? 'Trung' : 'Anh';
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
@@ -157,37 +213,84 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
           Từ {currentIndex + 1} / {words.length} ({progressPercent}%)
         </span>
 
-        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 uppercase">
-          {mode === 'flashcard_reverse' 
-            ? 'Flashcard Việt → Anh' 
-            : mode === 'quiz' 
-            ? 'Trắc nghiệm' 
-            : mode === 'spelling' 
-            ? 'Luyện chính tả' 
-            : mode === 'fill_in_blank'
-            ? 'Điền từ vào ngữ cảnh'
-            : 'Flashcard Anh → Việt'}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${memoryLevelInfo.color}`}>
+            {memoryLevelInfo.label}
+          </span>
+          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase shadow-xs ${
+            mode === 'flashcard_reverse'
+              ? 'bg-indigo-600 text-white'
+              : mode === 'quiz'
+              ? 'bg-purple-600 text-white animate-pulse'
+              : mode === 'spelling'
+              ? 'bg-pink-600 text-white'
+              : 'bg-emerald-600 text-white'
+          }`}>
+            {mode === 'flashcard_reverse' 
+              ? `🔄 Đảo chiều: Việt → ${foreignLangShort}` 
+              : mode === 'quiz' 
+              ? '📝 Trắc nghiệm 4 đáp án (Quiz)' 
+              : mode === 'spelling' 
+              ? '✍️ Luyện gõ chính tả (Spelling)' 
+              : `🎴 Flashcard: ${foreignLangShort} → Việt`}
+          </span>
+        </div>
       </div>
 
       {/* Progress Bar */}
-      <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5">
-        <div className="bg-purple-600 h-1.5 rounded-full transition-all duration-300" style={{ width: `${progressPercent}%` }} />
+      <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+        <div className="bg-emerald-600 h-1.5 rounded-full transition-all duration-300" style={{ width: `${progressPercent}%` }} />
       </div>
 
-      {/* FLASHCARD CARD CONTAINER */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden p-6 sm:p-8 space-y-6 min-h-[380px] flex flex-col justify-between">
+      {/* FLASHCARD / EXERCISE CARD CONTAINER */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden p-6 sm:p-8 space-y-6 min-h-[390px] flex flex-col justify-between">
         
-        {/* CARD FRONT: Normal vs Reverse */}
-        <div className="text-center space-y-3 pt-2">
-          {currentWord.partOfSpeech && (
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase tracking-wider font-mono">
-              {currentWord.partOfSpeech}
-            </span>
-          )}
+        {/* ------------------------------------------------------------- */}
+        {/* 1. FLASHCARD ANH -> VIỆT (FRONT) */}
+        {/* ------------------------------------------------------------- */}
+        {mode === 'flashcard' && (
+          <div className="text-center space-y-3 pt-2">
+            {currentWord.partOfSpeech && (
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-500 uppercase tracking-wider font-mono">
+                {currentWord.partOfSpeech}
+              </span>
+            )}
+            <div className="space-y-2">
+              <div className="flex items-center justify-center gap-3">
+                <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+                  {currentWord.term}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => speakWord(currentWord.term, activeLang?.speechVoiceCode)}
+                  className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-full transition cursor-pointer"
+                  title="Nghe phát âm chuẩn"
+                >
+                  <Volume2 className="w-6 h-6" />
+                </button>
+              </div>
+              {currentWord.phonetic && (
+                <p className="font-mono text-sm text-slate-500 dark:text-slate-400">
+                  {currentWord.phonetic}
+                </p>
+              )}
+              <p className="text-xs text-slate-400 italic">
+                Chủ động nhớ lại nghĩa tiếng Việt trước khi lật mặt sau!
+              </p>
+            </div>
+          </div>
+        )}
 
-          {mode === 'flashcard_reverse' ? (
-            /* REVERSE FLASHCARD: Show Vietnamese Meaning first */
+        {/* ------------------------------------------------------------- */}
+        {/* 2. FLASHCARD ĐẢO CHIỀU VIỆT -> ANH (FRONT) */}
+        {/* ------------------------------------------------------------- */}
+        {mode === 'flashcard_reverse' && (
+          <div className="text-center space-y-3 pt-2">
+            {currentWord.partOfSpeech && (
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 uppercase tracking-wider font-mono">
+                {currentWord.partOfSpeech}
+              </span>
+            )}
             <div className="space-y-2">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
                 Nghĩa tiếng Việt
@@ -195,146 +298,152 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
               <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
                 {currentWord.meaning}
               </h2>
-              <p className="text-xs text-indigo-600 dark:text-indigo-400 italic">
-                Hãy nhớ lại từ tiếng Anh tương ứng và cách phát âm trước khi lật mặt sau!
+              <p className="text-xs text-emerald-600 dark:text-emerald-400 italic">
+                {isChinese
+                  ? 'Hãy nhớ lại chữ Hán / Pinyin tiếng Trung tương ứng và cách phát âm!'
+                  : 'Hãy nhớ lại từ vựng tiếng Anh tương ứng và cách phát âm!'}
               </p>
             </div>
-          ) : (
-            /* NORMAL FLASHCARD: Show English Term first */
-            <div className="space-y-2">
-              <div className="flex items-center justify-center gap-3">
-                <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* 3. TRẮC NGHIỆM 4 ĐÁP ÁN (QUIZ MODE) */}
+        {/* ------------------------------------------------------------- */}
+        {mode === 'quiz' && (
+          <div className="space-y-4 pt-2">
+            <div className="text-center space-y-2">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Câu hỏi trắc nghiệm (Chọn nghĩa đúng)
+              </span>
+              <div className="flex items-center justify-center gap-2">
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
                   {currentWord.term}
                 </h2>
-
                 <button
                   type="button"
-                  onClick={() => speakWord(currentWord.term, activeLang.speechVoiceCode)}
-                  className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-full transition cursor-pointer"
-                  title="Nghe phát âm chuẩn"
+                  onClick={() => speakWord(currentWord.term, activeLang?.speechVoiceCode)}
+                  className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-full cursor-pointer"
                 >
-                  <Volume2 className="w-6 h-6" />
+                  <Volume2 className="w-5 h-5" />
                 </button>
               </div>
-
               {currentWord.phonetic && (
-                <p className="font-mono text-sm text-slate-500 dark:text-slate-400">
-                  {currentWord.phonetic}
-                </p>
+                <p className="font-mono text-xs text-slate-400">{currentWord.phonetic}</p>
               )}
             </div>
-          )}
-        </div>
 
-        {/* MODE SPECIFIC INTERACTIONS */}
+            {/* 4 Quiz Options Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 py-2">
+              {quizOptions.map((opt: string, idx: number) => {
+                const isSelected = quizSelectedOption === opt;
+                const isCorrectOption = opt === currentWord.meaning;
+                let btnStyle = 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-slate-800 dark:text-slate-200 hover:border-emerald-500';
 
-        {/* 1. QUIZ MODE INTERACTION */}
-        {mode === 'quiz' && !isRevealed && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 py-4">
-            {quizOptions.map((opt: string, idx: number) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => onSelectQuizOption(opt)}
-                className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500 bg-slate-50 dark:bg-slate-800/40 text-left font-semibold text-xs sm:text-sm text-slate-800 dark:text-slate-200 transition cursor-pointer"
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
-        )}
+                if (quizSelectedOption) {
+                  if (isSelected && quizMatch?.isMatch) {
+                    btnStyle = 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 ring-2 ring-emerald-500';
+                  } else if (isSelected && !quizMatch?.isMatch) {
+                    btnStyle = 'border-rose-500 bg-rose-50 dark:bg-rose-950/40 text-rose-800 dark:text-rose-200 ring-2 ring-rose-500';
+                  } else if (isCorrectOption) {
+                    btnStyle = 'border-emerald-500 bg-emerald-50/60 text-emerald-700 ring-1 ring-emerald-400';
+                  } else {
+                    btnStyle = 'border-slate-200 opacity-50 text-slate-400';
+                  }
+                }
 
-        {/* 2. SPELLING MODE INTERACTION */}
-        {mode === 'spelling' && !isRevealed && (
-          <div className="space-y-3 py-4 max-w-md mx-auto w-full">
-            <p className="text-xs text-center text-slate-500">
-              Nghĩa: <strong className="text-slate-800 dark:text-slate-200">{currentWord.meaning}</strong>
-            </p>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={spellingInput}
-                onChange={e => onSpellingChange(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') onCheckSpelling();
-                }}
-                placeholder="Gõ từ vựng tiếng Anh..."
-                className="flex-1 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-center focus:outline-none focus:border-blue-500"
-                autoFocus
-              />
-              <button
-                type="button"
-                onClick={onCheckSpelling}
-                className="px-4 py-2.5 bg-blue-600 text-white font-bold text-xs rounded-xl cursor-pointer"
-              >
-                Kiểm tra
-              </button>
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    disabled={quizSelectedOption !== null}
+                    onClick={() => onSelectQuizOption(opt)}
+                    className={`p-3.5 rounded-2xl border text-left font-semibold text-xs sm:text-sm transition cursor-pointer flex items-center justify-between ${btnStyle}`}
+                  >
+                    <span>{opt}</span>
+                    {quizSelectedOption && isCorrectOption && (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                    )}
+                    {quizSelectedOption && isSelected && !quizMatch?.isMatch && (
+                      <XCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
 
-        {/* 3. FILL IN THE BLANK INTERACTION */}
-        {mode === 'fill_in_blank' && !isRevealed && (
-          <div className="space-y-4 py-4 max-w-lg mx-auto w-full text-center">
-            <div className="p-4 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/60 dark:border-indigo-900/40 text-sm">
-              {currentWord.exampleSentence ? (
-                <p className="font-semibold text-slate-900 dark:text-slate-100 italic leading-relaxed">
-                  "{currentWord.exampleSentence.replace(new RegExp(`\\b${currentWord.term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'gi'), '[ ______ ]')}"
-                </p>
-              ) : (
-                <p className="font-semibold text-slate-900 dark:text-slate-100">
-                  Hãy nhớ lại từ thích hợp cho ngữ cảnh: <strong>[ ______ ]</strong>
-                </p>
-              )}
-              {currentWord.exampleTranslation && (
-                <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-2">
-                  → {currentWord.exampleTranslation}
-                </p>
-              )}
-            </div>
-
-            <p className="text-xs text-slate-500">
-              Gợi ý nghĩa: <strong className="text-slate-800 dark:text-slate-200">{currentWord.meaning}</strong>
-            </p>
-
-            <div className="flex gap-2 max-w-md mx-auto">
-              <input
-                type="text"
-                value={spellingInput}
-                onChange={e => onSpellingChange(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') onCheckSpelling();
-                }}
-                placeholder="Điền từ tiếng Anh còn thiếu..."
-                className="flex-1 px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm text-center focus:outline-none focus:border-indigo-500"
-                autoFocus
-              />
+        {/* ------------------------------------------------------------- */}
+        {/* 4. LUYỆN GÕ CHÍNH TẢ (SPELLING MODE) */}
+        {/* ------------------------------------------------------------- */}
+        {mode === 'spelling' && (
+          <div className="space-y-4 pt-2 text-center">
+            {/* Pronunciation & Listening Prompt */}
+            <div className="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/40 max-w-md mx-auto space-y-2">
+              <div className="w-12 h-12 bg-emerald-100 dark:bg-emerald-900/60 text-emerald-600 dark:text-emerald-300 rounded-full flex items-center justify-center mx-auto">
+                <Headphones className="w-6 h-6" />
+              </div>
+              <h3 className="font-black text-sm text-slate-900 dark:text-white">
+                Nghe phát âm và gõ chính xác từ vựng
+              </h3>
+              <p className="text-xs text-slate-500">
+                Gợi ý nghĩa: <strong className="text-slate-800 dark:text-slate-200">{currentWord.meaning}</strong>
+                {currentWord.partOfSpeech && <span className="ml-1 text-[10px] font-mono text-slate-400">({currentWord.partOfSpeech})</span>}
+              </p>
               <button
                 type="button"
-                onClick={onCheckSpelling}
-                className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl cursor-pointer"
+                onClick={() => speakWord(currentWord.term, activeLang?.speechVoiceCode)}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer inline-flex items-center gap-1.5"
               >
-                Kiểm tra
+                <Volume2 className="w-4 h-4" /> Nghe lại phát âm
               </button>
             </div>
+
+            {/* Input Form */}
+            {!spellingChecked && (
+              <div className="flex gap-2 max-w-md mx-auto">
+                <input
+                  type="text"
+                  value={spellingInput}
+                  onChange={e => onSpellingChange(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') onCheckSpelling();
+                  }}
+                  placeholder={isChinese ? "Gõ chữ Hán hoặc Pinyin nghe được..." : "Gõ từ vựng tiếng Anh nghe được..."}
+                  className="flex-1 px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-sm text-center focus:outline-none focus:border-emerald-500"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={onCheckSpelling}
+                  disabled={!spellingInput.trim()}
+                  className="px-5 py-3 bg-slate-900 hover:bg-black dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white font-bold text-xs rounded-2xl cursor-pointer shadow-xs disabled:opacity-50"
+                >
+                  Kiểm tra
+                </button>
+              </div>
+            )}
           </div>
         )}
 
-        {/* BACK OF CARD (REVEALED) */}
-        {isRevealed ? (
+        {/* ------------------------------------------------------------- */}
+        {/* REVEALED CONTENT (BACK OF CARD / DETAILED ANSWER) */}
+        {/* ------------------------------------------------------------- */}
+        {isRevealed && (
           <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800 animate-in fade-in duration-200">
             
-            {mode === 'flashcard_reverse' ? (
-              /* REVEALED IN REVERSE MODE: Show Term + Pronunciation */
+            {/* In Reverse Mode: Reveal English Term + Audio */}
+            {mode === 'flashcard_reverse' && (
               <div className="text-center space-y-2">
                 <div className="flex items-center justify-center gap-2">
-                  <h3 className="text-3xl font-black text-blue-600 dark:text-blue-400">
+                  <h3 className="text-3xl font-black text-emerald-600 dark:text-emerald-400">
                     {currentWord.term}
                   </h3>
                   <button
                     type="button"
-                    onClick={() => speakWord(currentWord.term, activeLang.speechVoiceCode)}
-                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-full cursor-pointer"
+                    onClick={() => speakWord(currentWord.term, activeLang?.speechVoiceCode)}
+                    className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-full cursor-pointer"
                   >
                     <Volume2 className="w-5 h-5" />
                   </button>
@@ -343,8 +452,10 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
                   <p className="font-mono text-sm text-slate-400">{currentWord.phonetic}</p>
                 )}
               </div>
-            ) : (
-              /* REVEALED IN NORMAL MODE: Show Meaning */
+            )}
+
+            {/* In Normal Mode: Reveal Vietnamese Meaning */}
+            {mode === 'flashcard' && (
               <div className="text-center space-y-1">
                 <div className="text-xl font-bold text-slate-900 dark:text-white">
                   {currentWord.meaning}
@@ -352,57 +463,69 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
               </div>
             )}
 
-            {/* Quiz Result Indicator */}
-            {mode === 'quiz' && quizSelectedOption && (() => {
-              const res = isEquivalentAnswer(quizSelectedOption, currentWord.meaning, currentWord.secondaryMeanings);
-              return (
-                <div className={`p-3 rounded-xl text-center text-xs font-bold ${
-                  res.isMatch
+            {/* Quiz Result Indicator & Quick Next CTA */}
+            {mode === 'quiz' && quizSelectedOption && (
+              <div className="space-y-2">
+                <div className={`p-3 rounded-2xl text-center text-xs font-bold ${
+                  quizMatch?.isMatch
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                     : 'bg-rose-50 text-rose-700 border border-rose-200'
                 }`}>
-                  {res.isMatch
-                    ? (res.isExact ? '🎉 Bạn đã chọn chính xác!' : `🎉 ${res.feedback}`)
-                    : `✕ Chưa chính xác! Đáp án đúng là: ${currentWord.meaning}`}
+                  {quizMatch?.isMatch
+                    ? '🎉 Xuất sắc! Bạn đã chọn chính xác.'
+                    : `✕ Chưa chính xác! Đáp án đúng là: "${currentWord.meaning}"`}
                 </div>
-              );
-            })()}
+                <button
+                  type="button"
+                  onClick={() => handleRateWithCompanion(quizMatch?.isMatch ? 3 : 1)}
+                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center gap-2"
+                >
+                  Tiếp tục câu tiếp theo <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
 
-            {/* Spelling Result Indicator */}
-            {mode === 'spelling' && spellingChecked && (() => {
-              const res = isEquivalentAnswer(spellingInput, currentWord.term);
-              return (
-                <div className={`p-3 rounded-xl text-center text-xs font-bold ${
-                  res.isMatch
+            {/* Spelling Result Indicator & Quick Next CTA */}
+            {mode === 'spelling' && spellingChecked && (
+              <div className="space-y-3 text-center">
+                <div className={`p-3.5 rounded-2xl text-xs font-bold ${
+                  spellingMatch?.isMatch
                     ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                     : 'bg-rose-50 text-rose-700 border border-rose-200'
                 }`}>
-                  {res.isMatch
-                    ? (res.isExact ? '🎉 Gõ chính tả hoàn toàn chính xác!' : `🎉 ${res.feedback}`)
-                    : `✕ Chưa chính xác! Từ đúng là: "${currentWord.term}"`}
+                  {spellingMatch?.isMatch ? (
+                    <div className="flex items-center justify-center gap-1.5">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span>🎉 Gõ chính tả hoàn toàn chính xác!</span>
+                    </div>
+                  ) : (
+                    <div>
+                      <span>✕ Chưa chính xác! Từ đúng là: </span>
+                      <strong className="text-rose-900 underline text-sm">{currentWord.term}</strong>
+                    </div>
+                  )}
                 </div>
-              );
-            })()}
 
-            {/* Fill-in-the-blank Result Indicator */}
-            {mode === 'fill_in_blank' && spellingChecked && (() => {
-              const res = isEquivalentAnswer(spellingInput, currentWord.term);
-              return (
-                <div className={`p-3 rounded-xl text-center text-xs font-bold ${
-                  res.isMatch
-                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                    : 'bg-rose-50 text-rose-700 border border-rose-200'
-                }`}>
-                  {res.isMatch
-                    ? (res.isExact ? '🎉 Bạn đã điền chính xác từ vào câu!' : `🎉 ${res.feedback}`)
-                    : `✕ Chưa chính xác! Từ cần điền là: "${currentWord.term}"`}
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/60 dark:border-slate-700 text-xs">
+                  <div className="font-bold text-slate-800 dark:text-slate-200">
+                    {currentWord.term} <span className="font-mono text-slate-400 font-normal">[{currentWord.phonetic}]</span>
+                  </div>
+                  <div className="text-slate-500">{currentWord.meaning}</div>
                 </div>
-              );
-            })()}
+
+                <button
+                  type="button"
+                  onClick={() => handleRateWithCompanion(spellingMatch?.isMatch ? 3 : 1)}
+                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center gap-2"
+                >
+                  Tiếp tục từ tiếp theo <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
 
             {/* Example sentence if available */}
             {currentWord.exampleSentence && (
-              <div className="p-3.5 bg-blue-50/60 dark:bg-blue-950/30 rounded-2xl border border-blue-100 dark:border-blue-900/40 text-xs space-y-1">
+              <div className="p-3.5 bg-emerald-50/40 dark:bg-emerald-950/20 rounded-2xl border border-emerald-100 dark:border-emerald-900/40 text-xs space-y-1">
                 <div className="font-semibold text-slate-800 dark:text-slate-200">
                   {currentWord.exampleSentence}
                 </div>
@@ -414,36 +537,40 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
               </div>
             )}
 
-            {/* Mnemonic / Personal Notes */}
+            {/* Mnemonic / Notes */}
             {(currentWord.mnemonic || currentWord.notes) && (
               <div className="p-3 bg-amber-50/70 dark:bg-amber-950/30 rounded-2xl border border-amber-100 dark:border-amber-900/40 text-xs flex items-start gap-2 text-amber-900 dark:text-amber-200">
                 <Sparkles className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                 <span>
-                  <strong>Ghi chú / Mẹo:</strong> {currentWord.mnemonic || currentWord.notes}
+                  <strong>Ghi chú / Mẹo nhớ:</strong> {currentWord.mnemonic || currentWord.notes}
                 </span>
               </div>
             )}
           </div>
-        ) : (
-          /* NOT REVEALED YET */
-          <div className="text-center py-6">
-            {(mode === 'flashcard' || mode === 'flashcard_reverse' || (mode === 'fill_in_blank' && !spellingChecked)) && (
-              <button
-                type="button"
-                onClick={onReveal}
-                className="px-6 py-3 bg-slate-900 hover:bg-black dark:bg-slate-700 dark:hover:bg-slate-600 text-white font-bold text-xs sm:text-sm rounded-2xl shadow-md transition cursor-pointer flex items-center gap-2 mx-auto"
-              >
-                <Eye className="w-4 h-4" /> Hiện đáp án & Nghĩa chi tiết
-              </button>
-            )}
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* REVEAL BUTTON (FOR FLASHCARD MODES) */}
+        {/* ------------------------------------------------------------- */}
+        {!isRevealed && (mode === 'flashcard' || mode === 'flashcard_reverse') && (
+          <div className="text-center py-4">
+            <button
+              type="button"
+              onClick={onReveal}
+              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-2xl shadow-md transition cursor-pointer flex items-center gap-2 mx-auto"
+            >
+              <Eye className="w-4 h-4" /> Hiện đáp án & Chi tiết
+            </button>
           </div>
         )}
 
-        {/* 4 SM-2 SPACED REPETITION RATING BUTTONS */}
-        {isRevealed && (
+        {/* ------------------------------------------------------------- */}
+        {/* 4 SM-2 SPACED REPETITION RATING BUTTONS (FOR FLASHCARD MODES) */}
+        {/* ------------------------------------------------------------- */}
+        {isRevealed && (mode === 'flashcard' || mode === 'flashcard_reverse') && (
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
             <span className="text-[11px] font-bold text-slate-400 block text-center uppercase tracking-wider">
-              Đánh giá mức độ ghi nhớ (Thuật toán SM-2)
+              Đánh giá mức độ ghi nhớ (Tháp trí nhớ & Thuật toán SM-2)
             </span>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -453,8 +580,8 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
                 className="p-3 rounded-2xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/60 dark:bg-rose-950/30 hover:bg-rose-100 text-rose-800 dark:text-rose-300 font-bold text-xs transition cursor-pointer text-center"
               >
                 <span className="block text-base">🔴</span>
-                <span className="block font-black">Quên (Again)</span>
-                <span className="text-[10px] text-rose-500">Ôn lại ngày mai</span>
+                <span className="block font-black">1. Quên (Again)</span>
+                <span className="text-[10px] text-rose-500">Giảm tầng / Ôn mai</span>
               </button>
 
               <button
@@ -463,7 +590,7 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
                 className="p-3 rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/60 dark:bg-amber-950/30 hover:bg-amber-100 text-amber-800 dark:text-amber-300 font-bold text-xs transition cursor-pointer text-center"
               >
                 <span className="block text-base">🟠</span>
-                <span className="block font-black">Khó (Hard)</span>
+                <span className="block font-black">2. Khó (Hard)</span>
                 <span className="text-[10px] text-amber-500">Ôn sau 1-2 ngày</span>
               </button>
 
@@ -473,8 +600,8 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
                 className="p-3 rounded-2xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/60 dark:bg-emerald-950/30 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-300 font-bold text-xs transition cursor-pointer text-center"
               >
                 <span className="block text-base">🟢</span>
-                <span className="block font-black">Nhớ tốt (Good)</span>
-                <span className="text-[10px] text-emerald-600">Tăng khoảng cách</span>
+                <span className="block font-black">3. Nhớ tốt (Good)</span>
+                <span className="text-[10px] text-emerald-600">Lên tầng tháp</span>
               </button>
 
               <button
@@ -483,8 +610,8 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
                 className="p-3 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/60 dark:bg-blue-950/30 hover:bg-blue-100 text-blue-800 dark:text-blue-300 font-bold text-xs transition cursor-pointer text-center"
               >
                 <span className="block text-base">🔵</span>
-                <span className="block font-black">Dễ dàng (Easy)</span>
-                <span className="text-[10px] text-blue-600">Nhảy vọt ngày ôn</span>
+                <span className="block font-black">4. Dễ dàng (Easy)</span>
+                <span className="text-[10px] text-blue-600">Thăng tiến nhanh</span>
               </button>
             </div>
           </div>

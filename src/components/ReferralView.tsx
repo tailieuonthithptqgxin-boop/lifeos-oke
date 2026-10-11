@@ -173,21 +173,21 @@ export function ReferralView() {
 
   return (
     <div className="p-3.5 sm:p-6 max-w-7xl mx-auto space-y-6 pb-28">
-      {/* 1. Header Banner Cute Gen Z */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-purple-600 via-indigo-600 to-pink-500 p-6 sm:p-8 text-white shadow-xl border border-purple-300/30">
+      {/* 1. Header Banner Fresh Green Unisex */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-700 via-teal-700 to-emerald-600 p-6 sm:p-8 text-white shadow-xl border border-emerald-500/30">
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 -right-16 w-64 h-64 bg-pink-400/20 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute -bottom-16 -right-16 w-64 h-64 bg-teal-400/20 rounded-full blur-2xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-3 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/20 text-white text-xs font-bold">
-              <Gift className="w-3.5 h-3.5 text-amber-300 animate-bounce" />
+              <Gift className="w-3.5 h-3.5 text-amber-300" />
               <span>Chương Trình Giới Thiệu Bạn Bè Nhận 30% Hoa Hồng</span>
             </div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white flex items-center gap-2.5">
-              <span>Lan Tỏa LifeOS, Nhận Thưởng Không Giới Hạn ✨</span>
+              <span>Lan Tỏa LifeOS, Nhận Thưởng 30% Mỗi Đơn Hàng</span>
             </h1>
-            <p className="text-sm sm:text-base text-purple-100 font-medium leading-relaxed">
+            <p className="text-sm sm:text-base text-emerald-100 font-medium leading-relaxed">
               Mỗi khi bạn bè đăng ký qua mã giới thiệu và thanh toán gói dịch vụ hợp lệ, bạn sẽ lập tức nhận <span className="font-black text-amber-300 underline decoration-wavy">30% giá trị đơn hàng</span> vào ví tiền thưởng!
             </p>
           </div>
@@ -196,14 +196,14 @@ export function ReferralView() {
           <div className="shrink-0 flex flex-col sm:flex-row items-center gap-2.5 bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/20">
             <button
               onClick={handleCopyLink}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white text-purple-700 hover:bg-purple-50 font-black text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer btn-squishy"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 font-black text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer btn-squishy"
             >
-              {copiedLink ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-purple-600" />}
+              {copiedLink ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-emerald-600" />}
               <span>{copiedLink ? 'Đã sao chép link!' : 'Copy Link giới thiệu'}</span>
             </button>
             <button
               onClick={handleShare}
-              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-purple-900/60 hover:bg-purple-900/80 text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer btn-squishy"
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-900/60 hover:bg-emerald-900/80 text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer btn-squishy"
             >
               <Share2 className="w-4 h-4" />
               <span>Chia sẻ</span>

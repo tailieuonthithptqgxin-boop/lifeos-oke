@@ -54,9 +54,12 @@ export const CHINESE_HSK_WORDS: SystemChineseHskWord[] = chineseHskRaw as System
 export interface UserWordProgress {
   wordId: string;
   state: MasteryState;
+  memoryLevel?: number;
   repetitionCount: number;
   easeFactor: number;
   intervalDays: number;
+  correctCount?: number;
+  incorrectCount?: number;
   lastReviewedAt?: string;
   nextReviewAt: string; // YYYY-MM-DD
   reviewLogs: ReviewLog[];
@@ -84,7 +87,11 @@ export interface ReviewLog {
   id: string;
   reviewedAt: string;
   rating: 1 | 2 | 3 | 4; // 1: Again (Quên), 2: Hard (Khó), 3: Good (Nhớ được), 4: Easy (Dễ)
-  reviewType: 'flashcard' | 'spelling' | 'listening' | 'quiz';
+  reviewType: 'flashcard' | 'flashcard_reverse' | 'spelling' | 'listening' | 'quiz' | 'fill_in_blank';
+  isCorrect?: boolean;
+  memoryLevelBefore?: number;
+  memoryLevelAfter?: number;
+  responseTimeMs?: number;
   intervalBefore: number;
   intervalAfter: number;
   easeFactorBefore: number;
@@ -113,11 +120,14 @@ export interface VocabWord {
   tags?: string[];
   verification?: import('./vocabVerificationEngine').WordVerificationReport;
   
-  // SM-2 Spaced Repetition
+  // SM-2 Spaced Repetition & Memory Progression
   state: MasteryState;
+  memoryLevel?: number; // Level 0 (Chưa học) to 5 (Thành thạo)
   repetitionCount: number;
   easeFactor: number; // Default: 2.5
   intervalDays: number; // Days until next review
+  correctCount?: number;
+  incorrectCount?: number;
   lastReviewedAt?: string;
   nextReviewAt: string; // ISO date string YYYY-MM-DD
   reviewLogs: ReviewLog[];
@@ -507,7 +517,7 @@ export interface Sm2Input {
   intervalDays: number;
   lapses: number;
   lastReviewedAt?: string;
-  reviewType?: 'flashcard' | 'spelling' | 'listening' | 'quiz' | 'fill_in_blank';
+  reviewType?: 'flashcard' | 'flashcard_reverse' | 'spelling' | 'listening' | 'quiz' | 'fill_in_blank';
 }
 
 export interface Sm2Output {
@@ -577,6 +587,113 @@ export function buildStudyQueues(words: VocabWord[], collectionId?: string): Stu
     difficultWords,
     allWords: pool
   };
+}
+
+// ------------------------------------------------------------------------------
+// MEMORY PYRAMID & SPART REVIEW QUEUES
+// ------------------------------------------------------------------------------
+
+export interface MemoryPyramidStats {
+  total: number;
+  level0_new: number;       // Level 0: Chưa học
+  level1_learning: number;  // Level 1: Mới học
+  level2_uncertain: number; // Level 2: Đang ghi nhớ / Chưa chắc
+  level3_good: number;      // Level 3: Nhớ khá
+  level4_strong: number;    // Level 4: Nhớ tốt / Đã nhớ
+  level5_mastered: number;  // Level 5: Thành thạo
+  dueTodayCount: number;
+  weakWordsCount: number;
+  completionPercent: number;
+}
+
+export function computeMemoryLevel(repetitionCount: number = 0, intervalDays: number = 0, lapses: number = 0): number {
+  if (repetitionCount === 0) return 0;
+  if (repetitionCount === 1) return 1;
+  if (repetitionCount === 2 || lapses > 2) return 2;
+  if (intervalDays >= 30 && repetitionCount >= 5) return 5;
+  if (intervalDays >= 14 && repetitionCount >= 4) return 4;
+  if (repetitionCount >= 3) return 3;
+  return 2;
+}
+
+export function calculateMemoryPyramid(words: VocabWord[]): MemoryPyramidStats {
+  const today = new Date().toISOString().split('T')[0];
+  const stats: MemoryPyramidStats = {
+    total: words.length,
+    level0_new: 0,
+    level1_learning: 0,
+    level2_uncertain: 0,
+    level3_good: 0,
+    level4_strong: 0,
+    level5_mastered: 0,
+    dueTodayCount: 0,
+    weakWordsCount: 0,
+    completionPercent: 0
+  };
+
+  for (const w of words) {
+    const lvl = w.memoryLevel !== undefined ? w.memoryLevel : computeMemoryLevel(w.repetitionCount, w.intervalDays, w.lapses);
+    if (lvl === 0) stats.level0_new++;
+    else if (lvl === 1) stats.level1_learning++;
+    else if (lvl === 2) stats.level2_uncertain++;
+    else if (lvl === 3) stats.level3_good++;
+    else if (lvl === 4) stats.level4_strong++;
+    else if (lvl >= 5) stats.level5_mastered++;
+
+    if (w.state !== 'new' && w.nextReviewAt && w.nextReviewAt <= today) {
+      stats.dueTodayCount++;
+    }
+
+    if (w.lapses >= 2 || (w.incorrectCount && w.incorrectCount > (w.correctCount || 0))) {
+      stats.weakWordsCount++;
+    }
+  }
+
+  stats.completionPercent = stats.total > 0 ? Math.round((stats.level5_mastered / stats.total) * 100) : 0;
+  return stats;
+}
+
+/**
+ * Builds Smart Today's Review list prioritizing:
+ * 1. Từ trả lời sai gần đây (lapses > 0)
+ * 2. Từ có memory level thấp (Level 1, Level 2)
+ * 3. Từ đến hạn ôn (nextReviewAt <= today)
+ * 4. Từ lâu chưa ôn (quá hạn nhiều ngày)
+ * 5. Từ thường xuyên sai (incorrectCount > correctCount)
+ * 6. Sau đó mới đến từ đã nhớ tốt
+ */
+export function buildSmartReviewQueue(words: VocabWord[]): VocabWord[] {
+  const today = new Date().toISOString().split('T')[0];
+  
+  return [...words].map(w => {
+    let priority = 0;
+    const lvl = w.memoryLevel !== undefined ? w.memoryLevel : computeMemoryLevel(w.repetitionCount, w.intervalDays, w.lapses);
+    
+    // Check if due today
+    const isDue = w.nextReviewAt ? w.nextReviewAt <= today : false;
+    if (isDue) priority += 500;
+    
+    // Recent lapses (highest urgency)
+    if (w.lapses > 0) priority += 1000 + (w.lapses * 100);
+    
+    // Lower level words need more reinforcement
+    priority += (5 - lvl) * 80;
+    
+    // Overdue bonus
+    if (w.nextReviewAt && w.nextReviewAt < today) {
+      const diffDays = Math.floor((new Date(today).getTime() - new Date(w.nextReviewAt).getTime()) / (1000 * 60 * 60 * 24));
+      priority += Math.min(diffDays * 20, 300);
+    }
+    
+    // High error rate
+    if (w.incorrectCount && w.incorrectCount > 0) {
+      priority += w.incorrectCount * 50;
+    }
+
+    return { word: w, priority };
+  })
+  .sort((a, b) => b.priority - a.priority)
+  .map(item => item.word);
 }
 
 // ------------------------------------------------------------------------------
@@ -1140,7 +1257,7 @@ export function recordReviewOutcome(
   prevData: VocabUserData,
   wordId: string,
   rating: 1 | 2 | 3 | 4,
-  reviewType: 'flashcard' | 'spelling' | 'listening' | 'quiz' = 'flashcard'
+  reviewType: 'flashcard' | 'flashcard_reverse' | 'spelling' | 'listening' | 'quiz' | 'fill_in_blank' = 'flashcard'
 ): VocabUserData {
   const isOxford = wordId.startsWith('word_3000_');
   const isChineseHsk = wordId.startsWith('zh_hsk_');
@@ -1166,12 +1283,17 @@ export function recordReviewOutcome(
       reviewType
     });
 
+    const memLevel = computeMemoryLevel(sm2.nextRepetitionCount, sm2.nextIntervalDays, sm2.nextLapses);
+
     const updatedProg: UserWordProgress = {
       wordId,
       state: sm2.nextState,
+      memoryLevel: memLevel,
       repetitionCount: sm2.nextRepetitionCount,
       easeFactor: sm2.nextEaseFactor,
       intervalDays: sm2.nextIntervalDays,
+      correctCount: (currentProg?.correctCount || 0) + (rating >= 3 ? 1 : 0),
+      incorrectCount: (currentProg?.incorrectCount || 0) + (rating < 3 ? 1 : 0),
       lastReviewedAt: new Date().toISOString(),
       nextReviewAt: sm2.nextReviewAt,
       reviewLogs: [...(currentProg?.reviewLogs || []), sm2.reviewLog],
@@ -1217,14 +1339,19 @@ export function recordReviewOutcome(
       reviewType
     });
 
+    const memLevel = computeMemoryLevel(sm2.nextRepetitionCount, sm2.nextIntervalDays, sm2.nextLapses);
+
     const updatedWords = words.map(w => {
       if (w.id !== wordId) return w;
       return {
         ...w,
         state: sm2.nextState,
+        memoryLevel: memLevel,
         repetitionCount: sm2.nextRepetitionCount,
         easeFactor: sm2.nextEaseFactor,
         intervalDays: sm2.nextIntervalDays,
+        correctCount: (w.correctCount || 0) + (rating >= 3 ? 1 : 0),
+        incorrectCount: (w.incorrectCount || 0) + (rating < 3 ? 1 : 0),
         lastReviewedAt: new Date().toISOString(),
         nextReviewAt: sm2.nextReviewAt,
         reviewLogs: [...w.reviewLogs, sm2.reviewLog],

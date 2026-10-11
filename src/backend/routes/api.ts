@@ -11,6 +11,7 @@ import { referralService } from '../services/referral.service.js';
 import { feedbackService } from '../services/feedback.service.js';
 import { r2Router } from './r2.routes.js';
 import { customModulesRouter } from './customModules.routes.js';
+import { vocabRouter } from './vocab.routes.js';
 import { paymentRateLimiter, couponRateLimiter } from '../security/rateLimiter.js';
 import {
   FinanceTransactionSchema,
@@ -38,6 +39,9 @@ apiRouter.use('/r2', r2Router);
 
 // Dynamic Custom Modules & Extensions (Admin extensible domains)
 apiRouter.use('/custom-modules', customModulesRouter);
+
+// Vocabulary & Spaced Repetition Mastery Sub-router
+apiRouter.use('/vocab', vocabRouter);
 
 // Publicly readable endpoints (languages configuration and pricing plans)
 apiRouter.get('/languages', async (req: any, res: Response) => {
@@ -1909,8 +1913,14 @@ apiRouter.post('/admin/payments/:id/reject', requireAdmin, validateBody(AdminRej
         actionLabel: 'Kiểm tra tài khoản',
         actionUrl: 'http://localhost:5173',
         badgeText: 'Từ chối thanh toán',
-        badgeColor: '#ef4444'
       }).catch(e => console.error('[Gmail] Error sending payment reject email:', e));
+    }
+
+    // Auto-adjust / cancel referral commission if already granted
+    try {
+      await referralService.processOrderCancelledOrRefunded(payment.orderId, `Thanh toán bị từ chối: ${reason}`);
+    } catch (refErr) {
+      console.warn('[Referral] Error handling rejected payment commission rollback:', refErr);
     }
 
     // Audit Log

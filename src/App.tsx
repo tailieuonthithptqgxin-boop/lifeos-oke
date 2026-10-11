@@ -340,7 +340,7 @@ function AppContent() {
   };
 
   return (
-    <div key={language} className="flex h-screen h-[100dvh] bg-gradient-to-br from-[#faf7fc] via-[#f7f8fd] to-[#f5fbf9] dark:from-slate-950 dark:via-[#0e111a] dark:to-[#141224] overflow-hidden font-sans text-slate-900 dark:text-slate-100 transition-colors duration-200">
+    <div key={language} className="flex h-screen h-[100dvh] bg-gradient-to-br from-[#f8faf9] via-[#f4f8f6] to-[#f0fdf4] dark:from-slate-950 dark:via-[#0c1410] dark:to-[#061e14] overflow-hidden font-sans text-slate-900 dark:text-slate-100 transition-colors duration-200">
       <CommandCenter />
       <SyncIndicator />
       <Sidebar />
@@ -351,8 +351,8 @@ function AppContent() {
           <React.Suspense
             fallback={
               <div className="flex-1 flex flex-col items-center justify-center p-12 min-h-[300px] text-slate-500">
-                <div className="w-9 h-9 border-3 border-purple-500 border-t-pink-400 rounded-full animate-spin mb-3"></div>
-                <span className="text-xs font-bold text-purple-600 dark:text-purple-300">Đang tải mô-đun... ✨</span>
+                <div className="w-9 h-9 border-3 border-emerald-500 border-t-teal-300 rounded-full animate-spin mb-3"></div>
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">Đang tải mô-đun...</span>
               </div>
             }
           >

@@ -177,7 +177,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isAnswerRevealed, setIsAnswerRevealed] = useState(false);
   const [sessionCompleted, setSessionCompleted] = useState(false);
-  const [useDedicatedFocusMode, setUseDedicatedFocusMode] = useState<boolean>(true);
+  const [useDedicatedFocusMode, setUseDedicatedFocusMode] = useState<boolean>(false);
   const [sessionStats, setSessionStats] = useState<{ reviewed: number; passed: number; again: number }>({
     reviewed: 0,
     passed: 0,
@@ -289,6 +289,23 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
     if (!currentWord) return;
 
     updateVocabData(prev => recordReviewOutcome(prev, currentWord.id, rating, studyMode));
+
+    // Sync to PostgreSQL backend
+    fetch('/api/vocab/review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        wordId: currentWord.id,
+        languageId: activeLang.id,
+        term: currentWord.term,
+        meaning: currentWord.meaning,
+        phonetic: currentWord.phonetic,
+        partOfSpeech: currentWord.partOfSpeech,
+        exerciseType: studyMode,
+        rating,
+        isCorrect: rating >= 3
+      })
+    }).catch(err => console.warn('Vocab review backend sync warning:', err));
 
     setSessionStats(prev => ({
       ...prev,
@@ -632,17 +649,22 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         {/* Study Center Tab */}
         <button
           type="button"
-          onClick={() => { setActiveTab('study'); }}
+          onClick={() => { setActiveTab('study'); setStudySessionActive(false); }}
           className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === 'study' || studySessionActive
+            activeTab === 'study' && !studySessionActive
               ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20'
               : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700'
           }`}
         >
-          <Brain className="w-4 h-4" /> Phiên học Flashcard
-          {combinedAnalytics.dueTodayCount > 0 && (
+          <Brain className="w-4 h-4 text-emerald-400" />
+          <span>4 Phương pháp Luyện tập 🎯</span>
+          {combinedAnalytics.dueTodayCount > 0 ? (
             <span className="px-2 py-0.5 rounded-full text-[10px] bg-rose-500 text-white font-black animate-pulse">
               {combinedAnalytics.dueTodayCount} đến hạn
+            </span>
+          ) : (
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 hidden sm:inline">
+              Quiz • Gõ từ
             </span>
           )}
         </button>
@@ -680,31 +702,20 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
 
       {/* 3. MAIN CONTENT BODY */}
 
-      {/* ACTIVE STUDY SESSION RUNNER: DEDICATED FOCUS MODE OR STANDARD MODE */}
+      {/* ACTIVE STUDY SESSION RUNNER: ALL 4 MODES POWERED BY STUDY SESSION SCREEN */}
       {studySessionActive && (
-        useDedicatedFocusMode ? (
-          <DedicatedVocabFocusView
-            topicTitle={`Phiên học: ${activeLang.name} (${studyQueue.length} từ)`}
-            words={studyQueue}
-            activeLang={activeLang}
-            onExit={() => setStudySessionActive(false)}
-            onUpdateWordProgress={(wordId, rating) => {
-              updateVocabData(prev => recordReviewOutcome(prev, wordId, rating, studyMode));
-            }}
-            onToggleFavorite={handleToggleFavorite}
-          />
-        ) : (
-          <StudySessionScreen
-            activeLang={activeLang}
-            words={studyQueue}
-            currentIndex={currentCardIndex}
-            mode={studyMode}
+        <StudySessionScreen
+          activeLang={activeLang}
+          words={studyQueue}
+          currentIndex={currentCardIndex}
+          mode={studyMode}
             isRevealed={isAnswerRevealed}
             isCompleted={sessionCompleted}
             stats={sessionStats}
             quizSelectedOption={quizSelectedOption}
             spellingInput={spellingInput}
             spellingChecked={spellingChecked}
+            distractorPool={allCombinedWords}
             onReveal={() => setIsAnswerRevealed(true)}
             onRate={handleRateReview}
             onSelectQuizOption={handleSelectQuizOption}
@@ -713,7 +724,6 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
             onExitSession={() => setStudySessionActive(false)}
             onRestartSession={() => handleStartStudy(studyMode, studySource, studyTargetQueue)}
           />
-        )
       )}
 
       {/* TAB A: DASHBOARD */}
@@ -752,7 +762,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         <MemoryDashboardTab
           activeLang={activeLang}
           allWords={allCombinedWords}
-          onStartStudyWords={(words) => handleStartStudyExplicit(words, 'flashcard')}
+          onStartStudyWords={(words, mode) => handleStartStudyExplicit(words, mode || 'flashcard')}
           onOpenWordDetail={(word) => setDetailWord(word)}
         />
       )}
@@ -861,6 +871,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
           useDedicatedFocusMode={useDedicatedFocusMode}
           setUseDedicatedFocusMode={setUseDedicatedFocusMode}
           onStartStudy={handleStartStudy}
+          activeLang={activeLang}
         />
       )}
 

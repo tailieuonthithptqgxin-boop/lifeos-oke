@@ -3,6 +3,9 @@
 
 :root {
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --color-primary: #10b981;
+  --color-primary-dark: #047857;
+  --color-primary-light: #ecfdf5;
 }
 
 body {
@@ -21,7 +24,7 @@ body {
   scrollbar-width: none;
 }
 
-/* Cute Custom Scrollbar */
+/* Modern Fresh Green Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -37,7 +40,7 @@ body {
   background: #334155;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #a855f7;
+  background: #10b981;
 }
 
 /* Gen Z Animations */

@@ -317,66 +317,6 @@ export function LoginView({ onBack }: LoginViewProps) {
                 <Lock className="w-4 h-4 stroke-[2.5]" />
                 <span>{isLoading ? 'Đang xác thực... ✨' : 'Đăng nhập ngay ✨'}</span>
               </button>
-
-              {/* Quick Login Helper */}
-              <div className="pt-3 border-t border-purple-100/60 dark:border-purple-900/30">
-                <div className="text-[11px] text-purple-600/90 dark:text-purple-400 font-bold mb-2 flex items-center justify-between">
-                  <span>⚡ Tài khoản trải nghiệm 1-click:</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <button
-                    type="button"
-                    disabled={isLoading}
-                    onClick={() => {
-                      setEmail('tailieuonthithptqgxin@gmail.com');
-                      setPassword('Admin@123456');
-                      executeLogin('tailieuonthithptqgxin@gmail.com', 'Admin@123456');
-                    }}
-                    className="p-2.5 bg-purple-50/70 hover:bg-purple-100 dark:bg-slate-800/80 dark:hover:bg-slate-800 border border-purple-200 dark:border-slate-700 hover:border-purple-400 rounded-xl text-left transition-all group cursor-pointer shadow-xs disabled:opacity-50"
-                  >
-                    <div className="font-bold text-xs text-purple-600 dark:text-purple-400 group-hover:text-purple-700 flex items-center justify-between">
-                      <span>⚡ Email của bạn</span>
-                      <span className="text-[10px] font-medium bg-purple-600 text-white px-1.5 py-0.5 rounded">Vào ngay</span>
-                    </div>
-                    <div className="text-[10px] text-slate-600 dark:text-slate-400 truncate mt-1">tailieuonthithptqgxin@gmail.com</div>
-                    <div className="text-[9px] text-slate-400 dark:text-slate-500 font-mono">Admin@123456</div>
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isLoading}
-                    onClick={() => {
-                      setEmail('admin@lifeos.com');
-                      setPassword('Admin@123456');
-                      executeLogin('admin@lifeos.com', 'Admin@123456');
-                    }}
-                    className="p-2.5 bg-blue-50/70 hover:bg-blue-100 dark:bg-slate-800/80 dark:hover:bg-slate-800 border border-blue-200 dark:border-slate-700 hover:border-blue-400 rounded-xl text-left transition-all group cursor-pointer shadow-xs disabled:opacity-50"
-                  >
-                    <div className="font-bold text-xs text-blue-600 dark:text-blue-400 group-hover:text-blue-700 flex items-center justify-between">
-                      <span>👑 Admin LifeOS</span>
-                      <span className="text-[10px] font-medium bg-blue-600 text-white px-1.5 py-0.5 rounded">Vào ngay</span>
-                    </div>
-                    <div className="text-[10px] text-slate-600 dark:text-slate-400 truncate mt-1">admin@lifeos.com</div>
-                    <div className="text-[9px] text-slate-400 dark:text-slate-500 font-mono">Admin@123456</div>
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isLoading}
-                    onClick={() => {
-                      setEmail('user@test.com');
-                      setPassword('User@123456');
-                      executeLogin('user@test.com', 'User@123456');
-                    }}
-                    className="p-2.5 bg-emerald-50/70 hover:bg-emerald-100 dark:bg-slate-800/80 dark:hover:bg-slate-800 border border-emerald-200 dark:border-slate-700 hover:border-emerald-400 rounded-xl text-left transition-all group cursor-pointer shadow-xs disabled:opacity-50"
-                  >
-                    <div className="font-bold text-xs text-emerald-600 dark:text-emerald-400 group-hover:text-emerald-700 flex items-center justify-between">
-                      <span>👤 Người dùng</span>
-                      <span className="text-[10px] font-medium bg-emerald-600 text-white px-1.5 py-0.5 rounded">Vào ngay</span>
-                    </div>
-                    <div className="text-[10px] text-slate-600 dark:text-slate-400 truncate mt-1">user@test.com</div>
-                    <div className="text-[9px] text-slate-400 dark:text-slate-500 font-mono">User@123456</div>
-                  </button>
-                </div>
-              </div>
             </form>
           )}
 

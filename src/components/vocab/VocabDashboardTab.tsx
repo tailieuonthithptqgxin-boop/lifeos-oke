@@ -2,7 +2,8 @@ import React from 'react';
 import {
   Play,
   Plus,
-  Brain
+  Brain,
+  ArrowRight
 } from 'lucide-react';
 import {
   LearningLanguage,
@@ -41,6 +42,9 @@ export const VocabDashboardTab: React.FC<VocabDashboardTabProps> = ({
   onOpenAddWordModal,
   onNavigateTab
 }) => {
+  const isChinese = activeLang.id === 'zh';
+  const foreignLangShort = isChinese ? 'Trung' : 'Anh';
+
   return (
     <div className="space-y-6">
       {/* Hero Callout */}
@@ -53,17 +57,17 @@ export const VocabDashboardTab: React.FC<VocabDashboardTabProps> = ({
             Không gian học tập: {activeLang.name}
           </h2>
           <p className="text-xs sm:text-sm text-blue-100 max-w-xl leading-relaxed">
-            Tích hợp trọn vẹn bộ <strong>3000 từ thông dụng chuẩn từ tài liệu DOCX</strong> và <strong>kho từ vựng cá nhân riêng biệt</strong> của bạn.
+            Tích hợp trọn vẹn bộ <strong>{isChinese ? '10,240 từ vựng HSK 1 - 9 chuẩn quốc tế' : '3000 từ thông dụng chuẩn từ tài liệu DOCX'}</strong> và <strong>kho từ vựng cá nhân riêng biệt</strong> của bạn.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
           <button
             type="button"
-            onClick={() => onStartStudy('flashcard', '3000', 'due')}
+            onClick={() => onNavigateTab('study')}
             className="px-5 py-3 bg-white hover:bg-slate-100 text-blue-700 font-black text-xs sm:text-sm rounded-2xl shadow-md transition cursor-pointer flex items-center gap-2"
           >
-            <Play className="w-4 h-4 fill-current" /> Ôn tập ngay hôm nay
+            <Brain className="w-4 h-4 text-emerald-600" /> Chọn 4 Phương pháp Luyện tập 🎯
           </button>
 
           <button
@@ -73,6 +77,127 @@ export const VocabDashboardTab: React.FC<VocabDashboardTabProps> = ({
           >
             <Plus className="w-4 h-4" /> Thêm từ cá nhân
           </button>
+        </div>
+      </div>
+
+      {/* 4 DEDICATED PRACTICE METHODS QUICK LAUNCH DIRECTLY ON DASHBOARD */}
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🎯</span>
+              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
+                4 Phương pháp Luyện tập & Kiểm tra ({activeLang.name})
+              </h3>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                1 Chạm Bắt đầu
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+              Bấm trực tiếp vào nút dưới từng phương pháp để bắt đầu học ngay lập tức:
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigateTab('study')}
+            className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 self-start sm:self-auto cursor-pointer"
+          >
+            Tùy chỉnh sâu <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Method 1: Flashcard */}
+          <div className="p-4 rounded-2xl border border-emerald-200 dark:border-emerald-900/60 bg-emerald-50/40 dark:bg-emerald-950/20 flex flex-col justify-between gap-3 hover:shadow-md transition">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-2xl p-2 rounded-xl bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700">🎴</span>
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-600 text-white uppercase">Flashcard</span>
+              </div>
+              <h4 className="font-black text-xs sm:text-sm text-slate-900 dark:text-white">
+                1. Flashcard: {foreignLangShort} → Việt
+              </h4>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                Nhìn {isChinese ? 'chữ Hán / Pinyin' : 'từ tiếng Anh'}, nhớ lại nghĩa tiếng Việt trước khi lật đáp án (Active Recall).
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onStartStudy('flashcard', '3000', 'due')}
+              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" /> Bắt đầu {foreignLangShort} → Việt
+            </button>
+          </div>
+
+          {/* Method 2: Reverse Flashcard */}
+          <div className="p-4 rounded-2xl border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/40 dark:bg-indigo-950/20 flex flex-col justify-between gap-3 hover:shadow-md transition">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-2xl p-2 rounded-xl bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700">🔄</span>
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-indigo-600 text-white uppercase">Đảo chiều</span>
+              </div>
+              <h4 className="font-black text-xs sm:text-sm text-slate-900 dark:text-white">
+                2. Đảo chiều: Việt → {foreignLangShort}
+              </h4>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                Hiển thị nghĩa tiếng Việt trước, nhớ lại {isChinese ? 'chữ Hán / Pinyin' : 'từ tiếng Anh'} và phát âm chuẩn.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onStartStudy('flashcard_reverse', '3000', 'due')}
+              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" /> Bắt đầu Đảo chiều
+            </button>
+          </div>
+
+          {/* Method 3: Quiz */}
+          <div className="p-4 rounded-2xl border border-purple-200 dark:border-purple-900/60 bg-purple-50/40 dark:bg-purple-950/20 flex flex-col justify-between gap-3 hover:shadow-md transition">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-2xl p-2 rounded-xl bg-purple-100 dark:bg-purple-900/60 text-purple-700">📝</span>
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-purple-600 text-white uppercase">Trắc nghiệm</span>
+              </div>
+              <h4 className="font-black text-xs sm:text-sm text-slate-900 dark:text-white">
+                3. Trắc nghiệm (Quiz 4 đáp án)
+              </h4>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                4 lựa chọn ngẫu nhiên từ kho từ thật, 1 đáp án đúng, phản hồi đúng/sai tức thì.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onStartStudy('quiz', '3000', 'due')}
+              className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" /> Bắt đầu làm Quiz
+            </button>
+          </div>
+
+          {/* Method 4: Spelling */}
+          <div className="p-4 rounded-2xl border border-pink-200 dark:border-pink-900/60 bg-pink-50/40 dark:bg-pink-950/20 flex flex-col justify-between gap-3 hover:shadow-md transition">
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-2xl p-2 rounded-xl bg-pink-100 dark:bg-pink-900/60 text-pink-700">✍️</span>
+                <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-pink-600 text-white uppercase">Gõ chính tả</span>
+              </div>
+              <h4 className="font-black text-xs sm:text-sm text-slate-900 dark:text-white">
+                4. Luyện gõ chính tả (Spelling)
+              </h4>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
+                Ẩn mặt chữ {isChinese ? 'Hán' : ''}, tự động phát âm loa, gõ {isChinese ? 'chữ Hán / Pinyin' : 'từ vựng'} vào ô và kiểm tra chính xác.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onStartStudy('spelling', '3000', 'due')}
+              className="w-full py-2.5 bg-pink-600 hover:bg-pink-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" /> Bắt đầu Luyện gõ
+            </button>
+          </div>
         </div>
       </div>
 

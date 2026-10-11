@@ -40,13 +40,13 @@ export function TopBar() {
   const inboxCount = inbox?.length || 0;
 
   return (
-    <header className="h-18 bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl border-b border-purple-100/60 dark:border-purple-900/30 flex items-center justify-between px-3.5 sm:px-5 md:px-6 shrink-0 z-[100] transition-colors">
+    <header className="h-18 bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800 flex items-center justify-between px-3.5 sm:px-5 md:px-6 shrink-0 z-[100] transition-colors">
       {/* Mobile Menu Toggle */}
       <button 
         type="button" 
         onClick={toggleMobileMenu} 
         aria-label="Mở danh mục điều hướng"
-        className="md:hidden p-2.5 mr-2 text-slate-600 dark:text-slate-300 hover:bg-violet-50 dark:hover:bg-purple-950/40 rounded-2xl transition-all shrink-0 btn-squishy"
+        className="md:hidden p-2.5 mr-2 text-slate-600 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-2xl transition-all shrink-0 btn-squishy"
       >
         <Menu className="w-5 h-5" />
       </button>
@@ -56,14 +56,14 @@ export function TopBar() {
         <button 
           type="button" 
           onClick={toggleCommand}
-          className="w-full relative flex items-center text-left pl-9 sm:pl-10 pr-24 py-2 sm:py-2.5 bg-violet-50/50 dark:bg-slate-800/60 border border-purple-150/60 dark:border-purple-800/40 rounded-full text-xs sm:text-sm text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:border-pink-300 dark:hover:border-purple-500 hover:shadow-xs transition-all group btn-squishy"
+          className="w-full relative flex items-center text-left pl-9 sm:pl-10 pr-24 py-2 sm:py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-full text-xs sm:text-sm text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-xs transition-all group btn-squishy"
         >
-          <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-400 group-hover:text-pink-500 transition-colors shrink-0" />
+          <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-emerald-600 transition-colors shrink-0" />
           <span className="truncate max-w-[calc(100%-1rem)] font-medium">{t('Tìm kiếm nhanh hoặc mở Command Center...')}</span>
           <div className="absolute right-3.5 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 opacity-80 pointer-events-none">
-            <kbd className="px-2 py-0.5 bg-white dark:bg-slate-900 border border-purple-200/60 dark:border-purple-800/60 rounded-lg text-[10px] font-black text-purple-700 dark:text-purple-300 shadow-2xs">Ctrl</kbd>
-            <span className="text-purple-400 text-xs font-bold">+</span>
-            <kbd className="px-2 py-0.5 bg-white dark:bg-slate-900 border border-purple-200/60 dark:border-purple-800/60 rounded-lg text-[10px] font-black text-purple-700 dark:text-purple-300 shadow-2xs">K</kbd>
+            <kbd className="px-2 py-0.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-black text-emerald-800 dark:text-emerald-300 shadow-2xs">Ctrl</kbd>
+            <span className="text-slate-400 text-xs font-bold">+</span>
+            <kbd className="px-2 py-0.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-black text-emerald-800 dark:text-emerald-300 shadow-2xs">K</kbd>
           </div>
         </button>
       </div>
@@ -94,7 +94,7 @@ export function TopBar() {
               setShowNotifications(false);
               setShowUserMenu(false);
             }}
-            className="flex items-center gap-1.5 bg-gradient-to-r from-violet-600 via-pink-500 to-rose-400 hover:from-violet-500 hover:to-pink-500 text-white px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all shadow-md shadow-pink-500/25 cursor-pointer btn-squishy"
+            className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all shadow-md shadow-emerald-500/20 cursor-pointer btn-squishy"
           >
             {!hasSubAccess ? <Lock className="w-3.5 h-3.5 text-amber-200" /> : <Plus className="w-4 h-4 stroke-[2.5]" />}
             <span className="hidden sm:inline">{t('Tạo mới')}</span>

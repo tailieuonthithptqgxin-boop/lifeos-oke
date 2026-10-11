@@ -135,8 +135,8 @@ export function FeedbackView() {
 
   return (
     <div className="p-3.5 sm:p-6 max-w-7xl mx-auto space-y-6 pb-28">
-      {/* 1. Hero Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 p-6 sm:p-8 text-white shadow-xl border border-indigo-300/30">
+      {/* 1. Hero Header Fresh Green Unisex */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-700 via-teal-700 to-emerald-600 p-6 sm:p-8 text-white shadow-xl border border-emerald-500/30">
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
@@ -145,31 +145,31 @@ export function FeedbackView() {
               <span>Cùng Xây Dựng LifeOS Tốt Hơn Mỗi Ngày</span>
             </div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
-              Góp Ý & Đề Xuất Tính Năng 💡
+              Góp Ý & Đề Xuất Tính Năng
             </h1>
-            <p className="text-sm sm:text-base text-purple-100 font-medium">
+            <p className="text-sm sm:text-base text-emerald-100 font-medium">
               Tiếng nói của bạn định hình tương lai LifeOS. Hãy báo lỗi, chia sẻ ý tưởng hay bình chọn các tính năng bạn muốn thấy nhất!
             </p>
           </div>
 
           <button
             onClick={() => setActiveTab('submit')}
-            className="px-6 py-3 rounded-2xl bg-white text-purple-700 hover:bg-purple-50 font-black text-sm shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer btn-squishy shrink-0"
+            className="px-6 py-3 rounded-2xl bg-white text-emerald-800 hover:bg-emerald-50 font-black text-sm shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer btn-squishy shrink-0"
           >
-            <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>Gửi Góp Ý Mới ✨</span>
+            <Sparkles className="w-4 h-4 text-emerald-600" />
+            <span>Gửi Góp Ý Mới</span>
           </button>
         </div>
       </div>
 
       {/* 2. Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center bg-purple-50 dark:bg-slate-800 p-1.5 rounded-2xl gap-1 border border-purple-100/70 dark:border-purple-950/40">
+        <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl gap-1 border border-slate-200/80 dark:border-slate-700">
           <button
             onClick={() => setActiveTab('community')}
             className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === 'community'
-                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs'
+                ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-xs'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
             }`}
           >
@@ -179,17 +179,17 @@ export function FeedbackView() {
             onClick={() => setActiveTab('submit')}
             className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === 'submit'
-                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs'
+                ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-xs'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
             }`}
           >
-            Đóng góp ý kiến ✍️
+            Đóng góp ý kiến
           </button>
           <button
             onClick={() => setActiveTab('my')}
             className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === 'my'
-                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs'
+                ? 'bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 shadow-xs'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
             }`}
           >

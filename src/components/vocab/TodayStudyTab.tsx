@@ -79,6 +79,9 @@ export function TodayStudyTab({
     onStartStudyBatch(targetBatch, selectedMode);
   };
 
+  const isChinese = activeLang.id === 'zh';
+  const foreignLangShort = isChinese ? 'Trung' : 'Anh';
+
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       
@@ -117,7 +120,12 @@ export function TodayStudyTab({
                   : 'bg-white/40 text-purple-200 cursor-not-allowed'
               }`}
             >
-              <Play className="w-4 h-4 fill-current" /> Bắt đầu phiên 1 ({Math.min(selectedBatchSize, plan.totalToStudy)} từ)
+              <Play className="w-4 h-4 fill-current" />
+              {selectedMode === 'flashcard' ? `Bắt đầu: Flashcard ${foreignLangShort} → Việt`
+               : selectedMode === 'flashcard_reverse' ? `Bắt đầu: Đảo chiều (Việt → ${foreignLangShort})`
+               : selectedMode === 'quiz' ? 'Bắt đầu: Trắc nghiệm 4 đáp án (Quiz)'
+               : selectedMode === 'spelling' ? 'Bắt đầu: Luyện gõ chính tả (Spelling)'
+               : 'Bắt đầu học'} ({Math.min(selectedBatchSize, plan.totalToStudy)} từ)
             </button>
           </div>
         </div>
@@ -243,26 +251,37 @@ export function TodayStudyTab({
           <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
             Phương pháp Active Recall cho phiên này:
           </label>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {[
-              { id: 'flashcard', name: 'Flashcard Anh → Việt', icon: '📇' },
-              { id: 'flashcard_reverse', name: 'Đảo chiều: Việt → Anh', icon: '🔄' },
-              { id: 'quiz', name: 'Trắc nghiệm 4 đáp án', icon: '📝' },
-              { id: 'spelling', name: 'Luyện gõ chính tả', icon: '✍️' },
-              { id: 'fill_in_blank', name: 'Điền từ vào ngữ cảnh', icon: '🧩' },
+              { id: 'flashcard', name: `Flashcard ${foreignLangShort} → Việt`, icon: '🎴', desc: 'Chủ động nhớ nghĩa' },
+              { id: 'flashcard_reverse', name: `Đảo chiều: Việt → ${foreignLangShort}`, icon: '🔄', desc: 'Nhớ từ & phát âm' },
+              { id: 'quiz', name: 'Trắc nghiệm 4 đáp án', icon: '📝', desc: 'Quiz chọn nghĩa đúng' },
+              { id: 'spelling', name: 'Luyện gõ chính tả', icon: '✍️', desc: 'Nghe phát âm gõ từ' },
             ].map(m => (
               <button
                 key={m.id}
                 type="button"
-                onClick={() => setSelectedMode(m.id as any)}
-                className={`p-3 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between min-h-[70px] ${
+                onClick={() => {
+                  setSelectedMode(m.id as any);
+                  const targetBatch = batches[0] || prioritizedQueue.slice(0, selectedBatchSize);
+                  if (targetBatch.length > 0) {
+                    onStartStudyBatch(targetBatch, m.id as any);
+                  }
+                }}
+                className={`p-3 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between min-h-[85px] ${
                   selectedMode === m.id
-                    ? 'border-purple-600 bg-purple-50/70 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200'
+                    ? 'border-purple-600 bg-purple-50/70 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 ring-2 ring-purple-500/20'
                     : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 text-slate-700 dark:text-slate-300'
                 }`}
               >
-                <span className="text-xl">{m.icon}</span>
-                <span className="text-xs font-bold mt-1 line-clamp-1">{m.name}</span>
+                <div className="flex items-center justify-between">
+                  <span className="text-xl">{m.icon}</span>
+                  <span className="text-[10px] font-black text-purple-600 dark:text-purple-400">▶ Bắt đầu</span>
+                </div>
+                <div>
+                  <span className="text-xs font-bold block line-clamp-1">{m.name}</span>
+                  <span className="text-[10px] text-slate-400 block">{m.desc}</span>
+                </div>
               </button>
             ))}
           </div>

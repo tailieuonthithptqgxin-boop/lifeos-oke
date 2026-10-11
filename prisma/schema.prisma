@@ -85,6 +85,8 @@ model User {
   referralCommissions ReferralCommission[]   @relation("ReferrerCommission")
   withdrawalRequests  WithdrawalRequest[]
   feedbacks           Feedback[]
+  vocabProgress       VocabWordProgress[]
+  vocabReviewLogs     VocabReviewLog[]
 
   @@index([email])
   @@index([role])
@@ -1262,6 +1264,64 @@ model FeedbackVote {
   @@index([feedbackId])
   @@index([userId])
   @@map("feedback_votes")
+}
+
+// ----------------------------------------------------
+// VOCABULARY & MEMORY PROGRESSION SYSTEM
+// ----------------------------------------------------
+model VocabWordProgress {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  languageId      String   @default("en")
+  wordId          String
+  term            String
+  meaning         String
+  phonetic        String?
+  partOfSpeech    String?
+  memoryLevel     Int      @default(0) // Level 0 (Chưa học) to 5 (Thành thạo)
+  repetitionCount Int      @default(0)
+  easeFactor      Float    @default(2.5)
+  intervalDays    Int      @default(0)
+  lastReviewedAt  DateTime?
+  nextReviewAt    DateTime @default(now())
+  correctCount    Int      @default(0)
+  incorrectCount  Int      @default(0)
+  lapses          Int      @default(0)
+  state           String   @default("new") // new, learning, reviewing, mastered, difficult
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  reviewLogs      VocabReviewLog[]
+
+  @@unique([userId, languageId, wordId])
+  @@index([userId, languageId])
+  @@index([userId, nextReviewAt])
+  @@index([userId, memoryLevel])
+  @@map("vocab_word_progress")
+}
+
+model VocabReviewLog {
+  id                String            @id @default(uuid())
+  userId            String
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  progressId        String
+  progress          VocabWordProgress @relation(fields: [progressId], references: [id], onDelete: Cascade)
+  wordId            String
+  exerciseType      String            // "flashcard" | "flashcard_reverse" | "quiz" | "spelling"
+  rating            Int               // 1 (Again), 2 (Hard), 3 (Good), 4 (Easy)
+  isCorrect         Boolean           @default(false)
+  responseTimeMs    Int?
+  memoryLevelBefore Int               @default(0)
+  memoryLevelAfter  Int               @default(0)
+  intervalBefore    Int               @default(0)
+  intervalAfter     Int               @default(0)
+  reviewedAt        DateTime          @default(now())
+
+  @@index([userId])
+  @@index([progressId])
+  @@index([reviewedAt])
+  @@map("vocab_review_logs")
 }
 
 

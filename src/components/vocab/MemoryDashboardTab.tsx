@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { 
   TrendingUp, Brain, Award, AlertTriangle, CheckCircle2, 
   Clock, ShieldAlert, Sparkles, Activity, Layers, ArrowUpRight,
-  Info, BarChart2, Calendar, Play, Volume2, HelpCircle
+  Info, BarChart2, Calendar, Play, Volume2, HelpCircle,
+  History, ArrowRight, Check, X, RotateCcw, Filter, Flame
 } from 'lucide-react';
 import { 
   VocabWord, 
@@ -10,13 +11,19 @@ import {
   speakWord,
   estimateRetentionProbability,
   calculateMemoryStability,
-  generateForgettingCurvePoints
+  generateForgettingCurvePoints,
+  computeMemoryLevel,
+  calculateMemoryPyramid,
+  buildSmartReviewQueue
 } from '../../lib/vocabEngine';
 
 interface MemoryDashboardTabProps {
   activeLang: LearningLanguage;
   allWords: VocabWord[];
-  onStartStudyWords: (words: VocabWord[]) => void;
+  onStartStudyWords: (
+    words: VocabWord[], 
+    mode?: 'flashcard' | 'flashcard_reverse' | 'quiz' | 'spelling' | 'fill_in_blank'
+  ) => void;
   onOpenWordDetail: (word: VocabWord) => void;
 }
 
@@ -27,18 +34,40 @@ export function MemoryDashboardTab({
   onOpenWordDetail
 }: MemoryDashboardTabProps) {
   const [selectedWordForCurve, setSelectedWordForCurve] = useState<VocabWord | null>(null);
+  const [selectedPyramidTier, setSelectedPyramidTier] = useState<number | null>(null);
+  const [selectedModeForReview, setSelectedModeForReview] = useState<'flashcard' | 'flashcard_reverse' | 'quiz' | 'spelling'>('flashcard');
+  const [historyLogs, setHistoryLogs] = useState<any[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false);
 
-  // High-level Retention Analytics
-  const metrics = useMemo(() => {
+  // Fetch chronological learning history from backend API
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoadingHistory(true);
+    fetch('/api/vocab/history?limit=30')
+      .then(res => res.json())
+      .then(data => {
+        if (isMounted && data.success && data.data?.logs) {
+          setHistoryLogs(data.data.logs);
+        }
+      })
+      .catch(() => {
+        // Fallback to local logs
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingHistory(false);
+      });
+    return () => { isMounted = false; };
+  }, [allWords]);
+
+  // High-level Retention & Pyramid Analytics
+  const analytics = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const pyramid = calculateMemoryPyramid(allWords);
+
     let totalRetention = 0;
     let totalStability = 0;
     let totalReviews = 0;
     let successfulReviews = 0;
-
-    let tierMastered = 0;  // interval >= 30
-    let tierStable = 0;    // interval 7 - 29
-    let tierLearning = 0;  // interval 1 - 6
-    let tierAtRisk = 0;    // retention < 60% or lapses >= 2
 
     const activeWords = allWords.filter(w => w.state !== 'new');
 
@@ -48,12 +77,6 @@ export function MemoryDashboardTab({
       
       totalRetention += ret;
       totalStability += stab;
-
-      if (w.intervalDays >= 30) tierMastered++;
-      else if (w.intervalDays >= 7) tierStable++;
-      else tierLearning++;
-
-      if (ret < 60 || w.lapses >= 2) tierAtRisk++;
 
       if (w.reviewLogs) {
         for (const log of w.reviewLogs) {
@@ -67,20 +90,19 @@ export function MemoryDashboardTab({
     const avgStability = activeWords.length > 0 ? Number((totalStability / activeWords.length).toFixed(1)) : 0;
     const accuracyRate = totalReviews > 0 ? Math.round((successfulReviews / totalReviews) * 100) : 100;
 
-    // Top words at highest risk of forgetting (Lowest retention)
-    const atRiskWords = [...activeWords]
-      .map(w => ({
-        word: w,
-        retention: estimateRetentionProbability(w.lastReviewedAt, w.intervalDays, w.easeFactor, w.lapses)
-      }))
-      .filter(item => item.retention < 75 || item.word.lapses >= 2)
-      .sort((a, b) => a.retention - b.retention)
-      .slice(0, 8);
+    // Prioritized Smart Review Queue (Hôm nay bạn cần ôn)
+    const smartQueue = buildSmartReviewQueue(allWords.filter(w => w.state !== 'new'));
+    const dueTodayWords = smartQueue.filter(w => {
+      const isDue = w.nextReviewAt ? w.nextReviewAt <= today : false;
+      return isDue || w.lapses > 0;
+    });
 
-    // Top mastered words (Highest interval)
-    const topMasteredWords = [...activeWords]
-      .sort((a, b) => b.intervalDays - a.intervalDays)
-      .slice(0, 8);
+    // Weak words (Từ đang yếu: lapses >= 2 hoặc tỉ lệ đúng < 60%)
+    const weakWords = allWords.filter(w => {
+      const totalAtt = (w.correctCount || 0) + (w.incorrectCount || 0);
+      const acc = totalAtt > 0 ? (w.correctCount || 0) / totalAtt : 1;
+      return w.lapses >= 2 || (totalAtt >= 2 && acc < 0.6);
+    }).sort((a, b) => (b.lapses || 0) - (a.lapses || 0));
 
     return {
       activeCount: activeWords.length,
@@ -88,280 +110,488 @@ export function MemoryDashboardTab({
       avgStability,
       accuracyRate,
       totalReviews,
-      tierMastered,
-      tierStable,
-      tierLearning,
-      tierAtRisk,
-      atRiskWords,
-      topMasteredWords
+      pyramid,
+      dueTodayWords,
+      weakWords
     };
   }, [allWords]);
 
-  // Curve data points for visualization (cohort or selected word)
+  // Curve data points for visualization
   const curvePoints = useMemo(() => {
     const stability = selectedWordForCurve
       ? calculateMemoryStability(selectedWordForCurve.intervalDays, selectedWordForCurve.easeFactor, selectedWordForCurve.lapses)
-      : Math.max(1, metrics.avgStability);
+      : Math.max(1, analytics.avgStability);
     return generateForgettingCurvePoints(stability, 30);
-  }, [selectedWordForCurve, metrics.avgStability]);
+  }, [selectedWordForCurve, analytics.avgStability]);
+
+  // Filtered words when clicking a specific pyramid tier
+  const filteredTierWords = useMemo(() => {
+    if (selectedPyramidTier === null) return [];
+    return allWords.filter(w => {
+      const lvl = w.memoryLevel !== undefined
+        ? w.memoryLevel
+        : computeMemoryLevel(w.repetitionCount, w.intervalDays, w.lapses);
+      return lvl === selectedPyramidTier;
+    });
+  }, [selectedPyramidTier, allWords]);
+
+  const isChinese = activeLang.id === 'zh';
+  const foreignLangShort = isChinese ? 'Trung' : 'Anh';
 
   return (
     <div className="space-y-6 animate-in fade-in duration-200">
       
-      {/* 1. HERO HEADER */}
-      <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border border-slate-800">
+      {/* 1. HERO HEADER BANNER */}
+      <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-white shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border border-emerald-900/50">
         <div className="space-y-2 max-w-xl">
           <div className="flex items-center gap-2">
-            <span className="px-3 py-1 rounded-full text-xs font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center gap-1.5">
-              <Brain className="w-3.5 h-3.5" /> Mô hình Đường cong quên Ebbinghaus
+            <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
+              <Brain className="w-3.5 h-3.5" /> Tháp Trí Nhớ & Khoa Học Nhận Thức
             </span>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-              Độ lưu giữ TB: {metrics.avgRetention}%
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-400 text-slate-900">
+              Thành thạo: {analytics.pyramid.completionPercent}%
             </span>
           </div>
 
           <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
-            Dashboard Sức khỏe Trí nhớ & Lưu giữ Dài hạn
+            Tháp Trí Nhớ & Hệ Thống Ôn Tập Thông Minh
           </h2>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-            Phân tích tốc độ phân rã trí nhớ cá nhân hóa theo từng từ vựng. Đánh giá khả năng chủ động nhớ lại (Active Recall) và ổn định ký ức.
+            Hệ thống phân loại từ vựng thành 6 tầng trí nhớ dựa trên lịch sử recall thực tế. Tự động điều chỉnh khoảng cách ôn tập theo thuật toán Spaced Repetition (SM-2) và Đường cong quên Ebbinghaus.
           </p>
         </div>
 
-        {/* Disclaimer Pill */}
-        <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-xs text-slate-300 max-w-xs space-y-1">
-          <div className="flex items-center gap-1.5 font-bold text-amber-300">
-            <Info className="w-3.5 h-3.5" /> Minh bạch khoa học:
+        {/* Quick Launch CTA */}
+        <div className="w-full md:w-auto bg-white/5 backdrop-blur-md p-4 rounded-2xl border border-white/10 text-center md:text-right shrink-0">
+          <span className="text-[11px] text-emerald-300 block font-medium">Hôm nay bạn cần ôn</span>
+          <span className="text-3xl font-black text-white">{analytics.dueTodayWords.length} từ</span>
+          <div className="mt-2 flex gap-1.5 justify-center md:justify-end">
+            <button
+              type="button"
+              onClick={() => onStartStudyWords(analytics.dueTodayWords, selectedModeForReview)}
+              disabled={analytics.dueTodayWords.length === 0}
+              className={`px-4 py-2 rounded-xl font-black text-xs transition cursor-pointer flex items-center gap-1.5 shadow-lg ${
+                analytics.dueTodayWords.length > 0
+                  ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 hover:scale-[1.02]'
+                  : 'bg-white/20 text-white/50 cursor-not-allowed'
+              }`}
+            >
+              <Play className="w-3.5 h-3.5 fill-current" /> Ôn ngay ({analytics.dueTodayWords.length})
+            </button>
           </div>
-          <p className="text-[11px] text-slate-400">
-            Đường cong quên là mô hình hàm mũ ước tính từ dữ liệu ôn tập thực tế, không phải phép đo sinh học trực tiếp của não bộ.
-          </p>
         </div>
       </div>
 
-      {/* 2. STATS OVERVIEW CARDS */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {/* 2. STATS OVERVIEW CARDS (TỔNG QUAN HỆ THỐNG) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
         <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-          <span className="text-xs font-bold text-slate-400 block uppercase tracking-wider">Tỷ lệ lưu giữ TB</span>
-          <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-3xl font-black text-indigo-600 dark:text-indigo-400">{metrics.avgRetention}%</span>
-            <span className="text-xs font-bold text-emerald-600">Ổn định</span>
+          <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Tổng số từ</span>
+          <div className="flex items-baseline gap-1.5 mt-1">
+            <span className="text-2xl font-black text-slate-900 dark:text-white">{analytics.pyramid.total}</span>
+            <span className="text-xs text-slate-400">từ</span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Xác suất nhớ khi gặp lại</span>
+          <span className="text-[10px] text-slate-400 mt-0.5 block">Kho từ hiện tại</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-          <span className="text-xs font-bold text-slate-400 block uppercase tracking-wider">Độ bền trí nhớ (S)</span>
-          <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-3xl font-black text-purple-600 dark:text-purple-400">{metrics.avgStability}</span>
-            <span className="text-xs font-bold text-slate-500">ngày</span>
+          <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Từ mới (Tầng 0)</span>
+          <div className="flex items-baseline gap-1.5 mt-1">
+            <span className="text-2xl font-black text-slate-600 dark:text-slate-300">{analytics.pyramid.level0_new}</span>
+            <span className="text-xs text-slate-400">từ</span>
           </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Bán rã ký ức trung bình</span>
+          <span className="text-[10px] text-slate-400 mt-0.5 block">Chưa từng ôn</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-          <span className="text-xs font-bold text-slate-400 block uppercase tracking-wider">Độ chính xác Recall</span>
-          <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-3xl font-black text-emerald-600 dark:text-emerald-400">{metrics.accuracyRate}%</span>
-            <span className="text-xs font-bold text-slate-500">{metrics.totalReviews} lượt</span>
-          </div>
-          <span className="text-[11px] text-slate-400 mt-1 block">Đánh giá Good hoặc Easy</span>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
-          <span className="text-xs font-bold text-slate-400 block uppercase tracking-wider">Nguy cơ quên</span>
-          <div className="flex items-baseline gap-2 mt-1">
-            <span className={`text-3xl font-black ${metrics.tierAtRisk > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-700'}`}>
-              {metrics.tierAtRisk}
+          <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Đang học (Tầng 1-2)</span>
+          <div className="flex items-baseline gap-1.5 mt-1">
+            <span className="text-2xl font-black text-amber-600 dark:text-amber-400">
+              {analytics.pyramid.level1_learning + analytics.pyramid.level2_uncertain}
             </span>
-            <span className="text-xs font-bold text-slate-500">từ</span>
+            <span className="text-xs text-slate-400">từ</span>
           </div>
-          <span className="text-[11px] text-rose-500 mt-1 block font-medium">Cần ôn củng cố gấp</span>
+          <span className="text-[10px] text-amber-500 mt-0.5 block font-medium">Đang củng cố</span>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Đã thành thạo</span>
+          <div className="flex items-baseline gap-1.5 mt-1">
+            <span className="text-2xl font-black text-blue-600 dark:text-blue-400">{analytics.pyramid.level5_mastered}</span>
+            <span className="text-xs text-slate-400">từ</span>
+          </div>
+          <span className="text-[10px] text-blue-500 mt-0.5 block font-medium">Khoảng cách ≥30d</span>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Độ chính xác Recall</span>
+          <div className="flex items-baseline gap-1.5 mt-1">
+            <span className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{analytics.accuracyRate}%</span>
+            <span className="text-xs text-slate-400">{analytics.totalReviews} lượt</span>
+          </div>
+          <span className="text-[10px] text-emerald-600 mt-0.5 block font-medium">Tỷ lệ Good / Easy</span>
+        </div>
+
+        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+          <span className="text-[10px] font-bold text-slate-400 block uppercase tracking-wider">Từ đang yếu</span>
+          <div className="flex items-baseline gap-1.5 mt-1">
+            <span className={`text-2xl font-black ${analytics.weakWords.length > 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+              {analytics.weakWords.length}
+            </span>
+            <span className="text-xs text-slate-400">từ</span>
+          </div>
+          <span className="text-[10px] text-rose-500 mt-0.5 block font-medium">Cần củng cố</span>
         </div>
       </div>
 
-      {/* 3. INTERACTIVE FORGETTING CURVE VISUALIZATION */}
-      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
+      {/* 3. THÁP TRÍ NHỚ TRỰC QUAN (INTERACTIVE MEMORY PYRAMID) */}
+      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
-            <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <Activity className="w-4 h-4 text-purple-600" />
-              Biểu đồ Đường cong Quên (Retention Decay Curve)
+            <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <Layers className="w-5 h-5 text-emerald-600" />
+              Tháp Trí Nhớ (Memory Pyramid)
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              {selectedWordForCurve
-                ? `Mô phỏng cho từ vựng: "${selectedWordForCurve.term}" (Độ bền S = ${calculateMemoryStability(selectedWordForCurve.intervalDays, selectedWordForCurve.easeFactor, selectedWordForCurve.lapses)} ngày)`
-                : `Mô phỏng trung bình cho kho từ (${metrics.activeCount} từ đang học, S trung bình = ${metrics.avgStability} ngày)`
-              }
+              Càng lên đỉnh tháp, độ bền ký ức càng cao và khoảng cách ôn càng giãn nở. Nhấp vào từng tầng để xem danh sách và luyện tập.
             </p>
           </div>
 
-          {selectedWordForCurve && (
-            <button
-              type="button"
-              onClick={() => setSelectedWordForCurve(null)}
-              className="px-3 py-1 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 cursor-pointer"
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-400">Phương pháp ôn:</span>
+            <select
+              value={selectedModeForReview}
+              onChange={e => setSelectedModeForReview(e.target.value as any)}
+              className="text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
             >
-              ✕ Xem đường cong trung bình
-            </button>
-          )}
+              <option value="flashcard">🎴 Flashcard: {foreignLangShort} → Việt</option>
+              <option value="flashcard_reverse">🔄 Flashcard: Việt → {foreignLangShort}</option>
+              <option value="quiz">📝 Trắc nghiệm 4 đáp án</option>
+              <option value="spelling">✍️ Luyện gõ chính tả</option>
+            </select>
+          </div>
         </div>
 
-        {/* SVG Curve Plot */}
-        <div className="p-4 sm:p-6 bg-slate-50 dark:bg-slate-950/40 rounded-2xl border border-slate-200/60 dark:border-slate-800">
-          <div className="h-56 w-full relative flex items-end">
-            
-            {/* Horizontal guideline markers */}
-            <div className="absolute inset-0 flex flex-col justify-between pointer-events-none text-[10px] text-slate-400 font-mono">
-              <div className="border-b border-dashed border-slate-200 dark:border-slate-800 w-full flex justify-between">
-                <span>100% (Vừa ôn xong)</span>
+        {/* Visual Pyramid Tiers */}
+        <div className="space-y-2 max-w-3xl mx-auto py-2">
+          
+          {/* Tầng 5: Thành thạo (Apex) */}
+          <div 
+            onClick={() => setSelectedPyramidTier(selectedPyramidTier === 5 ? null : 5)}
+            className={`p-3.5 rounded-2xl border transition cursor-pointer flex items-center justify-between gap-4 mx-auto max-w-sm ${
+              selectedPyramidTier === 5
+                ? 'bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-400'
+                : 'bg-blue-50/70 dark:bg-blue-950/40 border-blue-200 dark:border-blue-900/50 hover:bg-blue-100 text-blue-900 dark:text-blue-200'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center text-xs font-black shrink-0">
+                5
+              </span>
+              <div>
+                <span className="font-black text-xs block">🔵 Tầng 5 — Thành thạo (Mastered)</span>
+                <span className={`text-[10px] ${selectedPyramidTier === 5 ? 'text-blue-100' : 'text-blue-600 dark:text-blue-400'}`}>
+                  Khoảng cách ôn ≥ 30 ngày • Ổn định vĩnh viễn
+                </span>
               </div>
-              <div className="border-b border-dashed border-emerald-300/40 dark:border-emerald-800/40 w-full flex justify-between text-emerald-600">
-                <span>80% (Ngưỡng vàng Spaced Repetition)</span>
+            </div>
+            <div className="text-right shrink-0">
+              <span className="text-base font-black block">{analytics.pyramid.level5_mastered} từ</span>
+              <span className="text-[10px] font-bold opacity-80">
+                {analytics.pyramid.total > 0 ? Math.round((analytics.pyramid.level5_mastered / analytics.pyramid.total) * 100) : 0}%
+              </span>
+            </div>
+          </div>
+
+          {/* Tầng 4: Nhớ tốt / Đã nhớ */}
+          <div 
+            onClick={() => setSelectedPyramidTier(selectedPyramidTier === 4 ? null : 4)}
+            className={`p-3.5 rounded-2xl border transition cursor-pointer flex items-center justify-between gap-4 mx-auto max-w-md ${
+              selectedPyramidTier === 4
+                ? 'bg-emerald-600 text-white border-emerald-600 shadow-md ring-2 ring-emerald-400'
+                : 'bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-900/50 hover:bg-emerald-100 text-emerald-900 dark:text-emerald-200'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="w-7 h-7 rounded-full bg-emerald-500 text-white flex items-center justify-center text-xs font-black shrink-0">
+                4
+              </span>
+              <div>
+                <span className="font-black text-xs block">🟢 Tầng 4 — Nhớ tốt / Đã nhớ (Strong Memory)</span>
+                <span className={`text-[10px] ${selectedPyramidTier === 4 ? 'text-emerald-100' : 'text-emerald-600 dark:text-emerald-400'}`}>
+                  Khoảng cách ôn 14 - 29 ngày • Phản xạ nhanh
+                </span>
               </div>
-              <div className="border-b border-dashed border-amber-300/40 dark:border-amber-800/40 w-full flex justify-between text-amber-600">
-                <span>50% (Bắt đầu suy giảm nghiêm trọng)</span>
+            </div>
+            <div className="text-right shrink-0">
+              <span className="text-base font-black block">{analytics.pyramid.level4_strong} từ</span>
+              <span className="text-[10px] font-bold opacity-80">
+                {analytics.pyramid.total > 0 ? Math.round((analytics.pyramid.level4_strong / analytics.pyramid.total) * 100) : 0}%
+              </span>
+            </div>
+          </div>
+
+          {/* Tầng 3: Nhớ khá */}
+          <div 
+            onClick={() => setSelectedPyramidTier(selectedPyramidTier === 3 ? null : 3)}
+            className={`p-3.5 rounded-2xl border transition cursor-pointer flex items-center justify-between gap-4 mx-auto max-w-lg ${
+              selectedPyramidTier === 3
+                ? 'bg-amber-600 text-white border-amber-600 shadow-md ring-2 ring-amber-400'
+                : 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-200 dark:border-amber-900/50 hover:bg-amber-100 text-amber-900 dark:text-amber-200'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="w-7 h-7 rounded-full bg-amber-500 text-white flex items-center justify-center text-xs font-black shrink-0">
+                3
+              </span>
+              <div>
+                <span className="font-black text-xs block">🟡 Tầng 3 — Nhớ khá (Good Recall)</span>
+                <span className={`text-[10px] ${selectedPyramidTier === 3 ? 'text-amber-100' : 'text-amber-600 dark:text-amber-400'}`}>
+                  Khoảng cách ôn 7 - 13 ngày • Recall ổn định
+                </span>
               </div>
-              <div className="border-b border-slate-200 dark:border-slate-800 w-full flex justify-between">
-                <span>0%</span>
+            </div>
+            <div className="text-right shrink-0">
+              <span className="text-base font-black block">{analytics.pyramid.level3_good} từ</span>
+              <span className="text-[10px] font-bold opacity-80">
+                {analytics.pyramid.total > 0 ? Math.round((analytics.pyramid.level3_good / analytics.pyramid.total) * 100) : 0}%
+              </span>
+            </div>
+          </div>
+
+          {/* Tầng 2: Đang ghi nhớ / Chưa chắc */}
+          <div 
+            onClick={() => setSelectedPyramidTier(selectedPyramidTier === 2 ? null : 2)}
+            className={`p-3.5 rounded-2xl border transition cursor-pointer flex items-center justify-between gap-4 mx-auto max-w-xl ${
+              selectedPyramidTier === 2
+                ? 'bg-orange-600 text-white border-orange-600 shadow-md ring-2 ring-orange-400'
+                : 'bg-orange-50/70 dark:bg-orange-950/40 border-orange-200 dark:border-orange-900/50 hover:bg-orange-100 text-orange-900 dark:text-orange-200'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-black shrink-0">
+                2
+              </span>
+              <div>
+                <span className="font-black text-xs block">🟠 Tầng 2 — Đang ghi nhớ / Chưa chắc (Uncertain)</span>
+                <span className={`text-[10px] ${selectedPyramidTier === 2 ? 'text-orange-100' : 'text-orange-600 dark:text-orange-400'}`}>
+                  Khoảng cách ôn 3 - 6 ngày • Cần ôn củng cố
+                </span>
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <span className="text-base font-black block">{analytics.pyramid.level2_uncertain} từ</span>
+              <span className="text-[10px] font-bold opacity-80">
+                {analytics.pyramid.total > 0 ? Math.round((analytics.pyramid.level2_uncertain / analytics.pyramid.total) * 100) : 0}%
+              </span>
+            </div>
+          </div>
+
+          {/* Tầng 1: Mới học */}
+          <div 
+            onClick={() => setSelectedPyramidTier(selectedPyramidTier === 1 ? null : 1)}
+            className={`p-3.5 rounded-2xl border transition cursor-pointer flex items-center justify-between gap-4 mx-auto max-w-2xl ${
+              selectedPyramidTier === 1
+                ? 'bg-rose-600 text-white border-rose-600 shadow-md ring-2 ring-rose-400'
+                : 'bg-rose-50/70 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900/50 hover:bg-rose-100 text-rose-900 dark:text-rose-200'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="w-7 h-7 rounded-full bg-rose-500 text-white flex items-center justify-center text-xs font-black shrink-0">
+                1
+              </span>
+              <div>
+                <span className="font-black text-xs block">🔴 Tầng 1 — Mới học (Learning)</span>
+                <span className={`text-[10px] ${selectedPyramidTier === 1 ? 'text-rose-100' : 'text-rose-600 dark:text-rose-400'}`}>
+                  Vừa tiếp xúc lần 1 • Khoảng cách ôn 1 - 2 ngày
+                </span>
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <span className="text-base font-black block">{analytics.pyramid.level1_learning} từ</span>
+              <span className="text-[10px] font-bold opacity-80">
+                {analytics.pyramid.total > 0 ? Math.round((analytics.pyramid.level1_learning / analytics.pyramid.total) * 100) : 0}%
+              </span>
+            </div>
+          </div>
+
+          {/* Tầng 0: Từ mới (Đáy tháp) */}
+          <div 
+            onClick={() => setSelectedPyramidTier(selectedPyramidTier === 0 ? null : 0)}
+            className={`p-3.5 rounded-2xl border transition cursor-pointer flex items-center justify-between gap-4 mx-auto max-w-3xl ${
+              selectedPyramidTier === 0
+                ? 'bg-slate-700 text-white border-slate-700 shadow-md ring-2 ring-slate-400'
+                : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 hover:bg-slate-100 text-slate-800 dark:text-slate-200'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="w-7 h-7 rounded-full bg-slate-400 text-white flex items-center justify-center text-xs font-black shrink-0">
+                0
+              </span>
+              <div>
+                <span className="font-black text-xs block">⚪ Tầng 0 — Từ mới (New / Untouched)</span>
+                <span className={`text-[10px] ${selectedPyramidTier === 0 ? 'text-slate-200' : 'text-slate-400'}`}>
+                  Từ trong kho chưa từng học hoặc vừa nạp vào
+                </span>
+              </div>
+            </div>
+            <div className="text-right shrink-0">
+              <span className="text-base font-black block">{analytics.pyramid.level0_new} từ</span>
+              <span className="text-[10px] font-bold opacity-80">
+                {analytics.pyramid.total > 0 ? Math.round((analytics.pyramid.level0_new / analytics.pyramid.total) * 100) : 0}%
+              </span>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Selected Tier Words Drawer */}
+        {selectedPyramidTier !== null && (
+          <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700 space-y-4 animate-in fade-in">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-black text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                  Danh sách từ ở Tầng {selectedPyramidTier} ({filteredTierWords.length} từ)
+                </h4>
+                <p className="text-xs text-slate-500">Bấm nút để khởi chạy phiên luyện tập cho riêng tầng này.</p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => onStartStudyWords(filteredTierWords, selectedModeForReview)}
+                  disabled={filteredTierWords.length === 0}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" /> Luyện tập tầng này ({filteredTierWords.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedPyramidTier(null)}
+                  className="px-3 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition cursor-pointer"
+                >
+                  Đóng
+                </button>
               </div>
             </div>
 
-            {/* Bars & Curve Points */}
-            <div className="relative z-10 w-full flex items-end justify-between gap-1 sm:gap-2 px-2 pt-6">
-              {curvePoints.map((pt, idx) => {
-                const heightPercent = Math.max(10, pt.retentionPercent);
-                const isOptimalRecallPoint = pt.retentionPercent >= 75 && pt.retentionPercent <= 90;
-
-                return (
-                  <div key={idx} className="flex-1 flex flex-col items-center gap-1 group">
-                    <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 opacity-0 group-hover:opacity-100 transition">
-                      {pt.retentionPercent}%
-                    </span>
-
-                    <div className="w-full bg-slate-200/50 dark:bg-slate-800 rounded-t-lg h-36 flex items-end overflow-hidden">
-                      <div
-                        className={`w-full rounded-t-lg transition-all duration-300 ${
-                          isOptimalRecallPoint
-                            ? 'bg-gradient-to-t from-purple-600 to-emerald-500 shadow-xs'
-                            : pt.retentionPercent >= 80
-                            ? 'bg-gradient-to-t from-indigo-600 to-blue-500'
-                            : pt.retentionPercent >= 50
-                            ? 'bg-gradient-to-t from-amber-600 to-amber-400'
-                            : 'bg-gradient-to-t from-rose-600 to-rose-400'
-                        }`}
-                        style={{ height: `${heightPercent}%` }}
-                      />
-                    </div>
-
-                    <span className="text-[10px] text-slate-400 font-medium whitespace-nowrap">
-                      {pt.day === 0 ? '0d' : `${pt.day}d`}
-                    </span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 max-h-60 overflow-y-auto pr-1">
+              {filteredTierWords.slice(0, 48).map(w => (
+                <div key={w.id} className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
+                  <div className="min-w-0 pr-2">
+                    <span className="font-bold text-slate-900 dark:text-white block truncate">{w.term}</span>
+                    <span className="text-[11px] text-slate-400 block truncate">{w.meaning}</span>
                   </div>
-                );
-              })}
+                  <button
+                    type="button"
+                    onClick={() => onOpenWordDetail(w)}
+                    className="text-[10px] text-emerald-600 font-bold hover:underline shrink-0 cursor-pointer"
+                  >
+                    Chi tiết
+                  </button>
+                </div>
+              ))}
             </div>
           </div>
-
-          <div className="mt-4 pt-3 border-t border-slate-200/60 dark:border-slate-800 flex flex-wrap items-center justify-between text-xs text-slate-500 gap-2">
-            <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />
-                Vùng tối ưu ôn tập (80-90%)
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
-                Bắt đầu quên (50-79%)
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block" />
-                Cần học lại (&lt;50%)
-              </span>
-            </div>
-            <span className="text-[11px] text-purple-600 dark:text-purple-400 font-medium italic">
-              💡 Thuật toán lên lịch ôn khi từ vừa chạm vùng 80-85% để đạt hiệu quả tối đa.
-            </span>
-          </div>
-        </div>
+        )}
       </div>
 
-      {/* 4. MEMORY STABILITY COHORTS (PHÂN TẦNG ĐỘ BỀN) */}
-      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-        <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
-          <Layers className="w-4 h-4 text-indigo-600" />
-          Phân tầng Độ bền Ký ức (Memory Stability Cohorts)
-        </h3>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="p-4 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300">Thành thạo dài hạn</span>
-              <Award className="w-4 h-4 text-emerald-600" />
-            </div>
-            <span className="text-2xl font-black text-emerald-700 dark:text-emerald-400">{metrics.tierMastered} từ</span>
-            <p className="text-[11px] text-emerald-600/80">Khoảng cách ôn ≥ 30 ngày. Đã neo vững vào vỏ não.</p>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-blue-800 dark:text-blue-300">Đang ổn định tốt</span>
-              <CheckCircle2 className="w-4 h-4 text-blue-600" />
-            </div>
-            <span className="text-2xl font-black text-blue-700 dark:text-blue-400">{metrics.tierStable} từ</span>
-            <p className="text-[11px] text-blue-600/80">Khoảng cách ôn 7 - 29 ngày. Cần vài lần củng cố nữa.</p>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 space-y-1">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-amber-800 dark:text-amber-300">Đang nạp & Ngắn hạn</span>
-              <Clock className="w-4 h-4 text-amber-600" />
-            </div>
-            <span className="text-2xl font-black text-amber-700 dark:text-amber-400">{metrics.tierLearning} từ</span>
-            <p className="text-[11px] text-amber-600/80">Khoảng cách ôn 1 - 6 ngày. Đang trong giai đoạn nhạy cảm.</p>
-          </div>
-        </div>
-      </div>
-
-      {/* 5. TOP AT-RISK WORDS (BÁO ĐỘNG ĐỎ) & TOP MASTERED */}
+      {/* 4. TODAY'S REVIEW (HÔM NAY BẠN CẦN ÔN) & WEAK WORDS (TỪ ĐANG YẾU) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* At-risk list */}
+        {/* Today's Review List */}
         <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h4 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-1.5 text-rose-600">
-                <AlertTriangle className="w-4 h-4" /> Từ có nguy cơ quên cao nhất
+              <h4 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-1.5 text-emerald-600">
+                <Clock className="w-4 h-4" /> Hôm nay bạn cần ôn ({analytics.dueTodayWords.length} từ)
               </h4>
-              <p className="text-xs text-slate-500">Tỷ lệ lưu giữ ước tính thấp hoặc số lần quên cao.</p>
+              <p className="text-xs text-slate-500">Ưu tiên từ sai gần đây, level thấp và đến hạn ôn theo Spaced Repetition.</p>
             </div>
-            {metrics.atRiskWords.length > 0 && (
+            {analytics.dueTodayWords.length > 0 && (
               <button
                 type="button"
-                onClick={() => onStartStudyWords(metrics.atRiskWords.map(i => i.word))}
-                className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition cursor-pointer shadow-xs flex items-center gap-1"
+                onClick={() => onStartStudyWords(analytics.dueTodayWords, selectedModeForReview)}
+                className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition cursor-pointer shadow-xs flex items-center gap-1"
               >
-                <Play className="w-3.5 h-3.5 fill-current" /> Ôn ngay ({metrics.atRiskWords.length})
+                <Play className="w-3.5 h-3.5 fill-current" /> Ôn ngay
               </button>
             )}
           </div>
 
-          {metrics.atRiskWords.length === 0 ? (
+          {analytics.dueTodayWords.length === 0 ? (
             <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 text-xs text-slate-500">
-              🎉 Tuyệt vời! Không có từ nào đang ở mức nguy cơ quên cao.
+              🎉 Bạn đã hoàn thành toàn bộ từ cần ôn hôm nay! Hãy quay lại vào ngày mai nhé.
             </div>
           ) : (
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
-              {metrics.atRiskWords.map(({ word: w, retention }) => (
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-80 overflow-y-auto pr-1">
+              {analytics.dueTodayWords.slice(0, 15).map(w => (
                 <div key={w.id} className="py-2.5 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <span 
-                        onClick={() => setSelectedWordForCurve(w)}
-                        className="font-black text-xs text-slate-900 dark:text-white hover:text-purple-600 cursor-pointer"
-                        title="Bấm để xem đường cong quên của từ này"
-                      >
-                        {w.term}
-                      </span>
+                      <span className="font-black text-xs text-slate-900 dark:text-white">{w.term}</span>
+                      <span className="text-[10px] font-mono text-slate-400">{w.partOfSpeech}</span>
+                      {w.lapses > 0 && (
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-rose-100 text-rose-700">
+                          Quên {w.lapses}x
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 truncate">{w.meaning}</p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => speakWord(w.term, activeLang.speechVoiceCode)}
+                      className="p-1 text-slate-400 hover:text-emerald-600 rounded cursor-pointer"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onOpenWordDetail(w)}
+                      className="text-xs text-emerald-600 font-bold hover:underline cursor-pointer"
+                    >
+                      Chi tiết
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Weak Words List */}
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h4 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-1.5 text-rose-600">
+                <AlertTriangle className="w-4 h-4" /> Từ đang yếu / Hay quên ({analytics.weakWords.length} từ)
+              </h4>
+              <p className="text-xs text-slate-500">Những từ bạn thường xuyên trả lời sai hoặc có số lần quên cao.</p>
+            </div>
+            {analytics.weakWords.length > 0 && (
+              <button
+                type="button"
+                onClick={() => onStartStudyWords(analytics.weakWords, selectedModeForReview)}
+                className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition cursor-pointer shadow-xs flex items-center gap-1"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" /> Củng cố điểm yếu
+              </button>
+            )}
+          </div>
+
+          {analytics.weakWords.length === 0 ? (
+            <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 text-xs text-slate-500">
+              🎉 Tuyệt vời! Hiện không có từ nào rơi vào nhóm nguy cơ cao.
+            </div>
+          ) : (
+            <div className="divide-y divide-slate-100 dark:divide-slate-800 max-h-80 overflow-y-auto pr-1">
+              {analytics.weakWords.slice(0, 15).map(w => (
+                <div key={w.id} className="py-2.5 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-black text-xs text-slate-900 dark:text-white">{w.term}</span>
                       <span className="text-[10px] font-mono text-slate-400">{w.partOfSpeech}</span>
                     </div>
                     <p className="text-xs text-slate-500 truncate">{w.meaning}</p>
@@ -369,12 +599,12 @@ export function MemoryDashboardTab({
 
                   <div className="flex items-center gap-2 shrink-0">
                     <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
-                      Còn {retention}%
+                      Quên {w.lapses || 1} lần
                     </span>
                     <button
                       type="button"
                       onClick={() => onOpenWordDetail(w)}
-                      className="text-xs text-blue-600 font-bold hover:underline cursor-pointer"
+                      className="text-xs text-rose-600 font-bold hover:underline cursor-pointer"
                     >
                       Chi tiết
                     </button>
@@ -385,55 +615,88 @@ export function MemoryDashboardTab({
           )}
         </div>
 
-        {/* Top Mastered List */}
-        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+      </div>
+
+      {/* 5. LEARNING HISTORY (LỊCH SỬ HỌC THEO NGÀY) */}
+      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
           <div>
-            <h4 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-1.5 text-emerald-600">
-              <Award className="w-4 h-4" /> Từ ghi nhớ vững chắc nhất
-            </h4>
-            <p className="text-xs text-slate-500">Khoảng cách ôn tập xa nhất, ổn định trí nhớ cao.</p>
+            <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <History className="w-4 h-4 text-emerald-600" />
+              Lịch Sử Luyện Tập Theo Ngày (Learning History)
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Toàn bộ lượt ôn luyện trên cả 4 phương pháp được lưu trữ đồng bộ trên cơ sở dữ liệu.
+            </p>
           </div>
-
-          {metrics.topMasteredWords.length === 0 ? (
-            <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 text-xs text-slate-500">
-              Chưa có từ nào đạt mốc thành thạo vững chắc. Hãy tiếp tục ôn tập đều đặn nhé!
-            </div>
-          ) : (
-            <div className="divide-y divide-slate-100 dark:divide-slate-800">
-              {metrics.topMasteredWords.map(w => (
-                <div key={w.id} className="py-2.5 flex items-center justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span 
-                        onClick={() => setSelectedWordForCurve(w)}
-                        className="font-black text-xs text-slate-900 dark:text-white hover:text-purple-600 cursor-pointer"
-                        title="Bấm để xem đường cong quên của từ này"
-                      >
-                        {w.term}
-                      </span>
-                      <span className="text-[10px] font-mono text-slate-400">{w.partOfSpeech}</span>
-                    </div>
-                    <p className="text-xs text-slate-500 truncate">{w.meaning}</p>
-                  </div>
-
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                      Cách ôn: {w.intervalDays} ngày
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => onOpenWordDetail(w)}
-                      className="text-xs text-blue-600 font-bold hover:underline cursor-pointer"
-                    >
-                      Chi tiết
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
 
+        {isLoadingHistory ? (
+          <div className="p-8 text-center text-xs text-slate-400">Đang tải lịch sử ôn tập từ database...</div>
+        ) : historyLogs.length === 0 ? (
+          <div className="p-8 text-center bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 text-xs text-slate-500">
+            Chưa có lịch sử ôn tập gần đây. Hãy bắt đầu một phiên học ngay nhé!
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-800 text-[10px] uppercase font-bold text-slate-400">
+                  <th className="py-2.5 px-3">Thời gian</th>
+                  <th className="py-2.5 px-3">Từ vựng</th>
+                  <th className="py-2.5 px-3">Phương pháp</th>
+                  <th className="py-2.5 px-3">Kết quả</th>
+                  <th className="py-2.5 px-3">Tháp trí nhớ</th>
+                  <th className="py-2.5 px-3">Khoảng cách mới</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                {historyLogs.slice(0, 10).map((log, idx) => {
+                  const dateStr = log.reviewedAt ? new Date(log.reviewedAt).toLocaleString('vi-VN') : 'Vừa xong';
+                  return (
+                    <tr key={log.id || idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                      <td className="py-2.5 px-3 text-slate-400 font-mono text-[11px] whitespace-nowrap">{dateStr}</td>
+                      <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-white">
+                        {log.term || log.wordId}
+                        <span className="text-[10px] text-slate-400 block font-normal">{log.meaning}</span>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                          {log.exerciseType === 'flashcard_reverse'
+                            ? `Việt → ${foreignLangShort}`
+                            : log.exerciseType === 'quiz'
+                            ? 'Trắc nghiệm'
+                            : log.exerciseType === 'spelling'
+                            ? 'Chính tả'
+                            : `${foreignLangShort} → Việt`}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        {log.isCorrect ? (
+                          <span className="text-emerald-600 font-bold flex items-center gap-1">
+                            <Check className="w-3.5 h-3.5" /> Đúng ({log.rating})
+                          </span>
+                        ) : (
+                          <span className="text-rose-600 font-bold flex items-center gap-1">
+                            <X className="w-3.5 h-3.5" /> Quên ({log.rating})
+                          </span>
+                        )}
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <span className="font-bold text-slate-700 dark:text-slate-300">
+                          Tầng {log.memoryLevelBefore ?? 0} → Tầng {log.memoryLevelAfter ?? log.memoryLevelBefore ?? 0}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 text-slate-500 font-mono">
+                        {log.intervalAfter} ngày
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
     </div>
