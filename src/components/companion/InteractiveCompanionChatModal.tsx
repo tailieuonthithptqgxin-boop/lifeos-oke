@@ -268,7 +268,7 @@ export const InteractiveCompanionChatModal: React.FC<InteractiveCompanionChatMod
         </div>
 
         {/* Message Stream */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-slate-50/50 dark:bg-slate-950/40">
+        <div className="flex-1 overflow-y-auto p-4 space-y-3.5 bg-purple-50/20 dark:bg-slate-950/40">
           {messages.map(msg => {
             const isUser = msg.sender === 'user';
 
@@ -278,16 +278,16 @@ export const InteractiveCompanionChatModal: React.FC<InteractiveCompanionChatMod
                 className={`flex gap-2.5 ${isUser ? 'justify-end' : 'justify-start'}`}
               >
                 {!isUser && (
-                  <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-sm shadow-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-base shadow-sm border border-purple-100 dark:border-purple-800 bg-white dark:bg-slate-800 animate-wiggle">
                     {character.avatarIcon}
                   </div>
                 )}
 
                 <div 
-                  className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-3.5 py-2.5 text-xs sm:text-sm leading-relaxed shadow-xs ${
+                  className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-3 text-xs sm:text-sm leading-relaxed ${
                     isUser
-                      ? 'bg-blue-600 text-white rounded-br-xs font-medium'
-                      : 'bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-slate-800 dark:text-slate-100 rounded-bl-xs'
+                      ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white rounded-br-xs font-semibold shadow-md shadow-purple-500/20'
+                      : 'bg-white/95 dark:bg-slate-800 border border-purple-100/80 dark:border-purple-900/40 text-slate-800 dark:text-slate-100 rounded-bl-xs shadow-xs'
                   }`}
                 >
                   <div className="whitespace-pre-line">
@@ -296,27 +296,27 @@ export const InteractiveCompanionChatModal: React.FC<InteractiveCompanionChatMod
 
                   {/* Message Footer: Feedback & Action Pill */}
                   {!isUser && (
-                    <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2 text-[11px] text-slate-400">
+                    <div className="mt-2.5 pt-2 border-t border-purple-100/50 dark:border-slate-700/60 flex items-center justify-between gap-2 text-[11px] text-slate-400">
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
                           onClick={() => handleFeedback(msg.id, 'up')}
-                          className={`p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer ${
-                            msg.feedback === 'up' ? 'text-green-600 bg-green-50 dark:bg-green-950/40 font-bold' : 'text-slate-400 hover:text-slate-600'
+                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                            msg.feedback === 'up' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 font-bold' : 'text-slate-400 hover:text-slate-600'
                           }`}
                           title="Hữu ích"
                         >
-                          <ThumbsUp className="w-3 h-3" />
+                          <ThumbsUp className="w-3.5 h-3.5" />
                         </button>
                         <button
                           type="button"
                           onClick={() => handleFeedback(msg.id, 'down')}
-                          className={`p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer ${
-                            msg.feedback === 'down' ? 'text-red-500 bg-red-50 dark:bg-red-950/40 font-bold' : 'text-slate-400 hover:text-slate-600'
+                          className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                            msg.feedback === 'down' ? 'text-rose-500 bg-rose-50 dark:bg-rose-950/40 font-bold' : 'text-slate-400 hover:text-slate-600'
                           }`}
                           title="Chưa hài lòng"
                         >
-                          <ThumbsDown className="w-3 h-3" />
+                          <ThumbsDown className="w-3.5 h-3.5" />
                         </button>
                       </div>
 
@@ -327,9 +327,9 @@ export const InteractiveCompanionChatModal: React.FC<InteractiveCompanionChatMod
                             onNavigateView(msg.actionView!);
                             onClose();
                           }}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-blue-600 dark:text-blue-300 font-bold text-xs transition-colors cursor-pointer shadow-xs"
+                          className="btn-squishy inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-purple-600 dark:text-purple-300 font-extrabold text-xs transition-colors cursor-pointer shadow-xs border border-purple-200/50"
                         >
-                          <span>{msg.actionLabel || 'Xem ngay'}</span>
+                          <span>{msg.actionLabel || 'Xem ngay ✨'}</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </button>
                       )}
@@ -358,9 +358,9 @@ export const InteractiveCompanionChatModal: React.FC<InteractiveCompanionChatMod
         </div>
 
         {/* Quick Contextual Question Pills */}
-        <div className="px-3.5 py-2 border-t border-slate-100 dark:border-slate-800/80 bg-slate-50/80 dark:bg-slate-900/80 overflow-x-auto scrollbar-none flex gap-1.5 items-center">
-          <span className="text-[10px] font-bold text-slate-400 shrink-0 flex items-center gap-1">
-            <Sparkles className="w-3 h-3 text-amber-500" />
+        <div className="px-3.5 py-2.5 border-t border-purple-100/60 dark:border-slate-800/80 bg-white/80 dark:bg-slate-900/80 overflow-x-auto no-scrollbar flex gap-1.5 items-center">
+          <span className="text-[10px] font-black text-purple-600 dark:text-purple-400 shrink-0 flex items-center gap-1">
+            <Sparkles className="w-3.5 h-3.5 text-pink-500 animate-wiggle" />
             Gợi ý:
           </span>
           {screenContext.suggestedQuestions.map((q, idx) => (
@@ -368,7 +368,7 @@ export const InteractiveCompanionChatModal: React.FC<InteractiveCompanionChatMod
               key={idx}
               type="button"
               onClick={() => handleSendMessage(q)}
-              className="text-[11px] px-2.5 py-1 rounded-xl bg-white dark:bg-slate-800 hover:bg-blue-50 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-300 border border-slate-200 dark:border-slate-700/70 whitespace-nowrap transition-colors cursor-pointer shadow-2xs"
+              className="btn-squishy text-[11px] px-3 py-1.5 rounded-2xl bg-purple-50/70 dark:bg-slate-800 hover:bg-purple-100/80 text-purple-700 dark:text-purple-300 border border-purple-100 dark:border-purple-800/70 whitespace-nowrap transition-all cursor-pointer font-bold shadow-2xs"
             >
               {q}
             </button>
@@ -381,23 +381,23 @@ export const InteractiveCompanionChatModal: React.FC<InteractiveCompanionChatMod
             e.preventDefault();
             handleSendMessage();
           }}
-          className="p-3 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center gap-2"
+          className="p-3 sm:p-4 border-t border-purple-100/60 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center gap-2"
         >
           <input
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder={`Hỏi ${character.name} về tính năng app hoặc bài học...`}
-            className="flex-1 px-4 py-2.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+            placeholder={`Hỏi ${character.name} về tính năng app hoặc bài học chill chill ✨...`}
+            className="flex-1 px-4 py-2.5 bg-purple-50/30 dark:bg-slate-800 border border-purple-100 dark:border-purple-800/60 rounded-2xl text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-purple-400 font-medium"
           />
 
           <button
             type="submit"
             disabled={!inputValue.trim() || isTyping}
-            className="p-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-md cursor-pointer shrink-0"
+            className="btn-squishy p-3 rounded-2xl bg-gradient-to-r from-violet-600 to-pink-500 hover:opacity-95 text-white font-extrabold transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-purple-500/25 cursor-pointer shrink-0"
             title="Gửi câu hỏi"
           >
-            <Send className="w-4 h-4" />
+            <Send className="w-4 h-4 stroke-[2.5]" />
           </button>
         </form>
       </div>

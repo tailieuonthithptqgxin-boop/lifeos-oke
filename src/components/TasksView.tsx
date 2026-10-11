@@ -264,29 +264,34 @@ export function TasksView() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{t('Quản lý Công việc')}</h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('Lập kế hoạch, theo dõi tiến độ và tối ưu thời gian thực hiện tác vụ')}</p>
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">{t('Quản lý Công việc')}</h2>
+            <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50">
+              Tasks Pro ✨
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">{t('Lập kế hoạch, theo dõi tiến độ và tối ưu thời gian thực hiện tác vụ')}</p>
         </div>
         <div className="flex items-center gap-3 w-full sm:w-auto">
           <button 
             type="button"
             onClick={openNewTask}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm cursor-pointer"
+            className="btn-squishy flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 hover:from-violet-500 hover:to-pink-400 text-white px-5 py-3 rounded-2xl text-sm font-extrabold transition-all shadow-md shadow-purple-500/25 cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
-            <span>{t('Thêm công việc')}</span>
+            <Plus className="w-4 h-4 stroke-[3]" />
+            <span>{t('Thêm công việc ✨')}</span>
           </button>
         </div>
       </div>
 
       {/* Interactive Dashboard Stats Cards (Clickable to Filter) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <StatCard 
           title={t('Hôm nay')} 
           value={`${counts.completedToday}/${counts.today}`} 
           desc={t('Đã hoàn thành hôm nay')} 
-          bg="bg-blue-50 dark:bg-blue-950/40" 
-          color="text-blue-600 dark:text-blue-400" 
+          bg="bg-gradient-to-br from-violet-500/10 via-purple-500/5 to-pink-500/10 dark:from-violet-950/40 dark:to-purple-950/20" 
+          color="text-purple-600 dark:text-purple-400" 
           active={filterStatus === 'Today'}
           onClick={() => setFilterStatus(filterStatus === 'Today' ? 'All' : 'Today')}
         />
@@ -294,8 +299,8 @@ export function TasksView() {
           title={t('Quá hạn')} 
           value={counts.overdue} 
           desc={t('Cần xử lý khẩn cấp')} 
-          bg="bg-red-50 dark:bg-red-950/40" 
-          color="text-red-600 dark:text-red-400" 
+          bg="bg-gradient-to-br from-rose-500/10 to-pink-500/5 dark:from-rose-950/40 dark:to-pink-950/20" 
+          color="text-rose-600 dark:text-rose-400" 
           active={filterStatus === 'Overdue'}
           onClick={() => setFilterStatus(filterStatus === 'Overdue' ? 'All' : 'Overdue')}
         />
@@ -303,7 +308,7 @@ export function TasksView() {
           title={t('Rủi ro cao')} 
           value={counts.highRisk} 
           desc={t('Hạn chót gấp / Tải lớn')} 
-          bg="bg-amber-50 dark:bg-amber-950/40" 
+          bg="bg-gradient-to-br from-amber-500/10 to-yellow-500/5 dark:from-amber-950/40 dark:to-yellow-950/20" 
           color="text-amber-600 dark:text-amber-400" 
           active={filterStatus === 'HighRisk'}
           onClick={() => setFilterStatus(filterStatus === 'HighRisk' ? 'All' : 'HighRisk')}
@@ -312,7 +317,7 @@ export function TasksView() {
           title={t('Tổng công việc')} 
           value={counts.activeTotal} 
           desc={t('Đang chờ xử lý')} 
-          bg="bg-slate-100 dark:bg-slate-800" 
+          bg="bg-gradient-to-br from-purple-50/50 to-pink-50/30 dark:from-slate-900/80 dark:to-slate-800/80" 
           color="text-slate-700 dark:text-slate-300" 
           active={filterStatus === 'All'}
           onClick={() => setFilterStatus('All')}
@@ -606,15 +611,18 @@ function StatCard({ title, value, desc, bg, color, active, onClick }: any) {
     <button
       type="button"
       onClick={onClick}
-      className={`p-4 rounded-2xl text-left transition-all cursor-pointer ${bg} border ${
+      className={`card-cute btn-squishy p-4 sm:p-5 rounded-3xl text-left transition-all cursor-pointer ${bg} border backdrop-blur-md ${
         active 
-          ? 'ring-2 ring-blue-500 shadow-md border-blue-400 scale-[1.02]' 
-          : 'border-transparent hover:shadow-xs hover:border-slate-200 dark:hover:border-slate-700'
+          ? 'ring-2 ring-purple-500 shadow-lg border-purple-400 scale-[1.02]' 
+          : 'border-purple-100/60 dark:border-purple-900/30 hover:shadow-md'
       }`}
     >
-      <h4 className={`text-xs font-bold mb-1 uppercase tracking-wider ${color}`}>{title}</h4>
+      <div className="flex items-center justify-between mb-1">
+        <h4 className={`text-[11px] font-extrabold uppercase tracking-wider ${color}`}>{title}</h4>
+        <span className="text-xs">✨</span>
+      </div>
       <div className={`text-2xl sm:text-3xl font-black ${color} tracking-tight`}>{value}</div>
-      <p className={`text-[11px] mt-1 opacity-80 ${color} font-medium`}>{desc}</p>
+      <p className={`text-[11px] mt-1 opacity-80 ${color} font-semibold`}>{desc}</p>
     </button>
   );
 }
@@ -622,23 +630,23 @@ function StatCard({ title, value, desc, bg, color, active, onClick }: any) {
 function FilterButton({ active, count, alert, children, onClick }: any) {
   return (
     <button 
-      type="button"
+      type="button" 
       onClick={onClick}
-      className={`px-3 py-1.5 text-xs font-bold rounded-xl whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5
+      className={`btn-squishy px-3.5 py-2 text-xs font-extrabold rounded-2xl whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5
         ${active 
-          ? 'bg-blue-600 text-white shadow-xs' 
+          ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20' 
           : alert
-          ? 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 hover:bg-red-100 dark:hover:bg-red-900/50'
-          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+          ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-900/40'
+          : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/60 dark:hover:bg-slate-800 hover:text-purple-700'}`}
     >
       <span>{children}</span>
       {count !== undefined && (
-        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold transition-colors ${
+        <span className={`text-[10px] px-2 py-0.5 rounded-full font-black transition-colors ${
           active 
             ? 'bg-white/25 text-white' 
             : alert
-            ? 'bg-red-200 dark:bg-red-900 text-red-800 dark:text-red-200'
-            : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+            ? 'bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200'
+            : 'bg-purple-100 dark:bg-slate-800 text-purple-700 dark:text-slate-300'
         }`}>
           {count}
         </span>
@@ -657,8 +665,8 @@ function TaskRow({ task, onEdit, onDelete, onToggleStatus, timerActive, timerSec
   return (
     <div 
       onClick={onEdit}
-      className={`p-4 flex items-center gap-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors group cursor-pointer ${
-        isCompleted ? 'bg-slate-50/40 dark:bg-slate-900/40' : ''
+      className={`p-4 flex items-center gap-3.5 hover:bg-purple-50/30 dark:hover:bg-slate-800/60 transition-all group cursor-pointer ${
+        isCompleted ? 'bg-purple-50/15 dark:bg-slate-900/40 opacity-75' : ''
       }`}
     >
       {/* Checkbox button */}
@@ -668,59 +676,59 @@ function TaskRow({ task, onEdit, onDelete, onToggleStatus, timerActive, timerSec
           e.stopPropagation(); 
           onToggleStatus(); 
         }}
-        className={`w-5 h-5 rounded-lg flex items-center justify-center border transition-all shrink-0 cursor-pointer ${
+        className={`btn-squishy w-6 h-6 rounded-xl flex items-center justify-center border-2 transition-all shrink-0 cursor-pointer ${
           isCompleted 
-            ? 'bg-blue-600 border-blue-600 text-white' 
-            : 'border-slate-300 dark:border-slate-600 text-transparent hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-blue-950/30'
+            ? 'bg-gradient-to-tr from-violet-600 to-pink-500 border-transparent text-white shadow-xs' 
+            : 'border-purple-200 dark:border-slate-600 text-transparent hover:border-purple-500 hover:bg-purple-50/50 dark:hover:bg-purple-950/30'
         }`}
         title={isCompleted ? t('Đánh dấu chưa hoàn thành') : t('Đánh dấu hoàn thành')}
       >
-        <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+        <Check className="w-3.5 h-3.5 stroke-[3]" />
       </button>
       
       {/* Task Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className={`font-semibold text-sm truncate ${isCompleted ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-900 dark:text-white'}`}>
+          <p className={`font-bold text-sm truncate ${isCompleted ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-900 dark:text-white'}`}>
             {t(task.title)}
           </p>
-          {task.priority === 'Nghiêm trọng' && <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0" />}
+          {task.priority === 'Nghiêm trọng' && <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0 animate-wiggle" />}
         </div>
         
         <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs">
           {projectName && (
-            <span className="flex items-center gap-1 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md font-medium">
-              <FolderKanban className="w-3 h-3 text-blue-500" /> {t(projectName)}
+            <span className="flex items-center gap-1 text-purple-700 dark:text-purple-300 bg-purple-100/70 dark:bg-purple-950/50 px-2.5 py-0.5 rounded-full font-bold">
+              <FolderKanban className="w-3 h-3 text-purple-500" /> {t(projectName)}
             </span>
           )}
           {goalTitle && (
-            <span className="flex items-center gap-1 text-purple-600 dark:text-purple-300 bg-purple-50 dark:bg-purple-950/40 px-2 py-0.5 rounded-md font-medium">
-              <Target className="w-3 h-3" /> {t(goalTitle)}
+            <span className="flex items-center gap-1 text-pink-700 dark:text-pink-300 bg-pink-100/70 dark:bg-pink-950/50 px-2.5 py-0.5 rounded-full font-bold">
+              <Target className="w-3 h-3 text-pink-500" /> {t(goalTitle)}
             </span>
           )}
           {task.dueDate && (
-            <span className={`flex items-center gap-1 font-medium ${
+            <span className={`flex items-center gap-1 font-bold ${
               isOverdue 
-                ? 'text-red-600 font-bold bg-red-50 dark:bg-red-950/40 px-2 py-0.5 rounded-md border border-red-200 dark:border-red-900/50' 
-                : 'text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/80 px-2 py-0.5 rounded-md'
+                ? 'text-rose-600 font-extrabold bg-rose-50 dark:bg-rose-950/40 px-2.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-900/50' 
+                : 'text-slate-500 dark:text-slate-400 bg-purple-50/50 dark:bg-slate-800/80 px-2.5 py-0.5 rounded-full border border-purple-100/40 dark:border-purple-900/30'
             }`}>
               <CalendarIcon className="w-3 h-3" /> {formatDate(task.dueDate)}
             </span>
           )}
-          <span className={`px-2 py-0.5 rounded-md text-[11px] font-bold ${
+          <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black ${
             task.priority === 'Nghiêm trọng' 
-              ? 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300' 
+              ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200' 
               : task.priority === 'Cao' 
-              ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300' 
+              ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200' 
               : task.priority === 'Trung bình' 
-              ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300' 
+              ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200' 
               : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
           }`}>
             {t(task.priority || 'Trung bình')}
           </span>
           {(task.estimatedHours || task.actualHours) && (
-            <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
-              <Clock className="w-3 h-3" /> {task.actualHours || 0}h / {task.estimatedHours || 1}h
+            <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-semibold">
+              <Clock className="w-3 h-3 text-purple-400" /> {task.actualHours || 0}h / {task.estimatedHours || 1}h
             </span>
           )}
           
@@ -732,10 +740,10 @@ function TaskRow({ task, onEdit, onDelete, onToggleStatus, timerActive, timerSec
                 e.stopPropagation();
                 if (onTagClick) onTagClick(tag);
               }}
-              className="inline-flex items-center gap-0.5 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/60 px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+              className="inline-flex items-center gap-0.5 text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50 hover:bg-purple-100 dark:hover:bg-purple-900/60 px-2 py-0.5 rounded-full font-bold cursor-pointer transition-colors"
               title={`${t('Lọc theo thẻ')} #${tag}`}
             >
-              <Tag className="w-2.5 h-2.5" /> #{tag}
+              <Tag className="w-2.5 h-2.5 text-purple-400" /> #{tag}
             </span>
           ))}
         </div>
@@ -792,10 +800,10 @@ function KanbanColumn({ title, status, tasks, onEdit, onDropTask, onTagClick, on
   
   return (
     <div 
-      className={`flex-1 min-w-[280px] flex flex-col rounded-2xl border transition-colors overflow-hidden ${
+      className={`flex-1 min-w-[280px] flex flex-col rounded-3xl border transition-all overflow-hidden ${
         isDragOver 
-          ? "bg-blue-50/50 border-blue-400 border-dashed" 
-          : "bg-slate-50/50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-800"
+          ? "bg-purple-50/60 border-purple-400 border-dashed ring-2 ring-purple-300" 
+          : "bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border-purple-100/80 dark:border-purple-900/40 shadow-xs"
       }`}
       onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
       onDragLeave={() => setIsDragOver(false)}
@@ -806,19 +814,19 @@ function KanbanColumn({ title, status, tasks, onEdit, onDropTask, onTagClick, on
         if (taskId && onDropTask) onDropTask(taskId, status);
       }}
     >
-      <div className="p-3.5 border-b border-slate-200 dark:border-slate-800 bg-slate-100/70 dark:bg-slate-800/80 flex justify-between items-center">
-        <h3 className="font-bold text-slate-700 dark:text-slate-300 text-sm flex items-center gap-2">
+      <div className="p-4 border-b border-purple-100/60 dark:border-slate-800 bg-purple-50/40 dark:bg-purple-950/20 flex justify-between items-center">
+        <h3 className="font-extrabold text-slate-800 dark:text-slate-200 text-sm flex items-center gap-2">
           <span>{title}</span>
-          <span className="bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded-full text-xs font-bold">
+          <span className="bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 px-2.5 py-0.5 rounded-full text-xs font-black">
             {colTasks.length}
           </span>
         </h3>
       </div>
 
-      <div className="p-3 flex-1 overflow-y-auto space-y-2.5">
+      <div className="p-3 flex-1 overflow-y-auto space-y-3">
         {colTasks.length === 0 && (
-          <div className="py-8 text-center text-xs text-slate-400">
-            {t('Kéo thả hoặc thêm việc vào đây')}
+          <div className="py-10 text-center text-xs text-slate-400 font-medium">
+            🌸 {t('Kéo thả hoặc thêm việc vào đây')}
           </div>
         )}
         {colTasks.map((task: any) => (
@@ -827,18 +835,18 @@ function KanbanColumn({ title, status, tasks, onEdit, onDropTask, onTagClick, on
             draggable
             onDragStart={(e) => e.dataTransfer.setData("taskId", task.id)} 
             onClick={() => onEdit(task)}
-            className="bg-white dark:bg-slate-900 p-3.5 rounded-xl shadow-xs border border-slate-200 dark:border-slate-800 cursor-grab active:cursor-grabbing hover:border-blue-400 dark:hover:border-blue-500 transition-all group"
+            className="card-cute bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-xs border border-purple-100/70 dark:border-purple-900/40 cursor-grab active:cursor-grabbing hover:border-purple-400 transition-all group"
           >
             <div className="flex items-start justify-between gap-2 mb-2">
-              <h4 className={`text-sm font-semibold leading-snug ${
-                task.status === 'Hoàn thành' || task.status === 'Done' ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-800 dark:text-slate-200'
+              <h4 className={`text-sm font-bold leading-snug ${
+                task.status === 'Hoàn thành' || task.status === 'Done' ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-900 dark:text-white'
               }`}>
                 {t(task.title)}
               </h4>
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
-                className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-red-500 rounded transition-opacity"
+                className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-rose-500 rounded-xl transition-all hover:bg-rose-50 dark:hover:bg-rose-950/40"
                 title={t('Xóa nhanh')}
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -846,26 +854,26 @@ function KanbanColumn({ title, status, tasks, onEdit, onDropTask, onTagClick, on
             </div>
 
             <div className="flex flex-wrap gap-1.5 mt-2.5 text-xs">
-              <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold ${
+              <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-black ${
                 task.priority === 'Nghiêm trọng' 
-                  ? 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-300' 
+                  ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200' 
                   : task.priority === 'Cao'
-                  ? 'bg-orange-100 text-orange-700 dark:bg-orange-950/60 dark:text-orange-300'
-                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200'
+                  : 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
               }`}>
                 {t(task.priority || 'Trung bình')}
               </span>
 
               {task.dueDate && (
-                <span className="text-[10px] flex items-center gap-1 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-100 dark:border-slate-700">
-                  <CalendarIcon className="w-3 h-3" /> {formatDate(task.dueDate)}
+                <span className="text-[10px] font-bold flex items-center gap-1 text-slate-500 dark:text-slate-400 bg-purple-50/50 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-purple-100/40 dark:border-purple-900/30">
+                  <CalendarIcon className="w-3 h-3 text-purple-400" /> {formatDate(task.dueDate)}
                 </span>
               )}
             </div>
 
             {/* Tags in Kanban card */}
             {Array.isArray(task.tags) && task.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex flex-wrap gap-1 mt-2.5 pt-2 border-t border-purple-100/40 dark:border-purple-900/30">
                 {task.tags.map((tag: string, i: number) => (
                   <span 
                     key={i}
@@ -873,7 +881,7 @@ function KanbanColumn({ title, status, tasks, onEdit, onDropTask, onTagClick, on
                       e.stopPropagation();
                       if (onTagClick) onTagClick(tag);
                     }}
-                    className="text-[10px] inline-flex items-center gap-0.5 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/60 px-1.5 py-0.5 rounded cursor-pointer transition-colors"
+                    className="text-[10px] inline-flex items-center gap-0.5 text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 px-2 py-0.5 rounded-full font-bold cursor-pointer transition-colors"
                     title={`${t('Lọc theo thẻ')} #${tag}`}
                   >
                     #{tag}

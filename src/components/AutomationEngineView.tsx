@@ -696,69 +696,69 @@ export function AutomationEngineView() {
           <div className="space-y-6">
             {/* KPI METRICS */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl relative overflow-hidden shadow-sm">
+              <div className="card-cute bg-white/90 dark:bg-slate-900/90 border border-purple-100/70 dark:border-slate-800 p-5 rounded-3xl relative overflow-hidden shadow-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-400">Tổng số Luật Tự động</span>
-                  <div className="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg">
-                    <Workflow className="w-5 h-5" />
+                  <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Tổng số Luật Tự động</span>
+                  <div className="p-2 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-500 rounded-xl">
+                    <Workflow className="w-5 h-5 stroke-[2.2]" />
                   </div>
                 </div>
                 <div className="mt-3 flex items-baseline justify-between">
-                  <span className="text-2xl font-bold text-white">{totalRulesCount}</span>
-                  <span className="text-xs font-medium text-emerald-400 flex items-center gap-1">
+                  <span className="text-2xl font-black text-slate-900 dark:text-white">{totalRulesCount}</span>
+                  <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" /> {activeRulesCount} Bật ({Math.round((activeRulesCount / (totalRulesCount || 1)) * 100)}%)
                   </span>
                 </div>
-                <div className="mt-2 text-[11px] text-slate-500">
+                <div className="mt-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
                   {disabledRulesCount} luật đang tạm tắt
                 </div>
               </div>
 
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl relative overflow-hidden shadow-sm">
+              <div className="card-cute bg-white/90 dark:bg-slate-900/90 border border-purple-100/70 dark:border-slate-800 p-5 rounded-3xl relative overflow-hidden shadow-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-400">Số lượt Chạy Hôm nay</span>
-                  <div className="p-2 bg-blue-500/10 text-blue-400 rounded-lg">
-                    <Zap className="w-5 h-5" />
+                  <span className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider">Số lượt Chạy Hôm nay</span>
+                  <div className="p-2 bg-blue-50 dark:bg-blue-950/50 text-blue-500 rounded-xl">
+                    <Zap className="w-5 h-5 stroke-[2.2]" />
                   </div>
                 </div>
                 <div className="mt-3 flex items-baseline justify-between">
-                  <span className="text-2xl font-bold text-white">{totalExecutionsToday}</span>
-                  <span className="text-xs font-medium text-blue-400">100% Thành công</span>
+                  <span className="text-2xl font-black text-slate-900 dark:text-white">{totalExecutionsToday}</span>
+                  <span className="text-xs font-black text-blue-600 dark:text-blue-400">100% Thành công</span>
                 </div>
-                <div className="mt-2 text-[11px] text-slate-500">
-                  Tự động xử lý trong 24h qua
+                <div className="mt-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                  Tự động xử lý trong 24h qua ⚡
                 </div>
               </div>
 
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl relative overflow-hidden shadow-sm">
+              <div className="card-cute bg-white/90 dark:bg-slate-900/90 border border-purple-100/70 dark:border-slate-800 p-5 rounded-3xl relative overflow-hidden shadow-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-400">Yêu cầu Duyệt Level 3</span>
-                  <div className="p-2 bg-rose-500/10 text-rose-400 rounded-lg">
-                    <ShieldAlert className="w-5 h-5" />
+                  <span className="text-xs font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider">Yêu cầu Duyệt Level 3</span>
+                  <div className="p-2 bg-rose-50 dark:bg-rose-950/50 text-rose-500 rounded-xl">
+                    <ShieldAlert className="w-5 h-5 stroke-[2.2]" />
                   </div>
                 </div>
                 <div className="mt-3 flex items-baseline justify-between">
-                  <span className="text-2xl font-bold text-white">{pendingApprovalsCount}</span>
-                  <span className="text-xs font-medium text-rose-400 font-semibold">Chờ người dùng</span>
+                  <span className="text-2xl font-black text-slate-900 dark:text-white">{pendingApprovalsCount}</span>
+                  <span className="text-xs font-black text-rose-600 dark:text-rose-400">Chờ người dùng</span>
                 </div>
-                <div className="mt-2 text-[11px] text-slate-500">
-                  Bảo vệ khoản chi & tác vụ nhạy cảm
+                <div className="mt-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                  Bảo vệ khoản chi & tác vụ nhạy cảm 🛡️
                 </div>
               </div>
 
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl relative overflow-hidden shadow-sm">
+              <div className="card-cute bg-white/90 dark:bg-slate-900/90 border border-purple-100/70 dark:border-slate-800 p-5 rounded-3xl relative overflow-hidden shadow-xs">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-medium text-slate-400">Ước tính Tiết kiệm</span>
-                  <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg">
-                    <Clock className="w-5 h-5" />
+                  <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Ước tính Tiết kiệm</span>
+                  <div className="p-2 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-500 rounded-xl">
+                    <Clock className="w-5 h-5 stroke-[2.2]" />
                   </div>
                 </div>
                 <div className="mt-3 flex items-baseline justify-between">
-                  <span className="text-2xl font-bold text-white">{(totalTimeSavedMinutes / 60).toFixed(1)} giờ</span>
-                  <span className="text-xs font-medium text-emerald-400">+{totalTimeSavedMinutes} phút</span>
+                  <span className="text-2xl font-black text-slate-900 dark:text-white">{(totalTimeSavedMinutes / 60).toFixed(1)} giờ</span>
+                  <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">+{totalTimeSavedMinutes} phút</span>
                 </div>
-                <div className="mt-2 text-[11px] text-slate-500">
-                  Thời gian thao tác thủ công giảm bớt
+                <div className="mt-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                  Thời gian thao tác thủ công giảm bớt ✨
                 </div>
               </div>
             </div>

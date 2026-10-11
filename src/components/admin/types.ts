@@ -6,7 +6,9 @@ export type AdminTab =
   | 'bank_config' 
   | 'storage' 
   | 'custom_modules' 
-  | 'gmail_config';
+  | 'gmail_config'
+  | 'referrals'
+  | 'feedback';
 
 export interface ManagedUser {
   id: string;

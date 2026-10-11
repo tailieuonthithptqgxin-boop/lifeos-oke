@@ -76,64 +76,69 @@ export function ProjectsView() {
   });
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Quản trị Dự án</h2>
-          <p className="text-sm text-slate-500">
-            Theo dõi tiến độ, sức khỏe và ngân sách các mục tiêu lớn
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Quản trị Dự án</h2>
+            <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50">
+              Projects Hub 🎯
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
+            Theo dõi tiến độ, sức khỏe và ngân sách các mục tiêu lớn chill chill ✨
           </p>
         </div>
         <button
           id="btn-add-project"
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl flex items-center gap-2 shadow-xs transition-colors self-start sm:self-auto cursor-pointer"
+          className="btn-squishy px-5 py-3 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 hover:from-violet-500 hover:to-pink-400 text-white text-sm font-extrabold rounded-2xl flex items-center gap-2 shadow-md shadow-purple-500/25 transition-all self-start sm:self-auto cursor-pointer"
         >
-          <Plus className="w-4 h-4" /> Thêm Dự án
+          <Plus className="w-4 h-4 stroke-[3]" /> Thêm Dự án 🚀
         </button>
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
         {['All', 'Đang làm', 'Hoàn thành', 'Tạm dừng'].map(tab => (
           <button
             key={tab}
             onClick={() => setFilter(tab)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+            className={`btn-squishy px-4 py-2 rounded-2xl text-xs font-extrabold transition-all cursor-pointer ${
               filter === tab
-                ? 'bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400'
-                : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+                ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700 dark:hover:text-purple-300'
             }`}
           >
-            {tab === 'All' ? 'Tất cả' : tab}
+            {tab === 'All' ? 'Tất cả ✨' : tab}
           </button>
         ))}
       </div>
 
       {/* Projects Grid */}
       {filteredProjects.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center">
-          <FolderKanban className="w-10 h-10 text-slate-400 mx-auto mb-3" />
-          <h3 className="font-semibold text-slate-900 dark:text-white">Chưa có dự án nào</h3>
-          <p className="text-xs text-slate-500 mt-1">Bấm nút "Thêm Dự án" để khởi tạo dự án đầu tiên.</p>
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-3xl border border-purple-100/70 dark:border-purple-900/40 p-12 text-center">
+          <FolderKanban className="w-12 h-12 text-purple-300 dark:text-purple-600 mx-auto mb-3 animate-wiggle" />
+          <h3 className="font-extrabold text-slate-900 dark:text-white">Chưa có dự án nào 🌸</h3>
+          <p className="text-xs text-slate-500 mt-1 font-medium">Bấm nút "Thêm Dự án 🚀" để khởi tạo dự án đầu tiên của bạn nhé!</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredProjects.map((project: Project) => (
             <div
               key={project.id}
-              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4 hover:shadow-xs transition-shadow"
+              className="card-cute bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-purple-100/80 dark:border-purple-900/40 rounded-3xl p-5 space-y-4 hover:shadow-md transition-all"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
                   <span
-                    className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-semibold ${
+                    className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black ${
                       project.health === 'Tốt'
-                        ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400'
+                        ? 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200'
                         : project.health === 'Rủi ro'
-                        ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400'
-                        : 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400'
+                        ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200'
+                        : 'bg-rose-100 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200'
                     }`}
                   >
                     Sức khỏe: {project.health || 'Tốt'}
@@ -145,7 +150,7 @@ export function ProjectsView() {
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setEditingProject(project)}
-                    className="text-slate-400 hover:text-blue-500 p-1 transition-colors cursor-pointer"
+                    className="text-slate-400 hover:text-purple-600 p-1.5 transition-colors cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-950/40 rounded-xl"
                     title="Chỉnh sửa dự án"
                   >
                     <Edit2 className="w-4 h-4" />
@@ -156,7 +161,7 @@ export function ProjectsView() {
                         deleteProject(project.id);
                       }
                     }}
-                    className="text-slate-400 hover:text-rose-500 p-1 transition-colors cursor-pointer"
+                    className="text-slate-400 hover:text-rose-500 p-1.5 transition-colors cursor-pointer hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl"
                     title="Xóa dự án"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -165,7 +170,7 @@ export function ProjectsView() {
               </div>
 
               {project.description && (
-                <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed font-medium">
                   {project.description}
                 </p>
               )}
@@ -173,12 +178,12 @@ export function ProjectsView() {
               {/* Progress bar */}
               <div className="space-y-1.5">
                 <div className="flex justify-between text-xs">
-                  <span className="text-slate-500 font-medium">Tiến độ</span>
-                  <span className="font-bold text-slate-900 dark:text-white">{project.progress || 0}%</span>
+                  <span className="text-purple-600 dark:text-purple-400 font-bold">Tiến độ</span>
+                  <span className="font-extrabold text-slate-900 dark:text-white">{project.progress || 0}%</span>
                 </div>
-                <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div className="w-full h-2.5 bg-purple-50 dark:bg-slate-800 rounded-full overflow-hidden p-0.5 border border-purple-100/50 dark:border-purple-950">
                   <div
-                    className="h-full bg-blue-600 rounded-full transition-all duration-300"
+                    className="h-full bg-gradient-to-r from-violet-500 to-pink-500 rounded-full transition-all duration-500"
                     style={{ width: `${Math.min(100, Math.max(0, project.progress || 0))}%` }}
                   />
                 </div>

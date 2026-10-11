@@ -40,13 +40,13 @@ export function TopBar() {
   const inboxCount = inbox?.length || 0;
 
   return (
-    <header className="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between px-3 sm:px-5 md:px-6 shrink-0 z-[100] transition-colors">
+    <header className="h-18 bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl border-b border-purple-100/60 dark:border-purple-900/30 flex items-center justify-between px-3.5 sm:px-5 md:px-6 shrink-0 z-[100] transition-colors">
       {/* Mobile Menu Toggle */}
       <button 
         type="button" 
         onClick={toggleMobileMenu} 
         aria-label="Mở danh mục điều hướng"
-        className="md:hidden p-2 mr-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors shrink-0"
+        className="md:hidden p-2.5 mr-2 text-slate-600 dark:text-slate-300 hover:bg-violet-50 dark:hover:bg-purple-950/40 rounded-2xl transition-all shrink-0 btn-squishy"
       >
         <Menu className="w-5 h-5" />
       </button>
@@ -56,14 +56,14 @@ export function TopBar() {
         <button 
           type="button" 
           onClick={toggleCommand}
-          className="w-full relative flex items-center text-left pl-9 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 rounded-full text-xs sm:text-sm text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:border-blue-400 transition-all group"
+          className="w-full relative flex items-center text-left pl-9 sm:pl-10 pr-24 py-2 sm:py-2.5 bg-violet-50/50 dark:bg-slate-800/60 border border-purple-150/60 dark:border-purple-800/40 rounded-full text-xs sm:text-sm text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:border-pink-300 dark:hover:border-purple-500 hover:shadow-xs transition-all group btn-squishy"
         >
-          <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-blue-500 transition-colors shrink-0" />
-          <span className="truncate">{t('Tìm kiếm nhanh hoặc mở Command Center (Ctrl+K)...')}</span>
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 opacity-70">
-            <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-semibold text-slate-500">Ctrl</kbd>
-            <span className="text-slate-400 text-xs">+</span>
-            <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-semibold text-slate-500">K</kbd>
+          <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-400 group-hover:text-pink-500 transition-colors shrink-0" />
+          <span className="truncate max-w-[calc(100%-1rem)] font-medium">{t('Tìm kiếm nhanh hoặc mở Command Center...')}</span>
+          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 opacity-80 pointer-events-none">
+            <kbd className="px-2 py-0.5 bg-white dark:bg-slate-900 border border-purple-200/60 dark:border-purple-800/60 rounded-lg text-[10px] font-black text-purple-700 dark:text-purple-300 shadow-2xs">Ctrl</kbd>
+            <span className="text-purple-400 text-xs font-bold">+</span>
+            <kbd className="px-2 py-0.5 bg-white dark:bg-slate-900 border border-purple-200/60 dark:border-purple-800/60 rounded-lg text-[10px] font-black text-purple-700 dark:text-purple-300 shadow-2xs">K</kbd>
           </div>
         </button>
       </div>
@@ -76,11 +76,11 @@ export function TopBar() {
           type="button"
           onClick={() => setCurrentView('dashboard')}
           title={`Chuỗi kỷ luật: ${retentionProfile.streak} ngày. Level ${retentionProfile.level}: ${retentionProfile.levelTitle}`}
-          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 font-extrabold text-xs shadow-2xs hover:scale-105 active:scale-95 transition-all cursor-pointer"
+          className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500/15 to-orange-500/15 border border-amber-400/30 text-amber-600 dark:text-amber-400 font-black text-xs shadow-2xs hover:scale-105 active:scale-95 transition-all cursor-pointer"
         >
-          <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500 animate-pulse" />
+          <Flame className="w-4 h-4 fill-amber-500 text-amber-500 animate-pulse" />
           <span>{retentionProfile.streak} ngày</span>
-          <span className="text-[10px] text-amber-500/70 dark:text-amber-400/70 border-l border-amber-500/20 pl-1.5 font-bold">
+          <span className="text-[10px] text-amber-500/80 dark:text-amber-400/80 border-l border-amber-500/20 pl-1.5 font-bold">
             Lv.{retentionProfile.level}
           </span>
         </button>
@@ -94,9 +94,9 @@ export function TopBar() {
               setShowNotifications(false);
               setShowUserMenu(false);
             }}
-            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-xs cursor-pointer"
+            className="flex items-center gap-1.5 bg-gradient-to-r from-violet-600 via-pink-500 to-rose-400 hover:from-violet-500 hover:to-pink-500 text-white px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all shadow-md shadow-pink-500/25 cursor-pointer btn-squishy"
           >
-            {!hasSubAccess ? <Lock className="w-3.5 h-3.5 text-amber-300" /> : <Plus className="w-4 h-4" />}
+            {!hasSubAccess ? <Lock className="w-3.5 h-3.5 text-amber-200" /> : <Plus className="w-4 h-4 stroke-[2.5]" />}
             <span className="hidden sm:inline">{t('Tạo mới')}</span>
           </button>
 
@@ -196,14 +196,14 @@ export function TopBar() {
         <button
           type="button"
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+          className="p-2.5 text-slate-500 hover:text-violet-600 dark:hover:text-violet-300 hover:bg-violet-50 dark:hover:bg-purple-950/40 rounded-2xl transition-all cursor-pointer btn-squishy"
           title={theme === 'dark' ? 'Chuyển sang chế độ Sáng' : 'Chuyển sang chế độ Tối'}
           aria-label="Chuyển chế độ giao diện"
         >
           {theme === 'dark' ? (
-            <Sun className="w-5 h-5 text-amber-400" />
+            <Sun className="w-5 h-5 text-amber-400 animate-pulse-soft" />
           ) : (
-            <Moon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+            <Moon className="w-5 h-5 text-violet-600" />
           )}
         </button>
 
@@ -216,41 +216,44 @@ export function TopBar() {
               setShowCreateMenu(false); 
               setShowUserMenu(false);
             }} 
-            className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors relative"
+            className="p-2.5 text-slate-500 hover:text-pink-600 dark:hover:text-pink-300 hover:bg-pink-50 dark:hover:bg-pink-950/40 rounded-2xl transition-all relative btn-squishy"
             aria-label="Thông báo"
           >
             <Bell className="w-5 h-5" />
             {unreadCount > 0 && (
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-rose-500 rounded-full ring-2 ring-white dark:ring-slate-900"></span>
+              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full ring-2 ring-white dark:ring-slate-900 animate-pulse"></span>
             )}
           </button>
           
           {showNotifications && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)}></div>
-              <div className="absolute top-full right-0 mt-2 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40">
-                  <h3 className="font-bold text-xs text-slate-800 dark:text-slate-200 uppercase tracking-wider">{t('Thông báo')} ({unreadCount})</h3>
+              <div className="absolute top-full right-0 mt-2 w-80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-purple-100 dark:border-purple-900/50 rounded-3xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-purple-100/60 dark:border-purple-900/40 bg-gradient-to-r from-violet-500/10 to-pink-500/10">
+                  <h3 className="font-black text-xs text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-1.5">
+                    <span>🔔</span>
+                    <span>{t('Thông báo')} ({unreadCount})</span>
+                  </h3>
                   {unreadCount > 0 && (
-                    <button type="button" onClick={clearAllNotifications} className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                    <button type="button" onClick={clearAllNotifications} className="text-xs text-purple-600 dark:text-purple-400 hover:underline font-bold">
                       {t('Đã đọc tất cả')}
                     </button>
                   )}
                 </div>
-                <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+                <div className="max-h-80 overflow-y-auto divide-y divide-purple-50 dark:divide-purple-900/30">
                   {!notifications || notifications.length === 0 ? (
-                    <div className="p-6 text-center text-xs text-slate-500">{t('Bạn đã xem hết mọi thông báo.')}</div>
+                    <div className="p-6 text-center text-xs text-slate-400 font-medium">✨ {t('Bạn đã xem hết mọi thông báo.')}</div>
                   ) : (
                     notifications.map((notif: any) => (
                       <div 
                         key={notif.id} 
-                        className={`p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors ${notif.read ? 'opacity-60' : 'bg-blue-50/20'}`} 
+                        className={`p-3.5 hover:bg-pink-50/50 dark:hover:bg-purple-950/30 cursor-pointer transition-colors ${notif.read ? 'opacity-60' : 'bg-pink-50/20'}`} 
                         onClick={() => markNotificationRead(notif.id)}
                       >
                         <div className="flex items-start gap-2.5">
-                          <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${notif.read ? 'bg-slate-300' : 'bg-blue-500'}`}></div>
+                          <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${notif.read ? 'bg-slate-300' : 'bg-pink-500 ring-2 ring-pink-300/50'}`}></div>
                           <div className="min-w-0">
-                            <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate">{notif.title}</p>
+                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{notif.title}</p>
                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{notif.message || notif.content || ''}</p>
                           </div>
                         </div>
@@ -272,17 +275,17 @@ export function TopBar() {
               setShowNotifications(false);
               setShowCreateMenu(false);
             }}
-            className="flex items-center gap-2 p-1 pl-1.5 sm:pr-2.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 transition-colors"
+            className="flex items-center gap-2 p-1 pl-1.5 sm:pr-3 rounded-full hover:bg-violet-50 dark:hover:bg-purple-950/40 border border-purple-200/60 dark:border-purple-800/50 transition-all btn-squishy"
           >
             <img 
               src={currentUser?.avatar || 'https://ui-avatars.com/api/?name=User&background=random'} 
               alt="Avatar" 
-              className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 object-cover" 
+              className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 object-cover ring-2 ring-pink-400/40" 
             />
-            <span className="hidden sm:inline text-xs font-semibold text-slate-700 dark:text-slate-200 max-w-[100px] truncate">
+            <span className="hidden sm:inline text-xs font-black text-slate-700 dark:text-slate-200 max-w-[100px] truncate">
               {currentUser?.name?.split(' ')[0] || t('Tài khoản')}
             </span>
-            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+            <ChevronDown className="w-3.5 h-3.5 text-purple-400" />
           </button>
 
           {showUserMenu && (

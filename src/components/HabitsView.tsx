@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Activity, Plus, Flame, Check, Trash2 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { Habit } from '../lib/types';
+import { soundEngine } from '../lib/soundEngine';
+import { triggerConfetti } from '../lib/confetti';
 
 export function HabitsView() {
   const { habits, addHabit, toggleHabit, deleteHabit } = useAppStore();
@@ -44,30 +46,35 @@ export function HabitsView() {
   };
 
   return (
-    <div className="p-6 max-w-5xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Theo dõi Thói quen</h2>
-          <p className="text-sm text-slate-500">
-            Xây dựng tính kỷ luật hàng ngày thông qua chuỗi streak nhất quán
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Theo dõi Thói quen</h2>
+            <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/50">
+              Habits Streak 🌱
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
+            Xây dựng tính kỷ luật hàng ngày thông qua chuỗi streak nhất quán chill chill 🌸
           </p>
         </div>
         <button
           id="btn-add-habit"
           onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl flex items-center gap-2 shadow-xs transition-colors self-start sm:self-auto"
+          className="btn-squishy px-5 py-3 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 hover:from-violet-500 hover:to-pink-400 text-white text-sm font-extrabold rounded-2xl flex items-center gap-2 shadow-md shadow-purple-500/25 transition-all self-start sm:self-auto cursor-pointer"
         >
-          <Plus className="w-4 h-4" /> Thêm Thói quen
+          <Plus className="w-4 h-4 stroke-[3]" /> Thêm Thói quen 🌱
         </button>
       </div>
 
       {/* Habits List */}
       {(habits || []).length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center">
-          <Activity className="w-10 h-10 text-slate-400 mx-auto mb-3" />
-          <h3 className="font-semibold text-slate-900 dark:text-white">Chưa có thói quen nào</h3>
-          <p className="text-xs text-slate-500 mt-1">Bấm nút "Thêm Thói quen" để bắt đầu theo dõi.</p>
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-3xl border border-purple-100/70 dark:border-purple-900/40 p-12 text-center">
+          <Activity className="w-12 h-12 text-purple-300 dark:text-purple-600 mx-auto mb-3 animate-wiggle" />
+          <h3 className="font-extrabold text-slate-900 dark:text-white">Chưa có thói quen nào 🌸</h3>
+          <p className="text-xs text-slate-500 mt-1 font-medium">Bấm nút "Thêm Thói quen 🌱" để bắt đầu theo dõi streak ngay hôm nay!</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -76,26 +83,38 @@ export function HabitsView() {
             return (
               <div
                 key={habit.id}
-                className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${
+                className={`card-cute flex items-center justify-between p-4 sm:p-5 rounded-3xl border transition-all ${
                   completed
-                    ? 'bg-emerald-50/50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/60'
-                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+                    ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/60 shadow-xs'
+                    : 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-purple-100/80 dark:border-purple-900/40 shadow-xs'
                 }`}
               >
                 <div className="flex items-center gap-4 min-w-0">
                   <button
-                    onClick={() => toggleHabit && toggleHabit(habit.id)}
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${
+                    type="button"
+                    onClick={() => {
+                      if (toggleHabit) toggleHabit(habit.id);
+                      if (!completed) {
+                        soundEngine.playPop();
+                        const otherIncomplete = habits.filter(h => h.id !== habit.id && !isCompletedToday(h));
+                        if (otherIncomplete.length === 0) {
+                          triggerConfetti();
+                          soundEngine.playCelebration();
+                          soundEngine.speak('Tuyệt vời quá! Bạn đã hoàn thành tất cả thói quen hôm nay rồi nè!');
+                        }
+                      }
+                    }}
+                    className={`btn-squishy w-10 h-10 rounded-2xl flex items-center justify-center transition-all cursor-pointer ${
                       completed
-                        ? 'bg-emerald-500 text-white shadow-xs'
-                        : 'border-2 border-slate-300 dark:border-slate-700 hover:border-blue-500'
+                        ? 'bg-gradient-to-tr from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/25'
+                        : 'border-2 border-purple-200 dark:border-slate-700 hover:border-purple-400 bg-purple-50/30 dark:bg-slate-800/50'
                     }`}
                   >
-                    {completed && <Check className="w-5 h-5 stroke-[2.5]" />}
+                    {completed && <Check className="w-5 h-5 stroke-[3]" />}
                   </button>
                   <div className="min-w-0">
                     <h4
-                      className={`font-semibold text-sm truncate ${
+                      className={`font-bold text-sm sm:text-base truncate ${
                         completed
                           ? 'line-through text-slate-400 dark:text-slate-500'
                           : 'text-slate-900 dark:text-white'
@@ -103,19 +122,21 @@ export function HabitsView() {
                     >
                       {habit.name}
                     </h4>
-                    <span className="text-[11px] text-slate-400">{habit.category || 'Personal'}</span>
+                    <span className="text-[11px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-100/70 dark:bg-purple-950/60 px-2 py-0.5 rounded-full inline-block mt-0.5">
+                      {habit.category || 'Personal'}
+                    </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 shrink-0">
-                  <div className="flex items-center gap-1.5 text-xs font-bold text-amber-500 bg-amber-50 dark:bg-amber-950/50 px-2.5 py-1 rounded-lg">
-                    <Flame className="w-4 h-4 fill-amber-500" />
-                    <span>{habit.streak || 0} ngày</span>
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="flex items-center gap-1.5 text-xs font-black text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-950/60 px-3 py-1.5 rounded-full border border-amber-200/60 dark:border-amber-800/60 shadow-xs">
+                    <Flame className="w-4 h-4 fill-amber-500 text-amber-500 animate-wiggle" />
+                    <span>{habit.streak || 0} ngày 🔥</span>
                   </div>
                   <button
                     onClick={() => deleteHabit && deleteHabit(habit.id)}
-                    className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors"
-                    title="Xóa"
+                    className="p-2 text-slate-400 hover:text-rose-500 transition-colors rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+                    title="Xóa thói quen"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -128,51 +149,51 @@ export function HabitsView() {
 
       {/* Add Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-sm w-full p-6 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">Thói Quen Mới</h3>
+        <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 border border-purple-100 dark:border-purple-900 shadow-2xl space-y-4 animate-in fade-in zoom-in-95">
+            <h3 className="text-lg font-black text-slate-900 dark:text-white">Thói Quen Mới 🌱</h3>
             <form onSubmit={handleAdd} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-extrabold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-1">
                   Tên thói quen *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Ví dụ: Tập thể dục 30 phút"
+                  placeholder="Ví dụ: Đọc sách 20 trang ✨"
                   value={newHabitName}
                   onChange={e => setNewHabitName(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-2xl border border-purple-100 dark:border-purple-900/50 bg-purple-50/30 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-purple-400"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                <label className="block text-xs font-extrabold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-1">
                   Phân loại
                 </label>
                 <select
                   value={newHabitCategory}
                   onChange={e => setNewHabitCategory(e.target.value)}
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
+                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-2xl border border-purple-100 dark:border-purple-900/50 bg-purple-50/30 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-purple-400 cursor-pointer"
                 >
-                  <option value="Personal">Cá nhân</option>
-                  <option value="Work">Công việc</option>
-                  <option value="Health">Sức khỏe</option>
-                  <option value="Study">Học tập</option>
+                  <option value="Personal">Cá nhân 🌸</option>
+                  <option value="Work">Công việc 💼</option>
+                  <option value="Health">Sức khỏe 🏃</option>
+                  <option value="Study">Học tập 📚</option>
                 </select>
               </div>
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl"
+                  className="btn-squishy px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
+                  className="btn-squishy px-5 py-2.5 text-xs font-extrabold bg-gradient-to-r from-violet-600 to-pink-500 hover:opacity-95 text-white rounded-2xl shadow-md shadow-purple-500/25 cursor-pointer"
                 >
-                  Khởi tạo
+                  Khởi tạo ✨
                 </button>
               </div>
             </form>

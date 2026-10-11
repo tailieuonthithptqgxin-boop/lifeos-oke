@@ -11,6 +11,7 @@ import {
   Mail,
   CheckCircle2,
   AlertCircle,
+  MessageSquare,
   X
 } from 'lucide-react';
 import { apiCall } from '../lib/apiClient';
@@ -34,6 +35,8 @@ import { AdminLanguagesTab } from './admin/AdminLanguagesTab';
 import { AdminUsersTab } from './admin/AdminUsersTab';
 import { AdminBankConfigTab } from './admin/AdminBankConfigTab';
 import { AdminGmailConfigTab } from './admin/AdminGmailConfigTab';
+import { AdminReferralsTab } from './admin/AdminReferralsTab';
+import { AdminFeedbackTab } from './admin/AdminFeedbackTab';
 
 export type { ServicePlan, LanguageItem };
 
@@ -778,13 +781,13 @@ export function AdminView() {
         </div>
 
         {/* Global Tabs */}
-        <div className="flex flex-wrap items-center bg-slate-200/80 dark:bg-slate-800 p-1 rounded-2xl self-start lg:self-auto gap-1">
+        <div className="flex flex-wrap items-center bg-purple-50/70 dark:bg-slate-800/80 p-1.5 rounded-2xl self-start lg:self-auto gap-1 border border-purple-100/70 dark:border-purple-950/40 shadow-xs">
           <button
             type="button"
             onClick={() => setActiveTab('requests')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'requests'
-                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
@@ -802,7 +805,7 @@ export function AdminView() {
             onClick={() => setActiveTab('plans')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'plans'
-                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
@@ -815,7 +818,7 @@ export function AdminView() {
             onClick={() => setActiveTab('languages')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'languages'
-                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
@@ -828,7 +831,7 @@ export function AdminView() {
             onClick={() => setActiveTab('users')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'users'
-                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
@@ -841,7 +844,7 @@ export function AdminView() {
             onClick={() => setActiveTab('bank_config')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'bank_config'
-                ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
+                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
@@ -854,7 +857,7 @@ export function AdminView() {
             onClick={() => setActiveTab('storage')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'storage'
-                ? 'bg-white dark:bg-slate-900 text-orange-600 dark:text-orange-400 shadow-xs'
+                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
@@ -867,7 +870,7 @@ export function AdminView() {
             onClick={() => setActiveTab('custom_modules')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'custom_modules'
-                ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-xs'
+                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
@@ -880,12 +883,38 @@ export function AdminView() {
             onClick={() => setActiveTab('gmail_config')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'gmail_config'
-                ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 shadow-xs'
+                ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 shadow-xs ring-1 ring-rose-100 dark:ring-rose-950'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
             }`}
           >
             <Mail className="w-3.5 h-3.5" />
             <span>Cấu hình Gmail</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('referrals')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'referrals'
+                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5" />
+            <span>Chương Trình Giới Thiệu (30%)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('feedback')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'feedback'
+                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            <span>Quản Lý Góp Ý</span>
           </button>
         </div>
       </div>
@@ -1015,6 +1044,20 @@ export function AdminView() {
         <AdminGmailConfigTab
           onShowMessage={setMessage}
         />
+      )}
+
+      {/* Tab 9: Referrals Program */}
+      {activeTab === 'referrals' && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <AdminReferralsTab />
+        </div>
+      )}
+
+      {/* Tab 10: Feedback Management */}
+      {activeTab === 'feedback' && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <AdminFeedbackTab />
+        </div>
       )}
     </div>
   );

@@ -79,6 +79,12 @@ model User {
   ownedTeams          Team[]         @relation("TeamOwner")
   teamMemberships     TeamMember[]   @relation("TeamMembership")
   customModuleRecords CustomModuleRecord[]
+  referralProfile     ReferralProfile?
+  referredUsers       ReferralRelationship[] @relation("ReferrerRel")
+  referredBy          ReferralRelationship?  @relation("ReferredUserRel")
+  referralCommissions ReferralCommission[]   @relation("ReferrerCommission")
+  withdrawalRequests  WithdrawalRequest[]
+  feedbacks           Feedback[]
 
   @@index([email])
   @@index([role])
@@ -1102,4 +1108,160 @@ model CustomModulePermission {
   @@index([moduleId])
   @@map("custom_module_permissions")
 }
+
+// ----------------------------------------------------
+// REFERRAL PROGRAM (AFFILIATE & COMMISSION REWARDS)
+// ----------------------------------------------------
+model ReferralProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  referralCode    String   @unique
+  totalReferred     Int      @default(0)
+  totalSales        Float    @default(0)
+  totalCommission   Float    @default(0)
+  pendingReward     Float    @default(0)
+  approvedReward    Float    @default(0) // Available Balance that can be withdrawn
+  withdrawalPending Float    @default(0) // Locked in pending withdrawal requests
+  paidReward        Float    @default(0) // Successfully paid out to bank
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([referralCode])
+  @@index([userId])
+  @@map("referral_profiles")
+}
+
+model ReferralRelationship {
+  id             String   @id @default(uuid())
+  referrerId     String
+  referrer       User     @relation("ReferrerRel", fields: [referrerId], references: [id], onDelete: Cascade)
+  referredUserId String   @unique
+  referredUser   User     @relation("ReferredUserRel", fields: [referredUserId], references: [id], onDelete: Cascade)
+  referralCode   String
+  createdAt      DateTime @default(now())
+
+  @@index([referrerId])
+  @@index([referredUserId])
+  @@index([referralCode])
+  @@map("referral_relationships")
+}
+
+model ReferralCommission {
+  id             String                @id @default(uuid())
+  referrerId     String
+  referrer       User                  @relation("ReferrerCommission", fields: [referrerId], references: [id], onDelete: Cascade)
+  referredUserId String
+  orderId        String                @unique // 1 commission per order
+  orderAmount    Float
+  commissionRate Float                 @default(0.30) // 30%
+  rewardAmount   Float
+  status         String                @default("Pending") // Pending | Approved | Cancelled
+  note           String?
+  approvedAt     DateTime?
+  cancelledAt    DateTime?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  transactions   ReferralTransaction[]
+
+  @@index([referrerId])
+  @@index([referredUserId])
+  @@index([orderId])
+  @@index([status])
+  @@map("referral_commissions")
+}
+
+model WithdrawalRequest {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount         Float
+  bankName       String
+  bankAccount    String
+  accountHolder  String
+  transferNote   String?
+  userNote       String?
+  status         String    @default("PENDING") // PENDING | APPROVED | PAID | REJECTED | CANCELLED
+  txReference    String?   // Bank reference number on payout
+  proofUrl       String?   // Payment proof attachment
+  rejectReason   String?   // Mandatory reason if rejected
+  processedBy    String?   // Admin email
+  processedAt    DateTime?
+  balanceBefore  Float     @default(0) // Balance snapshot when requested
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  transactions   ReferralTransaction[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("withdrawal_requests")
+}
+
+model ReferralTransaction {
+  id           String              @id @default(uuid())
+  commissionId String?
+  commission   ReferralCommission? @relation(fields: [commissionId], references: [id], onDelete: SetNull)
+  withdrawalId String?
+  withdrawal   WithdrawalRequest?  @relation(fields: [withdrawalId], references: [id], onDelete: SetNull)
+  userId       String?
+  type         String              // COMMISSION_EARNED | COMMISSION_APPROVED | COMMISSION_CANCELLED | WITHDRAWAL_REQUESTED | WITHDRAWAL_PAID | WITHDRAWAL_REJECTED
+  amount       Float
+  previousBal  Float               @default(0)
+  newBal       Float               @default(0)
+  reason       String?
+  createdAt    DateTime            @default(now())
+
+  @@index([commissionId])
+  @@index([withdrawalId])
+  @@index([type])
+  @@index([userId])
+  @@map("referral_transactions")
+}
+
+// ----------------------------------------------------
+// PRODUCT FEEDBACK & FEATURE REQUEST SYSTEM
+// ----------------------------------------------------
+model Feedback {
+  id          String         @id @default(uuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  content     String
+  type        String         @default("Idea") // Idea | Bug | Feature | Experience | General
+  rating      Int?           // 1 to 5 stars
+  status      String         @default("New") // New | Reviewing | Planned | In Progress | Completed | Rejected
+  isImportant Boolean        @default(false)
+  upvotes     Int            @default(0)
+  adminReply  String?
+  repliedAt   DateTime?
+  repliedBy   String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  votes       FeedbackVote[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+  @@index([isImportant])
+  @@index([upvotes])
+  @@map("feedbacks")
+}
+
+model FeedbackVote {
+  id         String   @id @default(uuid())
+  feedbackId String
+  feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+  userId     String
+  createdAt  DateTime @default(now())
+
+  @@unique([feedbackId, userId])
+  @@index([feedbackId])
+  @@index([userId])
+  @@map("feedback_votes")
+}
+
 

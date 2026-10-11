@@ -148,6 +148,52 @@ class SoundEngine {
     osc.start(now);
     osc.stop(now + 1.2);
   }
+
+  // 5. Grand Celebration Arpeggio (Quest done, 100% habits)
+  public playCelebration() {
+    if (!this.enabled) return;
+    const ctx = this.initContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    // C5, E5, G5, B5, C6 arpeggio with shimmer
+    const notes = [523.25, 659.25, 783.99, 987.77, 1046.50];
+
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = now + idx * 0.08;
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      gain.gain.setValueAtTime(0.14, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.45);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.45);
+    });
+  }
+
+  // 6. Cute Companion Speech Synthesis via Web Speech API
+  public speak(text: string, lang: string = 'vi-VN') {
+    if (!this.enabled || typeof window === 'undefined') return;
+    if (!('speechSynthesis' in window)) return;
+
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 1.05; // Slightly lively rate
+      utterance.pitch = 1.2; // Cute higher pitch for cute mascot feel
+      utterance.lang = lang;
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      // Graceful fallback if speech synthesis is blocked
+    }
+  }
 }
 
 export const soundEngine = new SoundEngine();

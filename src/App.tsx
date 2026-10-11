@@ -21,25 +21,28 @@ import { AccountStatusBanner } from './components/AccountStatusBanner';
 import { LockedWorkspaceOverlay } from './components/LockedWorkspaceOverlay';
 import { GlobalCompanionOverlay } from './components/companion/GlobalCompanionOverlay';
 import { PwaPromptBanner } from './components/PwaPromptBanner';
+import { lazyWithRetry } from './lib/lazyWithRetry';
 
-// Lazy-load heavier / secondary views to optimize initial bundle size & load speed
-const CalendarView = React.lazy(() => import('./components/CalendarView').then(m => ({ default: m.CalendarView })));
-const FinanceView = React.lazy(() => import('./components/FinanceView').then(m => ({ default: m.FinanceView })));
-const FocusView = React.lazy(() => import('./components/FocusView').then(m => ({ default: m.FocusView })));
-const ProjectsView = React.lazy(() => import('./components/ProjectsView').then(m => ({ default: m.ProjectsView })));
-const GoalsView = React.lazy(() => import('./components/GoalsView').then(m => ({ default: m.GoalsView })));
-const NotesView = React.lazy(() => import('./components/NotesView').then(m => ({ default: m.NotesView })));
-const StudyView = React.lazy(() => import('./components/StudyView').then(m => ({ default: m.StudyView })));
-const HabitsView = React.lazy(() => import('./components/HabitsView').then(m => ({ default: m.HabitsView })));
-const MyAccountView = React.lazy(() => import('./components/MyAccountView').then(m => ({ default: m.MyAccountView })));
-const MarketplaceView = React.lazy(() => import('./components/MarketplaceView').then(m => ({ default: m.MarketplaceView })));
-const CartView = React.lazy(() => import('./components/CartView').then(m => ({ default: m.CartView })));
-const CheckoutView = React.lazy(() => import('./components/CheckoutView').then(m => ({ default: m.CheckoutView })));
-const AdminView = React.lazy(() => import('./components/AdminView').then(m => ({ default: m.AdminView })));
-const DecisionEngineView = React.lazy(() => import('./components/DecisionEngineView').then(m => ({ default: m.DecisionEngineView })));
-const AutomationEngineView = React.lazy(() => import('./components/AutomationEngineView').then(m => ({ default: m.AutomationEngineView })));
-const SubscriptionManagementView = React.lazy(() => import('./components/SubscriptionManagementView').then(m => ({ default: m.SubscriptionManagementView })));
-const DynamicModuleView = React.lazy(() => import('./components/DynamicModuleView').then(m => ({ default: m.DynamicModuleView })));
+// Lazy-load heavier / secondary views with auto-retry on network/dev hiccups
+const CalendarView = lazyWithRetry(() => import('./components/CalendarView').then(m => ({ default: m.CalendarView })));
+const FinanceView = lazyWithRetry(() => import('./components/FinanceView').then(m => ({ default: m.FinanceView })));
+const FocusView = lazyWithRetry(() => import('./components/FocusView').then(m => ({ default: m.FocusView })));
+const ProjectsView = lazyWithRetry(() => import('./components/ProjectsView').then(m => ({ default: m.ProjectsView })));
+const GoalsView = lazyWithRetry(() => import('./components/GoalsView').then(m => ({ default: m.GoalsView })));
+const NotesView = lazyWithRetry(() => import('./components/NotesView').then(m => ({ default: m.NotesView })));
+const StudyView = lazyWithRetry(() => import('./components/StudyView').then(m => ({ default: m.StudyView })));
+const HabitsView = lazyWithRetry(() => import('./components/HabitsView').then(m => ({ default: m.HabitsView })));
+const MyAccountView = lazyWithRetry(() => import('./components/MyAccountView').then(m => ({ default: m.MyAccountView })));
+const MarketplaceView = lazyWithRetry(() => import('./components/MarketplaceView').then(m => ({ default: m.MarketplaceView })));
+const CartView = lazyWithRetry(() => import('./components/CartView').then(m => ({ default: m.CartView })));
+const CheckoutView = lazyWithRetry(() => import('./components/CheckoutView').then(m => ({ default: m.CheckoutView })));
+const AdminView = lazyWithRetry(() => import('./components/AdminView').then(m => ({ default: m.AdminView })));
+const DecisionEngineView = lazyWithRetry(() => import('./components/DecisionEngineView').then(m => ({ default: m.DecisionEngineView })));
+const AutomationEngineView = lazyWithRetry(() => import('./components/AutomationEngineView').then(m => ({ default: m.AutomationEngineView })));
+const SubscriptionManagementView = lazyWithRetry(() => import('./components/SubscriptionManagementView').then(m => ({ default: m.SubscriptionManagementView })));
+const ReferralView = lazyWithRetry(() => import('./components/ReferralView').then(m => ({ default: m.ReferralView })));
+const FeedbackView = lazyWithRetry(() => import('./components/FeedbackView').then(m => ({ default: m.FeedbackView })));
+const DynamicModuleView = lazyWithRetry(() => import('./components/DynamicModuleView').then(m => ({ default: m.DynamicModuleView })));
 
 
 
@@ -245,6 +248,14 @@ function AppContent() {
       return <MyAccountView />;
     }
 
+    if (currentView === 'referral') {
+      return <ReferralView />;
+    }
+
+    if (currentView === 'feedback') {
+      return <FeedbackView />;
+    }
+
     if (currentView === 'admin') {
       if (!isAdmin) {
         return (
@@ -329,19 +340,19 @@ function AppContent() {
   };
 
   return (
-    <div key={language} className="flex h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden font-sans text-slate-900 dark:text-slate-100 transition-colors duration-200">
+    <div key={language} className="flex h-screen h-[100dvh] bg-gradient-to-br from-[#faf7fc] via-[#f7f8fd] to-[#f5fbf9] dark:from-slate-950 dark:via-[#0e111a] dark:to-[#141224] overflow-hidden font-sans text-slate-900 dark:text-slate-100 transition-colors duration-200">
       <CommandCenter />
       <SyncIndicator />
       <Sidebar />
       <div className="flex-1 flex flex-col min-w-0 relative">
         <TopBar />
         <AccountStatusBanner />
-        <main className="flex-1 overflow-y-auto pb-20 md:pb-0 relative">
+        <main className="flex-1 overflow-y-auto pb-28 md:pb-20 relative">
           <React.Suspense
             fallback={
               <div className="flex-1 flex flex-col items-center justify-center p-12 min-h-[300px] text-slate-500">
-                <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
-                <span className="text-xs font-medium">Đang tải mô-đun...</span>
+                <div className="w-9 h-9 border-3 border-purple-500 border-t-pink-400 rounded-full animate-spin mb-3"></div>
+                <span className="text-xs font-bold text-purple-600 dark:text-purple-300">Đang tải mô-đun... ✨</span>
               </div>
             }
           >

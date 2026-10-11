@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../lib/store';
 import { apiCall } from '../lib/apiClient';
-import { Lock, ArrowLeft, Mail, ShieldCheck, Eye, EyeOff, ShieldAlert, CheckCircle2, UserPlus, User, KeyRound } from 'lucide-react';
+import { Lock, ArrowLeft, Mail, ShieldCheck, Eye, EyeOff, ShieldAlert, CheckCircle2, UserPlus, User, KeyRound, Sparkles } from 'lucide-react';
 
 interface LoginViewProps {
   onBack: () => void;
@@ -23,6 +23,13 @@ export function LoginView({ onBack }: LoginViewProps) {
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   const [showRegPassword, setShowRegPassword] = useState(false);
+  const [regReferralCode, setRegReferralCode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('ref') || '';
+    }
+    return '';
+  });
 
   // Forgot & Reset fields
   const [forgotEmail, setForgotEmail] = useState('');
@@ -102,7 +109,8 @@ export function LoginView({ onBack }: LoginViewProps) {
       const res = await apiCall('/api/auth/register', 'POST', {
         name: regName.trim(),
         email: regEmail.trim(),
-        password: String(regPassword)
+        password: String(regPassword),
+        referralCode: regReferralCode.trim() || undefined
       });
 
       if (res.token) {
@@ -176,41 +184,44 @@ export function LoginView({ onBack }: LoginViewProps) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 sm:p-6 font-sans">
+    <div className="min-h-screen bg-gradient-to-br from-[#faf5ff] via-[#fdf2f8] to-[#f0fdfa] dark:from-slate-950 dark:via-[#110e1c] dark:to-[#1a1028] flex items-center justify-center p-4 sm:p-6 font-sans">
       <div className="w-full max-w-md">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-sm font-medium text-slate-500 hover:text-slate-900 dark:hover:text-white mb-6 transition-colors"
+          className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-purple-600 dark:text-purple-300 hover:text-pink-600 mb-6 transition-all px-3.5 py-1.5 rounded-full bg-white/70 dark:bg-slate-900/70 border border-purple-100/70 dark:border-purple-900/40 shadow-xs btn-squishy"
         >
-          <ArrowLeft className="w-4 h-4" /> Quay lại trang chủ
+          <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
+          <span>Quay lại trang chủ ✨</span>
         </button>
 
-        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8">
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-purple-100/80 dark:border-purple-900/50 p-6 sm:p-8 card-cute">
           <div className="text-center mb-6">
-            <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-md shadow-blue-500/20">
-              <span className="text-white font-bold text-2xl">L</span>
+            <div className="w-14 h-14 bg-gradient-to-tr from-violet-500 via-pink-500 to-amber-300 p-0.5 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-pink-500/25 animate-pulse-soft">
+              <div className="w-full h-full bg-white dark:bg-slate-900 rounded-[14px] flex items-center justify-center">
+                <Sparkles className="w-7 h-7 text-pink-500" />
+              </div>
             </div>
-            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-              {mode === 'login' && 'Đăng nhập hệ thống'}
-              {mode === 'register' && 'Khởi tạo tài khoản mới'}
-              {mode === 'forgot' && 'Khôi phục mật khẩu'}
-              {mode === 'reset' && 'Đặt lại mật khẩu'}
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              {mode === 'login' && 'Chào mừng trở lại! ✨'}
+              {mode === 'register' && 'Khởi tạo tài khoản mới 🌸'}
+              {mode === 'forgot' && 'Khôi phục mật khẩu 🔑'}
+              {mode === 'reset' && 'Đặt lại mật khẩu mới 🛡️'}
             </h2>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
-              LifeOS Enterprise Management Platform
+            <p className="text-xs sm:text-sm text-purple-600/80 dark:text-purple-300/80 font-bold mt-1">
+              LifeOS · Cute & Smart Life Operating System
             </p>
           </div>
 
           {/* Mode Switcher Tabs */}
           {(mode === 'login' || mode === 'register') && (
-            <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-6">
+            <div className="grid grid-cols-2 p-1 bg-violet-50/80 dark:bg-slate-800/80 border border-purple-150/40 dark:border-purple-900/30 rounded-2xl mb-6">
               <button
                 type="button"
                 onClick={() => { setMode('login'); setError(''); setSuccessMsg(''); }}
-                className={`py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all ${
+                className={`py-2 text-xs sm:text-sm font-bold rounded-xl transition-all btn-squishy ${
                   mode === 'login'
-                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+                    ? 'bg-gradient-to-r from-violet-600 to-pink-500 text-white shadow-md shadow-purple-500/20'
+                    : 'text-slate-500 hover:text-purple-600 dark:hover:text-purple-300'
                 }`}
               >
                 Đăng nhập
@@ -218,14 +229,14 @@ export function LoginView({ onBack }: LoginViewProps) {
               <button
                 type="button"
                 onClick={() => { setMode('register'); setError(''); setSuccessMsg(''); }}
-                className={`py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                className={`py-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 btn-squishy ${
                   mode === 'register'
-                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
+                    ? 'bg-gradient-to-r from-violet-600 to-pink-500 text-white shadow-md shadow-purple-500/20'
+                    : 'text-slate-500 hover:text-purple-600 dark:hover:text-purple-300'
                 }`}
               >
-                <UserPlus className="w-3.5 h-3.5" />
-                Khởi tạo tài khoản
+                <UserPlus className="w-3.5 h-3.5 stroke-[2.5]" />
+                Tạo tài khoản
               </button>
             </div>
           )}
@@ -273,25 +284,25 @@ export function LoginView({ onBack }: LoginViewProps) {
                   <button
                     type="button"
                     onClick={() => { setMode('forgot'); setError(''); setSuccessMsg(''); }}
-                    className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium"
+                    className="text-xs text-purple-600 hover:text-pink-600 dark:text-purple-400 font-bold transition-colors"
                   >
                     Quên mật khẩu?
                   </button>
                 </div>
                 <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <Lock className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-purple-400" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={e => setPassword(e.target.value)}
-                    className="w-full pl-9 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all text-xs sm:text-sm text-slate-900 dark:text-white"
+                    className="w-full pl-10 pr-10 py-3 bg-violet-50/30 dark:bg-slate-800/60 border border-purple-150/60 dark:border-purple-800/40 rounded-2xl focus:outline-none focus:ring-2 focus:ring-pink-400 transition-all text-xs sm:text-sm text-slate-900 dark:text-white font-medium"
                     placeholder="••••••••"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-purple-600 dark:hover:text-purple-300 p-1"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -301,16 +312,16 @@ export function LoginView({ onBack }: LoginViewProps) {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-2.5 sm:py-3 bg-blue-600 hover:bg-blue-700 active:scale-[0.99] text-white font-bold rounded-xl transition-all shadow-sm mt-2 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm"
+                className="w-full py-3 sm:py-3.5 bg-gradient-to-r from-violet-600 via-pink-500 to-rose-400 hover:from-violet-500 hover:to-pink-500 text-white font-black rounded-2xl transition-all shadow-lg shadow-pink-500/25 mt-2 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm btn-squishy"
               >
-                <Lock className="w-4 h-4" />
-                {isLoading ? 'Đang xác thực...' : 'Đăng nhập'}
+                <Lock className="w-4 h-4 stroke-[2.5]" />
+                <span>{isLoading ? 'Đang xác thực... ✨' : 'Đăng nhập ngay ✨'}</span>
               </button>
 
               {/* Quick Login Helper */}
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium mb-1.5 flex items-center justify-between">
-                  <span>Tài khoản sẵn có (Nhấn để đăng nhập ngay):</span>
+              <div className="pt-3 border-t border-purple-100/60 dark:border-purple-900/30">
+                <div className="text-[11px] text-purple-600/90 dark:text-purple-400 font-bold mb-2 flex items-center justify-between">
+                  <span>⚡ Tài khoản trải nghiệm 1-click:</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <button
@@ -445,6 +456,23 @@ export function LoginView({ onBack }: LoginViewProps) {
                     placeholder="••••••••"
                     required
                     minLength={6}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
+                  <span>Mã giới thiệu (nếu có)</span>
+                  <span className="text-[10px] text-purple-600 font-bold">Nhận ưu đãi bạn bè ✨</span>
+                </label>
+                <div className="relative">
+                  <span className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-purple-500 font-bold text-xs">🎁</span>
+                  <input
+                    type="text"
+                    value={regReferralCode}
+                    onChange={e => setRegReferralCode(e.target.value.toUpperCase())}
+                    className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 font-mono text-xs sm:text-sm text-slate-900 dark:text-white"
+                    placeholder="LIFE-XXXXXX"
                   />
                 </div>
               </div>

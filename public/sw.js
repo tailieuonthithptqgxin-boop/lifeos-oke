@@ -30,6 +30,11 @@ const PRECACHE_ASSETS = [
 function isNonCacheable(url) {
   const pathname = url.pathname;
   return (
+    pathname.startsWith('/src/') ||
+    pathname.startsWith('/@vite/') ||
+    pathname.startsWith('/@fs/') ||
+    pathname.startsWith('/@id/') ||
+    pathname.startsWith('/node_modules/') ||
     pathname.startsWith('/api/') ||
     pathname.startsWith('/auth/') ||
     pathname.startsWith('/api/finance') ||

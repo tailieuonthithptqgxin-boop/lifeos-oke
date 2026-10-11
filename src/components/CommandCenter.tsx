@@ -213,6 +213,69 @@ export function CommandCenter() {
       return list;
     }
 
+    // Natural Language Quick Capture for Financial Expenses (e.g. "ăn trưa 45k", "chi 50000 xăng", "mua sách 120k")
+    const moneyMatch = q.match(/(\d+)\s*(k|nghìn|ngan|vnd|đ)?/i);
+    const isExpenseHint = /chi|mua|ăn|uống|xăng|cà phê|cafe|tiền|trả/i.test(q) || /k$/i.test(q);
+    if (moneyMatch && isExpenseHint) {
+      let rawNum = parseInt(moneyMatch[1], 10);
+      const unit = (moneyMatch[2] || '').toLowerCase();
+      if (unit === 'k' || rawNum < 1000) rawNum *= 1000;
+      if (rawNum > 0) {
+        const desc = q.replace(/(\d+)\s*(k|nghìn|ngan|vnd|đ)?/i, '').replace(/^(chi|mua|tiền)\s*/i, '').trim() || 'Chi tiêu nhanh';
+        list.unshift({
+          id: 'nl-expense',
+          title: `💸 Ghi nhanh chi tiêu: ${formatCurrency(rawNum)} ("${desc}")`,
+          subtitle: 'Nhấn Enter để ghi sổ chi tiêu tức thì',
+          category: 'Lệnh nhanh',
+          icon: Wallet,
+          badge: 'Chi tiêu',
+          action: () => {
+            soundEngine.playPop();
+            addTransaction({
+              amount: rawNum,
+              type: 'Chi tiêu',
+              category: 'Ăn uống / Sinh hoạt',
+              date: new Date().toISOString().split('T')[0],
+              description: desc
+            });
+            setSuccessToast(`Đã ghi chi tiêu ${formatCurrency(rawNum)}: "${desc}" ✨`);
+            setTimeout(() => { toggleCommand(); setSuccessToast(null); }, 600);
+          }
+        });
+      }
+    }
+
+    // Natural Language Quick Capture for Tasks (e.g. "task làm bài tập", "học toán !cao")
+    if (/^(task|việc|todo)\s+/i.test(q) || /!(cao|gap|thap)/i.test(q)) {
+      const isHigh = /!(cao|gap)/i.test(q);
+      const isLow = /!thap/i.test(q);
+      const priority = isHigh ? 'Cao' : (isLow ? 'Thấp' : 'Trung bình');
+      const cleanTitle = q.replace(/^(task|việc|todo)\s+/i, '').replace(/!(cao|gap|thap)/i, '').trim();
+      if (cleanTitle) {
+        list.unshift({
+          id: 'nl-task',
+          title: `✨ Tạo nhanh công việc: "${cleanTitle}" (Ưu tiên: ${priority})`,
+          subtitle: 'Nhấn Enter để thêm ngay vào danh sách công việc',
+          category: 'Lệnh nhanh',
+          icon: CheckSquare,
+          badge: 'Nhiệm vụ',
+          action: () => {
+            soundEngine.playPop();
+            addTask({
+              title: cleanTitle,
+              status: 'Chưa làm',
+              priority,
+              dueDate: null,
+              projectId: null,
+              notes: 'Tạo nhanh qua Command Center'
+            });
+            setSuccessToast(`Đã tạo công việc "${cleanTitle}" ✨`);
+            setTimeout(() => { toggleCommand(); setSuccessToast(null); }, 600);
+          }
+        });
+      }
+    }
+
     // 1. Navigation items matching query
     navItems.forEach((item) => {
       if (item.title.toLowerCase().includes(q)) {

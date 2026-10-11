@@ -16,6 +16,8 @@ export type ViewState =
   | 'cart'
   | 'checkout'
   | 'subscription'
+  | 'referral'
+  | 'feedback'
   | 'admin'
   | (string & {});
 

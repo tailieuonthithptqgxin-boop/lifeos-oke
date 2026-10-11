@@ -163,29 +163,34 @@ export function FinanceView() {
   }, [periodIncome, periodExpense, totalBudgetLimit]);
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto h-full flex flex-col space-y-6 overflow-y-auto">
+    <div className="p-4 sm:p-6 pb-24 sm:pb-28 max-w-7xl mx-auto h-full flex flex-col space-y-6 overflow-y-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Tài chính</h2>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">Quản lý dòng tiền, ngân sách và mục tiêu.</p>
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Tài chính</h2>
+            <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/50">
+              Finance OS 💸
+            </span>
+          </div>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Quản lý dòng tiền, ngân sách và mục tiêu tiết kiệm chill chill 🌸</p>
         </div>
         <button type="button" 
           onClick={() => setShowTxModal(true)}
-          className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm cursor-pointer"
+          className="btn-squishy flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 hover:from-violet-500 hover:to-pink-400 text-white px-5 py-3 rounded-2xl text-sm font-extrabold transition-all shadow-md shadow-purple-500/25 cursor-pointer"
         >
-          <Plus className="w-4 h-4" /> Thêm Giao dịch
+          <Plus className="w-4 h-4 stroke-[3]" /> Thêm Giao dịch 💸
         </button>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-2 sm:gap-6 border-b border-slate-200 dark:border-slate-800 overflow-x-auto no-scrollbar shrink-0 -mx-4 px-4 sm:mx-0 sm:px-0">
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 shrink-0">
         <FinanceTabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<LayoutDashboard className="w-4 h-4" />} label="Tổng quan" />
         <FinanceTabButton active={activeTab === 'accounts'} onClick={() => setActiveTab('accounts')} icon={<Wallet className="w-4 h-4" />} label="Tài khoản" />
         <FinanceTabButton active={activeTab === 'transactions'} onClick={() => setActiveTab('transactions')} icon={<ArrowRightLeft className="w-4 h-4" />} label="Giao dịch" />
         <FinanceTabButton active={activeTab === 'budgets'} onClick={() => setActiveTab('budgets')} icon={<PieChart className="w-4 h-4" />} label="Ngân sách" />
         <FinanceTabButton active={activeTab === 'goals'} onClick={() => setActiveTab('goals')} icon={<Target className="w-4 h-4" />} label="Mục tiêu" />
-        <FinanceTabButton active={activeTab === 'scenario'} onClick={() => setActiveTab('scenario')} icon={<Activity className="w-4 h-4" />} label="Dự báo chi tiêu" />
+        <FinanceTabButton active={activeTab === 'scenario'} onClick={() => setActiveTab('scenario')} icon={<Activity className="w-4 h-4" />} label="Dự báo chi tiêu 🔮" />
       </div>
 
       {/* Tab Panels */}

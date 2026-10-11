@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { dbService, getPrisma } from '../db.js';
 import { requireAuth, AuthRequest, getJwtSecret } from '../auth.middleware.js';
+import { referralService } from '../services/referral.service.js';
 import {
   LoginSchema,
   RegisterSchema,
@@ -88,6 +89,15 @@ authRouter.post('/register', authRateLimiter, validateBody(RegisterSchema), asyn
       plan: 'FREE',
       status: 'ACTIVE'
     });
+
+    // Auto-create referral profile for new user
+    await referralService.getOrCreateProfile(newUser.id).catch(e => console.warn('Referral profile init warning:', e));
+
+    // Bind referral code if provided in query or body
+    const referralCode = req.body.referralCode || req.query.ref;
+    if (referralCode) {
+      await referralService.bindReferral(newUser.id, String(referralCode)).catch(e => console.warn('Referral bind warning:', e));
+    }
 
     // Issue JWT Token (14 days validity)
     const token = jwt.sign(

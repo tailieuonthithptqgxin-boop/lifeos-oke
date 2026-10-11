@@ -11,7 +11,9 @@ import {
   AcademicProfile,
   createDefaultAcademicProfile
 } from '../lib/gradeEngine';
-import { VocabMasterView } from './vocab/VocabMasterView';
+const VocabMasterView = React.lazy(() =>
+  import('./vocab/VocabMasterView').then(m => ({ default: m.VocabMasterView }))
+);
 import { TabButton } from './study/TabButton';
 import { StudyOverviewTab } from './study/StudyOverviewTab';
 import { StudySubjectsTab } from './study/StudySubjectsTab';
@@ -161,37 +163,37 @@ export function StudyView() {
   }).length;
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-50/50 dark:bg-slate-950 overflow-hidden">
+    <div className="flex-1 flex flex-col h-full bg-transparent overflow-hidden">
       {/* Top Header & Navigation Tabs */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6 pt-4 pb-0 shrink-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+      <div className="bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl border-b border-purple-100/60 dark:border-purple-900/30 px-4 sm:px-6 pt-4 pb-2 shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-600 text-white rounded-2xl shadow-sm">
+            <div className="w-11 h-11 bg-gradient-to-tr from-violet-600 to-pink-500 text-white rounded-2xl flex items-center justify-center shadow-md shadow-purple-500/20 animate-wiggle">
               <GraduationCap className="w-6 h-6" />
             </div>
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
                 Study OS
-                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
-                  Pro Engine
+                <span className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full bg-gradient-to-r from-violet-100 to-pink-100 dark:from-violet-950/60 dark:to-pink-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-800/50">
+                  Pro Engine ✨
                 </span>
               </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Quản lý môn học, lịch thi, bài tập và mô phỏng điểm số thông minh.
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+                Quản lý môn học, lịch thi, bài tập và mô phỏng điểm số thông minh chill chill 🌸
               </p>
             </div>
           </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar border-b border-transparent">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
           <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<Activity className="w-4 h-4" />} label="Tổng quan" />
           <TabButton active={activeTab === 'my-grades'} onClick={() => setActiveTab('my-grades')} icon={<Award className="w-4 h-4" />} label="Điểm của tôi" count={subjects.length} />
-          <TabButton active={activeTab === 'vocabulary'} onClick={() => setActiveTab('vocabulary')} icon={<BookOpen className="w-4 h-4 text-amber-500" />} label="Vocabulary Master" />
+          <TabButton active={activeTab === 'vocabulary'} onClick={() => setActiveTab('vocabulary')} icon={<BookOpen className="w-4 h-4 text-amber-500" />} label="Vocabulary Master 📚" />
           <TabButton active={activeTab === 'subjects'} onClick={() => setActiveTab('subjects')} icon={<BookOpen className="w-4 h-4" />} label="Môn học" count={subjects.length} />
           <TabButton active={activeTab === 'assignments'} onClick={() => setActiveTab('assignments')} icon={<FileCheck className="w-4 h-4" />} label="Bài tập" count={pendingAssignmentsCount} />
           <TabButton active={activeTab === 'exams'} onClick={() => setActiveTab('exams')} icon={<Target className="w-4 h-4" />} label="Lịch thi" count={upcomingExamsCount} />
-          <TabButton active={activeTab === 'forecast'} onClick={() => setActiveTab('forecast')} icon={<Calculator className="w-4 h-4" />} label="Grade Forecast" />
+          <TabButton active={activeTab === 'forecast'} onClick={() => setActiveTab('forecast')} icon={<Calculator className="w-4 h-4" />} label="Grade Forecast 🔮" />
         </div>
       </div>
 
@@ -226,7 +228,16 @@ export function StudyView() {
           )}
 
           {activeTab === 'vocabulary' && (
-            <VocabMasterView currentUser={currentUser} />
+            <React.Suspense
+              fallback={
+                <div className="flex flex-col items-center justify-center p-16 min-h-[350px] text-slate-500 card-cute rounded-3xl bg-white/70 dark:bg-slate-900/70 border border-purple-100/60 dark:border-purple-900/40">
+                  <div className="w-10 h-10 border-3 border-purple-500 border-t-pink-400 rounded-full animate-spin mb-3"></div>
+                  <span className="text-sm font-bold text-purple-600 dark:text-purple-300">Đang tải kho 10.000+ từ vựng... ✨</span>
+                </div>
+              }
+            >
+              <VocabMasterView currentUser={currentUser} />
+            </React.Suspense>
           )}
 
           {activeTab === 'subjects' && (

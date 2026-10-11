@@ -262,33 +262,40 @@ export function NotesView() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
       {/* HEADER BAR */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 rounded-3xl border border-purple-100/80 dark:border-purple-900/40 shadow-sm card-cute">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-blue-100 text-blue-600 rounded-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 bg-gradient-to-tr from-violet-600 to-pink-500 text-white rounded-2xl flex items-center justify-center shadow-md shadow-purple-500/20 animate-wiggle">
               <FileText className="w-6 h-6" />
             </div>
-            <h1 className="text-2xl font-bold text-slate-800">{t('Hệ thống Ghi chú & Tri thức')}</h1>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">{t('Hệ thống Ghi chú & Tri thức')}</h1>
+                <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50">
+                  Notes Hub ✨
+                </span>
+              </div>
+              <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1 font-medium">
+                {t('Ghi chép, liên kết ý tưởng, quản lý cuộc họp & xây dựng Knowledge Graph cá nhân chill chill 🌸')}
+              </p>
+            </div>
           </div>
-          <p className="text-slate-500 text-sm mt-1">
-            {t('Ghi chép, liên kết ý tưởng, quản lý cuộc họp & xây dựng Knowledge Graph cá nhân.')}
-          </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button type="button"
             onClick={() => handleCreateNewNote('Normal')}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2.5 rounded-xl shadow-sm transition-all"
+            className="btn-squishy flex items-center gap-2 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 hover:from-violet-500 hover:to-pink-400 text-white font-extrabold px-5 py-3 rounded-2xl shadow-md shadow-purple-500/25 transition-all text-xs sm:text-sm cursor-pointer"
           >
-            <Plus className="w-4 h-4" /> {t('Tạo Ghi chú mới')}
+            <Plus className="w-4 h-4 stroke-[3]" /> {t('Tạo Ghi chú mới ✨')}
           </button>
         </div>
       </div>
 
       {/* SUB-TABS NAVIGATION */}
-      <div className="flex items-center gap-1 border-b border-slate-200 overflow-x-auto pb-1 scrollbar-none">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
         {[
           { id: 'dashboard', label: 'Tổng quan', icon: BarChart2 },
           { id: 'all', label: 'Tất cả Ghi chú', icon: FileText, count: activeNotes.length },
@@ -305,17 +312,17 @@ export function NotesView() {
             <button type="button"
               key={tab.id}
               onClick={() => setActiveTab(tab.id as ActiveTab)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all whitespace-nowrap ${
+              className={`btn-squishy flex items-center gap-2 px-4 py-2.5 rounded-2xl font-extrabold text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer ${
                 isActive 
-                  ? 'bg-blue-600 text-white shadow-sm' 
-                  : 'text-slate-600 hover:bg-slate-100'
+                  ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20' 
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700 dark:hover:text-purple-300'
               }`}
             >
               <Icon className="w-4 h-4" />
               <span>{t(tab.label)}</span>
               {tab.count !== undefined && (
-                <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
-                  isActive ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-600'
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
+                  isActive ? 'bg-white/25 text-white' : 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300'
                 }`}>
                   {tab.count}
                 </span>

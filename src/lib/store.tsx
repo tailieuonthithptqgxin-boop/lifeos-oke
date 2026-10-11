@@ -2,6 +2,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Task, Project, Event, Transaction, StudySubject, StudyTopic, StudyAssignment, StudyExam, Habit, HabitRecord, Routine, Goal, GoalMilestone, GoalReview, Note, ViewState, LifeScore, User, Product, CartItem, Order, WorkspaceMode, InboxItem, FocusSession, FocusGoal, DecisionItem, DecisionRule, DecisionReviewData, AutomationRule, AutomationHistoryEntry, AutomationConflictItem, AppNotification, OnboardingPreferences, UserSubscriptionStatus } from './types';
 import { apiCall } from './apiClient';
+import { offlineSyncQueue } from './offlineSyncQueue';
+
+// Multi-Tab Real-time Synchronization Bus via Web BroadcastChannel API
+const tabSyncChannel: BroadcastChannel | null = 
+  (typeof window !== 'undefined' && typeof window.BroadcastChannel === 'function')
+    ? new BroadcastChannel('lifeos_tab_sync_bus')
+    : null;
 
 interface AppState {
   language: string;
@@ -271,9 +278,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     window.addEventListener('focus', refreshUserSilent);
     const intervalId = setInterval(refreshUserSilent, 15000);
 
+    const handleTabSyncMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'LIFEOS_MUTATION_SYNC') {
+        loadAllData();
+      }
+    };
+    if (tabSyncChannel) {
+      tabSyncChannel.addEventListener('message', handleTabSyncMessage);
+    }
+
+    const handleOnline = async () => {
+      console.log('🌐 [Network] App back online! Replaying queued offline mutations...');
+      await offlineSyncQueue.replayAll(async (mutation) => {
+        try {
+          if (mutation.type === 'TASK') {
+            await apiCall('/api/tasks', 'POST', mutation.payload);
+          } else if (mutation.type === 'TRANSACTION') {
+            await apiCall('/api/transactions', 'POST', mutation.payload);
+          } else if (mutation.type === 'HABIT') {
+            await apiCall('/api/habits', 'POST', mutation.payload);
+          }
+          return true;
+        } catch {
+          return false;
+        }
+      });
+      loadAllData();
+    };
+    window.addEventListener('online', handleOnline);
+
     return () => {
       window.removeEventListener('lifeos:session-expired', handleSessionExpired);
       window.removeEventListener('focus', refreshUserSilent);
+      window.removeEventListener('online', handleOnline);
+      if (tabSyncChannel) {
+        tabSyncChannel.removeEventListener('message', handleTabSyncMessage);
+      }
       clearInterval(intervalId);
     };
   }, []);
@@ -447,6 +487,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setState(s => ({ ...s, syncState: 'syncing', syncMessage: 'Đang xử lý...' }));
     try {
       await actionFn();
+      if (tabSyncChannel) {
+        try {
+          tabSyncChannel.postMessage({ type: 'LIFEOS_MUTATION_SYNC', timestamp: Date.now() });
+        } catch {}
+      }
       setState(s => ({ ...s, syncState: 'success', syncMessage: successMsg }));
       setTimeout(() => setState(s => ({ ...s, syncState: 'idle' })), 3000);
     } catch (err: any) {

@@ -464,9 +464,9 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
     <div className="space-y-6 max-w-7xl mx-auto px-2 sm:px-4 pb-12">
       
       {/* 1. TOP HEADER & WORKSPACE SWITCHER */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="card-cute bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-3xl border border-purple-100/80 dark:border-purple-900/40 p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="text-4xl p-2 rounded-2xl bg-slate-50 dark:bg-slate-800 shadow-xs">
+          <span className="text-4xl p-2.5 rounded-2xl bg-purple-50 dark:bg-purple-950/60 shadow-xs animate-wiggle">
             {activeLang.flag}
           </span>
           <div>
@@ -474,12 +474,12 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
                 Vocabulary Master
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
-                {activeLang.name}
+              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50">
+                {activeLang.name} ✨
               </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Hệ thống học từ vựng thông minh, đa nguồn & Spaced Repetition (SM-2) cá nhân hóa.
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+              Hệ thống học từ vựng thông minh, đa nguồn & Spaced Repetition (SM-2) cá nhân hóa chill chill 🌸
             </p>
           </div>
         </div>
@@ -491,10 +491,10 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
               key={lang.id}
               type="button"
               onClick={() => handleSwitchLanguage(lang.id)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+              className={`btn-squishy px-3.5 py-2 rounded-2xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
                 lang.id === activeLang.id
-                  ? 'bg-blue-600 text-white shadow-xs'
-                  : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+                  ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/25'
+                  : 'bg-white/80 hover:bg-purple-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-purple-100/60 dark:border-slate-700'
               }`}
             >
               <span>{lang.flag}</span>
@@ -505,23 +505,23 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
           <button
             type="button"
             onClick={() => setShowLanguageOnboarding(true)}
-            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-bold transition cursor-pointer"
+            className="btn-squishy p-2.5 rounded-2xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 text-xs font-bold transition-all cursor-pointer border border-purple-200/50"
             title="Thêm ngôn ngữ học mới"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-4 h-4 stroke-[3]" />
           </button>
         </div>
       </div>
 
       {/* 2. SUB-NAVIGATION TABS */}
-      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 overflow-x-auto no-scrollbar">
+      <div className="flex items-center gap-1.5 pb-2 overflow-x-auto no-scrollbar">
         <button
           type="button"
           onClick={() => { setActiveTab('dashboard'); setStudySessionActive(false); }}
-          className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
+          className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'dashboard' && !studySessionActive
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700'
           }`}
         >
           <BarChart2 className="w-4 h-4" /> Tổng quan
@@ -531,10 +531,10 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         <button
           type="button"
           onClick={() => { setActiveTab('today'); setStudySessionActive(false); }}
-          className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
+          className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'today' && !studySessionActive
-              ? 'bg-purple-600 text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700'
           }`}
         >
           <Calendar className="w-4 h-4" />
@@ -550,14 +550,14 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         <button
           type="button"
           onClick={() => { setActiveTab('memory'); setStudySessionActive(false); }}
-          className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
+          className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'memory' && !studySessionActive
-              ? 'bg-indigo-600 text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700'
           }`}
         >
           <Activity className="w-4 h-4" />
-          <span>Trí nhớ & Đường cong</span>
+          <span>Trí nhớ & SM-2 🧠</span>
         </button>
 
         {/* 3000 Oxford Words Tab (Featured for English) */}
@@ -565,15 +565,15 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
           <button
             type="button"
             onClick={() => { setActiveTab('oxford3000'); setStudySessionActive(false); }}
-            className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
+            className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'oxford3000' && !studySessionActive
-                ? 'bg-blue-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700'
             }`}
           >
-            <BookOpen className="w-4 h-4" /> 3000 Từ thông dụng
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">
-              3,522 từ
+            <BookOpen className="w-4 h-4" /> 3000 Từ Oxford
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+              3,522 từ ✨
             </span>
           </button>
         )}
@@ -583,16 +583,16 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
           <button
             type="button"
             onClick={() => { setActiveTab('chineseHsk'); setStudySessionActive(false); }}
-            className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
+            className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'chineseHsk' && !studySessionActive
-                ? 'bg-rose-600 text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 text-white shadow-md shadow-rose-500/20'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700'
             }`}
           >
             <BookOpen className="w-4 h-4 text-rose-500" />
-            <span>Kho từ vựng HSK</span>
+            <span>Kho từ HSK 1-6</span>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
-              10,240 từ
+              10,240 từ 🌸
             </span>
           </button>
         )}
@@ -601,14 +601,14 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         <button
           type="button"
           onClick={() => { setActiveTab('personal'); setStudySessionActive(false); }}
-          className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
+          className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'personal' && !studySessionActive
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700'
           }`}
         >
-          <Bookmark className="w-4 h-4" /> Từ vựng cá nhân
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+          <Bookmark className="w-4 h-4" /> Từ vựng của tôi
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-100 dark:bg-slate-800 text-purple-700 dark:text-purple-300">
             {langWords.length}
           </span>
         </button>
@@ -617,14 +617,14 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         <button
           type="button"
           onClick={() => { setActiveTab('collections'); setStudySessionActive(false); }}
-          className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
+          className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'collections' && !studySessionActive
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700'
           }`}
         >
-          <Layers className="w-4 h-4" /> Bộ sưu tập của tôi
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+          <Layers className="w-4 h-4" /> Bộ sưu tập
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-100 dark:bg-slate-800 text-purple-700 dark:text-purple-300">
             {langCollections.length}
           </span>
         </button>
@@ -633,13 +633,13 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         <button
           type="button"
           onClick={() => { setActiveTab('study'); }}
-          className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
+          className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
             activeTab === 'study' || studySessionActive
-              ? 'bg-purple-600 text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700'
           }`}
         >
-          <Brain className="w-4 h-4" /> Phiên học & Ôn tập
+          <Brain className="w-4 h-4" /> Phiên học Flashcard
           {combinedAnalytics.dueTodayCount > 0 && (
             <span className="px-2 py-0.5 rounded-full text-[10px] bg-rose-500 text-white font-black animate-pulse">
               {combinedAnalytics.dueTodayCount} đến hạn

@@ -39,7 +39,7 @@ export interface GlobalCompanionOverlayProps {
 export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
   className = ''
 }) => {
-  const { currentView, currentUser, setCurrentView } = useAppStore();
+  const { currentView, currentUser, setCurrentView, habits, tasks, habitRecords } = useAppStore();
   const userId = currentUser?.id;
 
   const [settings, setSettings] = useState<CompanionSettings>(() => companionEngine.getSettings(userId));
@@ -152,15 +152,43 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
     };
   }, [settings.enabled, settings.focusCompanionMode, settings.quietMode, triggerDialogue]);
 
-  // React to screen/view changes
+  // React to screen/view changes & Proactive Nudges
   useEffect(() => {
-    // Show polite gentle greeting or reset state on view transition
     if (currentView === 'focus') {
       setCurrentMood('focus');
     } else {
       setCurrentMood('idle');
     }
-  }, [currentView]);
+
+    // Proactive Nudge check (once per session view entry, polite and helpful)
+    const todayStr = new Date().toISOString().split('T')[0];
+    const pendingHighPriority = (tasks || []).filter(t => 
+      t.dueDate && t.dueDate.startsWith(todayStr) && 
+      (t.priority === 'Cao' || t.priority === 'Nghiêm trọng') && 
+      t.status !== 'Hoàn thành'
+    );
+
+    if (currentView === 'dashboard' && pendingHighPriority.length > 0) {
+      const timer = setTimeout(() => {
+        triggerDialogue(`Hôm nay bạn có ${pendingHighPriority.length} việc quan trọng cần ưu tiên nè! Hãy hoàn thành sớm nhé ✨`, 'motivate');
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+
+    if (currentView === 'habits' && (habits || []).length > 0) {
+      const completedToday = (habits || []).filter(h => {
+        const records = habitRecords?.[h.id] || [];
+        return records.some(r => r.date === todayStr && r.completed);
+      });
+      const remaining = (habits || []).length - completedToday.length;
+      if (remaining > 0) {
+        const timer = setTimeout(() => {
+          triggerDialogue(`Bạn còn ${remaining} thói quen hôm nay chưa check nè! Cùng duy trì chuỗi streak nhé 🔥`, 'motivate');
+        }, 1200);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [currentView, tasks, habits, habitRecords, triggerDialogue]);
 
   const handleAvatarClick = () => {
     // Open interactive chat assistant
@@ -191,7 +219,7 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
   // Mobile: bottom-20 (to strictly stay above bottom navigation bar)
   const isLeft = settings.position === 'bottom-left';
   const posClasses = isLeft
-    ? 'bottom-20 left-3 sm:bottom-6 sm:left-6 items-start'
+    ? 'bottom-20 left-3 sm:bottom-6 sm:left-6 md:left-[17.5rem] items-start'
     : 'bottom-20 right-3 sm:bottom-6 sm:right-6 items-end';
 
   return (

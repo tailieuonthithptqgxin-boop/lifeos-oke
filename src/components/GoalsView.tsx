@@ -68,20 +68,20 @@ export function GoalsView() {
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto h-full flex flex-col space-y-6 overflow-y-auto">
+    <div className="p-4 sm:p-6 pb-24 sm:pb-28 max-w-7xl mx-auto h-full flex flex-col space-y-6 overflow-y-auto">
       {/* Header Bar */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shrink-0 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shrink-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl p-5 rounded-3xl border border-purple-100/70 dark:border-purple-900/40 shadow-sm">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
-              <Crosshair className="w-6 h-6" />
+          <div className="flex items-center gap-2.5">
+            <div className="p-2.5 bg-gradient-to-br from-violet-500/20 via-pink-500/20 to-rose-400/20 text-purple-600 dark:text-purple-300 rounded-2xl shadow-xs">
+              <Crosshair className="w-6 h-6 stroke-[2.2]" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
-                Goal Execution System
+              <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+                Hệ thống Quản trị Mục tiêu ✨
               </h2>
-              <p className="text-slate-500 text-xs mt-0.5">
-                Target → Plan → Actions → Measurement → Risk → Execution → Review
+              <p className="text-purple-600/80 dark:text-purple-300/80 text-xs mt-0.5 font-bold">
+                Mục tiêu 🎯 → Lộ trình 🗺️ → Hành động ⚡ → Đo lường 📊 → Chinh phục 🏆
               </p>
             </div>
           </div>
@@ -90,9 +90,9 @@ export function GoalsView() {
         <div className="flex items-center gap-3 w-full md:w-auto">
           <button type="button"
             onClick={openNewGoal}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm"
+            className="btn-squishy flex-1 md:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 via-pink-500 to-rose-400 hover:from-violet-500 hover:to-pink-500 text-white px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all shadow-md shadow-pink-500/25 cursor-pointer"
           >
-            <Plus className="w-4 h-4" /> Tạo Mục tiêu mới
+            <Plus className="w-4 h-4 stroke-[2.5]" /> + Tạo Mục tiêu mới ✨
           </button>
         </div>
       </div>
@@ -241,16 +241,20 @@ function TabButton({ id, active, onClick, icon, label, badge }: any) {
   return (
     <button type="button"
       onClick={() => onClick(id)}
-      className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all shrink-0 border ${
+      className={`btn-squishy flex items-center gap-2 px-3.5 py-2 rounded-2xl text-xs font-black transition-all shrink-0 cursor-pointer ${
         isSelected 
-          ? 'bg-slate-900 text-white border-slate-900 shadow-sm' 
-          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+          ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/25 scale-[1.02]' 
+          : 'bg-white/90 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 border border-purple-150/60 dark:border-purple-900/40 hover:bg-violet-50/70 dark:hover:bg-purple-950/30 hover:text-purple-700'
       }`}
     >
       {icon}
       <span>{label}</span>
       {badge !== undefined && badge > 0 && (
-        <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${isSelected ? 'bg-slate-700 text-white' : 'bg-slate-100 text-slate-700'}`}>
+        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+          isSelected 
+            ? 'bg-white/25 text-white' 
+            : 'bg-pink-100 text-pink-700 dark:bg-purple-900/60 dark:text-pink-300'
+        }`}>
           {badge}
         </span>
       )}
@@ -269,77 +273,85 @@ function DashboardView({
     <div className="space-y-6">
       {/* Overview Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-1">
+        <div className="card-cute bg-white/90 dark:bg-slate-900/90 p-5 rounded-3xl border border-purple-100/70 dark:border-purple-900/40 shadow-xs hover:border-purple-300/80">
+          <div className="flex items-center justify-between text-xs font-black text-purple-600 dark:text-purple-400 mb-1">
             <span>MỤC TIÊU HOẠT ĐỘNG</span>
-            <Target className="w-4 h-4 text-blue-600" />
+            <div className="p-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/50">
+              <Target className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+            </div>
           </div>
-          <div className="text-3xl font-black text-slate-900">{activeGoals.length}</div>
-          <div className="text-[11px] font-medium text-slate-500 mt-1">
-            {completedGoals.length} đã hoàn thành / {goals.length} tổng
+          <div className="text-3xl font-black text-slate-900 dark:text-white">{activeGoals.length}</div>
+          <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-1">
+            {completedGoals.length} đã hoàn thành / {goals.length} tổng 🎯
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-1">
+        <div className="card-cute bg-white/90 dark:bg-slate-900/90 p-5 rounded-3xl border border-emerald-100/70 dark:border-emerald-900/40 shadow-xs hover:border-emerald-300/80">
+          <div className="flex items-center justify-between text-xs font-black text-emerald-600 dark:text-emerald-400 mb-1">
             <span>TIẾN ĐỘ TỔNG THỂ</span>
-            <TrendingUp className="w-4 h-4 text-emerald-600" />
+            <div className="p-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/50">
+              <TrendingUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
           </div>
-          <div className="text-3xl font-black text-emerald-600">{overallProgress}%</div>
-          <div className="w-full bg-slate-100 rounded-full h-1.5 mt-2">
-            <div className="bg-emerald-500 h-1.5 rounded-full" style={{ width: `${overallProgress}%` }}></div>
+          <div className="text-3xl font-black text-emerald-600 dark:text-emerald-400">{overallProgress}%</div>
+          <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 mt-2 overflow-hidden">
+            <div className="bg-gradient-to-r from-emerald-400 to-teal-500 h-2 rounded-full transition-all duration-500" style={{ width: `${overallProgress}%` }}></div>
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-1">
+        <div className="card-cute bg-white/90 dark:bg-slate-900/90 p-5 rounded-3xl border border-amber-100/70 dark:border-amber-900/40 shadow-xs hover:border-amber-300/80">
+          <div className="flex items-center justify-between text-xs font-black text-amber-600 dark:text-amber-400 mb-1">
             <span>GOAL SCORE CHUNG</span>
-            <Award className="w-4 h-4 text-amber-500" />
+            <div className="p-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/50">
+              <Award className="w-4 h-4 text-amber-500" />
+            </div>
           </div>
-          <div className="text-3xl font-black text-slate-900">{avgGoalScore}<span className="text-sm font-normal text-slate-400">/100</span></div>
-          <div className="text-[11px] font-semibold text-amber-600 mt-1 flex items-center gap-1">
-            <Flame className="w-3.5 h-3.5 fill-amber-500" /> Streak tổng: {totalStreak} ngày
+          <div className="text-3xl font-black text-slate-900 dark:text-white">{avgGoalScore}<span className="text-sm font-normal text-slate-400">/100</span></div>
+          <div className="text-[11px] font-black text-amber-600 dark:text-amber-400 mt-1 flex items-center gap-1">
+            <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500 animate-pulse" /> Streak tổng: {totalStreak} ngày 🔥
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-1">
+        <div className="card-cute bg-white/90 dark:bg-slate-900/90 p-5 rounded-3xl border border-rose-100/70 dark:border-rose-900/40 shadow-xs hover:border-rose-300/80">
+          <div className="flex items-center justify-between text-xs font-black text-rose-600 dark:text-rose-400 mb-1">
             <span>RỦI RO & CHẬM TIẾN ĐỘ</span>
-            <ShieldAlert className="w-4 h-4 text-red-500" />
+            <div className="p-1.5 rounded-xl bg-rose-50 dark:bg-rose-950/50">
+              <ShieldAlert className="w-4 h-4 text-rose-500" />
+            </div>
           </div>
           <div className="flex items-baseline gap-2">
-            <div className="text-3xl font-black text-slate-900">{atRiskGoals.length + criticalGoals.length}</div>
-            <span className="text-xs font-bold text-red-600">({criticalGoals.length} Critical)</span>
+            <div className="text-3xl font-black text-slate-900 dark:text-white">{atRiskGoals.length + criticalGoals.length}</div>
+            <span className="text-xs font-bold text-rose-600">({criticalGoals.length} Critical)</span>
           </div>
-          <div className="text-[11px] font-medium text-slate-500 mt-1">
+          <div className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-1">
             {onTrackGoals.length} đang On Track 🟢
           </div>
         </div>
       </div>
 
       {/* Goal Status Breakdown Banner */}
-      <div className="bg-slate-900 text-white p-5 rounded-2xl shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-4">
+      <div className="bg-gradient-to-r from-violet-950 via-slate-900 to-purple-950 text-white p-5 rounded-3xl shadow-xl border border-purple-800/40 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-center gap-3.5">
           <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md">
-            <Crosshair className="w-6 h-6 text-blue-400" />
+            <Crosshair className="w-6 h-6 text-pink-400 stroke-[2.2]" />
           </div>
           <div>
-            <h3 className="font-bold text-base">Trạng thái Thực thi Mục tiêu</h3>
-            <p className="text-xs text-slate-300 mt-0.5">Theo dõi thời gian thực kết quả đạt được & kiểm soát rủi ro.</p>
+            <h3 className="font-black text-base text-white">Trạng thái Thực thi Mục tiêu ✨</h3>
+            <p className="text-xs text-purple-200/80 mt-0.5">Theo dõi thời gian thực kết quả đạt được & kiểm soát rủi ro.</p>
           </div>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5">
+          <span className="px-3 py-1.5 rounded-2xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-400"></span> 🎯 {activeGoals.length} Đang thực hiện
           </span>
-          <span className="px-3 py-1.5 rounded-xl bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-bold flex items-center gap-1.5">
+          <span className="px-3 py-1.5 rounded-2xl bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs font-bold flex items-center gap-1.5">
             🟢 {onTrackGoals.length} On Track
           </span>
-          <span className="px-3 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5">
+          <span className="px-3 py-1.5 rounded-2xl bg-amber-500/20 text-amber-300 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5">
             🟡 {atRiskGoals.length} At Risk
           </span>
-          <span className="px-3 py-1.5 rounded-xl bg-red-500/20 text-red-300 border border-red-500/30 text-xs font-bold flex items-center gap-1.5">
+          <span className="px-3 py-1.5 rounded-2xl bg-red-500/20 text-red-300 border border-red-500/30 text-xs font-bold flex items-center gap-1.5">
             🔴 {criticalGoals.length} Critical
           </span>
         </div>

@@ -9,7 +9,13 @@ export function PwaPromptBanner() {
     canInstall: false,
     hasUpdate: false
   });
-  const [dismissedInstall, setDismissedInstall] = useState(false);
+  const [dismissedInstall, setDismissedInstall] = useState(() => {
+    try {
+      return sessionStorage.getItem('lifeos_pwa_dismissed') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [dismissedUpdate, setDismissedUpdate] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
 
@@ -66,19 +72,22 @@ export function PwaPromptBanner() {
   // 2. Install Prompt Banner (Only when browser permits installation and not installed)
   if (pwaStatus.canInstall && !pwaStatus.isInstalled && !dismissedInstall) {
     return (
-      <aside aria-label="Cài đặt ứng dụng QUẢN LÍ CÁ NHÂN" className="fixed bottom-20 md:bottom-5 left-3 sm:left-6 z-40 max-w-sm w-[calc(100vw-24px)] bg-slate-900/95 dark:bg-slate-900/95 backdrop-blur-md text-white p-3.5 rounded-2xl shadow-2xl border border-slate-700/80 animate-in slide-in-from-bottom-5 fade-in duration-300">
-        <div className="flex items-start gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shrink-0 shadow-md">
+      <aside 
+        aria-label="Cài đặt ứng dụng QUẢN LÍ CÁ NHÂN" 
+        className="fixed bottom-22 md:bottom-6 left-3.5 sm:left-6 md:left-[17.5rem] z-40 max-w-sm w-[calc(100vw-28px)] md:w-96 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl text-slate-800 dark:text-slate-100 p-4 rounded-3xl shadow-2xl border border-purple-200/80 dark:border-purple-800/60 card-cute animate-in slide-in-from-bottom-5 fade-in duration-300"
+      >
+        <div className="flex items-start gap-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-violet-500 via-pink-500 to-rose-400 flex items-center justify-center shrink-0 shadow-md shadow-pink-500/25">
             <Smartphone className="w-5 h-5 text-white" />
           </div>
           <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-bold text-white flex items-center gap-1.5">
-              Cài đặt QUẢN LÍ CÁ NHÂN
+            <h4 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+              Cài đặt QUẢN LÍ CÁ NHÂN ✨
             </h4>
-            <p className="text-xs text-slate-300 mt-0.5 leading-relaxed">
-              Cài đặt ứng dụng lên màn hình chính để mở nhanh, mượt mà và dùng được ngoại tuyến.
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 leading-relaxed">
+              Cài đặt ứng dụng lên màn hình chính để mở tức thì, mượt mà và hoạt động ngoại tuyến.
             </p>
-            <div className="flex items-center gap-2 mt-2.5">
+            <div className="flex items-center gap-2 mt-3">
               <button
                 type="button"
                 disabled={isInstalling}
@@ -87,23 +96,29 @@ export function PwaPromptBanner() {
                   await promptPwaInstall();
                   setIsInstalling(false);
                 }}
-                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg shadow-sm transition cursor-pointer flex items-center gap-1.5"
+                className="btn-squishy px-3.5 py-1.5 bg-gradient-to-r from-violet-600 via-pink-500 to-rose-400 hover:from-violet-500 hover:to-pink-500 text-white font-bold text-xs rounded-xl shadow-md shadow-pink-500/20 transition cursor-pointer flex items-center gap-1.5"
               >
                 <Download className="w-3.5 h-3.5" /> {isInstalling ? 'Đang mở...' : 'Cài đặt app'}
               </button>
               <button
                 type="button"
-                onClick={() => setDismissedInstall(true)}
-                className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-lg transition cursor-pointer"
+                onClick={() => {
+                  setDismissedInstall(true);
+                  sessionStorage.setItem('lifeos_pwa_dismissed', 'true');
+                }}
+                className="btn-squishy px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded-xl transition cursor-pointer"
               >
-                Không phải lúc này
+                Để sau
               </button>
             </div>
           </div>
           <button
             type="button"
-            onClick={() => setDismissedInstall(true)}
-            className="text-slate-400 hover:text-white p-1 transition cursor-pointer"
+            onClick={() => {
+              setDismissedInstall(true);
+              sessionStorage.setItem('lifeos_pwa_dismissed', 'true');
+            }}
+            className="btn-squishy text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-lg transition cursor-pointer"
             aria-label="Đóng"
           >
             <X className="w-4 h-4" />

@@ -254,22 +254,22 @@ export function DecisionEngineView() {
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-8 pb-24 text-slate-800 dark:text-slate-100">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-6">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-purple-100/60 dark:border-purple-900/30 pb-6">
         <div>
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-blue-600 text-white rounded-xl shadow-md shadow-blue-500/20">
-              <BrainCircuit className="w-8 h-8" />
+          <div className="flex items-center gap-3.5">
+            <div className="p-2.5 bg-gradient-to-br from-violet-500 via-pink-500 to-rose-400 text-white rounded-2xl shadow-md shadow-pink-500/25">
+              <BrainCircuit className="w-8 h-8 stroke-[2.2]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-                  Decision Engine
+                <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                  Động Cơ Ra Quyết Định ✨
                 </h1>
-                <span className="px-2.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 rounded-full border border-blue-200 dark:border-blue-800">
-                  Core Logic v2.5
+                <span className="px-2.5 py-0.5 text-xs font-black bg-pink-100 text-pink-700 dark:bg-purple-950/60 dark:text-pink-300 rounded-full border border-pink-200 dark:border-purple-800">
+                  Decision Pro v2.5
                 </span>
               </div>
-              <p className="text-slate-500 dark:text-slate-400 text-sm mt-0.5">
+              <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-0.5 font-medium">
                 Hệ thống phân tích bài toán, lập ma trận trọng số, quản trị rủi ro & mô phỏng kịch bản ra quyết định.
               </p>
             </div>
@@ -279,16 +279,16 @@ export function DecisionEngineView() {
         <div className="flex items-center gap-3 shrink-0">
           <button type="button"
             onClick={() => setActiveSubTab('create')}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow-sm transition-all flex items-center gap-2 text-sm cursor-pointer"
+            className="btn-squishy px-4 py-2.5 bg-gradient-to-r from-violet-600 via-pink-500 to-rose-400 hover:from-violet-500 hover:to-pink-500 text-white font-black rounded-2xl shadow-md shadow-pink-500/25 transition-all flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
-            Tạo Decision mới
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            + Tạo Decision mới ✨
           </button>
         </div>
       </div>
 
       {/* Navigation Subtabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 scrollbar-none border-b border-slate-200 dark:border-slate-800">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-purple-100/60 dark:border-purple-900/30">
         {[
           { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
           { id: 'list', label: 'My Decisions', icon: ListOrdered },
@@ -309,13 +309,13 @@ export function DecisionEngineView() {
             <button type="button"
               key={tab.id}
               onClick={() => setActiveSubTab(tab.id as any)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 cursor-pointer ${
+              className={`btn-squishy px-3.5 py-2 rounded-2xl text-xs font-black transition-all whitespace-nowrap flex items-center gap-1.5 shrink-0 cursor-pointer ${
                 isActive
-                  ? 'bg-slate-900 text-white dark:bg-blue-600 dark:text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                  ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/25 scale-[1.02]'
+                  : 'bg-white/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 border border-purple-150/60 dark:border-purple-900/40 hover:bg-violet-50/70 dark:hover:bg-purple-950/30 hover:text-purple-700'
               }`}
             >
-              <Icon className={`w-4 h-4 ${isActive ? 'text-blue-400 dark:text-white' : 'text-slate-400'}`} />
+              <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-purple-400'}`} />
               {tab.label}
             </button>
           );

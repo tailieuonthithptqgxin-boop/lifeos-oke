@@ -17,7 +17,7 @@ export function CalendarView() {
   const hours = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
   return (
-    <div className="p-3.5 sm:p-6 max-w-7xl mx-auto h-full flex flex-col space-y-4 sm:space-y-6 overflow-y-auto">
+    <div className="p-3.5 sm:p-6 pb-24 sm:pb-28 max-w-7xl mx-auto h-full flex flex-col space-y-4 sm:space-y-6 overflow-y-auto">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0">
         <div>
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Lịch & Thời gian biểu</h2>

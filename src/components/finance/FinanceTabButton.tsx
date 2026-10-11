@@ -17,10 +17,10 @@ export const FinanceTabButton: React.FC<FinanceTabButtonProps> = ({
     <button 
       type="button" 
       onClick={onClick}
-      className={`pb-3 px-1 flex items-center gap-2 font-bold text-xs sm:text-sm border-b-2 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+      className={`btn-squishy px-3.5 sm:px-4 py-2.5 rounded-2xl flex items-center gap-2 font-extrabold text-xs sm:text-sm transition-all whitespace-nowrap shrink-0 cursor-pointer ${
         active 
-          ? 'border-blue-600 text-blue-600 dark:text-blue-400' 
-          : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'
+          ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/25' 
+          : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/80 dark:hover:bg-slate-800 hover:text-purple-700 dark:hover:text-purple-300'
       }`}
     >
       {icon} <span>{label}</span>

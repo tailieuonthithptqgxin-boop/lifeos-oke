@@ -7,6 +7,8 @@ import { AutomationEngineService } from '../services/automationEngine.service.js
 import { subscriptionService, OFFICIAL_PLANS } from '../services/subscription.service.js';
 import { teamService } from '../services/team.service.js';
 import { gmailService } from '../services/gmailNotification.service.js';
+import { referralService } from '../services/referral.service.js';
+import { feedbackService } from '../services/feedback.service.js';
 import { r2Router } from './r2.routes.js';
 import { customModulesRouter } from './customModules.routes.js';
 import { paymentRateLimiter, couponRateLimiter } from '../security/rateLimiter.js';
@@ -1608,6 +1610,13 @@ apiRouter.post('/payments/cancel-request', async (req: AuthRequest, res: Respons
       data: { status: 'CANCELLED' }
     });
 
+    // Auto-adjust / cancel referral commission if already granted
+    try {
+      await referralService.processOrderCancelledOrRefunded(orderId, 'Người dùng hủy yêu cầu thanh toán');
+    } catch (refErr) {
+      console.warn('[Referral] Error handling cancelled order commission:', refErr);
+    }
+
     res.json({
       success: true,
       message: 'Đã hủy yêu cầu thanh toán thành công.',
@@ -1791,7 +1800,18 @@ apiRouter.post('/admin/payments/:id/approve', requireAdmin, async (req: AuthRequ
       }).catch(e => console.error('[Gmail] Error sending payment approve email:', e));
     }
 
-    // 5. Create Audit Log
+    // 5. Calculate and award 30% Referral Commission (if customer was referred)
+    try {
+      await referralService.processOrderApproved(
+        payment.orderId,
+        payment.amount || 0,
+        payment.userId
+      );
+    } catch (refErr) {
+      console.warn('[Referral] Error processing commission on payment approval:', refErr);
+    }
+
+    // 6. Create Audit Log
     await dbService.createAuditLog(
       adminId,
       'ADMIN_APPROVE_PAYMENT',
@@ -3525,3 +3545,243 @@ apiRouter.get('/admin/gmail/logs', requireAdmin, async (req: AuthRequest, res: R
     res.status(500).json({ success: false, message: 'Lỗi tải nhật ký gửi email: ' + err.message });
   }
 });
+
+// ====================================================
+// REFERRAL PROGRAM API ENDPOINTS
+// ====================================================
+
+// 1. User: Get Referral Dashboard Stats
+apiRouter.get('/referrals/dashboard', async (req: AuthRequest, res: Response) => {
+  try {
+    const origin = req.get('origin') || `${req.protocol}://${req.get('host')}`;
+    const data = await referralService.getUserDashboard(req.userId!, origin);
+    res.json({
+      success: true,
+      ...data
+    });
+  } catch (err: any) {
+    console.error('GET /referrals/dashboard error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 2. User: Request Withdrawal to Bank
+apiRouter.post('/referrals/withdraw', async (req: AuthRequest, res: Response) => {
+  try {
+    const { amount, bankName, bankAccount, accountHolder, transferNote, userNote } = req.body;
+    const request = await referralService.requestWithdrawal(req.userId!, {
+      amount: Number(amount),
+      bankName,
+      bankAccount,
+      accountHolder,
+      transferNote,
+      userNote
+    });
+    res.status(201).json({
+      success: true,
+      message: 'Gửi yêu cầu rút tiền thành công! Admin sẽ duyệt và giải ngân sớm.',
+      request
+    });
+  } catch (err: any) {
+    console.error('POST /referrals/withdraw error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 3. User: Get withdrawal history
+apiRouter.get('/referrals/withdrawals', async (req: AuthRequest, res: Response) => {
+  try {
+    const list = await referralService.getUserWithdrawals(req.userId!);
+    res.json({
+      success: true,
+      withdrawals: list
+    });
+  } catch (err: any) {
+    console.error('GET /referrals/withdrawals error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 4. Admin: Get Global Referral Overview
+apiRouter.get('/admin/referrals/overview', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const data = await referralService.getAdminOverview();
+    res.json({
+      success: true,
+      ...data
+    });
+  } catch (err: any) {
+    console.error('GET /admin/referrals/overview error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 5. Admin: List all withdrawal requests
+apiRouter.get('/admin/referrals/withdrawals', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { status } = req.query;
+    const list = await referralService.getAdminWithdrawals(status ? String(status) : undefined);
+    res.json({
+      success: true,
+      withdrawals: list
+    });
+  } catch (err: any) {
+    console.error('GET /admin/referrals/withdrawals error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 6. Admin: Approve withdrawal request (mark PAID, provide txReference)
+apiRouter.post('/admin/referrals/withdrawals/:id/approve', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { txReference, proofUrl } = req.body;
+    const adminEmail = req.user.email;
+    const result = await referralService.adminApproveWithdrawal(req.params.id, adminEmail, txReference, proofUrl);
+    res.json({
+      success: true,
+      message: 'Đã duyệt yêu cầu rút tiền và đánh dấu Đã chuyển khoản!',
+      withdrawal: result
+    });
+  } catch (err: any) {
+    console.error('POST /admin/referrals/withdrawals/:id/approve error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 7. Admin: Reject withdrawal request (refunds funds back to available balance)
+apiRouter.post('/admin/referrals/withdrawals/:id/reject', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { reason } = req.body;
+    if (!reason || !String(reason).trim()) {
+      res.status(400).json({ success: false, message: 'Bắt buộc nhập lý do từ chối yêu cầu rút tiền.' });
+      return;
+    }
+    const adminEmail = req.user.email;
+    const result = await referralService.adminRejectWithdrawal(req.params.id, adminEmail, String(reason).trim());
+    res.json({
+      success: true,
+      message: 'Đã từ chối yêu cầu rút tiền và hoàn lại toàn bộ số tiền vào ví người dùng!',
+      withdrawal: result
+    });
+  } catch (err: any) {
+    console.error('POST /admin/referrals/withdrawals/:id/reject error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// ====================================================
+// FEEDBACK & FEATURE REQUEST API ENDPOINTS
+// ====================================================
+
+// 1. User: Submit new feedback
+apiRouter.post('/feedback', async (req: AuthRequest, res: Response) => {
+  try {
+    const { title, content, type, rating } = req.body;
+    if (!title || !content) {
+      res.status(400).json({ success: false, message: 'Tiêu đề và nội dung góp ý là bắt buộc.' });
+      return;
+    }
+    const feedback = await feedbackService.createFeedback(req.userId!, {
+      title,
+      content,
+      type,
+      rating
+    });
+    res.status(201).json({
+      success: true,
+      message: 'Gửi góp ý thành công! Cảm ơn bạn đã đóng góp.',
+      feedback
+    });
+  } catch (err: any) {
+    console.error('POST /feedback error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 2. User: Get own feedbacks
+apiRouter.get('/feedback/my', async (req: AuthRequest, res: Response) => {
+  try {
+    const list = await feedbackService.getUserFeedbacks(req.userId!);
+    res.json({
+      success: true,
+      feedbacks: list
+    });
+  } catch (err: any) {
+    console.error('GET /feedback/my error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 3. User & Public: Get community feedback wishlist & roadmap
+apiRouter.get('/feedback/public', async (req: AuthRequest, res: Response) => {
+  try {
+    const list = await feedbackService.getPublicFeedbacks(req.userId);
+    res.json({
+      success: true,
+      feedbacks: list
+    });
+  } catch (err: any) {
+    console.error('GET /feedback/public error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 4. User: Upvote / Vote on community feedback
+apiRouter.post('/feedback/:id/vote', async (req: AuthRequest, res: Response) => {
+  try {
+    const result = await feedbackService.toggleVote(req.userId!, req.params.id);
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (err: any) {
+    console.error('POST /feedback/:id/vote error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 5. Admin: List feedbacks with filter, search & counts
+apiRouter.get('/admin/feedback', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { status, type, search, isImportant } = req.query;
+    const data = await feedbackService.getAdminFeedbacks({
+      status: status ? String(status) : undefined,
+      type: type ? String(type) : undefined,
+      search: search ? String(search) : undefined,
+      isImportant: isImportant !== undefined ? isImportant === 'true' : undefined
+    });
+    res.json({
+      success: true,
+      ...data
+    });
+  } catch (err: any) {
+    console.error('GET /admin/feedback error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 6. Admin: Update status, write reply, toggle important flag
+apiRouter.patch('/admin/feedback/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { status, adminReply, isImportant } = req.body;
+    const updated = await feedbackService.adminUpdateFeedback(
+      req.params.id,
+      req.userId!,
+      req.user.email,
+      {
+        status,
+        adminReply,
+        isImportant
+      }
+    );
+    res.json({
+      success: true,
+      message: 'Cập nhật trạng thái góp ý thành công!',
+      feedback: updated
+    });
+  } catch (err: any) {
+    console.error('PATCH /admin/feedback/:id error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+

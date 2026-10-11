@@ -19,76 +19,79 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
       <div className="absolute top-[800px] left-1/4 w-[600px] h-[450px] bg-blue-600/10 blur-[140px] pointer-events-none rounded-full" />
 
       {/* Modern Glass Navbar */}
-      <nav className="border-b border-white/10 bg-slate-950/70 backdrop-blur-xl sticky top-0 z-50">
+      <nav className="border-b border-purple-500/20 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-18 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 p-0.5 shadow-lg shadow-indigo-500/25">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-violet-500 via-pink-500 to-amber-300 p-0.5 shadow-lg shadow-pink-500/25 animate-pulse-soft">
               <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
-                <span className="text-white font-black text-xl tracking-wider">L</span>
+                <Sparkles className="w-5 h-5 text-pink-400" />
               </div>
             </div>
             <div className="flex flex-col">
-              <span className="font-black text-xl tracking-tight text-white leading-none">Life OS</span>
-              <span className="text-[10px] font-bold text-indigo-400 tracking-widest uppercase">Pro Edition</span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-black text-xl tracking-tight text-white leading-none">Life<span className="bg-gradient-to-r from-violet-400 to-pink-400 bg-clip-text text-transparent">OS</span></span>
+                <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/30">Cute ✨</span>
+              </div>
+              <span className="text-[10px] font-bold text-violet-400 tracking-widest uppercase">Gen Z Edition</span>
             </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-300">
-            <a href="#features" className="hover:text-white transition-colors">Tính năng Bento</a>
-            <a href="#retention" className="hover:text-white transition-colors">Gamification & AI</a>
-            <a href="#pricing" className="hover:text-white transition-colors">Bảng giá SaaS</a>
+          <div className="hidden md:flex items-center gap-8 text-sm font-bold text-slate-300">
+            <a href="#features" className="hover:text-pink-300 transition-colors">Tính năng Bento 🍱</a>
+            <a href="#retention" className="hover:text-purple-300 transition-colors">Linh thú & AI 🐾</a>
+            <a href="#pricing" className="hover:text-amber-300 transition-colors">Bảng giá SaaS 💎</a>
           </div>
 
           <div className="flex items-center gap-3">
             <button 
               onClick={onLoginClick}
-              className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-white text-xs font-bold border border-white/15 backdrop-blur-md transition-all active:scale-95 cursor-pointer"
+              className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/15 text-white text-xs font-bold border border-white/15 backdrop-blur-md transition-all btn-squishy"
             >
               Đăng nhập
             </button>
             <button 
               onClick={onLoginClick}
-              className="px-5 py-2.5 rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white text-xs font-bold shadow-lg shadow-indigo-500/25 transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
+              className="px-5 py-2.5 rounded-full bg-gradient-to-r from-violet-600 via-pink-500 to-rose-400 hover:from-violet-500 hover:to-pink-500 text-white text-xs font-black shadow-lg shadow-pink-500/30 transition-all btn-squishy flex items-center gap-1.5"
             >
-              <span>Bắt đầu ngay</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <span>Khám phá ngay</span>
+              <ArrowRight className="w-3.5 h-3.5 stroke-[2.5]" />
             </button>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-28 pb-20 px-6 text-center max-w-5xl mx-auto">
+      <section className="relative pt-24 pb-20 px-6 text-center max-w-5xl mx-auto">
         {/* Gen Z Tag pill */}
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-bold mb-8 shadow-inner animate-pulse">
-          <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-          <span>Life OS 3.0 · Gamified All-in-One Life Operating System</span>
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-pink-500/15 via-purple-500/15 to-violet-500/15 border border-pink-400/30 text-pink-300 text-xs font-black mb-8 shadow-inner animate-pulse-soft">
+          <Sparkles className="w-4 h-4 text-amber-300" />
+          <span>Life OS 3.0 · Giao diện Cute, Thông minh & Chuẩn Phong Cách Gen Z</span>
         </div>
 
         <h1 className="text-4xl sm:text-6xl md:text-7xl font-black text-white tracking-tight leading-[1.1] mb-6">
-          Chinh Phục Cuộc Sống <br />
-          <span className="bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-            Chuẩn Phong Cách Thế Hệ Mới
+          Quản Lý Cuộc Sống <br />
+          <span className="bg-gradient-to-r from-violet-400 via-pink-400 to-amber-300 bg-clip-text text-transparent">
+            Cực Chill, Cực Năng Suất ✨
           </span>
         </h1>
 
-        <p className="text-base sm:text-lg text-slate-400 mb-10 max-w-2xl mx-auto leading-relaxed">
-          Tối ưu hóa toàn diện Công việc, Tài chính, Thói quen kỷ luật, và Ôn tập từ vựng Spaced Repetition thông minh với trải nghiệm gamification streak & level tích hợp.
+        <p className="text-base sm:text-lg text-slate-300/90 mb-10 max-w-2xl mx-auto leading-relaxed font-medium">
+          Tối ưu hóa toàn diện Công việc, Tài chính, Thói quen kỷ luật, và Ôn tập từ vựng Spaced Repetition thông minh cùng dàn Linh thú đồng hành AI siêu đáng yêu!
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <button 
             onClick={onLoginClick}
-            className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-indigo-500 via-purple-600 to-pink-500 text-white text-sm sm:text-base font-extrabold rounded-full hover:shadow-2xl hover:shadow-indigo-500/30 hover:scale-102 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg"
+            className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-violet-600 via-pink-500 to-rose-400 hover:from-violet-500 hover:to-pink-500 text-white text-sm sm:text-base font-black rounded-full shadow-xl shadow-pink-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer btn-squishy"
           >
-            <span>Trải nghiệm Life OS Ngay</span>
+            <span>Trải nghiệm Life OS Ngay ✨</span>
             <ArrowRight className="w-4 h-4 stroke-[2.5]" />
           </button>
           <a 
             href="#pricing"
-            className="w-full sm:w-auto px-7 py-4 bg-white/5 hover:bg-white/10 text-slate-300 text-sm sm:text-base font-bold rounded-full border border-white/10 backdrop-blur-md transition-all flex items-center justify-center"
+            className="w-full sm:w-auto px-7 py-4 bg-white/10 hover:bg-white/15 text-pink-200 hover:text-white text-sm sm:text-base font-bold rounded-full border border-pink-400/30 backdrop-blur-md transition-all flex items-center justify-center btn-squishy"
           >
-            Xem bảng giá chỉ từ 15k
+            Bảng giá siêu hạt dẻ chỉ 15k 🎟️
           </a>
         </div>
 

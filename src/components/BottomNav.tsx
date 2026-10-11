@@ -29,7 +29,7 @@ export function BottomNav() {
     <nav
       id="mobile-bottom-nav"
       aria-label={t('Thanh điều hướng di động')}
-      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 px-2 pt-1.5 pb-[max(env(safe-area-inset-bottom),0.5rem)] transition-colors"
+      className="md:hidden fixed bottom-2.5 left-3 right-3 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-purple-100/70 dark:border-purple-900/40 rounded-3xl shadow-2xl px-2 py-1.5 transition-all"
     >
       <div className="flex items-center justify-around max-w-lg mx-auto">
         {PRIMARY_TABS.map(tab => {
@@ -41,25 +41,25 @@ export function BottomNav() {
               id={`mobile-tab-${tab.id}`}
               type="button"
               onClick={() => setCurrentView(tab.id)}
-              className={`flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl transition-all relative ${
+              className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl transition-all relative btn-squishy ${
                 isActive
-                  ? 'text-blue-600 dark:text-blue-400 font-bold'
-                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
+                  ? 'bg-gradient-to-r from-violet-500/15 via-purple-500/15 to-pink-500/15 text-purple-600 dark:text-purple-300 font-black'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-300 font-semibold'
               }`}
             >
               <div className="relative">
-                <Icon className={`w-5 h-5 transition-transform ${isActive ? 'scale-110' : ''}`} />
+                <Icon className={`w-5 h-5 transition-transform ${isActive ? 'scale-115 text-purple-600 dark:text-purple-300' : ''}`} />
                 {tab.id === 'tasks' && pendingTaskCount > 0 && (
-                  <span className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center ring-2 ring-white dark:ring-slate-900">
+                  <span className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-gradient-to-r from-pink-500 to-rose-500 text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-2xs">
                     {pendingTaskCount > 99 ? '99+' : pendingTaskCount}
                   </span>
                 )}
               </div>
-              <span className="text-[10px] mt-1 tracking-tight truncate max-w-[64px]">
+              <span className="text-[10px] mt-1 tracking-tight truncate max-w-[64px] font-bold">
                 {t(tab.label)}
               </span>
               {isActive && (
-                <span className="w-1.5 h-1.5 bg-blue-600 dark:bg-blue-400 rounded-full mt-0.5" />
+                <span className="w-1.5 h-1.5 bg-gradient-to-r from-violet-500 to-pink-500 rounded-full mt-0.5 animate-pulse" />
               )}
             </button>
           );
@@ -70,10 +70,10 @@ export function BottomNav() {
           id="mobile-tab-menu"
           type="button"
           onClick={toggleMobileMenu}
-          className="flex-1 flex flex-col items-center justify-center py-1 px-1 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium transition-colors"
+          className="flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-300 font-semibold transition-all btn-squishy"
         >
           <Menu className="w-5 h-5" />
-          <span className="text-[10px] mt-1 tracking-tight">{t('Thêm')}</span>
+          <span className="text-[10px] mt-1 tracking-tight font-bold">{t('Thêm')} ✨</span>
         </button>
       </div>
     </nav>
