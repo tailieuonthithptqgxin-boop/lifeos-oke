@@ -119,7 +119,7 @@ export function LockedWorkspaceOverlay({ featureName }: LockedWorkspaceOverlayPr
                 ? t('Xem Chi Tiết Thanh Toán & Trạng Thái')
                 : isExpired
                 ? t('Gia Hạn Gói Dịch Vụ Ngay')
-                : t('Chọn Gói Dịch Vụ & Kích Hoạt (Chỉ từ 15.000 ₫)')}
+                : t('Chọn Gói Dịch Vụ & Kích Hoạt')}
             </span>
             <ArrowRight className="w-4 h-4 ml-1" />
           </button>

@@ -61,6 +61,12 @@ export function FinanceView() {
   const [showDebtModal, setShowDebtModal] = useState(false);
   const [editingDebt, setEditingDebt] = useState<any>(null);
 
+  // Scenario Tab state
+  const [scenarioAccId, setScenarioAccId] = useState<string>('');
+  const [forecastAmount, setForecastAmount] = useState<number>(0);
+  const [forecastCategory, setForecastCategory] = useState<string>('Ăn uống');
+  const [forecastNote, setForecastNote] = useState<string>('');
+
   // Period Filter State for Charts & Analysis
   const [chartPeriod, setChartPeriod] = useState<'today' | 'week' | 'month' | 'year' | 'all'>('month');
 
@@ -169,17 +175,17 @@ export function FinanceView() {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Tài chính</h2>
-            <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/50">
-              Finance OS 💸
+            <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              Money
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Quản lý dòng tiền, ngân sách và mục tiêu tiết kiệm chill chill 🌸</p>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Quản lý dòng tiền, ngân sách và mục tiêu tiết kiệm kỷ luật</p>
         </div>
         <button type="button" 
           onClick={() => setShowTxModal(true)}
-          className="btn-squishy flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 hover:from-violet-500 hover:to-pink-400 text-white px-5 py-3 rounded-2xl text-sm font-extrabold transition-all shadow-md shadow-purple-500/25 cursor-pointer"
+          className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-2.5 rounded-2xl text-sm font-black transition-all shadow-md shadow-emerald-500/20 cursor-pointer"
         >
-          <Plus className="w-4 h-4 stroke-[3]" /> Thêm Giao dịch 💸
+          <Plus className="w-4 h-4 stroke-[3]" /> Thêm Giao dịch
         </button>
       </div>
 
@@ -190,7 +196,7 @@ export function FinanceView() {
         <FinanceTabButton active={activeTab === 'transactions'} onClick={() => setActiveTab('transactions')} icon={<ArrowRightLeft className="w-4 h-4" />} label="Giao dịch" />
         <FinanceTabButton active={activeTab === 'budgets'} onClick={() => setActiveTab('budgets')} icon={<PieChart className="w-4 h-4" />} label="Ngân sách" />
         <FinanceTabButton active={activeTab === 'goals'} onClick={() => setActiveTab('goals')} icon={<Target className="w-4 h-4" />} label="Mục tiêu" />
-        <FinanceTabButton active={activeTab === 'scenario'} onClick={() => setActiveTab('scenario')} icon={<Activity className="w-4 h-4" />} label="Dự báo chi tiêu 🔮" />
+        <FinanceTabButton active={activeTab === 'scenario'} onClick={() => setActiveTab('scenario')} icon={<Activity className="w-4 h-4" />} label="Mô phỏng tài chính" />
       </div>
 
       {/* Tab Panels */}
@@ -223,21 +229,31 @@ export function FinanceView() {
 
       {activeTab === 'accounts' && (
         <FinanceAccountsTab
-          accounts={financeAccounts}
-          onOpenModal={(acc) => {
+          financeAccounts={financeAccounts}
+          getAccountIcon={(type: string) => {
+            if (type === 'Ngân hàng') return <div className="font-bold">🏦</div>;
+            if (type === 'Ví điện tử') return <div className="font-bold">💳</div>;
+            if (type === 'Tiết kiệm') return <div className="font-bold">🐷</div>;
+            return <Wallet className="w-5 h-5" />;
+          }}
+          formatCurrency={formatCurrency}
+          onEditAccount={(acc) => {
             setEditingAccount(acc || null);
             setShowAccountModal(true);
           }}
           onDeleteAccount={(id) => deleteFinanceAccount(id)}
+          onAddAccount={() => {
+            setEditingAccount(null);
+            setShowAccountModal(true);
+          }}
         />
       )}
 
       {activeTab === 'transactions' && (
         <FinanceTransactionsTab
           transactions={transactions}
-          accounts={financeAccounts}
+          formatCurrency={formatCurrency}
           onDeleteTransaction={(id) => deleteTransaction(id)}
-          onOpenTxModal={() => setShowTxModal(true)}
         />
       )}
 
@@ -245,11 +261,17 @@ export function FinanceView() {
         <FinanceBudgetsTab
           budgets={budgets}
           monthlyTx={monthlyTx}
-          onOpenModal={(budget) => {
+          monthlyExpense={monthlyExpense}
+          formatCurrency={formatCurrency}
+          onEditBudget={(budget) => {
             setEditingBudget(budget || null);
             setShowBudgetModal(true);
           }}
           onDeleteBudget={(id) => deleteBudget(id)}
+          onAddBudget={() => {
+            setEditingBudget(null);
+            setShowBudgetModal(true);
+          }}
         />
       )}
 
@@ -257,12 +279,24 @@ export function FinanceView() {
         <FinanceGoalsTab
           savingGoals={savingGoals}
           debts={debts}
-          onOpenSavingGoalModal={(g) => {
+          formatCurrency={formatCurrency}
+          onEditSavingGoal={(g) => {
             setEditingSavingGoal(g || null);
             setShowSavingGoalModal(true);
           }}
-          onOpenDebtModal={(d) => {
+          onDeleteSavingGoal={(id) => deleteSavingGoal(id)}
+          onAddSavingGoal={() => {
+            setEditingSavingGoal(null);
+            setShowSavingGoalModal(true);
+          }}
+          onEditDebt={(d) => {
             setEditingDebt(d || null);
+            setShowDebtModal(true);
+          }}
+          onDeleteDebt={(id) => deleteDebt(id)}
+          onUpdateDebtStatus={(id, status) => updateDebt(id, { status })}
+          onAddDebt={() => {
+            setEditingDebt(null);
             setShowDebtModal(true);
           }}
         />
@@ -270,10 +304,45 @@ export function FinanceView() {
 
       {activeTab === 'scenario' && (
         <FinanceScenarioTab
-          accounts={financeAccounts}
+          financeAccounts={financeAccounts}
           budgets={budgets}
           monthlyTx={monthlyTx}
-          onAddTransaction={(tx) => addTransaction(tx)}
+          selectedAccId={scenarioAccId}
+          setSelectedAccId={setScenarioAccId}
+          forecastAmount={forecastAmount}
+          setForecastAmount={setForecastAmount}
+          forecastCategory={forecastCategory}
+          setForecastCategory={setForecastCategory}
+          forecastNote={forecastNote}
+          setForecastNote={setForecastNote}
+          formatCurrency={formatCurrency}
+          onExecuteRealTransaction={() => {
+            const acc = (financeAccounts || []).find((a: any) => a.id === scenarioAccId) || (financeAccounts && financeAccounts.length > 0 ? financeAccounts[0] : null);
+            if (!acc) {
+              alert('Vui lòng tạo hoặc chọn một tài khoản trước.');
+              return;
+            }
+            if (forecastAmount <= 0) {
+              alert('Vui lòng nhập số tiền chi lớn hơn 0.');
+              return;
+            }
+            addTransaction({
+              type: 'Chi tiêu',
+              amount: forecastAmount,
+              category: forecastCategory || 'Chi tiêu',
+              accountId: acc.id,
+              date: todayStr,
+              note: forecastNote || 'Ghi nhận từ Dự báo chi tiêu',
+              status: 'Completed'
+            });
+            alert('Đã ghi nhận giao dịch thành công vào tài khoản!');
+            setForecastAmount(0);
+            setForecastNote('');
+          }}
+          onOpenAccountModal={() => {
+            setEditingAccount(null);
+            setShowAccountModal(true);
+          }}
         />
       )}
 

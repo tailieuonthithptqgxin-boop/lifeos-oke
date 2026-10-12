@@ -194,6 +194,95 @@ class SoundEngine {
       // Graceful fallback if speech synthesis is blocked
     }
   }
+
+  // 7. Treasure Chest Open (Mystical ascending twinkle)
+  public playChestOpen() {
+    if (!this.enabled) return;
+    const ctx = this.initContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const notes = [440, 554.37, 659.25, 880, 1108.73, 1318.51, 1760];
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = now + idx * 0.06;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      gain.gain.setValueAtTime(0.18, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.4);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.4);
+    });
+  }
+
+  // 8. Coin Shower (Metallic coins clicking)
+  public playCoinShower() {
+    if (!this.enabled) return;
+    const ctx = this.initContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    for (let i = 0; i < 5; i++) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = now + i * 0.05 + Math.random() * 0.02;
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(1800 + i * 150, startTime);
+      osc.frequency.exponentialRampToValueAtTime(2400 + i * 100, startTime + 0.08);
+
+      gain.gain.setValueAtTime(0.12, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.09);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.09);
+    }
+  }
+
+  // 9. Level Up Epic Fanfare
+  public playLevelUpFanfare() {
+    if (!this.enabled) return;
+    const ctx = this.initContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const chords = [
+      { t: 0, f: [523.25, 659.25, 783.99] },      // C major
+      { t: 0.18, f: [587.33, 739.99, 880.00] },  // D major
+      { t: 0.36, f: [659.25, 830.61, 987.77] },  // E major
+      { t: 0.54, f: [783.99, 987.77, 1174.66, 1567.98] } // G major with high G
+    ];
+
+    chords.forEach(chord => {
+      chord.f.forEach(freq => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        const startTime = now + chord.t;
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(freq, startTime);
+
+        gain.gain.setValueAtTime(0.08, startTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.45);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start(startTime);
+        osc.stop(startTime + 0.45);
+      });
+    });
+  }
 }
 
 export const soundEngine = new SoundEngine();

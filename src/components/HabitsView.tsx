@@ -52,29 +52,29 @@ export function HabitsView() {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Theo dõi Thói quen</h2>
-            <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200/50">
-              Habits Streak 🌱
+            <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              Habits Streak
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
-            Xây dựng tính kỷ luật hàng ngày thông qua chuỗi streak nhất quán chill chill 🌸
+            Xây dựng tính kỷ luật hàng ngày thông qua chuỗi streak bền bỉ
           </p>
         </div>
         <button
           id="btn-add-habit"
           onClick={() => setShowAddModal(true)}
-          className="btn-squishy px-5 py-3 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 hover:from-violet-500 hover:to-pink-400 text-white text-sm font-extrabold rounded-2xl flex items-center gap-2 shadow-md shadow-purple-500/25 transition-all self-start sm:self-auto cursor-pointer"
+          className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-black rounded-2xl flex items-center gap-2 shadow-md shadow-emerald-500/20 transition-all self-start sm:self-auto cursor-pointer"
         >
-          <Plus className="w-4 h-4 stroke-[3]" /> Thêm Thói quen 🌱
+          <Plus className="w-4 h-4 stroke-[3]" /> Thêm Thói quen
         </button>
       </div>
 
       {/* Habits List */}
       {(habits || []).length === 0 ? (
-        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-3xl border border-purple-100/70 dark:border-purple-900/40 p-12 text-center">
-          <Activity className="w-12 h-12 text-purple-300 dark:text-purple-600 mx-auto mb-3 animate-wiggle" />
-          <h3 className="font-extrabold text-slate-900 dark:text-white">Chưa có thói quen nào 🌸</h3>
-          <p className="text-xs text-slate-500 mt-1 font-medium">Bấm nút "Thêm Thói quen 🌱" để bắt đầu theo dõi streak ngay hôm nay!</p>
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center">
+          <Activity className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+          <h3 className="font-black text-slate-900 dark:text-white">Chưa có thói quen nào</h3>
+          <p className="text-xs text-slate-500 mt-1 font-medium">Bấm nút "Thêm Thói quen" để bắt đầu theo dõi chuỗi kỷ luật ngay hôm nay!</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -83,10 +83,10 @@ export function HabitsView() {
             return (
               <div
                 key={habit.id}
-                className={`card-cute flex items-center justify-between p-4 sm:p-5 rounded-3xl border transition-all ${
+                className={`flex items-center justify-between p-4 sm:p-5 rounded-2xl border transition-all ${
                   completed
-                    ? 'bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800/60 shadow-xs'
-                    : 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-purple-100/80 dark:border-purple-900/40 shadow-xs'
+                    ? 'bg-emerald-500/10 dark:bg-emerald-950/30 border-emerald-500/30 shadow-2xs'
+                    : 'bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border-slate-200/80 dark:border-slate-800/80 shadow-2xs'
                 }`}
               >
                 <div className="flex items-center gap-4 min-w-0">

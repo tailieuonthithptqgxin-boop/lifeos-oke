@@ -1,11 +1,13 @@
 import { Router, Response } from 'express';
-import { requireAuth, AuthRequest } from '../auth.middleware.js';
+import { requireAuth, requireActiveSubscription, AuthRequest } from '../auth.middleware.js';
 import { vocabService } from '../services/vocab.service.js';
+import { progressionService } from '../services/progression.service.js';
 
 export const vocabRouter = Router();
 
-// Require authenticated user for all vocab actions
+// Require authenticated user and active subscription for all vocab actions
 vocabRouter.use(requireAuth);
+vocabRouter.use(requireActiveSubscription);
 
 /**
  * GET /api/vocab/analytics
@@ -65,6 +67,15 @@ vocabRouter.post('/review', async (req: AuthRequest, res: Response) => {
       isCorrect,
       responseTimeMs: responseTimeMs ? Number(responseTimeMs) : undefined
     });
+
+    // Real Gamification Progression Hook (Learning XP)
+    progressionService.awardXp(userId, {
+      amount: 5,
+      category: 'learning',
+      source: 'vocab_review',
+      sourceId: (result as any)?.log?.id || `vocab_${wordId}_${Date.now()}`,
+      description: `Ôn tập từ vựng: ${term}`
+    }).catch(err => console.warn('Progression hook error (vocab):', err));
 
     res.json({
       success: true,

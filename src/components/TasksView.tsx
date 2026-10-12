@@ -266,8 +266,8 @@ export function TasksView() {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">{t('Quản lý Công việc')}</h2>
-            <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50">
-              Tasks Pro ✨
+            <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              Tasks
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">{t('Lập kế hoạch, theo dõi tiến độ và tối ưu thời gian thực hiện tác vụ')}</p>
@@ -276,10 +276,10 @@ export function TasksView() {
           <button 
             type="button"
             onClick={openNewTask}
-            className="btn-squishy flex-1 sm:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 hover:from-violet-500 hover:to-pink-400 text-white px-5 py-3 rounded-2xl text-sm font-extrabold transition-all shadow-md shadow-purple-500/25 cursor-pointer"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-2.5 rounded-2xl text-sm font-black transition-all shadow-md shadow-emerald-500/20 cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
-            <span>{t('Thêm công việc ✨')}</span>
+            <span>{t('Thêm công việc')}</span>
           </button>
         </div>
       </div>
@@ -611,15 +611,15 @@ function StatCard({ title, value, desc, bg, color, active, onClick }: any) {
     <button
       type="button"
       onClick={onClick}
-      className={`card-cute btn-squishy p-4 sm:p-5 rounded-3xl text-left transition-all cursor-pointer ${bg} border backdrop-blur-md ${
+      className={`p-4 sm:p-5 rounded-2xl text-left transition-all cursor-pointer ${bg} border backdrop-blur-md ${
         active 
-          ? 'ring-2 ring-purple-500 shadow-lg border-purple-400 scale-[1.02]' 
-          : 'border-purple-100/60 dark:border-purple-900/30 hover:shadow-md'
+          ? 'ring-2 ring-emerald-500 shadow-md border-emerald-400 scale-[1.01]' 
+          : 'border-slate-200/80 dark:border-slate-800/80 hover:border-emerald-500/40 hover:shadow-2xs'
       }`}
     >
       <div className="flex items-center justify-between mb-1">
-        <h4 className={`text-[11px] font-extrabold uppercase tracking-wider ${color}`}>{title}</h4>
-        <span className="text-xs">✨</span>
+        <h4 className={`text-[11px] font-black uppercase tracking-wider ${color}`}>{title}</h4>
+        <span className="text-xs">⚡</span>
       </div>
       <div className={`text-2xl sm:text-3xl font-black ${color} tracking-tight`}>{value}</div>
       <p className={`text-[11px] mt-1 opacity-80 ${color} font-semibold`}>{desc}</p>
@@ -632,21 +632,21 @@ function FilterButton({ active, count, alert, children, onClick }: any) {
     <button 
       type="button" 
       onClick={onClick}
-      className={`btn-squishy px-3.5 py-2 text-xs font-extrabold rounded-2xl whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5
+      className={`px-3 py-1.5 text-xs font-bold rounded-xl whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5
         ${active 
-          ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20' 
+          ? 'bg-emerald-500 text-slate-950 font-black shadow-2xs' 
           : alert
           ? 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 border border-rose-200 dark:border-rose-900/40'
-          : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/60 dark:hover:bg-slate-800 hover:text-purple-700'}`}
+          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 border border-transparent'}`}
     >
       <span>{children}</span>
       {count !== undefined && (
-        <span className={`text-[10px] px-2 py-0.5 rounded-full font-black transition-colors ${
+        <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black transition-colors ${
           active 
-            ? 'bg-white/25 text-white' 
+            ? 'bg-slate-950/20 text-slate-950' 
             : alert
             ? 'bg-rose-200 dark:bg-rose-900 text-rose-800 dark:text-rose-200'
-            : 'bg-purple-100 dark:bg-slate-800 text-purple-700 dark:text-slate-300'
+            : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
         }`}>
           {count}
         </span>

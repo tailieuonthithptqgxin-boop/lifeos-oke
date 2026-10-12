@@ -12,6 +12,7 @@ import {
   UserWordProgress,
   System3000Word,
   SystemChineseHskWord,
+  SystemJapaneseJlptWord,
   loadVocabData,
   saveVocabData,
   calculateLanguageAnalytics,
@@ -20,8 +21,11 @@ import {
   systemWordToVocabWord,
   getSystemChineseWords,
   systemChineseWordToVocabWord,
+  getSystemJapaneseWords,
+  systemJapaneseWordToVocabWord,
   calculate3000Analytics,
   calculateChineseHskAnalytics,
+  calculateJapaneseJlptAnalytics,
   calculateCombinedAnalytics,
   buildUnifiedStudyQueues,
   recordReviewOutcome,
@@ -33,11 +37,14 @@ import {
 
 import { Oxford3000Tab } from './Oxford3000Tab';
 import { ChineseHskTab } from './ChineseHskTab';
+import { JapaneseJlptTab } from './JapaneseJlptTab';
 import { PersonalVocabTab } from './PersonalVocabTab';
 import { MyCollectionsTab } from './MyCollectionsTab';
 import { WordDetailModal } from './WordDetailModal';
 import { AddToCollectionModal } from './AddToCollectionModal';
 import { VocabAuditTab } from './VocabAuditTab';
+import { ChineseQualityControlView } from './chinese/ChineseQualityControlView';
+import { JapaneseQualityControlView } from './japanese/JapaneseQualityControlView';
 import { TodayStudyTab } from './TodayStudyTab';
 import { MemoryDashboardTab } from './MemoryDashboardTab';
 import { DedicatedVocabFocusView } from './DedicatedVocabFocusView';
@@ -55,7 +62,7 @@ interface VocabMasterViewProps {
   currentUser?: any;
 }
 
-type VocabTab = 'dashboard' | 'today' | 'memory' | 'oxford3000' | 'chineseHsk' | 'personal' | 'collections' | 'study' | 'audit' | 'settings';
+type VocabTab = 'dashboard' | 'today' | 'memory' | 'oxford3000' | 'chineseHsk' | 'japaneseJlpt' | 'personal' | 'collections' | 'study' | 'audit' | 'settings';
 
 export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
   const userId = currentUser?.id || 'current_user';
@@ -72,7 +79,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
     });
   };
 
-  const [activeTab, setActiveTab] = useState<VocabTab>('dashboard');
+  const [activeTab, setActiveTab] = useState<VocabTab>('today');
 
   useEffect(() => {
     companionContextEngine.setLiveContext({ viewId: 'study', activeTab });
@@ -134,6 +141,15 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
     return vocabData?.systemChineseHskProgress || {};
   }, [vocabData?.systemChineseHskProgress]);
 
+  // System Japanese JLPT words (7,847 words)
+  const systemJapaneseWords: SystemJapaneseJlptWord[] = useMemo(() => {
+    return getSystemJapaneseWords() || [];
+  }, []);
+
+  const progressJapanese = useMemo(() => {
+    return vocabData?.systemJapaneseJlptProgress || {};
+  }, [vocabData?.systemJapaneseJlptProgress]);
+
   // Combined Analytics
   const combinedAnalytics = useMemo(() => {
     if (activeLang?.id === 'en') {
@@ -142,8 +158,11 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
     if (activeLang?.id === 'zh') {
       return calculateCombinedAnalytics(langWords, progressChinese, 'zh');
     }
+    if (activeLang?.id === 'ja') {
+      return calculateCombinedAnalytics(langWords, progressJapanese, 'ja');
+    }
     return calculateLanguageAnalytics(langWords);
-  }, [activeLang?.id, langWords, progress3000, progressChinese]);
+  }, [activeLang?.id, langWords, progress3000, progressChinese, progressJapanese]);
 
   // Analytics specifically for 3000
   const analytics3000 = useMemo(() => {
@@ -154,6 +173,11 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
   const analyticsChineseHsk = useMemo(() => {
     return calculateChineseHskAnalytics(progressChinese);
   }, [progressChinese]);
+
+  // Analytics specifically for Japanese JLPT
+  const analyticsJapaneseJlpt = useMemo(() => {
+    return calculateJapaneseJlptAnalytics(progressJapanese);
+  }, [progressJapanese]);
 
   // Analytics specifically for personal words
   const personalAnalytics = useMemo(() => {
@@ -167,9 +191,11 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
       list.push(...(system3000Words || []).map(w => systemWordToVocabWord(w, progress3000?.[w.id])));
     } else if (activeLang?.id === 'zh') {
       list.push(...(systemChineseWords || []).map(w => systemChineseWordToVocabWord(w, progressChinese?.[w.id])));
+    } else if (activeLang?.id === 'ja') {
+      list.push(...(systemJapaneseWords || []).map(w => systemJapaneseWordToVocabWord(w, progressJapanese?.[w.id])));
     }
     return list;
-  }, [langWords, activeLang?.id, system3000Words, progress3000, systemChineseWords, progressChinese]);
+  }, [langWords, activeLang?.id, system3000Words, progress3000, systemChineseWords, progressChinese, systemJapaneseWords, progressJapanese]);
 
   // Today's Study Plan computed dynamically
   const todayStudyPlan = useMemo(() => {
@@ -209,6 +235,14 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
     }));
     setSelectedCollectionId('all');
     setStudySessionActive(false);
+
+    if (langId === 'ja' && (activeTab === 'oxford3000' || activeTab === 'chineseHsk')) {
+      setActiveTab('japaneseJlpt');
+    } else if (langId === 'zh' && (activeTab === 'oxford3000' || activeTab === 'japaneseJlpt')) {
+      setActiveTab('chineseHsk');
+    } else if (langId === 'en' && (activeTab === 'chineseHsk' || activeTab === 'japaneseJlpt')) {
+      setActiveTab('oxford3000');
+    }
   };
 
   // Add Language
@@ -243,7 +277,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
     targetQueue: 'due' | 'difficult' | 'new' | 'all' = 'due',
     maxCards: number = 20
   ) => {
-    const activeProgress = activeLang.id === 'zh' ? progressChinese : progress3000;
+    const activeProgress = activeLang.id === 'zh' ? progressChinese : activeLang.id === 'ja' ? progressJapanese : progress3000;
     const unifiedQueues = buildUnifiedStudyQueues(langWords, activeProgress, source, selectedCollectionId, activeLang.id);
     let pool: VocabWord[] = [];
 
@@ -334,6 +368,28 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
       setSpellingChecked(false);
     } else {
       setSessionCompleted(true);
+    }
+  };
+
+  const handleNextCard = () => {
+    if (currentCardIndex + 1 < studyQueue.length) {
+      setCurrentCardIndex(prev => prev + 1);
+      setIsAnswerRevealed(false);
+      setQuizSelectedOption(null);
+      setSpellingInput('');
+      setSpellingChecked(false);
+    } else {
+      setSessionCompleted(true);
+    }
+  };
+
+  const handlePrevCard = () => {
+    if (currentCardIndex > 0) {
+      setCurrentCardIndex(prev => prev - 1);
+      setIsAnswerRevealed(false);
+      setQuizSelectedOption(null);
+      setSpellingInput('');
+      setSpellingChecked(false);
     }
   };
 
@@ -544,18 +600,6 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
 
       {/* 2. SUB-NAVIGATION TABS */}
       <div className="flex items-center gap-1.5 pb-2 overflow-x-auto no-scrollbar">
-        <button
-          type="button"
-          onClick={() => { setActiveTab('dashboard'); setStudySessionActive(false); }}
-          className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === 'dashboard' && !studySessionActive
-              ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700'
-          }`}
-        >
-          <BarChart2 className="w-4 h-4" /> Tổng quan
-        </button>
-
         {/* Today's Study Plan Tab */}
         <button
           type="button"
@@ -569,7 +613,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
           <Calendar className="w-4 h-4" />
           <span>Học hôm nay</span>
           {todayStudyPlan.totalToStudy > 0 && (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white animate-pulse">
               {todayStudyPlan.totalToStudy}
             </span>
           )}
@@ -587,6 +631,19 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         >
           <Activity className="w-4 h-4" />
           <span>Trí nhớ & SM-2 🧠</span>
+        </button>
+
+        {/* Dashboard Tab */}
+        <button
+          type="button"
+          onClick={() => { setActiveTab('dashboard'); setStudySessionActive(false); }}
+          className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'dashboard' && !studySessionActive
+              ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20'
+              : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700'
+          }`}
+        >
+          <BarChart2 className="w-4 h-4" /> Tổng quan
         </button>
 
         {/* 3000 Oxford Words Tab (Featured for English) */}
@@ -622,6 +679,25 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
             <span>Kho từ HSK 1-6</span>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
               10,240 từ 🌸
+            </span>
+          </button>
+        )}
+
+        {/* Japanese JLPT Vocabulary Tab (Featured for Japanese) */}
+        {activeLang.id === 'ja' && (
+          <button
+            type="button"
+            onClick={() => { setActiveTab('japaneseJlpt'); setStudySessionActive(false); }}
+            className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
+              activeTab === 'japaneseJlpt' && !studySessionActive
+                ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 text-slate-950 font-black shadow-md shadow-emerald-500/20'
+                : 'text-slate-600 dark:text-slate-400 hover:bg-emerald-50/70 dark:hover:bg-slate-800 hover:text-emerald-700'
+            }`}
+          >
+            <BookOpen className="w-4 h-4 text-emerald-500" />
+            <span>Kho từ JLPT N5-N1</span>
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+              7,847 từ 🇯🇵
             </span>
           </button>
         )}
@@ -694,7 +770,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
           <ShieldCheck className="w-4 h-4 text-emerald-500" />
           <span>Kiểm định chất lượng</span>
           <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-            Audit
+            {activeLang.id === 'ja' ? 'JLPT 🇯🇵' : activeLang.id === 'zh' ? 'HSK 🇨🇳' : 'Oxford 🇬🇧'}
           </span>
         </button>
 
@@ -730,6 +806,8 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
             distractorPool={allCombinedWords}
             onReveal={() => setIsAnswerRevealed(true)}
             onRate={handleRateReview}
+            onNextCard={handleNextCard}
+            onPrevCard={handlePrevCard}
             onSelectQuizOption={handleSelectQuizOption}
             onSpellingChange={setSpellingInput}
             onCheckSpelling={handleCheckSpelling}
@@ -744,8 +822,10 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
           activeLang={activeLang}
           system3000Words={system3000Words}
           systemChineseWords={systemChineseWords}
+          systemJapaneseWords={systemJapaneseWords}
           analytics3000={analytics3000}
           analyticsChineseHsk={analyticsChineseHsk}
+          analyticsJapaneseJlpt={analyticsJapaneseJlpt}
           langWords={langWords}
           personalAnalytics={personalAnalytics}
           langCollections={langCollections}
@@ -835,6 +915,24 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         />
       )}
 
+      {/* TAB B.2: JAPANESE JLPT VOCABULARY (7,847 WORDS FOR JAPANESE) */}
+      {!studySessionActive && activeLang.id === 'ja' && activeTab === 'japaneseJlpt' && (
+        <JapaneseJlptTab
+          systemWords={systemJapaneseWords}
+          progressMap={progressJapanese}
+          collections={langCollections}
+          userData={vocabData}
+          onUpdateUserData={updateVocabData}
+          onOpenWordDetail={(word) => setDetailWord(word)}
+          onOpenAddToCollection={(wordIds) => {
+            setBookmarkingWordIds(wordIds);
+            setShowBookmarkModal(true);
+          }}
+          onStartStudyWords={(words) => handleStartStudyExplicit(words, 'flashcard')}
+          onQuickMarkState={(wordId, state) => updateVocabData(prev => set3000WordState(prev, wordId, state))}
+        />
+      )}
+
       {/* TAB C: PERSONAL VOCABULARY */}
       {!studySessionActive && activeTab === 'personal' && (
         <PersonalVocabTab
@@ -889,13 +987,30 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
 
       {/* TAB F: QUALITY AUDIT & VERIFICATION */}
       {!studySessionActive && activeTab === 'audit' && (
-        <VocabAuditTab
-          systemWords={system3000Words}
-          personalWords={langWords}
-          userData={vocabData}
-          onUpdateUserData={updateVocabData}
-          onOpenWordDetail={(w) => setDetailWord(w)}
-        />
+        activeLang.id === 'ja' ? (
+          <JapaneseQualityControlView
+            systemWords={systemJapaneseWords}
+            personalWords={langWords}
+            userData={vocabData}
+            onUpdateUserData={updateVocabData}
+            onOpenWordDetail={(w) => setDetailWord(w)}
+          />
+        ) : activeLang.id === 'zh' ? (
+          <ChineseQualityControlView
+            systemWords={systemChineseWords}
+            personalWords={langWords}
+            userData={vocabData}
+            onUpdateUserData={updateVocabData}
+          />
+        ) : (
+          <VocabAuditTab
+            systemWords={system3000Words}
+            personalWords={langWords}
+            userData={vocabData}
+            onUpdateUserData={updateVocabData}
+            onOpenWordDetail={(w) => setDetailWord(w)}
+          />
+        )
       )}
 
       {/* TAB G: SETTINGS */}

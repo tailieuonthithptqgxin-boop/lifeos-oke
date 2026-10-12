@@ -287,26 +287,26 @@ export function FocusView() {
 
   return (
     <div className={`p-4 sm:p-6 max-w-6xl mx-auto h-full flex flex-col space-y-6 ${
-      isZenMode ? 'fixed inset-0 z-50 bg-slate-950 text-white max-w-none p-6 sm:p-12 overflow-y-auto' : ''
+      isZenMode ? 'fixed inset-0 z-[999] bg-slate-950 text-white max-w-none p-6 sm:p-12 overflow-y-auto' : ''
     }`}>
       
       {/* Zen Mode Header Bar */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-purple-500 to-pink-500 text-white flex items-center justify-center shadow-md shadow-purple-500/20 animate-wiggle">
-            <Zap className="w-6 h-6 fill-current" />
+          <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-2xs">
+            <Zap className="w-5 h-5 fill-current" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
                 Focus Mode & Ambient Sound
               </h1>
-              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-pink-100 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300 border border-pink-200 dark:border-pink-800">
-                <Sparkles className="w-3 h-3 text-pink-500" /> Pomodoro ✨
+              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <Sparkles className="w-3 h-3 text-emerald-500" /> Pomodoro
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-              Tập trung cao độ Pomodoro kết hợp nhạc nền YouTube Lofi/Ambient chill ✨
+              Không gian làm việc sâu kết hợp âm thanh ambient & theo dõi thời gian thực tế
             </p>
           </div>
         </div>
@@ -315,23 +315,23 @@ export function FocusView() {
           <button
             type="button"
             onClick={() => setShowMusicPanel(!showMusicPanel)}
-            className={`btn-squishy px-3.5 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border shadow-xs ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border shadow-2xs ${
               showMusicPanel 
-                ? 'bg-rose-50 dark:bg-rose-950/40 border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400' 
-                : 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-purple-100 dark:border-purple-900/40 text-slate-600 dark:text-slate-300 hover:border-purple-300'
+                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' 
+                : 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-emerald-500/40'
             }`}
           >
             <Music className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{showMusicPanel ? 'Ẩn nhạc' : 'Hiện nhạc 🎵'}</span>
+            <span className="hidden sm:inline">{showMusicPanel ? 'Ẩn nhạc' : 'Hiện nhạc'}</span>
           </button>
 
           <button
             type="button"
             onClick={() => setIsZenMode(!isZenMode)}
-            className="btn-squishy px-3.5 py-2 rounded-2xl text-xs font-bold bg-slate-900 dark:bg-slate-800 text-white hover:bg-slate-800 dark:hover:bg-slate-700 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+            className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-900 dark:bg-slate-800 text-white hover:bg-slate-800 dark:hover:bg-slate-700 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs border border-slate-700"
           >
             {isZenMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-            <span>{isZenMode ? 'Thoát toàn màn hình' : 'Zen Toàn màn hình 🧘'}</span>
+            <span>{isZenMode ? 'Thoát toàn màn hình' : 'Zen Mode'}</span>
           </button>
         </div>
       </div>
@@ -339,30 +339,30 @@ export function FocusView() {
       {/* Dashboard Stats (Hidden in Zen Mode to prevent distraction) */}
       {!isZenMode && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 shrink-0">
-          <div className="card-cute bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-3xl shadow-sm border border-purple-100/80 dark:border-purple-900/40 p-4 flex flex-col justify-center">
+          <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl shadow-2xs border border-slate-200/80 dark:border-slate-800/80 p-4 flex flex-col justify-center">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] font-extrabold text-purple-600 dark:text-purple-400 uppercase tracking-wider">Thời gian Focus</span>
+              <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Thời gian Focus</span>
               <span className="text-xs">⏱️</span>
             </div>
             <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">{Math.floor(totalMinutesToday / 60)}h {totalMinutesToday % 60}m</div>
-            <div className="w-full bg-purple-50 dark:bg-slate-800 rounded-full h-2 mt-2.5 overflow-hidden p-0.5 border border-purple-100/50 dark:border-purple-950">
-              <div className="bg-gradient-to-r from-violet-500 to-pink-500 h-full rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
+            <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 mt-2.5 overflow-hidden p-0.5 border border-slate-200 dark:border-slate-700">
+              <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
             </div>
             <div className="text-[11px] font-semibold text-slate-400 mt-1">{progressPercent}% mục tiêu {targetMinutes / 60}h</div>
           </div>
 
-          <div className="card-cute bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-3xl shadow-sm border border-purple-100/80 dark:border-purple-900/40 p-4 flex flex-col justify-center">
+          <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl shadow-2xs border border-slate-200/80 dark:border-slate-800/80 p-4 flex flex-col justify-center">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] font-extrabold text-pink-600 dark:text-pink-400 uppercase tracking-wider">Phiên hoàn thành</span>
+              <span className="text-[11px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-wider">Phiên hoàn thành</span>
               <span className="text-xs">🎯</span>
             </div>
-            <div className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">{completedToday.length}</div>
+            <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">{completedToday.length}</div>
             <div className="text-[11px] font-semibold text-slate-400 mt-1">/{todaySessions.length} phiên đã bắt đầu</div>
           </div>
 
-          <div className="card-cute bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-3xl shadow-sm border border-purple-100/80 dark:border-purple-900/40 p-4 flex flex-col justify-center">
+          <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl shadow-2xs border border-slate-200/80 dark:border-slate-800/80 p-4 flex flex-col justify-center">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Gián đoạn</span>
+              <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider">Gián đoạn</span>
               <span className="text-xs">🛡️</span>
             </div>
             <div className="text-2xl sm:text-3xl font-black text-amber-500">
@@ -371,15 +371,15 @@ export function FocusView() {
             <div className="text-[11px] font-semibold text-slate-400 mt-1">Lần mất tập trung</div>
           </div>
 
-          <div className="card-cute bg-gradient-to-br from-violet-600 via-purple-600 to-pink-500 rounded-3xl shadow-md p-4 flex flex-col justify-center text-white">
+          <div className="bg-slate-900 dark:bg-slate-950 border border-emerald-500/30 rounded-2xl shadow-md p-4 flex flex-col justify-center text-white">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] font-extrabold text-purple-100 uppercase tracking-wider">Focus Streak</span>
-              <span className="text-sm animate-wiggle">🔥</span>
+              <span className="text-[11px] font-black text-emerald-400 uppercase tracking-wider">Focus Streak</span>
+              <span className="text-sm">🔥</span>
             </div>
             <div className="text-2xl sm:text-3xl font-black flex items-center gap-2">
-              {focusStreak} <span className="text-base font-semibold text-pink-200">ngày</span>
+              {focusStreak} <span className="text-base font-semibold text-emerald-300">ngày</span>
             </div>
-            <div className="text-[11px] font-medium text-purple-100 mt-1">Liên tiếp chăm chỉ ✨</div>
+            <div className="text-[11px] font-medium text-slate-400 mt-1">Chuỗi duy trì thực tế</div>
           </div>
         </div>
       )}
@@ -389,32 +389,32 @@ export function FocusView() {
         {/* Main Focus Area */}
         <div className={`flex-1 rounded-3xl shadow-sm border p-6 sm:p-10 flex flex-col items-center justify-center relative overflow-hidden transition-all ${
           isZenMode 
-            ? 'bg-slate-900/90 border-slate-800' 
-            : 'bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-purple-100/80 dark:border-purple-900/40'
+            ? 'bg-slate-950 border-slate-800' 
+            : 'bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-slate-200/80 dark:border-slate-800/80'
         }`}>
           
           {!activeSession ? (
             <div className="w-full max-w-md space-y-8 animate-in fade-in zoom-in-95 duration-300">
               <div className="text-center space-y-2">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-100/80 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 text-xs font-bold border border-purple-200/60 dark:border-purple-800/60 mb-1">
-                  <Sparkles className="w-3.5 h-3.5 text-purple-500 animate-wiggle" /> Không gian tập trung chill ✨
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20 mb-1">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-500" /> Focus Command Center
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Focus Center</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Chọn chế độ và công việc để bắt đầu phiên học tập thăng hoa 🚀</p>
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Thiết Lập Phiên Tập Trung</h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Chọn chế độ và công việc để tập trung cao độ</p>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="text-[11px] font-extrabold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-2 block">Chế độ Focus 🎯</label>
+                  <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Chế độ Focus</label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {['Pomodoro', 'Quick', 'Standard', 'Deep'].map((m) => (
                       <button type="button"
                         key={m}
                         onClick={() => setSelectedMode(m as FocusMode)}
-                        className={`btn-squishy py-2.5 px-2 rounded-2xl text-sm font-bold border-2 transition-all cursor-pointer text-center
+                        className={`py-2.5 px-2 rounded-2xl text-sm font-bold border-2 transition-all cursor-pointer text-center
                           ${selectedMode === m 
-                            ? 'border-purple-500 bg-gradient-to-tr from-purple-50 to-pink-50 dark:from-purple-950/60 dark:to-pink-950/60 text-purple-700 dark:text-purple-300 shadow-sm' 
-                            : 'border-slate-100 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 text-slate-600 dark:text-slate-400 hover:border-purple-200'}`}
+                            ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-2xs' 
+                            : 'border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-850 text-slate-600 dark:text-slate-400 hover:border-emerald-500/30'}`}
                       >
                         <div className="text-base font-black">
                           {m === 'Pomodoro' && '25m'}
@@ -429,14 +429,14 @@ export function FocusView() {
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-extrabold text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-2 block">Liên kết Công việc (Tùy chọn) 📝</label>
+                  <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Liên kết Công việc (Tùy chọn)</label>
                   <div className="relative">
-                    <ListTodo className="w-5 h-5 text-purple-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <ListTodo className="w-5 h-5 text-emerald-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <select 
                       value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 bg-white/80 dark:bg-slate-800/80 border border-purple-100 dark:border-purple-900/50 rounded-2xl text-sm font-semibold text-slate-700 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-purple-400 transition-shadow appearance-none cursor-pointer shadow-xs"
+                      className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-400 transition-shadow appearance-none cursor-pointer shadow-2xs"
                     >
-                      <option value="">Phiên tự do (Không liên kết task) 🌟</option>
+                      <option value="">Phiên tự do (Không liên kết task)</option>
                       {tasks.filter(t => t.status !== 'Hoàn thành' && t.status !== 'Hủy').map(t => (
                         <option key={t.id} value={t.id}>{t.title}</option>
                       ))}
@@ -447,17 +447,17 @@ export function FocusView() {
 
               <button type="button" 
                 onClick={startFocus}
-                className="btn-squishy w-full py-4 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 hover:from-violet-500 hover:to-pink-400 text-white rounded-2xl font-extrabold text-lg transition-all shadow-lg shadow-purple-500/25 flex items-center justify-center gap-2 group cursor-pointer"
+                className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-2xl font-black text-base sm:text-lg transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 group cursor-pointer"
               >
-                <Zap className="w-5 h-5 group-hover:scale-110 transition-transform fill-current animate-wiggle" /> Bắt đầu Focus ngay ✨
+                <Zap className="w-5 h-5 fill-current" /> Bắt đầu Focus ngay
               </button>
             </div>
           ) : (
             <div className="w-full max-w-md text-center space-y-8 animate-in fade-in zoom-in-95 duration-300">
               
               <div className="space-y-2">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-gradient-to-r from-purple-100/90 to-pink-100/90 dark:from-purple-950/60 dark:to-pink-950/60 text-purple-700 dark:text-purple-300 rounded-full text-xs font-extrabold uppercase tracking-wider border border-purple-200/50 dark:border-purple-800/50 shadow-xs">
-                  <Target className="w-3.5 h-3.5 text-pink-500 animate-wiggle" /> {activeSession.mode} Focus Mode ✨
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-xs font-black uppercase tracking-wider border border-emerald-500/20 shadow-2xs">
+                  <Target className="w-3.5 h-3.5 text-emerald-500" /> {activeSession.mode} Focus Mode
                 </div>
                 <h3 className="text-xl font-black text-slate-900 dark:text-white truncate px-4">{activeSession.title}</h3>
               </div>
@@ -467,11 +467,11 @@ export function FocusView() {
                 <svg className="absolute inset-0 w-full h-full -rotate-90">
                   <defs>
                     <linearGradient id="focusTimerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#8b5cf6" />
-                      <stop offset="100%" stopColor="#ec4899" />
+                      <stop offset="0%" stopColor="#10b981" />
+                      <stop offset="100%" stopColor="#14b8a6" />
                     </linearGradient>
                   </defs>
-                  <circle cx="128" cy="128" r="120" className="stroke-purple-100/60 dark:stroke-slate-800" strokeWidth="10" fill="none" />
+                  <circle cx="128" cy="128" r="120" className="stroke-slate-200 dark:stroke-slate-800" strokeWidth="10" fill="none" />
                   <circle 
                     cx="128" cy="128" r="120" 
                     className={`transition-all duration-1000 ease-linear ${activeSession.status === 'Paused' ? 'stroke-amber-400' : ''}`} 
@@ -482,10 +482,10 @@ export function FocusView() {
                   />
                 </svg>
                 <div className="flex flex-col items-center">
-                  <div className={`text-5xl font-black tabular-nums tracking-tighter ${activeSession.status === 'Paused' ? 'text-amber-500' : 'bg-gradient-to-br from-violet-600 via-purple-600 to-pink-500 bg-clip-text text-transparent'}`}>
+                  <div className={`text-5xl font-black tabular-nums tracking-tighter ${activeSession.status === 'Paused' ? 'text-amber-500' : 'text-emerald-500 dark:text-emerald-400'}`}>
                     {formatTime(Math.max(0, activeSession.plannedDuration * 60 - elapsedSeconds))}
                   </div>
-                  <div className="text-xs font-bold text-slate-400 mt-2 px-2.5 py-1 bg-purple-50 dark:bg-purple-950/40 rounded-full border border-purple-100/60 dark:border-purple-900/40">
+                  <div className="text-xs font-bold text-slate-400 mt-2 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700">
                     ⏱️ {formatTime(elapsedSeconds)} đã trôi qua
                   </div>
                 </div>
@@ -496,7 +496,7 @@ export function FocusView() {
                 {activeSession.status === 'Running' ? (
                   <button type="button" 
                     onClick={pauseFocus}
-                    className="btn-squishy w-16 h-16 rounded-full bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400 flex items-center justify-center hover:bg-amber-200 transition-colors shadow-md cursor-pointer border border-amber-200 dark:border-amber-800"
+                    className="w-16 h-16 rounded-full bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400 flex items-center justify-center hover:bg-amber-200 transition-colors shadow-md cursor-pointer border border-amber-300 dark:border-amber-800"
                     title="Tạm dừng phiên"
                   >
                     <Pause className="w-6 h-6 fill-current" />
@@ -504,7 +504,7 @@ export function FocusView() {
                 ) : (
                   <button type="button" 
                     onClick={resumeFocus}
-                    className="btn-squishy w-16 h-16 rounded-full bg-gradient-to-tr from-violet-500 to-pink-500 text-white flex items-center justify-center shadow-lg shadow-purple-500/30 animate-pulse-soft cursor-pointer"
+                    className="w-16 h-16 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shadow-lg shadow-emerald-500/25 transition-all cursor-pointer font-black"
                     title="Tiếp tục phiên"
                   >
                     <Play className="w-6 h-6 fill-current ml-1" />
@@ -513,10 +513,10 @@ export function FocusView() {
 
                 <button type="button" 
                   onClick={finishFocus}
-                  className="btn-squishy w-16 h-16 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25 hover:from-emerald-600 hover:to-teal-600 transition-all cursor-pointer"
+                  className="w-16 h-16 rounded-full bg-slate-900 text-white dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center shadow-lg border border-slate-700 transition-all cursor-pointer"
                   title="Hoàn thành phiên"
                 >
-                  <CheckCircle2 className="w-7 h-7" />
+                  <CheckCircle2 className="w-7 h-7 text-emerald-400" />
                 </button>
                 
                 <button type="button" 

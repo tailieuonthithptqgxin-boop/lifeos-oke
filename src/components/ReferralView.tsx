@@ -46,12 +46,21 @@ export function ReferralView() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'withdrawals' | 'history'>('overview');
 
-  // Withdrawal modal state
+  // Withdrawal modal state with cached bank info
+  const cachedBank = typeof window !== 'undefined' ? (() => {
+    try {
+      const saved = localStorage.getItem('lifeos_recent_bank_info');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  })() : null;
+
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState<number>(50000);
-  const [bankName, setBankName] = useState('MB Bank (Quân Đội)');
-  const [bankAccount, setBankAccount] = useState('');
-  const [accountHolder, setAccountHolder] = useState('');
+  const [bankName, setBankName] = useState(cachedBank?.bankName || 'MB Bank (Quân Đội)');
+  const [bankAccount, setBankAccount] = useState(cachedBank?.bankAccount || '');
+  const [accountHolder, setAccountHolder] = useState(cachedBank?.accountHolder || '');
   const [transferNote, setTransferNote] = useState('');
   const [userNote, setUserNote] = useState('');
   const [submittingWithdraw, setSubmittingWithdraw] = useState(false);
@@ -151,6 +160,13 @@ export function ReferralView() {
       });
 
       if (res && res.success) {
+        try {
+          localStorage.setItem('lifeos_recent_bank_info', JSON.stringify({
+            bankName,
+            bankAccount: bankAccount.trim(),
+            accountHolder: accountHolder.trim().toUpperCase()
+          }));
+        } catch {}
         setWithdrawSuccess('Đã gửi yêu cầu rút tiền thành công! Admin sẽ giải ngân trong vòng 24h.');
         triggerConfetti();
         soundEngine.playPop();
@@ -688,7 +704,37 @@ export function ReferralView() {
                     Rút tất cả
                   </button>
                 </div>
-                <span className="text-[11px] text-slate-400 mt-1 block">Tối thiểu 50.000 ₫</span>
+                <div className="flex items-center justify-between gap-1 mt-2">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] text-slate-400 font-medium">Nhanh:</span>
+                    {[50000, 100000, 200000].map(amt => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setWithdrawAmount(amt)}
+                        disabled={amt > (data?.approvedReward || 0)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                          withdrawAmount === amt
+                            ? 'bg-purple-600 text-white shadow-xs'
+                            : amt <= (data?.approvedReward || 0)
+                              ? 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-400 opacity-50 cursor-not-allowed'
+                        }`}
+                      >
+                        {amt.toLocaleString('vi-VN')} ₫
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setWithdrawAmount(data?.approvedReward || 0)}
+                      disabled={(data?.approvedReward || 0) < 50000}
+                      className="px-2.5 py-1 rounded-lg text-xs font-bold bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 transition cursor-pointer"
+                    >
+                      Tối đa
+                    </button>
+                  </div>
+                </div>
+                <span className="text-[11px] text-slate-400 mt-1 block">Tối thiểu 50.000 ₫ · Không mất phí</span>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

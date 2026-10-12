@@ -253,7 +253,7 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
             <Maximize2 className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 transition-colors" />
           </div>
         ) : (
-          /* Expanded Full Living Mascot Widget */
+          /* Full Living Mascot Character Widget */
           <div className="relative group">
             <CompanionAvatar
               profile={profile}

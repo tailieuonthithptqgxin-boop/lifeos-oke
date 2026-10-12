@@ -1,5 +1,5 @@
 import { Router, Response } from 'express';
-import { requireAuth, requireAdmin, AuthRequest } from '../auth.middleware.js';
+import { requireAuth, requireAdmin, requireActiveSubscription, AuthRequest } from '../auth.middleware.js';
 import { getPrisma, dbService } from '../db.js';
 
 export const customModulesRouter = Router();
@@ -278,7 +278,7 @@ customModulesRouter.get('/:slug/records', requireAuth, async (req: AuthRequest, 
 // --------------------------------------------------------------------------
 // 6. RUNTIME: Create a new record in custom module
 // --------------------------------------------------------------------------
-customModulesRouter.post('/:slug/records', requireAuth, async (req: AuthRequest, res: Response) => {
+customModulesRouter.post('/:slug/records', requireAuth, requireActiveSubscription, async (req: AuthRequest, res: Response) => {
   const prisma = getPrisma();
   const { slug } = req.params;
   const userId = req.userId!;
@@ -327,7 +327,7 @@ customModulesRouter.post('/:slug/records', requireAuth, async (req: AuthRequest,
 // --------------------------------------------------------------------------
 // 7. RUNTIME: Update a record in custom module
 // --------------------------------------------------------------------------
-customModulesRouter.put('/:slug/records/:id', requireAuth, async (req: AuthRequest, res: Response) => {
+customModulesRouter.put('/:slug/records/:id', requireAuth, requireActiveSubscription, async (req: AuthRequest, res: Response) => {
   const prisma = getPrisma();
   const { slug, id } = req.params;
   const userId = req.userId!;
@@ -373,7 +373,7 @@ customModulesRouter.put('/:slug/records/:id', requireAuth, async (req: AuthReque
 // --------------------------------------------------------------------------
 // 8. RUNTIME: Delete a record in custom module
 // --------------------------------------------------------------------------
-customModulesRouter.delete('/:slug/records/:id', requireAuth, async (req: AuthRequest, res: Response) => {
+customModulesRouter.delete('/:slug/records/:id', requireAuth, requireActiveSubscription, async (req: AuthRequest, res: Response) => {
   const prisma = getPrisma();
   const { id } = req.params;
   const userId = req.userId!;

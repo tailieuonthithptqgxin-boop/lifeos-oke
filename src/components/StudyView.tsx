@@ -48,7 +48,7 @@ export function StudyView() {
     addTask
   } = useAppStore();
 
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [activeTab, setActiveTab] = useState<Tab>('vocabulary');
 
   // Modal States
   const [showSubjectModal, setShowSubjectModal] = useState(false);
@@ -203,13 +203,13 @@ export function StudyView() {
 
         {/* Tab Navigation */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
-          <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<Activity className="w-4 h-4" />} label="Tổng quan" />
-          <TabButton active={activeTab === 'my-grades'} onClick={() => setActiveTab('my-grades')} icon={<Award className="w-4 h-4" />} label="Điểm của tôi" count={subjects.length} />
-          <TabButton active={activeTab === 'vocabulary'} onClick={() => setActiveTab('vocabulary')} icon={<BookOpen className="w-4 h-4 text-amber-500" />} label="Vocabulary Master 📚" />
+          <TabButton active={activeTab === 'vocabulary'} onClick={() => setActiveTab('vocabulary')} icon={<BookOpen className="w-4 h-4 text-emerald-500" />} label="Từ vựng & Ngoại ngữ 📚" />
+          <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<Activity className="w-4 h-4" />} label="Tổng quan GPA" />
+          <TabButton active={activeTab === 'my-grades'} onClick={() => setActiveTab('my-grades')} icon={<Award className="w-4 h-4" />} label="Bảng điểm" count={subjects.length} />
           <TabButton active={activeTab === 'subjects'} onClick={() => setActiveTab('subjects')} icon={<BookOpen className="w-4 h-4" />} label="Môn học" count={subjects.length} />
           <TabButton active={activeTab === 'assignments'} onClick={() => setActiveTab('assignments')} icon={<FileCheck className="w-4 h-4" />} label="Bài tập" count={pendingAssignmentsCount} />
           <TabButton active={activeTab === 'exams'} onClick={() => setActiveTab('exams')} icon={<Target className="w-4 h-4" />} label="Lịch thi" count={upcomingExamsCount} />
-          <TabButton active={activeTab === 'forecast'} onClick={() => setActiveTab('forecast')} icon={<Calculator className="w-4 h-4" />} label="Grade Forecast 🔮" />
+          <TabButton active={activeTab === 'forecast'} onClick={() => setActiveTab('forecast')} icon={<Calculator className="w-4 h-4" />} label="Dự báo GPA 🔮" />
         </div>
       </div>
 

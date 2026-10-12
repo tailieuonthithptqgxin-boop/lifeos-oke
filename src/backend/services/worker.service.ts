@@ -48,52 +48,13 @@ class BackgroundWorker {
 
       const now = new Date();
 
-      // 1. Check for expired subscriptions and downgrade plan
+      // 1. Comprehensive Subscription Expiration & Warning Sweep (Requirements 5, 6, 14)
       try {
-        const expiredUsers = await prisma.user.findMany({
-          where: {
-            planExpiresAt: { lte: now },
-            plan: { not: 'FREE' }
-          }
-        });
-
-        for (const user of expiredUsers) {
-          try {
-            const oldPlan = user.plan;
-            await prisma.user.update({
-              where: { id: user.id },
-              data: { plan: 'FREE', planExpiresAt: null }
-            });
-            await prisma.notification.create({
-              data: {
-                userId: user.id,
-                title: 'Gói đăng ký đã hết hạn',
-                message: 'Gói đăng ký của bạn đã chuyển về gói Miễn phí (FREE). Vui lòng gia hạn để tiếp tục sử dụng các tính năng nâng cao.',
-                type: 'warning'
-              }
-            });
-
-            // Send Gmail notification about expiration
-            if (user.email) {
-              gmailService.sendNotification({
-                to: user.email,
-                recipientName: user.name || 'Quý khách',
-                subject: `⏳ [Life OS] Gói đăng ký ${oldPlan} của bạn đã hết hạn`,
-                category: 'SUBSCRIPTION',
-                headline: 'Gói dịch vụ đã kết thúc chu kỳ',
-                content: `Gói tài khoản <strong>${oldPlan}</strong> của bạn đã hết thời hạn sử dụng. Tài khoản hiện đã được chuyển về gói <strong>Miễn phí (FREE)</strong>.<br/><br/>Để tiếp tục sử dụng đầy đủ các tính năng thông minh không giới hạn, bạn vui lòng gia hạn hoặc nâng cấp gói mới.`,
-                actionLabel: 'Gia hạn gói dịch vụ',
-                actionUrl: 'http://localhost:5173',
-                badgeText: 'Hết hạn gói',
-                badgeColor: '#f59e0b'
-              }).catch(e => console.error('[Gmail Worker] Expiry email error:', e));
-            }
-          } catch (err: any) {
-            // Ignore single user update failure
-          }
-        }
-      } catch (err: any) {
-        // Ignore expired users check failure
+        const { subscriptionService } = await import('./subscription.service.js');
+        await subscriptionService.expireOverdueSubscriptions();
+        await subscriptionService.sendUpcomingExpiryWarnings();
+      } catch (subErr) {
+        console.warn('[BackgroundWorker] Subscription sweep error:', subErr);
       }
 
       // 2. Overdue task detection & reminders (PERF-002: Optimized batch queries)

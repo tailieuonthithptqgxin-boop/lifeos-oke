@@ -629,6 +629,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const markNotificationRead = async (id: string) => _update('notifications', id, { read: true }, 'notifications');
   
   const completeTaskWithLinks = async (id: string) => { await _update('tasks', id, {status: "Hoàn thành"}, 'tasks'); };
+  const toggleHabit = async (id: string) => {
+    try {
+      const res = await apiCall(`/api/habits/${id}/toggle`, 'POST');
+      if (res && res.habit) {
+        setState(s => ({
+          ...s,
+          habits: (s.habits || []).map(h => h.id === id ? { ...h, ...res.habit } : h)
+        }));
+      }
+    } catch (e) {
+      console.error('Failed to toggle habit:', e);
+    }
+  };
   const removeFromCart = async (id: string) => _delete('cart', id, 'cart');
   const addToCart = async (item: any) => _add('cart', item, 'cart');
   
@@ -799,6 +812,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         approveAutomationHistory,
         rejectAutomationHistory,
         addAutomationHistoryEntry,
+        toggleHabit,
         ...dynamicMethods,
         
       }}

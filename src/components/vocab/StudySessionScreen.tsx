@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import {
   Volume2,
   Sparkles,
@@ -10,13 +10,16 @@ import {
   Headphones,
   ArrowRight,
   Brain,
-  HelpCircle
+  HelpCircle,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
-import { speakWord, computeMemoryLevel } from '../../lib/vocabEngine';
+import { speakWord, computeMemoryLevel, VocabWord } from '../../lib/vocabEngine';
 import { isEquivalentAnswer } from '../../lib/vocabVerificationEngine';
 import { CompanionMood, CompanionDialoguePool } from '../../lib/companionEngine';
 import { companionEventBus } from '../../lib/companion/companionEventBus';
 import { StudyCompanionWidget } from '../companion/StudyCompanionWidget';
+import { soundEngine } from '../../lib/soundEngine';
 
 interface StudySessionScreenProps {
   activeLang: any;
@@ -32,6 +35,8 @@ interface StudySessionScreenProps {
   distractorPool?: any[];
   onReveal: () => void;
   onRate: (rating: 1 | 2 | 3 | 4) => void;
+  onNextCard?: () => void;
+  onPrevCard?: () => void;
   onSelectQuizOption: (option: string) => void;
   onSpellingChange: (val: string) => void;
   onCheckSpelling: () => void;
@@ -53,6 +58,8 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
   distractorPool = [],
   onReveal,
   onRate,
+  onNextCard,
+  onPrevCard,
   onSelectQuizOption,
   onSpellingChange,
   onCheckSpelling,
@@ -66,10 +73,208 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
     isCompleted ? 'vocabRoundCompleted' : undefined
   );
 
+  // Swipe & Gesture State
+  const [dragX, setDragX] = useState<number>(0);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [flyDirection, setFlyDirection] = useState<'left' | 'right' | null>(null);
+  const [enterDirection, setEnterDirection] = useState<'left' | 'right' | null>(null);
+
+  const touchStartXRef = useRef<number>(0);
+  const touchStartYRef = useRef<number>(0);
+  const isHorizontalSwipeRef = useRef<boolean | null>(null);
+  const cardContainerRef = useRef<HTMLDivElement>(null);
+
+  const isFlashcardMode = mode === 'flashcard' || mode === 'flashcard_reverse';
+
+  // Trigger smooth card navigation with direction animation
+  const triggerNavigateNext = () => {
+    if (!onNextCard) return;
+    if (currentIndex + 1 >= words.length) {
+      // Reached the end of deck: notify & proceed via onNextCard logic
+      onNextCard();
+      return;
+    }
+    setFlyDirection('left');
+    soundEngine.playFlip();
+    setTimeout(() => {
+      onNextCard();
+      setFlyDirection(null);
+      setDragX(0);
+      setEnterDirection('right');
+      setTimeout(() => setEnterDirection(null), 250);
+    }, 180);
+  };
+
+  const triggerNavigatePrev = () => {
+    if (!onPrevCard) return;
+    if (currentIndex === 0) {
+      // First card: bounce back smoothly without crashing
+      setDragX(0);
+      return;
+    }
+    setFlyDirection('right');
+    soundEngine.playFlip();
+    setTimeout(() => {
+      onPrevCard();
+      setFlyDirection(null);
+      setDragX(0);
+      setEnterDirection('left');
+      setTimeout(() => setEnterDirection(null), 250);
+    }, 180);
+  };
+
+  // Keyboard navigation for Desktop / Power users
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't intercept if user is typing in spelling input or modal
+      const activeTag = (document.activeElement?.tagName || '').toLowerCase();
+      if (activeTag === 'input' || activeTag === 'textarea') return;
+      if (isCompleted || !currentWord) return;
+
+      if (e.code === 'Space') {
+        if (isFlashcardMode) {
+          e.preventDefault();
+          soundEngine.playFlip();
+          onReveal();
+        }
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        triggerNavigateNext();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        triggerNavigatePrev();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentIndex, isCompleted, currentWord, isFlashcardMode, onReveal, words.length]);
+
+  // Touch Gesture Handlers (Mobile & Tablet)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!isFlashcardMode || flyDirection) return;
+    const touch = e.touches[0];
+    touchStartXRef.current = touch.clientX;
+    touchStartYRef.current = touch.clientY;
+    isHorizontalSwipeRef.current = null;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || !isFlashcardMode || flyDirection) return;
+    const touch = e.touches[0];
+    const diffX = touch.clientX - touchStartXRef.current;
+    const diffY = touch.clientY - touchStartYRef.current;
+
+    // Detect gesture axis: ignore if user is scrolling vertically
+    if (isHorizontalSwipeRef.current === null) {
+      if (Math.abs(diffX) > 8 || Math.abs(diffY) > 8) {
+        isHorizontalSwipeRef.current = Math.abs(diffX) > Math.abs(diffY);
+      }
+    }
+
+    if (isHorizontalSwipeRef.current) {
+      // Prevent browser default back/forward swipe
+      e.preventDefault();
+      // Apply slight resistance when at first card and swiping right
+      if (currentIndex === 0 && diffX > 0) {
+        setDragX(diffX * 0.3);
+      } else {
+        setDragX(diffX);
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging || !isFlashcardMode || flyDirection) {
+      setIsDragging(false);
+      return;
+    }
+    setIsDragging(false);
+
+    const threshold = 65; // Minimum px distance to trigger swipe navigation
+    if (dragX < -threshold) {
+      // Swiped Left -> Next Card
+      triggerNavigateNext();
+    } else if (dragX > threshold) {
+      // Swiped Right -> Previous Card
+      triggerNavigatePrev();
+    } else {
+      // Snapped back
+      setDragX(0);
+    }
+  };
+
+  // Mouse drag handlers for desktop trackpad/mouse preview
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!isFlashcardMode || flyDirection) return;
+    // Don't drag if clicking buttons, audio, or links
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a') || target.closest('input')) return;
+
+    touchStartXRef.current = e.clientX;
+    touchStartYRef.current = e.clientY;
+    setIsDragging(true);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !isFlashcardMode || flyDirection) return;
+    const diffX = e.clientX - touchStartXRef.current;
+    if (currentIndex === 0 && diffX > 0) {
+      setDragX(diffX * 0.3);
+    } else {
+      setDragX(diffX);
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    const threshold = 70;
+    if (dragX < -threshold) {
+      triggerNavigateNext();
+    } else if (dragX > threshold) {
+      triggerNavigatePrev();
+    } else {
+      setDragX(0);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (isDragging) {
+      setIsDragging(false);
+      setDragX(0);
+    }
+  };
+
+  // Handle card click (Tap to Flip vs Drag to Navigate)
+  const handleCardClick = (e: React.MouseEvent) => {
+    // If movement exceeded 10px, it was a drag gesture, not a click
+    if (Math.abs(dragX) > 10) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a') || target.closest('input')) return;
+
+    if (isFlashcardMode) {
+      soundEngine.playFlip();
+      onReveal();
+    }
+  };
+
+  const handlePlayWordAudio = (word?: VocabWord) => {
+    if (!word) return;
+    const isJa = activeLang?.id === 'ja' || word.languageId === 'ja';
+    const isZh = activeLang?.id === 'zh' || word.languageId === 'zh';
+    const voiceCode = activeLang?.speechVoiceCode || (isJa ? 'ja-JP' : isZh ? 'zh-CN' : 'en-US');
+    const textToSpeak = (isJa && (word.furigana || word.phonetic))
+      ? (word.furigana || word.phonetic)
+      : word.term;
+    speakWord(textToSpeak, voiceCode);
+  };
+
   // Play audio automatically in spelling mode on each new card
   useEffect(() => {
     if (currentWord && mode === 'spelling') {
-      speakWord(currentWord.term, activeLang?.speechVoiceCode || 'en-US');
+      handlePlayWordAudio(currentWord);
     }
   }, [currentWord?.id, mode, activeLang?.speechVoiceCode]);
 
@@ -195,7 +400,8 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
 
   // Language short name
   const isChinese = activeLang?.id === 'zh';
-  const foreignLangShort = isChinese ? 'Trung' : 'Anh';
+  const isJapanese = activeLang?.id === 'ja' || currentWord?.languageId === 'ja';
+  const foreignLangShort = isJapanese ? 'Nhật' : isChinese ? 'Trung' : 'Anh';
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
@@ -243,7 +449,81 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
       </div>
 
       {/* FLASHCARD / EXERCISE CARD CONTAINER */}
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden p-6 sm:p-8 space-y-6 min-h-[390px] flex flex-col justify-between">
+      <div className="relative w-full">
+        {/* DESKTOP QUICK PREV / NEXT LATERAL BUTTONS (VISIBLE ON MD+ SCREENS) */}
+        {isFlashcardMode && (
+          <>
+            <button
+              type="button"
+              onClick={triggerNavigatePrev}
+              disabled={currentIndex === 0}
+              title="Từ trước đó (Phím Mũi tên Trái ←)"
+              className={`hidden md:flex absolute -left-12 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 shadow-md backdrop-blur-sm items-center justify-center text-slate-600 dark:text-slate-300 transition cursor-pointer hover:bg-emerald-50 dark:hover:bg-slate-800 hover:text-emerald-600 hover:scale-105 active:scale-95 disabled:opacity-20 disabled:pointer-events-none`}
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={triggerNavigateNext}
+              title={currentIndex + 1 >= words.length ? 'Hoàn thành lượt học' : 'Từ tiếp theo (Phím Mũi tên Phải →)'}
+              className={`hidden md:flex absolute -right-12 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full border border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90 shadow-md backdrop-blur-sm items-center justify-center text-slate-600 dark:text-slate-300 transition cursor-pointer hover:bg-emerald-50 dark:hover:bg-slate-800 hover:text-emerald-600 hover:scale-105 active:scale-95`}
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </>
+        )}
+
+        {/* SWIPE HINT BADGES ON DRAG */}
+        {isDragging && isFlashcardMode && (
+          <div className="pointer-events-none absolute inset-x-0 top-3 z-30 flex justify-between px-6">
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-black transition-all ${
+                dragX > 35
+                  ? 'bg-emerald-600 text-white shadow-lg scale-105'
+                  : 'bg-slate-200/60 text-slate-500 opacity-60'
+              }`}
+            >
+              ← Từ trước
+            </span>
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-black transition-all ${
+                dragX < -35
+                  ? 'bg-emerald-600 text-white shadow-lg scale-105'
+                  : 'bg-slate-200/60 text-slate-500 opacity-60'
+              }`}
+            >
+              Từ tiếp theo →
+            </span>
+          </div>
+        )}
+
+        {/* INTERACTIVE FLASHCARD SURFACE */}
+        <div
+          ref={cardContainerRef}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
+          onClick={handleCardClick}
+          style={{
+            transform: `translateX(${
+              flyDirection === 'left' ? -380 : flyDirection === 'right' ? 380 : dragX
+            }px) rotate(${
+              flyDirection === 'left' ? -12 : flyDirection === 'right' ? 12 : dragX * 0.05
+            }deg) scale(${isDragging ? 0.985 : 1})`,
+            opacity: flyDirection ? 0 : 1,
+            transition: isDragging
+              ? 'none'
+              : 'transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.24s ease, box-shadow 0.2s ease',
+            touchAction: 'pan-y'
+          }}
+          className={`bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden p-6 sm:p-8 space-y-6 min-h-[390px] flex flex-col justify-between select-none relative ${
+            isFlashcardMode ? 'cursor-grab active:cursor-grabbing' : ''
+          }`}
+        >
         
         {/* ------------------------------------------------------------- */}
         {/* 1. FLASHCARD ANH -> VIỆT (FRONT) */}
@@ -262,7 +542,7 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
                 </h2>
                 <button
                   type="button"
-                  onClick={() => speakWord(currentWord.term, activeLang?.speechVoiceCode)}
+                  onClick={() => handlePlayWordAudio(currentWord)}
                   className="p-2 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-full transition cursor-pointer"
                   title="Nghe phát âm chuẩn"
                 >
@@ -299,7 +579,9 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
                 {currentWord.meaning}
               </h2>
               <p className="text-xs text-emerald-600 dark:text-emerald-400 italic">
-                {isChinese
+                {isJapanese
+                  ? 'Hãy nhớ lại từ vựng tiếng Nhật (Kanji/Hiragana) tương ứng và cách phát âm!'
+                  : isChinese
                   ? 'Hãy nhớ lại chữ Hán / Pinyin tiếng Trung tương ứng và cách phát âm!'
                   : 'Hãy nhớ lại từ vựng tiếng Anh tương ứng và cách phát âm!'}
               </p>
@@ -322,7 +604,7 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
                 </h2>
                 <button
                   type="button"
-                  onClick={() => speakWord(currentWord.term, activeLang?.speechVoiceCode)}
+                  onClick={() => handlePlayWordAudio(currentWord)}
                   className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-full cursor-pointer"
                 >
                   <Volume2 className="w-5 h-5" />
@@ -393,7 +675,7 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
               </p>
               <button
                 type="button"
-                onClick={() => speakWord(currentWord.term, activeLang?.speechVoiceCode)}
+                onClick={() => handlePlayWordAudio(currentWord)}
                 className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer inline-flex items-center gap-1.5"
               >
                 <Volume2 className="w-4 h-4" /> Nghe lại phát âm
@@ -410,7 +692,13 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
                   onKeyDown={e => {
                     if (e.key === 'Enter') onCheckSpelling();
                   }}
-                  placeholder={isChinese ? "Gõ chữ Hán hoặc Pinyin nghe được..." : "Gõ từ vựng tiếng Anh nghe được..."}
+                  placeholder={
+                    isJapanese
+                      ? "Gõ Kanji hoặc Hiragana nghe được..."
+                      : isChinese
+                      ? "Gõ chữ Hán hoặc Pinyin nghe được..."
+                      : "Gõ từ vựng tiếng Anh nghe được..."
+                  }
                   className="flex-1 px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl font-bold text-sm text-center focus:outline-none focus:border-emerald-500"
                   autoFocus
                 />
@@ -442,7 +730,7 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
                   </h3>
                   <button
                     type="button"
-                    onClick={() => speakWord(currentWord.term, activeLang?.speechVoiceCode)}
+                    onClick={() => handlePlayWordAudio(currentWord)}
                     className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-full cursor-pointer"
                   >
                     <Volume2 className="w-5 h-5" />
@@ -617,7 +905,39 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
           </div>
         )}
 
+        </div>
       </div>
+
+      {/* FOOTER NAVIGATION HELPER & MOBILE SWIPE HINT */}
+      {isFlashcardMode && (
+        <div className="flex items-center justify-between px-2 pt-1 text-xs text-slate-400">
+          <button
+            type="button"
+            onClick={triggerNavigatePrev}
+            disabled={currentIndex === 0}
+            className="flex items-center gap-1 font-semibold hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer disabled:opacity-25 disabled:pointer-events-none"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Từ trước</span>
+          </button>
+
+          <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400/80">
+            <span className="hidden sm:inline">Phím ← / →</span>
+            <span className="inline sm:hidden">👈 Vuốt qua lại 👉</span>
+            <span>•</span>
+            <span>Chạm để lật thẻ</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={triggerNavigateNext}
+            className="flex items-center gap-1 font-semibold hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer text-emerald-600 dark:text-emerald-400"
+          >
+            <span>{currentIndex + 1 >= words.length ? 'Xong lượt' : 'Từ tiếp'}</span>
+            <ChevronRight className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, CheckSquare, Calendar, DollarSign, Menu } from 'lucide-react';
+import { LayoutDashboard, Compass, CheckSquare, Zap, Menu } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { ViewState } from '../lib/types';
 import { useTranslation } from '../lib/i18n';
@@ -11,10 +11,10 @@ interface TabItem {
 }
 
 const PRIMARY_TABS: TabItem[] = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'tasks', label: 'Tasks', icon: CheckSquare },
-  { id: 'calendar', label: 'Calendar', icon: Calendar },
-  { id: 'finance', label: 'Finance', icon: DollarSign },
+  { id: 'dashboard', label: 'Hôm nay', icon: LayoutDashboard },
+  { id: 'journey', label: 'Hành trình', icon: Compass },
+  { id: 'tasks', label: 'Công việc', icon: CheckSquare },
+  { id: 'focus', label: 'Tập trung', icon: Zap },
 ];
 
 export function BottomNav() {
@@ -29,7 +29,7 @@ export function BottomNav() {
     <nav
       id="mobile-bottom-nav"
       aria-label={t('Thanh điều hướng di động')}
-      className="md:hidden fixed bottom-2.5 left-3 right-3 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-2xl px-2 py-1.5 transition-all"
+      className="md:hidden fixed bottom-2.5 left-3 right-3 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xl px-2 py-1.5 transition-all"
     >
       <div className="flex items-center justify-around max-w-lg mx-auto">
         {PRIMARY_TABS.map(tab => {
@@ -41,16 +41,16 @@ export function BottomNav() {
               id={`mobile-tab-${tab.id}`}
               type="button"
               onClick={() => setCurrentView(tab.id)}
-              className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl transition-all relative btn-squishy ${
+              className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all relative cursor-pointer ${
                 isActive
-                  ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-black'
+                  ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-black'
                   : 'text-slate-500 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-300 font-semibold'
               }`}
             >
               <div className="relative">
-                <Icon className={`w-5 h-5 transition-transform ${isActive ? 'scale-115 text-emerald-600 dark:text-emerald-400' : ''}`} />
+                <Icon className={`w-5 h-5 transition-transform ${isActive ? 'scale-110 text-emerald-600 dark:text-emerald-400' : ''}`} />
                 {tab.id === 'tasks' && pendingTaskCount > 0 && (
-                  <span className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-emerald-600 text-white text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-2xs">
+                  <span className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-emerald-500 text-slate-950 text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-2xs">
                     {pendingTaskCount > 99 ? '99+' : pendingTaskCount}
                   </span>
                 )}
@@ -59,7 +59,7 @@ export function BottomNav() {
                 {t(tab.label)}
               </span>
               {isActive && (
-                <span className="w-1.5 h-1.5 bg-gradient-to-r from-violet-500 to-pink-500 rounded-full mt-0.5 animate-pulse" />
+                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-0.5" />
               )}
             </button>
           );

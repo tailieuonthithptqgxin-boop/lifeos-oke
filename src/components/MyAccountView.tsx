@@ -137,9 +137,28 @@ export function MyAccountView() {
     }
   };
 
+  // Dynamic Service Plans from single source of truth
+  const [plans, setPlans] = useState<any[]>([]);
+  const [isLoadingPlans, setIsLoadingPlans] = useState(false);
+
+  const fetchPlans = async () => {
+    try {
+      setIsLoadingPlans(true);
+      const res = await apiCall('/api/payments/plans');
+      if (res && res.success && Array.isArray(res.plans)) {
+        setPlans(res.plans);
+      }
+    } catch (e) {
+      console.warn('Could not load plans in MyAccountView:', e);
+    } finally {
+      setIsLoadingPlans(false);
+    }
+  };
+
   useEffect(() => {
     fetchSubscription();
     fetchSessions();
+    fetchPlans();
   }, [currentUser?.plan, currentUser?.planExpiresAt]);
 
   const handleAvatarFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -582,29 +601,69 @@ export function MyAccountView() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
-            <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 space-y-2">
-              <div className="font-bold text-slate-900 dark:text-white text-sm">Cá Nhân (1 Tháng)</div>
-              <div className="text-lg font-black text-blue-600">15.000 ₫ <span className="text-xs text-slate-400 font-normal">/ 30 ngày</span></div>
-              <p className="text-[11px] text-slate-500">Toàn bộ chức năng quản lý cá nhân, tài chính, công việc, mục tiêu.</p>
-            </div>
-
-            <div className="p-4 rounded-xl border border-blue-200 dark:border-blue-900/60 bg-blue-50/40 dark:bg-blue-950/20 space-y-2">
-              <div className="font-bold text-slate-900 dark:text-white text-sm flex items-center justify-between">
-                <span>Cá Nhân (3 Tháng)</span>
-                <span className="text-[10px] bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold px-1.5 py-0.5 rounded">Tiết kiệm</span>
-              </div>
-              <div className="text-lg font-black text-blue-600">40.000 ₫ <span className="text-xs text-slate-400 font-normal">/ 90 ngày</span></div>
-              <p className="text-[11px] text-slate-500">Mở khóa toàn bộ chức năng trong 3 tháng liên tục, tiết kiệm 5.000 ₫.</p>
-            </div>
-
-            <div className="p-4 rounded-xl border border-purple-200 dark:border-purple-900/60 bg-purple-50/40 dark:bg-purple-950/20 space-y-2">
-              <div className="font-bold text-slate-900 dark:text-white text-sm flex items-center justify-between">
-                <span>Gói Đội Ngũ (Team 1 Tháng)</span>
-                <span className="text-[10px] bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 font-bold px-1.5 py-0.5 rounded">Tối đa 5 người</span>
-              </div>
-              <div className="text-lg font-black text-purple-600">50.000 ₫ <span className="text-xs text-slate-400 font-normal">/ 30 ngày</span></div>
-              <p className="text-[11px] text-slate-500">Chủ team thêm tối đa 5 người. Tất cả thành viên dùng đầy đủ mọi chức năng.</p>
-            </div>
+            {(plans && plans.length > 0 ? plans : [
+              {
+                id: 'PERSONAL_1M',
+                name: 'Cá Nhân (1 Tháng)',
+                price: 15000,
+                durationDays: 30,
+                billingCycle: '1 tháng (30 ngày)',
+                description: 'Toàn bộ chức năng quản lý cá nhân, tài chính, công việc, mục tiêu.'
+              },
+              {
+                id: 'PERSONAL_3M',
+                name: 'Cá Nhân (3 Tháng)',
+                price: 40000,
+                durationDays: 90,
+                badge: 'Tiết kiệm',
+                billingCycle: '3 tháng (90 ngày)',
+                description: 'Mở khóa toàn bộ chức năng trong 3 tháng liên tục, tiết kiệm chi phí.'
+              },
+              {
+                id: 'TEAM_1M',
+                name: 'Gói Đội Ngũ (Team 1 Tháng)',
+                price: 50000,
+                durationDays: 30,
+                badge: 'Tối đa 5 người',
+                billingCycle: '1 tháng (30 ngày)',
+                description: 'Chủ team thêm tối đa 5 người. Tất cả thành viên dùng đầy đủ mọi chức năng.'
+              }
+            ]).map((p: any) => {
+              const isTeam = p.id?.includes('TEAM') || p.type === 'TEAM';
+              const is3M = p.durationDays === 90 || p.id === 'PERSONAL_3M';
+              return (
+                <div
+                  key={p.id}
+                  className={`p-4 rounded-xl border space-y-2 ${
+                    isTeam
+                      ? 'border-purple-200 dark:border-purple-900/60 bg-purple-50/40 dark:bg-purple-950/20'
+                      : is3M
+                      ? 'border-blue-200 dark:border-blue-900/60 bg-blue-50/40 dark:bg-blue-950/20'
+                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50'
+                  }`}
+                >
+                  <div className="font-bold text-slate-900 dark:text-white text-sm flex items-center justify-between">
+                    <span>{p.name}</span>
+                    {p.badge && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                        isTeam
+                          ? 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300'
+                          : 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
+                      }`}>
+                        {p.badge}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`text-lg font-black ${isTeam ? 'text-purple-600' : 'text-blue-600'}`}>
+                    {formatCurrency(p.price || p.monthlyPrice || 0)}{' '}
+                    <span className="text-xs text-slate-400 font-normal">
+                      / {p.durationDays ? `${p.durationDays} ngày` : p.billingCycle || '30 ngày'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">{p.description}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
 

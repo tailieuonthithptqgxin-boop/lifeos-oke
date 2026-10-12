@@ -13,18 +13,18 @@ export function TabButton({ active, onClick, icon, label, count }: TabButtonProp
     <button 
       type="button"
       onClick={onClick}
-      className={`btn-squishy flex items-center gap-2 px-3.5 sm:px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all whitespace-nowrap cursor-pointer
+      className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer
         ${active 
-          ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/25' 
-          : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/80 dark:hover:bg-slate-800 hover:text-purple-700 dark:hover:text-purple-300'}`}
+          ? 'bg-emerald-500 text-slate-950 font-black shadow-2xs' 
+          : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'}`}
     >
       {icon} 
       <span>{label}</span>
       {count !== undefined && count > 0 && (
         <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
           active 
-            ? 'bg-white/25 text-white' 
-            : 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300'
+            ? 'bg-slate-950/20 text-slate-950' 
+            : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
         }`}>
           {count}
         </span>

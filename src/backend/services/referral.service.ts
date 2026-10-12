@@ -387,13 +387,26 @@ export class ReferralService {
 
     const profile = await this.getOrCreateProfile(userId);
 
-    if (profile.approvedReward < amount) {
-      throw new Error(`Số dư khả dụng không đủ (${profile.approvedReward.toLocaleString('vi-VN')} ₫). Không thể rút ${amount.toLocaleString('vi-VN')} ₫.`);
-    }
+    // Atomic transaction with concurrency guard: lock funds strictly if approvedReward >= amount
+    const [updatedProfile, request] = await prisma.$transaction(async (tx) => {
+      // Re-fetch profile inside transaction with lock
+      const currentProfile = await tx.referralProfile.findUnique({
+        where: { id: profile.id }
+      });
 
-    // Atomic transaction: lock funds, create request, log ledger transaction, notify
-    const [request] = await prisma.$transaction([
-      prisma.withdrawalRequest.create({
+      if (!currentProfile || currentProfile.approvedReward < amount) {
+        throw new Error(`Số dư khả dụng không đủ (${(currentProfile?.approvedReward || 0).toLocaleString('vi-VN')} ₫). Không thể rút ${amount.toLocaleString('vi-VN')} ₫.`);
+      }
+
+      const updated = await tx.referralProfile.update({
+        where: { id: profile.id },
+        data: {
+          approvedReward: { decrement: amount },
+          withdrawalPending: { increment: amount }
+        }
+      });
+
+      const newReq = await tx.withdrawalRequest.create({
         data: {
           userId,
           amount,
@@ -403,35 +416,32 @@ export class ReferralService {
           transferNote: transferNote || `LifeOS Rut tien thuong - ${userId.substring(0, 8)}`,
           userNote,
           status: 'PENDING',
-          balanceBefore: profile.approvedReward
+          balanceBefore: currentProfile.approvedReward
         }
-      }),
-      prisma.referralProfile.update({
-        where: { id: profile.id },
-        data: {
-          approvedReward: { decrement: amount },
-          withdrawalPending: { increment: amount }
-        }
-      }),
-      prisma.referralTransaction.create({
+      });
+
+      await tx.referralTransaction.create({
         data: {
           userId,
           type: 'WITHDRAWAL_REQUESTED',
           amount: -amount,
-          previousBal: profile.approvedReward,
-          newBal: profile.approvedReward - amount,
+          previousBal: currentProfile.approvedReward,
+          newBal: updated.approvedReward,
           reason: `Yêu cầu rút ${amount.toLocaleString('vi-VN')} ₫ về ${bankName} (${bankAccount})`
         }
-      }),
-      prisma.notification.create({
+      });
+
+      await tx.notification.create({
         data: {
           userId,
           title: '💸 Đã tạo yêu cầu rút tiền',
           message: `Yêu cầu rút ${amount.toLocaleString('vi-VN')} ₫ về tài khoản ${bankName} - ${bankAccount} đã được gửi. Admin sẽ duyệt và giải ngân sớm!`,
           type: 'info'
         }
-      })
-    ]);
+      });
+
+      return [updated, newReq];
+    });
 
     return request;
   }

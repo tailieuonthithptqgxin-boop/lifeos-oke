@@ -67,6 +67,49 @@ export function DedicatedVocabFocusView({
   const currentWord = queue[currentIndex] || null;
   const progressPercent = queue.length > 0 ? Math.round(((currentIndex + 1) / queue.length) * 100) : 0;
 
+  // Swipe & Gesture state
+  const [dragX, setDragX] = useState<number>(0);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const [flyDirection, setFlyDirection] = useState<'left' | 'right' | null>(null);
+
+  const touchStartXRef = useRef<number>(0);
+  const touchStartYRef = useRef<number>(0);
+  const isHorizontalSwipeRef = useRef<boolean | null>(null);
+
+  const handleNextCard = () => {
+    if (currentIndex + 1 < queue.length) {
+      setFlyDirection('left');
+      soundEngine.playFlip();
+      setTimeout(() => {
+        setCurrentIndex(prev => prev + 1);
+        setIsRevealed(false);
+        setFlyDirection(null);
+        setDragX(0);
+      }, 180);
+    } else {
+      soundEngine.playSuccess();
+      setSessionCompleted(true);
+      setCompanionMood('achievement');
+      setCompanionDialogueKey('vocabRoundCompleted');
+      retentionEngine.completeQuest('study');
+    }
+  };
+
+  const handlePrevCard = () => {
+    if (currentIndex > 0) {
+      setFlyDirection('right');
+      soundEngine.playFlip();
+      setTimeout(() => {
+        setCurrentIndex(prev => prev - 1);
+        setIsRevealed(false);
+        setFlyDirection(null);
+        setDragX(0);
+      }, 180);
+    } else {
+      setDragX(0);
+    }
+  };
+
   // Key navigation for desktop focus
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -76,10 +119,12 @@ export function DedicatedVocabFocusView({
         e.preventDefault();
         soundEngine.playFlip();
         setIsRevealed(prev => !prev);
-      } else if (e.key === 'ArrowRight' && isRevealed) {
-        handleRateWord(3); // Good
-      } else if (e.key === 'ArrowLeft' && isRevealed) {
-        handleRateWord(1); // Again
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleNextCard();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handlePrevCard();
       } else if (e.key === '1' && isRevealed) {
         handleRateWord(1);
       } else if (e.key === '2' && isRevealed) {
@@ -93,7 +138,101 @@ export function DedicatedVocabFocusView({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, isRevealed, sessionCompleted, currentWord]);
+  }, [currentIndex, isRevealed, sessionCompleted, currentWord, queue.length]);
+
+  // Touch handlers
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (flyDirection) return;
+    const touch = e.touches[0];
+    touchStartXRef.current = touch.clientX;
+    touchStartYRef.current = touch.clientY;
+    isHorizontalSwipeRef.current = null;
+    setIsDragging(true);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging || flyDirection) return;
+    const touch = e.touches[0];
+    const diffX = touch.clientX - touchStartXRef.current;
+    const diffY = touch.clientY - touchStartYRef.current;
+
+    if (isHorizontalSwipeRef.current === null) {
+      if (Math.abs(diffX) > 8 || Math.abs(diffY) > 8) {
+        isHorizontalSwipeRef.current = Math.abs(diffX) > Math.abs(diffY);
+      }
+    }
+
+    if (isHorizontalSwipeRef.current) {
+      e.preventDefault();
+      if (currentIndex === 0 && diffX > 0) {
+        setDragX(diffX * 0.3);
+      } else {
+        setDragX(diffX);
+      }
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (!isDragging || flyDirection) {
+      setIsDragging(false);
+      return;
+    }
+    setIsDragging(false);
+    const threshold = 65;
+    if (dragX < -threshold) {
+      handleNextCard();
+    } else if (dragX > threshold) {
+      handlePrevCard();
+    } else {
+      setDragX(0);
+    }
+  };
+
+  // Mouse handlers for desktop dragging
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (flyDirection) return;
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('a')) return;
+    touchStartXRef.current = e.clientX;
+    touchStartYRef.current = e.clientY;
+    setIsDragging(true);
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || flyDirection) return;
+    const diffX = e.clientX - touchStartXRef.current;
+    if (currentIndex === 0 && diffX > 0) {
+      setDragX(diffX * 0.3);
+    } else {
+      setDragX(diffX);
+    }
+  };
+
+  const handleMouseUp = () => {
+    if (!isDragging) return;
+    setIsDragging(false);
+    const threshold = 70;
+    if (dragX < -threshold) {
+      handleNextCard();
+    } else if (dragX > threshold) {
+      handlePrevCard();
+    } else {
+      setDragX(0);
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (isDragging) {
+      setIsDragging(false);
+      setDragX(0);
+    }
+  };
+
+  const handleCardClick = () => {
+    if (Math.abs(dragX) > 10) return;
+    soundEngine.playFlip();
+    setIsRevealed(prev => !prev);
+  };
 
   // Audio pronunciation
   const playPronunciation = () => {
@@ -287,10 +426,73 @@ export function DedicatedVocabFocusView({
               });
 
               return (
-                <div 
-                  onClick={() => setIsRevealed(!isRevealed)}
-                  className="w-full min-h-[340px] sm:min-h-[380px] p-6 sm:p-10 rounded-3xl bg-gradient-to-b from-slate-900 via-slate-900 to-slate-900/90 border border-white/15 hover:border-indigo-500/50 shadow-2xl flex flex-col justify-between cursor-pointer transition-all duration-300 relative group select-none"
-                >
+                <div className="relative w-full">
+                  {/* Lateral Previous / Next Buttons on Desktop */}
+                  <button
+                    type="button"
+                    onClick={handlePrevCard}
+                    disabled={currentIndex === 0}
+                    title="Từ trước đó (←)"
+                    className="hidden sm:flex absolute -left-12 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full border border-white/10 bg-slate-900/90 shadow-lg backdrop-blur-sm items-center justify-center text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNextCard}
+                    title={currentIndex + 1 >= queue.length ? 'Hoàn thành' : 'Từ tiếp theo (→)'}
+                    className="hidden sm:flex absolute -right-12 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full border border-white/10 bg-slate-900/90 shadow-lg backdrop-blur-sm items-center justify-center text-slate-300 hover:text-white hover:bg-slate-800 transition cursor-pointer disabled:opacity-20 disabled:pointer-events-none"
+                  >
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+
+                  {/* Swipe Direction Peek Badge */}
+                  {isDragging && (
+                    <div className="pointer-events-none absolute inset-x-0 top-3 z-30 flex justify-between px-6">
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-black transition-all ${
+                          dragX > 35
+                            ? 'bg-indigo-600 text-white shadow-lg scale-105'
+                            : 'bg-white/10 text-slate-400 opacity-60'
+                        }`}
+                      >
+                        ← Từ trước
+                      </span>
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-black transition-all ${
+                          dragX < -35
+                            ? 'bg-indigo-600 text-white shadow-lg scale-105'
+                            : 'bg-white/10 text-slate-400 opacity-60'
+                        }`}
+                      >
+                        Từ tiếp theo →
+                      </span>
+                    </div>
+                  )}
+
+                  <div 
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    onMouseDown={handleMouseDown}
+                    onMouseMove={handleMouseMove}
+                    onMouseUp={handleMouseUp}
+                    onMouseLeave={handleMouseLeave}
+                    onClick={handleCardClick}
+                    style={{
+                      transform: `translateX(${
+                        flyDirection === 'left' ? -380 : flyDirection === 'right' ? 380 : dragX
+                      }px) rotate(${
+                        flyDirection === 'left' ? -12 : flyDirection === 'right' ? 12 : dragX * 0.05
+                      }deg) scale(${isDragging ? 0.985 : 1})`,
+                      opacity: flyDirection ? 0 : 1,
+                      transition: isDragging
+                        ? 'none'
+                        : 'transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.24s ease, box-shadow 0.2s ease',
+                      touchAction: 'pan-y'
+                    }}
+                    className="w-full min-h-[340px] sm:min-h-[380px] p-6 sm:p-10 rounded-3xl bg-gradient-to-b from-slate-900 via-slate-900 to-slate-900/90 border border-white/15 hover:border-indigo-500/50 shadow-2xl flex flex-col justify-between cursor-grab active:cursor-grabbing select-none relative group"
+                  >
                   {/* Card Header metadata */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -436,6 +638,7 @@ export function DedicatedVocabFocusView({
                     Thẻ Flashcard Ôn tập • Độc lập với đánh giá trí nhớ SM-2
                   </div>
                 </div>
+              </div>
               );
             })()}
 

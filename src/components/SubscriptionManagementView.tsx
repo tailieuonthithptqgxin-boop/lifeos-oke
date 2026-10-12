@@ -93,9 +93,28 @@ export function SubscriptionManagementView() {
     }
   };
 
+  // Dynamic Plans state from single source of truth
+  const [dynamicPlans, setDynamicPlans] = useState<any[]>([]);
+  const [isLoadingPlans, setIsLoadingPlans] = useState(false);
+
+  const loadPlans = async () => {
+    try {
+      setIsLoadingPlans(true);
+      const res = await apiCall('/api/payments/plans');
+      if (res && res.success && Array.isArray(res.plans)) {
+        setDynamicPlans(res.plans);
+      }
+    } catch (err) {
+      console.warn('Failed to load dynamic plans:', err);
+    } finally {
+      setIsLoadingPlans(false);
+    }
+  };
+
   useEffect(() => {
     loadSubscription();
     loadTeam();
+    loadPlans();
   }, []);
 
   const handleCopy = (text: string, label: string) => {
@@ -458,7 +477,7 @@ export function SubscriptionManagementView() {
               )}
             </div>
 
-            {/* Pricing Cards Grid - 3 Official Plans */}
+            {/* Pricing Cards Grid - Dynamic from Database Single Source of Truth */}
             <div>
               <div className="text-center max-w-xl mx-auto mb-6">
                 <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
@@ -469,169 +488,150 @@ export function SubscriptionManagementView() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-                {/* Plan 1: Cá nhân 1 Tháng (15.000 VNĐ) */}
-                <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 flex flex-col justify-between shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition-all relative">
-                  <div>
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-bold uppercase tracking-wider mb-4">
-                      Tiết kiệm
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                      Gói Cá Nhân (1 Tháng)
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-1 min-h-[32px]">
-                      Trải nghiệm đầy đủ hệ thống quản trị cá nhân LifeOS trong 30 ngày.
-                    </p>
-
-                    <div className="my-6">
-                      <span className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">
-                        15.000 ₫
-                      </span>
-                      <span className="text-xs text-slate-400 ml-1.5">/ 30 ngày</span>
-                    </div>
-
-                    <div className="space-y-3 border-t border-slate-100 dark:border-slate-800 pt-6 text-xs text-slate-600 dark:text-slate-300">
-                      <div className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Toàn bộ tính năng Quản lý Công việc & Bộ lọc 7 tab</span>
-                      </div>
-                      <div className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Quản lý Tài chính, Ví tiền & Báo cáo thu chi</span>
-                      </div>
-                      <div className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Theo dõi Thói quen, Mục tiêu & Focus Pomodoro</span>
-                      </div>
-                      <div className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Decision Engine & Automation Rules Engine</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-8">
-                    <button
-                      type="button"
-                      onClick={() => handleStartCheckout('PERSONAL_1M')}
-                      className="w-full py-3.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100 font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <CreditCard className="w-4 h-4" />
-                      {subStatus?.planId === 'PERSONAL_1M' && isAccessActive ? 'Gia hạn gói 1 tháng' : 'Mua gói 1 tháng (15.000 ₫)'}
-                    </button>
-                  </div>
+              {isLoadingPlans && dynamicPlans.length === 0 ? (
+                <div className="p-12 text-center text-slate-500">
+                  <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                  <p className="text-xs">Đang đồng bộ danh sách gói dịch vụ...</p>
                 </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {(dynamicPlans.length > 0 ? dynamicPlans : [
+                    {
+                      id: 'PERSONAL_1M',
+                      name: 'Gói Cá Nhân (1 Tháng)',
+                      badge: 'Tiết kiệm',
+                      description: 'Trải nghiệm đầy đủ hệ thống quản trị cá nhân LifeOS trong 30 ngày.',
+                      price: 15000,
+                      durationDays: 30,
+                      billingCycle: '1 tháng (30 ngày)',
+                      benefits: [
+                        'Toàn bộ tính năng Quản lý Công việc & Bộ lọc 7 tab',
+                        'Quản lý Tài chính, Ví tiền & Báo cáo thu chi',
+                        'Theo dõi Thói quen, Mục tiêu & Focus Pomodoro',
+                        'Decision Engine & Automation Rules Engine'
+                      ]
+                    },
+                    {
+                      id: 'PERSONAL_3M',
+                      name: 'Gói Cá Nhân (3 Tháng)',
+                      badge: 'Phổ biến nhất',
+                      description: 'Sử dụng 90 ngày liên tục với chi phí ưu đãi nhất cho cá nhân.',
+                      price: 40000,
+                      durationDays: 90,
+                      billingCycle: '3 tháng (90 ngày)',
+                      benefits: [
+                        'Bao gồm toàn bộ quyền lợi của gói Cá Nhân 1 Tháng',
+                        'Thời hạn 90 ngày liên tục',
+                        'Tiết kiệm 5.000 VNĐ so với gia hạn từng tháng',
+                        'Đồng bộ dữ liệu thời gian thực và sao lưu tự động'
+                      ]
+                    },
+                    {
+                      id: 'TEAM_1M',
+                      name: 'Gói Đội Ngũ (Team 1 Tháng)',
+                      badge: 'Tối đa 5 người dùng',
+                      description: 'Dành cho nhóm làm việc. Chủ team được thêm tối đa 5 người dùng cùng dùng đầy đủ tính năng.',
+                      price: 50000,
+                      durationDays: 30,
+                      billingCycle: '1 tháng (30 ngày)',
+                      benefits: [
+                        'Chủ nhóm được thêm tối đa 5 thành viên',
+                        'Mọi thành viên được hưởng trọn quyền tính năng trả phí',
+                        'Bảng quản trị thêm/xóa thành viên linh hoạt',
+                        'Tự động khóa quyền an toàn khi gói hết hạn'
+                      ]
+                    }
+                  ]).map((p: any) => {
+                    const isPopular = p.id === 'PERSONAL_3M' || p.badge?.includes('Phổ biến');
+                    const isTeam = p.id.includes('TEAM') || p.type === 'TEAM';
+                    const isCurrentActive = (subStatus?.planId === p.id || (isTeam && subStatus?.planType === 'TEAM')) && isAccessActive;
+                    const benefitsList = p.benefits || p.features || [];
 
-                {/* Plan 2: Cá nhân 3 Tháng (40.000 VNĐ) - Phổ biến nhất */}
-                <div className="bg-white dark:bg-slate-900 border-2 border-blue-600 rounded-3xl p-6 sm:p-8 flex flex-col justify-between shadow-xl relative overflow-hidden">
-                  <div className="absolute top-0 right-0 bg-blue-600 text-white text-[10px] font-extrabold px-3 py-1 rounded-bl-xl uppercase tracking-wider">
-                    Phổ biến nhất
-                  </div>
+                    return (
+                      <div
+                        key={p.id}
+                        className={`bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 flex flex-col justify-between shadow-xs transition-all relative overflow-hidden ${
+                          isPopular
+                            ? 'border-2 border-blue-600 shadow-xl'
+                            : isTeam
+                            ? 'border border-purple-200 dark:border-purple-900/60 hover:border-purple-300 dark:hover:border-purple-800'
+                            : 'border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                        }`}
+                      >
+                        {isPopular && (
+                          <div className="absolute top-0 right-0 bg-blue-600 text-white text-[10px] font-extrabold px-3 py-1 rounded-bl-xl uppercase tracking-wider">
+                            {p.badge || 'Phổ biến nhất'}
+                          </div>
+                        )}
 
-                  <div>
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-[11px] font-bold uppercase tracking-wider mb-4">
-                      Tiết kiệm 5.000 ₫
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                      Gói Cá Nhân (3 Tháng)
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-1 min-h-[32px]">
-                      Sử dụng 90 ngày liên tục với chi phí ưu đãi nhất cho cá nhân.
-                    </p>
+                        <div>
+                          <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider mb-4 ${
+                            isPopular
+                              ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300'
+                              : isTeam
+                              ? 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                          }`}>
+                            {p.badge || (isTeam ? 'Dành cho Đội ngũ' : 'Tiết kiệm')}
+                          </div>
 
-                    <div className="my-6">
-                      <span className="text-3xl sm:text-4xl font-black text-blue-600 dark:text-blue-400">
-                        40.000 ₫
-                      </span>
-                      <span className="text-xs text-slate-400 ml-1.5">/ 90 ngày (~13k/tháng)</span>
-                    </div>
+                          <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                            {p.name}
+                          </h3>
+                          <p className="text-xs text-slate-500 mt-1 min-h-[32px]">
+                            {p.description || 'Mở khóa toàn bộ chức năng LifeOS.'}
+                          </p>
 
-                    <div className="space-y-3 border-t border-slate-100 dark:border-slate-800 pt-6 text-xs text-slate-600 dark:text-slate-300">
-                      <div className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Bao gồm toàn bộ quyền lợi của gói Cá Nhân 1 Tháng</span>
+                          <div className="my-6">
+                            <span className={`text-3xl sm:text-4xl font-black ${
+                              isPopular
+                                ? 'text-blue-600 dark:text-blue-400'
+                                : isTeam
+                                ? 'text-purple-600 dark:text-purple-400'
+                                : 'text-slate-900 dark:text-white'
+                            }`}>
+                              {p.pricing?.monthly?.displayPrice || `${Number(p.price || 0).toLocaleString('vi-VN')} ₫`}
+                            </span>
+                            <span className="text-xs text-slate-400 ml-1.5">
+                              / {p.billingCycle || `${p.durationDays || 30} ngày`}
+                            </span>
+                          </div>
+
+                          <div className="space-y-3 border-t border-slate-100 dark:border-slate-800 pt-6 text-xs text-slate-600 dark:text-slate-300">
+                            {benefitsList.map((feature: string, fIdx: number) => (
+                              <div key={fIdx} className="flex items-start gap-2.5">
+                                <Check className={`w-4 h-4 shrink-0 mt-0.5 ${
+                                  isPopular ? 'text-blue-500' : isTeam ? 'text-purple-500' : 'text-emerald-500'
+                                }`} />
+                                <span>{feature}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="pt-8">
+                          <button
+                            type="button"
+                            onClick={() => handleStartCheckout(p.id)}
+                            className={`w-full py-3.5 px-4 rounded-xl font-bold text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                              isPopular
+                                ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20'
+                                : isTeam
+                                ? 'bg-purple-600 hover:bg-purple-700 text-white shadow-purple-500/20'
+                                : 'bg-slate-900 hover:bg-slate-800 text-white dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100'
+                            }`}
+                          >
+                            {isTeam ? <Users className="w-4 h-4" /> : isPopular ? <Sparkles className="w-4 h-4" /> : <CreditCard className="w-4 h-4" />}
+                            {isCurrentActive
+                              ? `Gia hạn ${p.name}`
+                              : `Mua ${p.name} (${Number(p.price || 0).toLocaleString('vi-VN')} ₫)`}
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Thời hạn 90 ngày liên tục (Tiết kiệm 5.000 ₫)</span>
-                      </div>
-                      <div className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Đồng bộ dữ liệu thời gian thực và sao lưu tự động</span>
-                      </div>
-                      <div className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Ưu tiên cập nhật tính năng mới sớm nhất</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-8">
-                    <button
-                      type="button"
-                      onClick={() => handleStartCheckout('PERSONAL_3M')}
-                      className="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      {subStatus?.planId === 'PERSONAL_3M' && isAccessActive ? 'Gia hạn gói 3 tháng' : 'Mua gói 3 tháng (40.000 ₫)'}
-                    </button>
-                  </div>
+                    );
+                  })}
                 </div>
-
-                {/* Plan 3: Gói Team 1 Tháng (50.000 VNĐ) - Cho phép thêm 5 người dùng */}
-                <div className="bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-900/60 rounded-3xl p-6 sm:p-8 flex flex-col justify-between shadow-xs hover:border-purple-300 dark:hover:border-purple-800 transition-all relative">
-                  <div>
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 text-[11px] font-bold uppercase tracking-wider mb-4">
-                      Tối đa 5 người dùng
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                      Gói Đội Ngũ (Team 1 Tháng)
-                    </h3>
-                    <p className="text-xs text-slate-500 mt-1 min-h-[32px]">
-                      Dành cho nhóm làm việc. Chủ team được thêm tối đa 5 người dùng cùng dùng đầy đủ tính năng.
-                    </p>
-
-                    <div className="my-6">
-                      <span className="text-3xl sm:text-4xl font-black text-purple-600 dark:text-purple-400">
-                        50.000 ₫
-                      </span>
-                      <span className="text-xs text-slate-400 ml-1.5">/ 30 ngày / 5 người</span>
-                    </div>
-
-                    <div className="space-y-3 border-t border-slate-100 dark:border-slate-800 pt-6 text-xs text-slate-600 dark:text-slate-300">
-                      <div className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Chủ nhóm được thêm tối đa <b>5 thành viên</b></span>
-                      </div>
-                      <div className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Mọi thành viên được hưởng trọn quyền tính năng trả phí</span>
-                      </div>
-                      <div className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Bảng quản trị thêm/xóa thành viên linh hoạt</span>
-                      </div>
-                      <div className="flex items-start gap-2.5">
-                        <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                        <span>Tự động khóa quyền an toàn khi gói hết hạn</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="pt-8">
-                    <button
-                      type="button"
-                      onClick={() => handleStartCheckout('TEAM_1M')}
-                      className="w-full py-3.5 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-md shadow-purple-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <Users className="w-4 h-4" />
-                      {subStatus?.planType === 'TEAM' && isAccessActive ? 'Gia hạn gói Team' : 'Mua gói Team (50.000 ₫)'}
-                    </button>
-                  </div>
-                </div>
-
-              </div>
+              )}
             </div>
           </div>
         )}

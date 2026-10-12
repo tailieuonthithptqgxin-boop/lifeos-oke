@@ -34,15 +34,15 @@ export const FinanceScenarioTab: React.FC<FinanceScenarioTabProps> = ({
   onExecuteRealTransaction,
   onOpenAccountModal
 }) => {
-  const currentAccount = (financeAccounts || []).find((a: any) => a.id === selectedAccId) || financeAccounts[0];
+  const currentAccount = (financeAccounts || []).find((a: any) => a.id === selectedAccId) || (financeAccounts && financeAccounts.length > 0 ? financeAccounts[0] : null);
   const accountBalance = currentAccount ? (currentAccount.balance || 0) : 0;
   const newBalance = accountBalance - forecastAmount;
   const targetBudget = (budgets || []).find((b: any) => b.category === forecastCategory);
-  const spentInBudget = monthlyTx
+  const spentInBudget = (monthlyTx || [])
     .filter(t => t.type === 'Chi tiêu' && t.category === forecastCategory)
-    .reduce((sum, t) => sum + t.amount, 0);
+    .reduce((sum, t) => sum + (t.amount || 0), 0);
   const projectedBudgetSpent = spentInBudget + forecastAmount;
-  const isBudgetExceeded = targetBudget && projectedBudgetSpent > targetBudget.limit;
+  const isBudgetExceeded = targetBudget && targetBudget.limit > 0 && projectedBudgetSpent > targetBudget.limit;
 
   return (
     <div className="space-y-6">

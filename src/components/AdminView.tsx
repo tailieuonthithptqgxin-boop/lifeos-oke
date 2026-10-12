@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   AlertCircle,
   MessageSquare,
+  CreditCard,
   X
 } from 'lucide-react';
 import { apiCall } from '../lib/apiClient';
@@ -30,6 +31,7 @@ import type {
   GmailConfig
 } from './admin/types';
 import { AdminRequestsTab } from './admin/AdminRequestsTab';
+import { AdminSubscriptionsTab } from './admin/AdminSubscriptionsTab';
 import { AdminPlansTab } from './admin/AdminPlansTab';
 import { AdminLanguagesTab } from './admin/AdminLanguagesTab';
 import { AdminUsersTab } from './admin/AdminUsersTab';
@@ -802,6 +804,19 @@ export function AdminView() {
 
           <button
             type="button"
+            onClick={() => setActiveTab('subscriptions')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'subscriptions'
+                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <CreditCard className="w-3.5 h-3.5" />
+            <span>Quản lý Subscription</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('plans')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'plans'
@@ -919,6 +934,30 @@ export function AdminView() {
         </div>
       </div>
 
+      {/* Admin Action Center: Pending items alert */}
+      {requestCounts.pending > 0 && activeTab !== 'requests' && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-300 dark:border-amber-700/60 flex items-center justify-between gap-4 animate-in fade-in">
+          <div className="flex items-center gap-3">
+            <span className="p-2 rounded-xl bg-amber-500 text-white text-base">⚠️</span>
+            <div>
+              <span className="text-xs font-black text-amber-900 dark:text-amber-200">
+                Có {requestCounts.pending} đơn thanh toán đang chờ duyệt kích hoạt gói
+              </span>
+              <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                Khách hàng đã chuyển khoản và đang đợi xác nhận để bắt đầu sử dụng.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab('requests')}
+            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black transition-all shadow-sm shrink-0 cursor-pointer"
+          >
+            Duyệt ngay ⚡
+          </button>
+        </div>
+      )}
+
       {/* Global Status Message Toast */}
       {message && (
         <div
@@ -947,6 +986,13 @@ export function AdminView() {
       {/* Tab 1: Requests */}
       {activeTab === 'requests' && (
         <AdminRequestsTab
+          onShowMessage={setMessage}
+        />
+      )}
+
+      {/* Tab 1b: Subscriptions Management */}
+      {activeTab === 'subscriptions' && (
+        <AdminSubscriptionsTab
           onShowMessage={setMessage}
         />
       )}

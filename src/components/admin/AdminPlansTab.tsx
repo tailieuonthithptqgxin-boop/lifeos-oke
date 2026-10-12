@@ -62,6 +62,7 @@ export function AdminPlansTab({ onShowMessage }: AdminPlansTabProps) {
         description: editingPlan.description,
         monthlyPrice: Number(editingPlan.monthlyPrice),
         yearlyPrice: Number(editingPlan.yearlyPrice),
+        durationDays: Number(editingPlan.durationDays || (editingPlan.id === 'PERSONAL_3M' ? 90 : 30)),
         billingCycle: editingPlan.billingCycle,
         status: editingPlan.status,
         order: Number(editingPlan.order),
@@ -410,17 +411,32 @@ export function AdminPlansTab({ onShowMessage }: AdminPlansTabProps) {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-3 gap-3">
                 <div>
                   <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Chu kỳ thanh toán *
+                    Thời hạn (ngày) *
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    required
+                    value={editingPlan.durationDays || (editingPlan.id === 'PERSONAL_3M' ? 90 : 30)}
+                    onChange={e => setEditingPlan({ ...editingPlan, durationDays: Number(e.target.value) })}
+                    placeholder="30 hoặc 90"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Chu kỳ hiển thị *
                   </label>
                   <input
                     type="text"
                     required
                     value={editingPlan.billingCycle}
                     onChange={e => setEditingPlan({ ...editingPlan, billingCycle: e.target.value })}
-                    placeholder="30 ngày / 365 ngày"
+                    placeholder="1 tháng (30 ngày)"
                     className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
                   />
                 </div>

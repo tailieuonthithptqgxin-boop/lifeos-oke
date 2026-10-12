@@ -18,6 +18,7 @@ export type ViewState =
   | 'subscription'
   | 'referral'
   | 'feedback'
+  | 'journey'
   | 'admin'
   | (string & {});
 

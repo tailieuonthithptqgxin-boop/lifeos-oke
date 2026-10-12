@@ -22,6 +22,7 @@ export interface LearningLanguage {
 
 import oxford3000Raw from '../data/oxford3000.json';
 import chineseHskRaw from '../data/chineseHskWords.json';
+import japaneseJlptRaw from '../data/japaneseJlptWords.json';
 
 export interface System3000Word {
   id: string; // e.g. "word_3000_1"
@@ -48,8 +49,26 @@ export interface SystemChineseHskWord {
   needsReview?: boolean;
 }
 
+export interface SystemJapaneseJlptWord {
+  id: string; // e.g. "ja_jlpt_5_1"
+  index: number;
+  level: string; // 'N5' | 'N4' | 'N3' | 'N2' | 'N1'
+  jlptLevel: number; // 5, 4, 3, 2, 1
+  term: string;
+  furigana: string;
+  romaji?: string;
+  hanViet: string;
+  pos: string;
+  meaning: string;
+  meaningEn?: string;
+  exampleSentence?: string;
+  exampleFurigana?: string;
+  exampleTranslation?: string;
+}
+
 export const OXFORD_3000_WORDS: System3000Word[] = oxford3000Raw as System3000Word[];
 export const CHINESE_HSK_WORDS: SystemChineseHskWord[] = chineseHskRaw as SystemChineseHskWord[];
+export const JAPANESE_JLPT_WORDS: SystemJapaneseJlptWord[] = japaneseJlptRaw as SystemJapaneseJlptWord[];
 
 export interface UserWordProgress {
   wordId: string;
@@ -104,6 +123,9 @@ export interface VocabWord {
   collectionId: string;
   term: string;
   phonetic?: string;
+  furigana?: string;
+  romaji?: string;
+  hanViet?: string;
   partOfSpeech?: string;
   meaning: string;
   secondaryMeanings?: string[];
@@ -144,6 +166,7 @@ export interface VocabUserData {
   words: Record<string, VocabWord[]>; // key: languageId -> personal words
   system3000Progress?: Record<string, UserWordProgress>; // key: word_3000_id -> user progress
   systemChineseHskProgress?: Record<string, UserWordProgress>; // key: zh_hsk_..._id -> user progress
+  systemJapaneseJlptProgress?: Record<string, UserWordProgress>; // key: ja_jlpt_..._id -> user progress
   verificationOverrides?: Record<string, import('./vocabVerificationEngine').WordVerificationReport>;
   lastStudyDate?: string;
   streakDays: number;
@@ -848,6 +871,9 @@ export function loadVocabData(userId: string): VocabUserData {
           if (!parsed.systemChineseHskProgress) {
             parsed.systemChineseHskProgress = {};
           }
+          if (!parsed.systemJapaneseJlptProgress) {
+            parsed.systemJapaneseJlptProgress = {};
+          }
           if (!parsed.verificationOverrides) {
             parsed.verificationOverrides = {};
           }
@@ -888,6 +914,7 @@ export function loadVocabData(userId: string): VocabUserData {
     },
     system3000Progress: {},
     systemChineseHskProgress: {},
+    systemJapaneseJlptProgress: {},
     verificationOverrides: {},
     streakDays: 1,
     lastStudyDate: new Date().toISOString().split('T')[0]
@@ -1202,8 +1229,117 @@ export function calculateChineseHskAnalytics(progressMap: Record<string, UserWor
   };
 }
 
+// ------------------------------------------------------------------------------
+// SYSTEM JAPANESE JLPT WORDS HELPERS & UNIFIED STUDY INTEGRATION
+// ------------------------------------------------------------------------------
+
 /**
- * Calculate combined analytics across both personal words and system words (supporting EN and ZH)
+ * Returns all 7,847 Japanese JLPT words extracted from official curriculum (N5 - N1)
+ */
+export function getSystemJapaneseWords(level?: string | number): SystemJapaneseJlptWord[] {
+  if (level !== undefined && level !== 0 && level !== 'ALL') {
+    const lvlStr = typeof level === 'number' ? `N${level}` : String(level).toUpperCase();
+    return JAPANESE_JLPT_WORDS.filter(w => w.level === lvlStr || w.jlptLevel === Number(level));
+  }
+  return JAPANESE_JLPT_WORDS;
+}
+
+/**
+ * Convert a System Japanese JLPT word into a full VocabWord format for the study session
+ */
+export function systemJapaneseWordToVocabWord(
+  sys: SystemJapaneseJlptWord,
+  progress?: UserWordProgress,
+  defaultCollectionId: string = 'system_japanese_jlpt'
+): VocabWord {
+  const today = new Date().toISOString().split('T')[0];
+  return {
+    id: sys.id,
+    languageId: 'ja',
+    collectionId: progress?.bookmarkedCollectionIds?.[0] || defaultCollectionId,
+    term: sys.term,
+    phonetic: sys.furigana,
+    furigana: sys.furigana,
+    romaji: sys.romaji,
+    hanViet: sys.hanViet,
+    partOfSpeech: sys.pos,
+    meaning: sys.meaning,
+    exampleSentence: sys.exampleSentence,
+    exampleTranslation: sys.exampleTranslation,
+    notes: progress?.personalNotes || (sys.hanViet ? `Âm Hán Việt: ${sys.hanViet}` : undefined),
+    isFavorite: progress?.isFavorite || false,
+    state: progress?.state || 'new',
+    memoryLevel: progress?.memoryLevel ?? computeMemoryLevel(progress?.repetitionCount || 0, progress?.intervalDays || 0, progress?.lapses || 0),
+    repetitionCount: progress?.repetitionCount || 0,
+    easeFactor: progress?.easeFactor || 2.5,
+    intervalDays: progress?.intervalDays || 0,
+    lastReviewedAt: progress?.lastReviewedAt,
+    nextReviewAt: progress?.nextReviewAt || today,
+    reviewLogs: progress?.reviewLogs || [],
+    lapses: progress?.lapses || 0,
+    tags: [sys.level, `JLPT ${sys.level}`, sys.hanViet ? `HV: ${sys.hanViet}` : ''].filter(Boolean),
+    createdAt: progress?.updatedAt || new Date().toISOString(),
+    updatedAt: progress?.updatedAt || new Date().toISOString()
+  };
+}
+
+/**
+ * Calculate analytics specifically for Japanese JLPT system words based on user progress map
+ */
+export function calculateJapaneseJlptAnalytics(progressMap: Record<string, UserWordProgress> = {}): LanguageAnalytics {
+  const today = new Date().toISOString().split('T')[0];
+  const total = JAPANESE_JLPT_WORDS.length;
+
+  let newCount = 0;
+  let learningCount = 0;
+  let reviewingCount = 0;
+  let masteredCount = 0;
+  let difficultCount = 0;
+  let dueTodayCount = 0;
+  let totalLogs = 0;
+  let passedLogs = 0;
+
+  for (const sys of JAPANESE_JLPT_WORDS) {
+    const prog = progressMap[sys.id];
+    const state = prog?.state || 'new';
+
+    if (state === 'new') newCount++;
+    else if (state === 'learning') learningCount++;
+    else if (state === 'reviewing') reviewingCount++;
+    else if (state === 'mastered') masteredCount++;
+    else if (state === 'difficult') difficultCount++;
+
+    if (state !== 'new' && prog?.nextReviewAt && prog.nextReviewAt <= today) {
+      dueTodayCount++;
+    }
+
+    if (prog?.reviewLogs) {
+      for (const log of prog.reviewLogs) {
+        totalLogs++;
+        if (log.rating >= 3) passedLogs++;
+      }
+    }
+  }
+
+  const masteryPercentage = total > 0 ? Math.round((masteredCount / total) * 100) : 0;
+  const retentionRate = totalLogs > 0 ? Math.round((passedLogs / totalLogs) * 100) : 100;
+
+  return {
+    totalWords: total,
+    newWordsCount: newCount,
+    learningCount,
+    reviewingCount,
+    masteredCount,
+    difficultCount,
+    dueTodayCount,
+    masteryPercentage,
+    retentionRate,
+    totalReviewsCount: totalLogs
+  };
+}
+
+/**
+ * Calculate combined analytics across both personal words and system words (supporting EN, ZH, JA)
  */
 export function calculateCombinedAnalytics(
   personalWords: VocabWord[] = [],
@@ -1213,6 +1349,8 @@ export function calculateCombinedAnalytics(
   const safePersonalWords = Array.isArray(personalWords) ? personalWords : [];
   const aSystem = languageId === 'zh'
     ? calculateChineseHskAnalytics(progressMap || {})
+    : languageId === 'ja'
+    ? calculateJapaneseJlptAnalytics(progressMap || {})
     : calculate3000Analytics(progressMap || {});
   const aPersonal = calculateLanguageAnalytics(safePersonalWords);
 
@@ -1259,7 +1397,7 @@ export function buildUnifiedStudyQueues(
     }
   }
 
-  // 2. System words (3000 or Chinese HSK)
+  // 2. System words (3000, Chinese HSK, or Japanese JLPT)
   if (source === '3000' || source === 'all') {
     if (languageId === 'zh') {
       if (collectionId && collectionId !== 'all') {
@@ -1270,6 +1408,16 @@ export function buildUnifiedStudyQueues(
         pool.push(...bookmarked.map(w => systemChineseWordToVocabWord(w, progressMap[w.id], collectionId)));
       } else {
         pool.push(...CHINESE_HSK_WORDS.map(w => systemChineseWordToVocabWord(w, progressMap[w.id])));
+      }
+    } else if (languageId === 'ja') {
+      if (collectionId && collectionId !== 'all') {
+        const bookmarked = JAPANESE_JLPT_WORDS.filter(w => {
+          const prog = progressMap[w.id];
+          return prog?.bookmarkedCollectionIds?.includes(collectionId);
+        });
+        pool.push(...bookmarked.map(w => systemJapaneseWordToVocabWord(w, progressMap[w.id], collectionId)));
+      } else {
+        pool.push(...JAPANESE_JLPT_WORDS.map(w => systemJapaneseWordToVocabWord(w, progressMap[w.id])));
       }
     } else {
       if (collectionId && collectionId !== 'all') {
@@ -1298,7 +1446,7 @@ export function buildUnifiedStudyQueues(
 }
 
 /**
- * Record review outcome for either personal or 3000 system word
+ * Record review outcome for personal, 3000, Chinese HSK, or Japanese JLPT system word
  */
 export function recordReviewOutcome(
   prevData: VocabUserData,
@@ -1308,10 +1456,13 @@ export function recordReviewOutcome(
 ): VocabUserData {
   const isOxford = wordId.startsWith('word_3000_');
   const isChineseHsk = wordId.startsWith('zh_hsk_');
+  const isJapaneseJlpt = wordId.startsWith('ja_jlpt_') || wordId.startsWith('ja_sach100_');
   const activeLangId = prevData.activeLanguageId;
 
-  if (isOxford || isChineseHsk) {
-    const progressMap = isChineseHsk
+  if (isOxford || isChineseHsk || isJapaneseJlpt) {
+    const progressMap = isJapaneseJlpt
+      ? (prevData.systemJapaneseJlptProgress || {})
+      : isChineseHsk
       ? (prevData.systemChineseHskProgress || {})
       : (prevData.system3000Progress || {});
     const currentProg = progressMap[wordId];
@@ -1350,6 +1501,17 @@ export function recordReviewOutcome(
       bookmarkedCollectionIds: currentProg?.bookmarkedCollectionIds,
       updatedAt: new Date().toISOString()
     };
+
+    if (isJapaneseJlpt) {
+      return {
+        ...prevData,
+        systemJapaneseJlptProgress: {
+          ...(prevData.systemJapaneseJlptProgress || {}),
+          [wordId]: updatedProg
+        },
+        lastStudyDate: new Date().toISOString().split('T')[0]
+      };
+    }
 
     if (isChineseHsk) {
       return {
@@ -1427,7 +1589,10 @@ export function toggleBookmarkSystemWord(
   collectionId: string
 ): VocabUserData {
   const isChineseHsk = wordId.startsWith('zh_hsk_');
-  const progressMap = isChineseHsk
+  const isJapaneseJlpt = wordId.startsWith('ja_jlpt_') || wordId.startsWith('ja_sach100_');
+  const progressMap = isJapaneseJlpt
+    ? (prevData.systemJapaneseJlptProgress || {})
+    : isChineseHsk
     ? (prevData.systemChineseHskProgress || {})
     : (prevData.system3000Progress || {});
 
@@ -1465,6 +1630,20 @@ export function toggleBookmarkSystemWord(
       : [...currentSysWords, wordId];
     return { ...col, systemWordIds: updatedSysWords, updatedAt: new Date().toISOString() };
   });
+
+  if (isJapaneseJlpt) {
+    return {
+      ...prevData,
+      collections: {
+        ...prevData.collections,
+        [prevData.activeLanguageId]: updatedCollections
+      },
+      systemJapaneseJlptProgress: {
+        ...(prevData.systemJapaneseJlptProgress || {}),
+        [wordId]: updatedProg
+      }
+    };
+  }
 
   if (isChineseHsk) {
     return {
@@ -1504,7 +1683,10 @@ export function setSystemWordState(
   state: MasteryState
 ): VocabUserData {
   const isChineseHsk = wordId.startsWith('zh_hsk_');
-  const progressMap = isChineseHsk
+  const isJapaneseJlpt = wordId.startsWith('ja_jlpt_') || wordId.startsWith('ja_sach100_');
+  const progressMap = isJapaneseJlpt
+    ? (prevData.systemJapaneseJlptProgress || {})
+    : isChineseHsk
     ? (prevData.systemChineseHskProgress || {})
     : (prevData.system3000Progress || {});
 
@@ -1525,6 +1707,16 @@ export function setSystemWordState(
     bookmarkedCollectionIds: currentProg?.bookmarkedCollectionIds,
     updatedAt: new Date().toISOString()
   };
+
+  if (isJapaneseJlpt) {
+    return {
+      ...prevData,
+      systemJapaneseJlptProgress: {
+        ...(prevData.systemJapaneseJlptProgress || {}),
+        [wordId]: updatedProg
+      }
+    };
+  }
 
   if (isChineseHsk) {
     return {
@@ -1556,7 +1748,10 @@ export function saveSystemWordNotes(
   personalNotes: string
 ): VocabUserData {
   const isChineseHsk = wordId.startsWith('zh_hsk_');
-  const progressMap = isChineseHsk
+  const isJapaneseJlpt = wordId.startsWith('ja_jlpt_') || wordId.startsWith('ja_sach100_');
+  const progressMap = isJapaneseJlpt
+    ? (prevData.systemJapaneseJlptProgress || {})
+    : isChineseHsk
     ? (prevData.systemChineseHskProgress || {})
     : (prevData.system3000Progress || {});
 
@@ -1577,6 +1772,16 @@ export function saveSystemWordNotes(
     bookmarkedCollectionIds: currentProg?.bookmarkedCollectionIds,
     updatedAt: new Date().toISOString()
   };
+
+  if (isJapaneseJlpt) {
+    return {
+      ...prevData,
+      systemJapaneseJlptProgress: {
+        ...(prevData.systemJapaneseJlptProgress || {}),
+        [wordId]: updatedProg
+      }
+    };
+  }
 
   if (isChineseHsk) {
     return {

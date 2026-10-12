@@ -84,6 +84,9 @@ export function WordDetailModal({
     }
   };
 
+  const isJapanese = word.languageId === 'ja' || word.id.startsWith('ja_');
+  const isChinese = word.languageId === 'zh' || word.id.startsWith('zh_');
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs overflow-y-auto">
       <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-2xl overflow-hidden my-6 animate-in fade-in zoom-in-95 duration-150">
@@ -97,7 +100,9 @@ export function WordDetailModal({
                   ? 'bg-blue-600 text-white' 
                   : 'bg-emerald-600 text-white'
               }`}>
-                {isSystemWord ? '3000 Từ thông dụng' : 'Từ vựng cá nhân'}
+                {isSystemWord 
+                  ? (isJapanese ? 'Kho chuẩn JLPT N5 - N1' : isChinese ? 'Kho chuẩn HSK 1 - 9' : '3000 Từ thông dụng') 
+                  : 'Từ vựng cá nhân'}
               </span>
               {word.partOfSpeech && (
                 <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200 font-mono">
@@ -111,29 +116,56 @@ export function WordDetailModal({
                 {word.term}
               </h2>
               <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => speakWord(word.term, 'en-US')}
-                  className="px-2.5 py-1 rounded-xl bg-blue-100 hover:bg-blue-200 dark:bg-blue-950/60 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold text-xs transition cursor-pointer flex items-center gap-1"
-                  title="Nghe giọng chuẩn Anh-Mỹ (US)"
-                >
-                  <Volume2 className="w-3.5 h-3.5" /> 🇺🇸 US
-                </button>
-                <button
-                  type="button"
-                  onClick={() => speakWord(word.term, 'en-GB')}
-                  className="px-2.5 py-1 rounded-xl bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 font-bold text-xs transition cursor-pointer flex items-center gap-1"
-                  title="Nghe giọng chuẩn Anh-Anh (UK)"
-                >
-                  <Volume2 className="w-3.5 h-3.5" /> 🇬🇧 UK
-                </button>
+                {isJapanese ? (
+                  <button
+                    type="button"
+                    onClick={() => speakWord(word.furigana || word.phonetic || word.term, 'ja-JP')}
+                    className="px-2.5 py-1 rounded-xl bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 font-bold text-xs transition cursor-pointer flex items-center gap-1"
+                    title="Phát âm tiếng Nhật chuẩn (ja-JP)"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" /> 🇯🇵 ja-JP
+                  </button>
+                ) : isChinese ? (
+                  <button
+                    type="button"
+                    onClick={() => speakWord(word.term, 'zh-CN')}
+                    className="px-2.5 py-1 rounded-xl bg-rose-100 hover:bg-rose-200 dark:bg-rose-950/60 dark:hover:bg-rose-900 text-rose-700 dark:text-rose-300 font-bold text-xs transition cursor-pointer flex items-center gap-1"
+                    title="Phát âm tiếng Trung chuẩn (zh-CN)"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" /> 🇨🇳 zh-CN
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => speakWord(word.term, 'en-US')}
+                      className="px-2.5 py-1 rounded-xl bg-blue-100 hover:bg-blue-200 dark:bg-blue-950/60 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold text-xs transition cursor-pointer flex items-center gap-1"
+                      title="Nghe giọng chuẩn Anh-Mỹ (US)"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" /> 🇺🇸 US
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => speakWord(word.term, 'en-GB')}
+                      className="px-2.5 py-1 rounded-xl bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 font-bold text-xs transition cursor-pointer flex items-center gap-1"
+                      title="Nghe giọng chuẩn Anh-Anh (UK)"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" /> 🇬🇧 UK
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
             {word.phonetic && (
               <p className="text-sm font-mono text-slate-500 dark:text-slate-400 mt-1">
-                {word.phonetic}
+                {word.phonetic} {word.romaji ? `(${word.romaji})` : ''}
               </p>
+            )}
+            {word.hanViet && (
+              <span className="inline-block mt-1.5 px-2.5 py-0.5 rounded-md text-xs font-bold bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-900">
+                Âm Hán Việt: {word.hanViet}
+              </span>
             )}
           </div>
 

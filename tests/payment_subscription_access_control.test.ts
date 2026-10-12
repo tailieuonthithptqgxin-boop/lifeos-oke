@@ -20,7 +20,7 @@ async function runAccessControlTests() {
 
   // Test 2: Official Plan Definitions & Pricing
   console.log('[Test 2] Kiểm tra Danh sách Gói dịch vụ chính thức:');
-  const plans = subscriptionService.getPlans();
+  const plans = await subscriptionService.getPlans();
   assert(plans.length >= 3, 'Phải có tối thiểu 3 gói dịch vụ');
   const personal1m = plans.find(p => p.id === 'PERSONAL_1M');
   const personal3m = plans.find(p => p.id === 'PERSONAL_3M');

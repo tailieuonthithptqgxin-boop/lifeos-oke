@@ -43,6 +43,7 @@ const SubscriptionManagementView = lazyWithRetry(() => import('./components/Subs
 const ReferralView = lazyWithRetry(() => import('./components/ReferralView').then(m => ({ default: m.ReferralView })));
 const FeedbackView = lazyWithRetry(() => import('./components/FeedbackView').then(m => ({ default: m.FeedbackView })));
 const DynamicModuleView = lazyWithRetry(() => import('./components/DynamicModuleView').then(m => ({ default: m.DynamicModuleView })));
+const JourneyView = lazyWithRetry(() => import('./components/JourneyView').then(m => ({ default: m.JourneyView })));
 
 
 
@@ -298,6 +299,7 @@ function AppContent() {
       case 'goals': return <GoalsView />;
       case 'notes': return <NotesView />;
       case 'habits': return <HabitsView />;
+      case 'journey': return <JourneyView />;
       case 'decision':
       case 'decision_engine': return <DecisionEngineView />;
       case 'automation':

@@ -40,7 +40,7 @@ export function TopBar() {
   const inboxCount = inbox?.length || 0;
 
   return (
-    <header className="h-18 bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800 flex items-center justify-between px-3.5 sm:px-5 md:px-6 shrink-0 z-[100] transition-colors">
+    <header className="h-16 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between px-3.5 sm:px-5 md:px-6 shrink-0 z-30 transition-colors">
       {/* Mobile Menu Toggle */}
       <button 
         type="button" 
@@ -71,18 +71,28 @@ export function TopBar() {
       {/* Right Action Cluster */}
       <div className="flex items-center gap-2 sm:gap-3 shrink-0">
         
-        {/* Retention Streak Flame Pill */}
+        {/* Modern RPG Game HUD Pill */}
         <button
           type="button"
-          onClick={() => setCurrentView('dashboard')}
-          title={`Chuỗi kỷ luật: ${retentionProfile.streak} ngày. Level ${retentionProfile.level}: ${retentionProfile.levelTitle}`}
-          className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500/15 to-orange-500/15 border border-amber-400/30 text-amber-600 dark:text-amber-400 font-black text-xs shadow-2xs hover:scale-105 active:scale-95 transition-all cursor-pointer"
+          onClick={() => setCurrentView('journey')}
+          title={`Hồ sơ Anh Hùng: Level ${retentionProfile.level} · ${retentionProfile.streak} ngày streak · Nhấn để xem bản đồ chiến đấu RPG`}
+          className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 text-white border border-slate-700/80 hover:border-emerald-500/80 font-black text-xs shadow-md shadow-slate-950/20 hover:scale-105 active:scale-95 transition-all cursor-pointer group"
         >
-          <Flame className="w-4 h-4 fill-amber-500 text-amber-500 animate-pulse" />
-          <span>{retentionProfile.streak} ngày</span>
-          <span className="text-[10px] text-amber-500/80 dark:text-amber-400/80 border-l border-amber-500/20 pl-1.5 font-bold">
-            Lv.{retentionProfile.level}
+          <span className="px-2 py-0.5 rounded-md bg-amber-400 text-slate-950 text-[10px] font-black uppercase">
+            LV.{retentionProfile.level}
           </span>
+          <div className="flex items-center gap-1 text-emerald-400">
+            <Zap className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
+            <span className="font-mono text-[11px]">{((retentionProfile.level * 35) + (retentionProfile.streak * 20)).toLocaleString()} CP</span>
+          </div>
+          <div className="flex items-center gap-1 text-amber-300 border-l border-slate-700/80 pl-2">
+            <span className="text-[11px]">🪙</span>
+            <span className="font-mono text-[11px]">{Math.floor(retentionProfile.level * 40 + 50)}</span>
+          </div>
+          <div className="flex items-center gap-0.5 text-rose-400 border-l border-slate-700/80 pl-2">
+            <Flame className="w-3.5 h-3.5 fill-rose-500 text-rose-500 animate-pulse" />
+            <span className="font-mono text-[11px]">{retentionProfile.streak}d</span>
+          </div>
         </button>
 
         {/* Primary Action Button: + Tạo mới */}

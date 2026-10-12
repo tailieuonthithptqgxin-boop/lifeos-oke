@@ -29,6 +29,9 @@ export default defineConfig(() => {
             if (id.includes('oxford3000.json')) {
               return 'data-oxford-3000';
             }
+            if (id.includes('japaneseJlptWords.json')) {
+              return 'data-japanese-jlpt';
+            }
           },
         },
       },

@@ -9,6 +9,10 @@ import { teamService } from '../services/team.service.js';
 import { gmailService } from '../services/gmailNotification.service.js';
 import { referralService } from '../services/referral.service.js';
 import { feedbackService } from '../services/feedback.service.js';
+import { lifeHarmonyService } from '../services/lifeHarmony.service.js';
+import { journeyService } from '../services/journey.service.js';
+import { progressionService } from '../services/progression.service.js';
+import { rpgService } from '../services/rpg.service.js';
 import { r2Router } from './r2.routes.js';
 import { customModulesRouter } from './customModules.routes.js';
 import { vocabRouter } from './vocab.routes.js';
@@ -63,7 +67,7 @@ apiRouter.get('/languages', async (req: any, res: Response) => {
 
 apiRouter.get('/payments/plans', async (req: any, res: Response) => {
   try {
-    const plans = subscriptionService.getPlans();
+    const plans = await subscriptionService.getPlans(false);
     res.json({
       success: true,
       plans: plans.map(p => ({
@@ -74,6 +78,8 @@ apiRouter.get('/payments/plans', async (req: any, res: Response) => {
         description: p.description,
         durationDays: p.durationDays,
         price: p.price,
+        monthlyPrice: p.price,
+        yearlyPrice: p.yearlyPrice || 0,
         billingCycle: p.billingCycle,
         maxTeamMembers: p.maxTeamMembers || (p.type === 'TEAM' ? 5 : 0),
         pricing: {
@@ -83,13 +89,13 @@ apiRouter.get('/payments/plans', async (req: any, res: Response) => {
             period: p.billingCycle
           },
           yearly: {
-            price: p.price,
-            displayPrice: `${p.price.toLocaleString('vi-VN')} ₫`,
-            period: p.billingCycle
+            price: p.yearlyPrice || p.price,
+            displayPrice: `${(p.yearlyPrice || p.price).toLocaleString('vi-VN')} ₫`,
+            period: p.yearlyPrice ? '1 năm' : p.billingCycle
           }
         },
         benefits: p.features,
-        quota: p.type === 'TEAM' ? 'Tối đa 5 thành viên' : 'Sử dụng cá nhân toàn diện'
+        quota: p.quota || (p.type === 'TEAM' ? 'Tối đa 5 thành viên' : 'Sử dụng cá nhân toàn diện')
       }))
     });
   } catch (err: any) {
@@ -118,6 +124,9 @@ apiRouter.use(async (req: AuthRequest, res: Response, next: any) => {
     path.startsWith('/supportTickets') ||
     path.startsWith('/settings') ||
     path.startsWith('/languages') ||
+    path.startsWith('/life-harmony') ||
+    path.startsWith('/journey') ||
+    path.startsWith('/progression') ||
     path.startsWith('/team/my-team') ||
     path.startsWith('/team/join') ||
     (path.startsWith('/r2/upload-base64') && req.body?.folder === 'receipts');
@@ -417,6 +426,434 @@ apiRouter.post('/templates/:id/apply', async (req: AuthRequest, res: Response) =
   }
 });
 
+// --------------------------------------------------------------------------
+// HÀNH TRÌNH CỦA TÔI (MY JOURNEY & ACHIEVEMENTS)
+// --------------------------------------------------------------------------
+apiRouter.get('/journey', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    const data = await journeyService.getJourneyData(userId);
+    res.json({
+      success: true,
+      ...data
+    });
+  } catch (err: any) {
+    console.error('Error fetching journey data:', err);
+    res.status(500).json({ success: false, message: err.message || 'Lỗi khi tải dữ liệu hành trình cá nhân.' });
+  }
+});
+
+apiRouter.post('/journey/milestone', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { title, description, category, date, icon, metricValue, metricLabel, isHighlighted } = req.body;
+
+  if (!title || !title.trim()) {
+    res.status(400).json({ success: false, message: 'Tiêu đề cột mốc là bắt buộc.' });
+    return;
+  }
+
+  const milestoneDate = date && String(date).trim() ? String(date).trim() : new Date().toISOString().split('T')[0];
+
+  try {
+    const created = await journeyService.createManualMilestone(userId, {
+      title,
+      description,
+      category,
+      date: milestoneDate,
+      icon,
+      metricValue,
+      metricLabel,
+      isHighlighted
+    });
+
+    res.json({
+      success: true,
+      message: 'Đã thêm cột mốc thành tựu mới vào hành trình!',
+      milestone: created
+    });
+  } catch (err: any) {
+    console.error('Error creating journey milestone:', err);
+    res.status(500).json({ success: false, message: err.message || 'Lỗi khi tạo cột mốc thành tựu.' });
+  }
+});
+
+apiRouter.delete('/journey/milestone/:id', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const milestoneId = req.params.id;
+
+  try {
+    await journeyService.deleteManualMilestone(userId, milestoneId);
+    res.json({
+      success: true,
+      message: 'Đã xóa cột mốc thành tựu.'
+    });
+  } catch (err: any) {
+    console.error('Error deleting journey milestone:', err);
+    res.status(500).json({ success: false, message: err.message || 'Lỗi khi xóa cột mốc.' });
+  }
+});
+
+// --------------------------------------------------------------------------
+// GAME-LIKE LIFE PROGRESSION SYSTEM (GEN Z) ENDPOINTS
+// --------------------------------------------------------------------------
+apiRouter.get('/progression', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    const data = await progressionService.getProgressionState(userId);
+    res.json({
+      success: true,
+      data
+    });
+  } catch (err: any) {
+    console.error('Error fetching progression state:', err);
+    res.status(500).json({ success: false, message: err.message || 'Lỗi khi tải hệ thống tiến độ cá nhân.' });
+  }
+});
+
+apiRouter.post('/progression/quest/claim', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { questKey } = req.body;
+  if (!questKey) {
+    res.status(400).json({ success: false, message: 'Thiếu questKey.' });
+    return;
+  }
+  try {
+    const result = await progressionService.claimDailyQuest(userId, questKey);
+    res.json({
+      success: true,
+      message: 'Nhận thưởng nhiệm vụ thành công!',
+      data: result
+    });
+  } catch (err: any) {
+    console.error('Error claiming quest:', err);
+    res.status(400).json({ success: false, message: err.message || 'Không thể nhận thưởng nhiệm vụ.' });
+  }
+});
+
+apiRouter.post('/progression/challenge/claim', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { challengeKey } = req.body;
+  if (!challengeKey) {
+    res.status(400).json({ success: false, message: 'Thiếu challengeKey.' });
+    return;
+  }
+  try {
+    const result = await progressionService.claimWeeklyChallenge(userId, challengeKey);
+    res.json({
+      success: true,
+      message: 'Nhận thưởng thử thách tuần thành công!',
+      data: result
+    });
+  } catch (err: any) {
+    console.error('Error claiming challenge:', err);
+    res.status(400).json({ success: false, message: err.message || 'Không thể nhận thưởng thử thách.' });
+  }
+});
+
+apiRouter.post('/progression/reward/unlock', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { cosmeticKey } = req.body;
+  if (!cosmeticKey) {
+    res.status(400).json({ success: false, message: 'Thiếu cosmeticKey.' });
+    return;
+  }
+  try {
+    const result = await progressionService.unlockCosmetic(userId, cosmeticKey);
+    res.json({
+      success: true,
+      message: `Đã mở khóa ngoại trang "${result.item.name}"!`,
+      data: result
+    });
+  } catch (err: any) {
+    console.error('Error unlocking cosmetic:', err);
+    res.status(400).json({ success: false, message: err.message || 'Không thể mở khóa ngoại trang.' });
+  }
+});
+
+apiRouter.post('/progression/reward/equip', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { rewardType, rewardKey } = req.body;
+  if (!rewardType || !rewardKey) {
+    res.status(400).json({ success: false, message: 'Thiếu rewardType hoặc rewardKey.' });
+    return;
+  }
+  try {
+    const result = await progressionService.equipCosmetic(userId, rewardType, rewardKey);
+    res.json({
+      success: true,
+      message: 'Đã trang bị ngoại trang thành công!',
+      data: result
+    });
+  } catch (err: any) {
+    console.error('Error equipping cosmetic:', err);
+    res.status(400).json({ success: false, message: err.message || 'Không thể trang bị ngoại trang.' });
+  }
+});
+
+// Daily Mystery Chest opening endpoint
+apiRouter.post('/progression/chest/open', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    const result = await progressionService.openDailyChest(userId);
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (err: any) {
+    console.error('Error opening daily chest:', err);
+    res.status(400).json({ success: false, message: err.message || 'Không thể mở rương kho báu.' });
+  }
+});
+
+// ============================================================================
+// RPG SYSTEM ROUTES (MONSTER BATTLE × REAL-LIFE ACTION PROGRESSION)
+// ============================================================================
+
+// 1. Character RPG Profile & Real Stat Breakdown
+apiRouter.get('/rpg/character', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    await rpgService.ensureStarterKit(userId);
+    const stats = await rpgService.calculateRealCharacterStats(userId);
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (err: any) {
+    console.error('Error fetching RPG character stats:', err);
+    res.status(500).json({ success: false, message: err.message || 'Không thể tải chỉ số RPG nhân vật.' });
+  }
+});
+
+// 2. Monsters Catalog & Chapters Roadmap with Real Unlock Status
+apiRouter.get('/rpg/monsters', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    const data = await rpgService.getMonstersAndProgress(userId);
+    res.json({
+      success: true,
+      data
+    });
+  } catch (err: any) {
+    console.error('Error fetching monsters progress:', err);
+    res.status(500).json({ success: false, message: err.message || 'Không thể tải danh sách quái vật.' });
+  }
+});
+
+// 3. Enter Battle & Turn-based Combat Simulation (Backend Source of Truth)
+apiRouter.post('/rpg/battle', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { monsterId } = req.body;
+  if (!monsterId) {
+    res.status(400).json({ success: false, message: 'Thiếu monsterId để khiêu chiến.' });
+    return;
+  }
+  try {
+    const result = await rpgService.simulateBattle(userId, monsterId);
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (err: any) {
+    console.error('Error in RPG battle:', err);
+    res.status(400).json({ success: false, message: err.message || 'Trận chiến không thể diễn ra.' });
+  }
+});
+
+// 4. Equipment Inventory & Stats
+apiRouter.get('/rpg/equipment', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    await rpgService.ensureStarterKit(userId);
+    const data = await rpgService.getUserEquipments(userId);
+    res.json({
+      success: true,
+      data
+    });
+  } catch (err: any) {
+    console.error('Error fetching RPG equipment:', err);
+    res.status(500).json({ success: false, message: err.message || 'Không thể tải kho trang bị.' });
+  }
+});
+
+// 5. Equip Item
+apiRouter.post('/rpg/equipment/equip', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { equipmentId } = req.body;
+  if (!equipmentId) {
+    res.status(400).json({ success: false, message: 'Thiếu equipmentId.' });
+    return;
+  }
+  try {
+    const item = await rpgService.equipItem(userId, equipmentId);
+    res.json({
+      success: true,
+      message: 'Đã trang bị vật phẩm thành công!',
+      data: item
+    });
+  } catch (err: any) {
+    console.error('Error equipping item:', err);
+    res.status(400).json({ success: false, message: err.message || 'Không thể trang bị vật phẩm.' });
+  }
+});
+
+// 6. Upgrade Equipment using Coins
+apiRouter.post('/rpg/equipment/upgrade', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { equipmentId } = req.body;
+  if (!equipmentId) {
+    res.status(400).json({ success: false, message: 'Thiếu equipmentId.' });
+    return;
+  }
+  try {
+    const result = await rpgService.upgradeEquipment(userId, equipmentId);
+    res.json({
+      success: true,
+      message: 'Nâng cấp trang bị thành công!',
+      data: result
+    });
+  } catch (err: any) {
+    console.error('Error upgrading equipment:', err);
+    res.status(400).json({ success: false, message: err.message || 'Không thể nâng cấp trang bị.' });
+  }
+});
+
+// 7. Skill Trees
+apiRouter.get('/rpg/skills', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    const data = await rpgService.getSkillTrees(userId);
+    res.json({
+      success: true,
+      data
+    });
+  } catch (err: any) {
+    console.error('Error fetching skill trees:', err);
+    res.status(500).json({ success: false, message: err.message || 'Không thể tải cây kỹ năng.' });
+  }
+});
+
+// 8. Unlock Skill
+apiRouter.post('/rpg/skills/unlock', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { skillKey } = req.body;
+  if (!skillKey) {
+    res.status(400).json({ success: false, message: 'Thiếu skillKey.' });
+    return;
+  }
+  try {
+    const result = await rpgService.unlockSkill(userId, skillKey);
+    res.json({
+      success: true,
+      message: 'Đã mở khóa kỹ năng thành công!',
+      data: result
+    });
+  } catch (err: any) {
+    console.error('Error unlocking skill:', err);
+    res.status(400).json({ success: false, message: err.message || 'Không thể mở khóa kỹ năng.' });
+  }
+});
+
+// 9. Battle History
+apiRouter.get('/rpg/battles/history', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const prisma = getPrisma();
+  try {
+    const records = await prisma.battleRecord.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 20
+    });
+    res.json({
+      success: true,
+      data: records.map(r => ({
+        ...r,
+        turnsLog: typeof r.turnsLog === 'string' ? JSON.parse(r.turnsLog) : r.turnsLog,
+        rewardEquipment: r.rewardEquipment && typeof r.rewardEquipment === 'string' ? JSON.parse(r.rewardEquipment) : r.rewardEquipment
+      }))
+    });
+  } catch (err: any) {
+    console.error('Error fetching battle history:', err);
+    res.status(500).json({ success: false, message: err.message || 'Không thể tải lịch sử chiến đấu.' });
+  }
+});
+
+// Dedicated Habit Toggle with Real Streak & XP integration
+apiRouter.post('/habits/:id/toggle', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const habitId = req.params.id;
+  const prisma = getPrisma();
+
+  try {
+    const habit = await prisma.habit.findFirst({
+      where: { id: habitId, userId }
+    });
+
+    if (!habit) {
+      res.status(404).json({ success: false, message: 'Không tìm thấy thói quen.' });
+      return;
+    }
+
+    const todayStr = new Date().toISOString().split('T')[0];
+    let dates: string[] = [];
+    try {
+      dates = typeof habit.completedDates === 'string' ? JSON.parse(habit.completedDates || '[]') : (habit.completedDates || []);
+    } catch {
+      dates = [];
+    }
+
+    const wasCompleted = dates.includes(todayStr);
+    let newDates: string[];
+    let newStreak = habit.streak || 0;
+    let newBest = habit.bestStreak || 0;
+
+    if (wasCompleted) {
+      // Bỏ chọn hôm nay
+      newDates = dates.filter(d => d !== todayStr);
+      newStreak = Math.max(0, newStreak - 1);
+    } else {
+      // Đánh dấu hoàn thành hôm nay
+      newDates = [...dates, todayStr];
+      newStreak += 1;
+      if (newStreak > newBest) newBest = newStreak;
+    }
+
+    const updated = await prisma.habit.update({
+      where: { id: habitId },
+      data: {
+        completedDates: JSON.stringify(newDates),
+        streak: newStreak,
+        bestStreak: newBest
+      }
+    });
+
+    // Nếu vừa đánh dấu hoàn thành, thưởng XP & Coins
+    let xpResult = null;
+    if (!wasCompleted) {
+      xpResult = await progressionService.awardXp(userId, {
+        amount: 15,
+        category: 'habit',
+        source: 'habit_complete',
+        sourceId: `${habitId}_${todayStr}`,
+        description: `Kỷ luật thói quen: ${habit.name}`
+      }).catch(() => null);
+    }
+
+    res.json({
+      success: true,
+      completed: !wasCompleted,
+      habit: {
+        ...updated,
+        completedDates: newDates
+      },
+      xpResult
+    });
+  } catch (err: any) {
+    console.error('Error toggling habit:', err);
+    res.status(500).json({ success: false, message: err.message || 'Lỗi khi cập nhật thói quen.' });
+  }
+});
+
 apiRouter.post('/data/:collection', async (req: AuthRequest, res: Response) => {
   const { collection } = req.params;
   const userId = req.userId!;
@@ -443,6 +880,27 @@ apiRouter.post('/data/:collection', async (req: AuthRequest, res: Response) => {
     }
 
     const created = await dbService.addItemToUserCollection(collection, userId, payload);
+
+    // Real Gamification Progression Hooks:
+    if (collection === 'tasks' && created.status === 'Hoàn thành') {
+      progressionService.awardXp(userId, {
+        amount: 20,
+        category: 'task',
+        source: 'task_complete',
+        sourceId: created.id,
+        description: `Hoàn thành việc: ${created.title || 'Nhiệm vụ'}`
+      }).catch(err => console.warn('Progression hook error:', err));
+    } else if (collection === 'focusSessions' && (created.status === 'Completed' || created.status === 'Hoàn thành')) {
+      const minutes = created.actualDuration || 25;
+      const xp = Math.max(10, Math.floor(minutes / 25 * 15));
+      progressionService.awardXp(userId, {
+        amount: xp,
+        category: 'focus',
+        source: 'focus_session',
+        sourceId: created.id,
+        description: `Tập trung sâu: ${minutes} phút`
+      }).catch(err => console.warn('Progression hook error:', err));
+    }
 
     // Audit log for state changes
     if (['decisions', 'budgets', 'orders', 'projects'].includes(collection)) {
@@ -497,6 +955,38 @@ apiRouter.put('/data/:collection/:id', async (req: AuthRequest, res: Response) =
     }
 
     const updated = await dbService.updateUserCollectionItem(collection, userId, id, updates, req.userRole);
+
+    // Real Gamification Progression Hooks:
+    if (collection === 'tasks' && (updated.status === 'Hoàn thành' || updated.status === 'Done' || updated.status === 'completed')) {
+      progressionService.awardXp(userId, {
+        amount: 20,
+        category: 'task',
+        source: 'task_complete',
+        sourceId: id,
+        description: `Hoàn thành việc: ${updated.title || 'Nhiệm vụ'}`
+      }).catch(err => console.warn('Progression hook error:', err));
+    } else if (collection === 'focusSessions' && (updated.status === 'Completed' || updated.status === 'Hoàn thành')) {
+      const minutes = updated.actualDuration || 25;
+      const xp = Math.max(10, Math.floor(minutes / 25 * 15));
+      progressionService.awardXp(userId, {
+        amount: xp,
+        category: 'focus',
+        source: 'focus_session',
+        sourceId: id,
+        description: `Tập trung sâu: ${minutes} phút`
+      }).catch(err => console.warn('Progression hook error:', err));
+    } else if (collection === 'savingGoals') {
+      if (updated.currentAmount >= updated.targetAmount && updated.targetAmount > 0) {
+        progressionService.awardXp(userId, {
+          amount: 60,
+          category: 'finance',
+          source: 'saving_target_reached',
+          sourceId: `${id}_reached`,
+          description: `Chinh phục mục tiêu tiết kiệm: ${updated.title || 'Khoản tích lũy'}`
+        }).catch(err => console.warn('Progression hook error:', err));
+      }
+    }
+
     res.json(updated);
   } catch (err: any) {
     const isClientError = err.message && (
@@ -839,8 +1329,12 @@ export interface ServicePlanData {
   name: string;
   badge?: string;
   description: string;
+  price: number;
   monthlyPrice: number;
   yearlyPrice: number;
+  durationDays: number;
+  type?: 'PERSONAL' | 'TEAM';
+  maxTeamMembers?: number;
   billingCycle: string;
   status: 'ACTIVE' | 'INACTIVE';
   order: number;
@@ -852,34 +1346,18 @@ export interface ServicePlanData {
 
 const DEFAULT_SERVICE_PLANS: ServicePlanData[] = [
   {
-    id: 'PRO',
-    name: 'Pro',
-    badge: 'Chuyên nghiệp',
-    description: 'Gói chuyên nghiệp Pro cho cá nhân quản lý toàn diện.',
-    monthlyPrice: 199000,
-    yearlyPrice: 1990000,
-    billingCycle: '30 ngày',
-    status: 'ACTIVE',
-    order: 1,
-    features: [
-      'Toàn bộ tính năng Quản lý Công việc & Dự án (Kanban, Lịch, Bộ lọc)',
-      'Quản lý Tài chính, Ví tiền, Ngân sách và Báo cáo thu chi',
-      'Theo dõi Thói quen, Chuỗi streak và Mục tiêu cuộc sống',
-      'Decision Engine & Mô phỏng kịch bản What-if',
-      'Automation Rules Engine kích hoạt tự động'
-    ],
-    quota: '1 người dùng, không giới hạn tính năng'
-  },
-  {
     id: 'PERSONAL_1M',
     name: 'Gói Cá Nhân (1 Tháng)',
-    badge: 'Tiết kiệm',
-    description: 'Mở khóa toàn bộ chức năng LifeOS trong 1 tháng (30 ngày). Bắt buộc có gói trả phí để truy cập hệ thống.',
+    type: 'PERSONAL',
+    durationDays: 30,
+    price: 15000,
     monthlyPrice: 15000,
     yearlyPrice: 0,
     billingCycle: '1 tháng (30 ngày)',
+    badge: 'Tiết kiệm',
+    description: 'Mở khóa toàn bộ chức năng LifeOS trong 1 tháng (30 ngày). Bắt buộc có gói trả phí để truy cập hệ thống.',
     status: 'ACTIVE',
-    order: 2,
+    order: 1,
     features: [
       'Toàn bộ tính năng Quản lý Công việc & Dự án (Kanban, Lịch, Bộ lọc)',
       'Quản lý Tài chính, Ví tiền, Ngân sách và Báo cáo thu chi',
@@ -894,13 +1372,16 @@ const DEFAULT_SERVICE_PLANS: ServicePlanData[] = [
   {
     id: 'PERSONAL_3M',
     name: 'Gói Cá Nhân (3 Tháng)',
-    badge: 'Phổ biến nhất',
-    description: 'Mở khóa toàn bộ chức năng trong 3 tháng (90 ngày) liên tục với chi phí ưu đãi 40.000 VNĐ.',
+    type: 'PERSONAL',
+    durationDays: 90,
+    price: 40000,
     monthlyPrice: 40000,
     yearlyPrice: 0,
     billingCycle: '3 tháng (90 ngày)',
+    badge: 'Phổ biến nhất',
+    description: 'Mở khóa toàn bộ chức năng trong 3 tháng (90 ngày) liên tục với chi phí ưu đãi 40.000 VNĐ.',
     status: 'ACTIVE',
-    order: 3,
+    order: 2,
     features: [
       'Bao gồm toàn bộ quyền lợi của Gói Cá Nhân 1 Tháng',
       'Thời hạn sử dụng 90 ngày liên tục',
@@ -913,13 +1394,17 @@ const DEFAULT_SERVICE_PLANS: ServicePlanData[] = [
   {
     id: 'TEAM_1M',
     name: 'Gói Đội Ngũ (Team 1 Tháng)',
-    badge: 'Tối đa 5 thành viên',
-    description: 'Dành cho đội ngũ làm việc cộng tác. Chủ team được mời thêm tối đa 5 người dùng cùng sử dụng đầy đủ mọi chức năng.',
+    type: 'TEAM',
+    durationDays: 30,
+    price: 50000,
     monthlyPrice: 50000,
     yearlyPrice: 0,
+    maxTeamMembers: 5,
     billingCycle: '1 tháng (30 ngày)',
+    badge: 'Tối đa 5 thành viên',
+    description: 'Dành cho đội ngũ làm việc cộng tác. Chủ team được mời thêm tối đa 5 người dùng cùng sử dụng đầy đủ mọi chức năng.',
     status: 'ACTIVE',
-    order: 4,
+    order: 3,
     features: [
       'Mở khóa toàn bộ chức năng LifeOS cho Chủ Team',
       'Cho phép Chủ Team thêm tối đa 5 người dùng vào Team',
@@ -930,13 +1415,39 @@ const DEFAULT_SERVICE_PLANS: ServicePlanData[] = [
     quota: 'Tối đa 5 thành viên / nhóm'
   },
   {
+    id: 'PRO',
+    name: 'Pro',
+    type: 'PERSONAL',
+    durationDays: 30,
+    price: 199000,
+    monthlyPrice: 199000,
+    yearlyPrice: 1990000,
+    billingCycle: '30 ngày',
+    badge: 'Chuyên nghiệp',
+    description: 'Gói chuyên nghiệp Pro cho cá nhân quản lý toàn diện.',
+    status: 'ACTIVE',
+    order: 4,
+    features: [
+      'Toàn bộ tính năng Quản lý Công việc & Dự án (Kanban, Lịch, Bộ lọc)',
+      'Quản lý Tài chính, Ví tiền, Ngân sách và Báo cáo thu chi',
+      'Theo dõi Thói quen, Chuỗi streak và Mục tiêu cuộc sống',
+      'Decision Engine & Mô phỏng kịch bản What-if',
+      'Automation Rules Engine kích hoạt tự động'
+    ],
+    quota: '1 người dùng, không giới hạn tính năng'
+  },
+  {
     id: 'TEAM',
     name: 'Team',
-    badge: 'Doanh nghiệp & Đội ngũ',
-    description: 'Dành cho đội ngũ làm việc cộng tác.',
+    type: 'TEAM',
+    durationDays: 30,
+    price: 499000,
     monthlyPrice: 499000,
     yearlyPrice: 4990000,
+    maxTeamMembers: 5,
     billingCycle: '30 ngày',
+    badge: 'Doanh nghiệp & Đội ngũ',
+    description: 'Dành cho đội ngũ làm việc cộng tác.',
     status: 'ACTIVE',
     order: 5,
     features: [
@@ -948,26 +1459,26 @@ const DEFAULT_SERVICE_PLANS: ServicePlanData[] = [
 ];
 
 async function getServicePlansConfig(): Promise<ServicePlanData[]> {
-  try {
-    const prisma = getPrisma();
-    const setting = await prisma.systemSetting.findUnique({
-      where: { key: 'service_plans_config' }
-    });
-    if (setting && setting.value) {
-      const parsed = JSON.parse(setting.value);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        const hasOfficialPlans = parsed.some(p => p.id === 'PERSONAL_1M' || p.id === 'TEAM_1M');
-        if (hasOfficialPlans) {
-          return parsed;
-        }
-      }
-    }
-  } catch (e: any) {
-    if (e?.code === 'P2021') {
-      import('../db.js').then(({ checkDbConnection }) => checkDbConnection().catch(() => {}));
-    }
-  }
-  return DEFAULT_SERVICE_PLANS;
+  const plans = await subscriptionService.getPlans(true);
+  return plans.map(p => ({
+    id: p.id,
+    name: p.name,
+    badge: p.badge,
+    description: p.description,
+    price: p.price,
+    monthlyPrice: p.price,
+    yearlyPrice: p.yearlyPrice || 0,
+    durationDays: p.durationDays || (p.id === 'PERSONAL_3M' ? 90 : 30),
+    type: p.type,
+    maxTeamMembers: p.maxTeamMembers,
+    billingCycle: p.billingCycle,
+    status: (p.status as any) || 'ACTIVE',
+    order: p.order || 1,
+    features: p.features || [],
+    quota: p.quota,
+    updatedAt: p.updatedAt,
+    updatedBy: p.updatedBy
+  }));
 }
 
 export interface SystemLanguageData {
@@ -1008,6 +1519,39 @@ apiRouter.get('/payments/bank-config', async (req: AuthRequest, res: Response) =
   try {
     const config = await getPaymentBankConfig();
     res.json({ success: true, config });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 1b. Public List Active Plans (Single Source of Truth for frontend pricing & checkout)
+apiRouter.get('/payments/plans', async (req: AuthRequest, res: Response) => {
+  try {
+    const plans = await subscriptionService.getPlans(false);
+    const formatted = plans.map(p => ({
+      id: p.id,
+      name: p.name,
+      badge: p.badge,
+      description: p.description,
+      type: p.type,
+      durationDays: p.durationDays,
+      price: p.price,
+      monthlyPrice: p.price,
+      yearlyPrice: p.yearlyPrice || 0,
+      billingCycle: p.billingCycle,
+      benefits: p.features || [],
+      quota: p.quota,
+      maxTeamMembers: p.maxTeamMembers,
+      pricing: {
+        monthly: { price: p.price, durationDays: p.durationDays },
+        yearly: { price: p.yearlyPrice || 0, durationDays: 365 }
+      }
+    }));
+
+    res.json({
+      success: true,
+      plans: formatted
+    });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -1080,13 +1624,21 @@ apiRouter.put('/admin/plans/:id', requireAdmin, validateBody(AdminUpdatePlanSche
     }
 
     const oldPlan = plans[index];
+    const durationDays = updateData.durationDays !== undefined ? Number(updateData.durationDays) : (oldPlan.durationDays || (planId === 'PERSONAL_3M' ? 90 : 30));
+    const monthlyPrice = Number(updateData.monthlyPrice);
+    const yearlyPrice = Number(updateData.yearlyPrice || 0);
+
     const updatedPlan: ServicePlanData = {
       ...oldPlan,
       name: updateData.name,
       description: updateData.description,
-      monthlyPrice: Number(updateData.monthlyPrice),
-      yearlyPrice: Number(updateData.yearlyPrice),
-      billingCycle: updateData.billingCycle,
+      price: monthlyPrice,
+      monthlyPrice: monthlyPrice,
+      yearlyPrice: yearlyPrice,
+      durationDays: durationDays,
+      type: updateData.type || oldPlan.type || (planId.includes('TEAM') ? 'TEAM' : 'PERSONAL'),
+      maxTeamMembers: updateData.maxTeamMembers !== undefined ? Number(updateData.maxTeamMembers) : (oldPlan.maxTeamMembers ?? (planId.includes('TEAM') ? 5 : 0)),
+      billingCycle: updateData.billingCycle || (durationDays === 90 ? '3 tháng (90 ngày)' : '1 tháng (30 ngày)'),
       status: updateData.status,
       order: Number(updateData.order ?? oldPlan.order),
       features: updateData.features || oldPlan.features,
@@ -1117,6 +1669,7 @@ apiRouter.put('/admin/plans/:id', requireAdmin, validateBody(AdminUpdatePlanSche
         name: oldPlan.name,
         monthlyPrice: oldPlan.monthlyPrice,
         yearlyPrice: oldPlan.yearlyPrice,
+        durationDays: oldPlan.durationDays,
         billingCycle: oldPlan.billingCycle,
         status: oldPlan.status,
         features: oldPlan.features,
@@ -1127,6 +1680,7 @@ apiRouter.put('/admin/plans/:id', requireAdmin, validateBody(AdminUpdatePlanSche
         name: updatedPlan.name,
         monthlyPrice: updatedPlan.monthlyPrice,
         yearlyPrice: updatedPlan.yearlyPrice,
+        durationDays: updatedPlan.durationDays,
         billingCycle: updatedPlan.billingCycle,
         status: updatedPlan.status,
         features: updatedPlan.features,
@@ -1322,7 +1876,7 @@ apiRouter.post('/payments/checkout-session', paymentRateLimiter, validateBody(Sa
     }
 
     // Fetch plan configuration from authoritative subscription service
-    const planConfig = subscriptionService.getPlanById(plan);
+    const planConfig = await subscriptionService.getPlanById(plan);
 
     if (!planConfig) {
       res.status(400).json({
@@ -1333,10 +1887,10 @@ apiRouter.post('/payments/checkout-session', paymentRateLimiter, validateBody(Sa
       return;
     }
 
-    // Backend strictly determines base price based on authoritative / dynamic plan definition
-    const dynamicPlans = await getServicePlansConfig();
-    const dynamicPlan = dynamicPlans.find(p => p.id === (plan as string).toUpperCase() || ((plan as string).toUpperCase() === 'PRO' && (p.id === 'PRO' || p.id === 'PERSONAL_1M')));
-    const subtotal = dynamicPlan ? (cycle === 'yearly' && dynamicPlan.yearlyPrice ? dynamicPlan.yearlyPrice : dynamicPlan.monthlyPrice) : planConfig.price;
+    // Backend strictly determines base price based on authoritative dynamic plan definition
+    const subtotal = (cycle === 'yearly' && planConfig.yearlyPrice && planConfig.yearlyPrice > 0)
+      ? planConfig.yearlyPrice
+      : planConfig.price;
 
     // Validate Coupon if provided
     let discountPercent = 0;
@@ -1746,11 +2300,12 @@ apiRouter.post('/admin/payments/:id/approve', requireAdmin, async (req: AuthRequ
       return;
     }
 
-    // 2. Activate subscription via centralized service
+    // 2. Activate subscription via centralized service with price snapshot
     const now = new Date();
     const subscription = await subscriptionService.activateSubscription(payment.userId, payment.planRequested, {
       txReference: payment.txReference || `TX_${payment.orderId}`,
-      paymentId: payment.id
+      paymentId: payment.id,
+      amount: payment.amount
     });
 
     // 3. Update payment and order records
@@ -1945,6 +2500,59 @@ apiRouter.post('/admin/payments/:id/reject', requireAdmin, validateBody(AdminRej
       error: { code: 'REJECT_FAILED', message: err.message },
       message: err.message
     });
+  }
+});
+
+// 11b. Admin Process Payment Refund & Immediate Subscription Revocation (Requirements 9, 10)
+apiRouter.post('/admin/payments/:id/refund', requireAdmin, async (req: AuthRequest, res: Response) => {
+  const adminId = req.userId!;
+  const adminEmail = req.user.email;
+  const paymentId = req.params.id;
+  const { reason } = req.body;
+
+  try {
+    const result = await subscriptionService.cancelSubscriptionOnRefund(paymentId, reason, adminEmail);
+
+    await dbService.createAuditLog(
+      adminId,
+      'ADMIN_REFUND_PAYMENT',
+      'payments',
+      paymentId,
+      null,
+      { reason, refundedBy: adminEmail }
+    );
+
+    res.json({
+      success: true,
+      message: 'Đã hoàn tiền và thu hồi quyền gói dịch vụ thành công!',
+      payment: result.payment,
+      user: result.user
+    });
+  } catch (err: any) {
+    console.error('Admin refund error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 11c. Admin Subscriptions Monitoring & Audit (Requirement 13)
+apiRouter.get('/admin/subscriptions', requireAdmin, async (req: AuthRequest, res: Response) => {
+  const { status, search, planId, page, limit } = req.query;
+
+  try {
+    const result = await subscriptionService.getSubscriptionsList({
+      status: status ? String(status) : 'ALL',
+      search: search ? String(search) : undefined,
+      planId: planId ? String(planId) : 'ALL',
+      page: page ? parseInt(String(page)) : 1,
+      limit: limit ? parseInt(String(limit)) : 50
+    });
+
+    res.json({
+      success: true,
+      ...result
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
@@ -2429,7 +3037,8 @@ apiRouter.post('/payments/webhook-simulate', requireAdmin, async (req: AuthReque
     // Activate subscription
     const sub = await subscriptionService.activateSubscription(payment.userId, payment.planRequested, {
       txReference: payment.txReference || `WH_${Date.now()}`,
-      paymentId: payment.id
+      paymentId: payment.id,
+      amount: payment.amount
     });
 
     await prisma.payment.update({
@@ -2453,6 +3062,26 @@ apiRouter.post('/payments/webhook-simulate', requireAdmin, async (req: AuthReque
     });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// --------------------------------------------------------------------------
+// 5D HARMONY METRICS ENGINE (REAL DATA ONLY - NO MOCK, NO FAKE DEFAULTS)
+// --------------------------------------------------------------------------
+apiRouter.get('/life-harmony', requireAuth, async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    const harmony = await lifeHarmonyService.get5DHarmony(userId);
+    res.json({
+      success: true,
+      data: harmony
+    });
+  } catch (err: any) {
+    console.error('GET /api/life-harmony error:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message || 'Lỗi khi tính toán chỉ số 5D Harmony'
+    });
   }
 });
 
@@ -2484,7 +3113,7 @@ apiRouter.get('/today', async (req: AuthRequest, res: Response) => {
       }),
       prisma.calendarEvent.findMany({ where: { userId, date: todayStr } }),
       prisma.habit.findMany({ where: { userId, status: 'Active' } }),
-      prisma.habitLog.findMany({ where: { date: todayStr } }),
+      prisma.habitLog.findMany({ where: { date: todayStr, habit: { userId } } }),
       prisma.focusSession.findMany({ where: { userId }, take: 10, orderBy: { createdAt: 'desc' } }),
       prisma.financeAccount.findMany({ where: { userId } }),
       prisma.budget.findMany({ where: { userId } })

@@ -174,6 +174,26 @@ async function startServer() {
       }
     }
 
+    // Ensure Demo Test User exists for testing
+    const demoUser = await prisma.user.findFirst({
+      where: { email: 'user@lifeos.com' }
+    });
+    if (!demoUser) {
+      const salt = await bcrypt.genSalt(10);
+      const passwordHash = await bcrypt.hash('User@123456', salt);
+      await dbService.createUser({
+        name: 'Demo Member',
+        email: 'user@lifeos.com',
+        username: 'user_demo',
+        passwordHash,
+        role: 'USER',
+        plan: 'PRO',
+        status: 'ACTIVE',
+        avatar: 'https://ui-avatars.com/api/?name=User+Demo&background=6366f1&color=fff'
+      });
+      console.log('✅ Demo test user created: user@lifeos.com');
+    }
+
 
 
     // Seed default system templates if empty

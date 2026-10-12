@@ -87,6 +87,15 @@ model User {
   feedbacks           Feedback[]
   vocabProgress       VocabWordProgress[]
   vocabReviewLogs     VocabReviewLog[]
+  journeyMilestones   JourneyMilestone[]
+  userProgression     UserProgression?
+  xpTransactions      XPTransaction[]
+  coinTransactions    CoinTransaction[]
+  userRewards         UserReward[]
+  userEquipments      UserEquipment[]
+  userSkills          UserSkill[]
+  monsterProgresses   MonsterProgress[]
+  battleRecords       BattleRecord[]
 
   @@index([email])
   @@index([role])
@@ -1323,5 +1332,212 @@ model VocabReviewLog {
   @@index([reviewedAt])
   @@map("vocab_review_logs")
 }
+
+// ----------------------------------------------------
+// USER JOURNEY & ACHIEVEMENT LOG (HÀNH TRÌNH CỦA TÔI)
+// ----------------------------------------------------
+model JourneyMilestone {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  category    String   @default("personal") // habit | goal | saving | finance | project | study | personal
+  date        String   // YYYY-MM-DD
+  icon        String?  @default("Sparkles")
+  metricValue String?  // e.g. "10.000.000 ₫", "30 ngày", "20 mục tiêu"
+  metricLabel String?  // e.g. "Tiết kiệm", "Chuỗi ngày", "Hoàn thành"
+  isHighlighted Boolean @default(false)
+  isManual    Boolean  @default(true) // true if user created manually, false if auto-milestone
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([date])
+  @@index([category])
+  @@map("journey_milestones")
+}
+
+// ----------------------------------------------------
+// GAME-LIKE LIFE PROGRESSION SYSTEM (GEN Z)
+// ----------------------------------------------------
+model UserProgression {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Total Level & Currencies (Real actions only)
+  totalXp         Int      @default(0)
+  level           Int      @default(1)
+  coins           Int      @default(0)
+  
+  // Category XP & Category Levels
+  learningXp      Int      @default(0)
+  learningLevel   Int      @default(1)
+  habitXp         Int      @default(0)
+  habitLevel      Int      @default(1)
+  focusXp         Int      @default(0)
+  focusLevel      Int      @default(1)
+  financeXp       Int      @default(0)
+  financeLevel    Int      @default(1)
+  
+  // Discipline Streaks
+  currentStreak   Int      @default(0)
+  longestStreak   Int      @default(0)
+  lastActiveDate  String?  // YYYY-MM-DD
+  
+  // Equipped Gen Z Player Cosmetics
+  equippedTitle   String?  @default("Initiator")
+  equippedFrame   String?  @default("default")
+  equippedBadge   String?  @default("starter")
+  equippedAccent  String?  @default("emerald")
+
+  // RPG Combat & Stat Attributes
+  skillPoints     Int      @default(0)
+  currentHp       Int      @default(100)
+  maxHp           Int      @default(100)
+  equippedWeaponKey String?
+  equippedArmorKey  String?
+  equippedAccessoryKey String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId])
+  @@index([level])
+  @@map("user_progressions")
+}
+
+model XPTransaction {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Int
+  category    String   // "task" | "habit" | "focus" | "learning" | "finance" | "quest" | "milestone"
+  source      String   // e.g. "task_complete", "habit_complete", "focus_session", "vocab_learned", "daily_quest"
+  sourceId    String?  // e.g. taskId, habitDateKey (enforces anti-cheat idempotency)
+  description String
+  createdAt   DateTime @default(now())
+
+  @@unique([userId, source, sourceId]) // Prevents duplicate XP for identical action!
+  @@index([userId])
+  @@index([category])
+  @@index([createdAt])
+  @@map("xp_transactions")
+}
+
+model CoinTransaction {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Int      // Positive for earn, negative for spend
+  type        String   // "earn" | "spend"
+  source      String   // "daily_quest", "weekly_challenge", "milestone", "reward_purchase"
+  sourceId    String?
+  description String
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@map("coin_transactions")
+}
+
+model UserReward {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rewardType  String   // "title" | "badge" | "frame" | "accent" | "theme"
+  rewardKey   String   // unique cosmetic identifier
+  name        String
+  description String?
+  icon        String?
+  unlockedAt  DateTime @default(now())
+  isEquipped  Boolean  @default(false)
+  @@unique([userId, rewardKey])
+  @@index([userId])
+  @@index([rewardType])
+  @@map("user_rewards")
+}
+
+model UserEquipment {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  itemKey       String
+  name          String
+  slot          String   // "WEAPON" | "ARMOR" | "ACCESSORY"
+  rarity        String   // "COMMON" | "UNCOMMON" | "RARE" | "EPIC" | "LEGENDARY"
+  powerBonus    Int      @default(0)
+  defenseBonus  Int      @default(0)
+  hpBonus       Int      @default(0)
+  specialEffect String?
+  level         Int      @default(1)
+  isEquipped    Boolean  @default(false)
+  acquiredFrom  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, itemKey])
+  @@index([userId])
+  @@index([slot])
+  @@map("user_equipments")
+}
+
+model UserSkill {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skillKey    String
+  tree        String   // "FOCUS" | "LEARNING" | "DISCIPLINE" | "PRODUCTIVITY" | "FINANCE"
+  tier        Int      @default(1)
+  level       Int      @default(1)
+  unlockedAt  DateTime @default(now())
+
+  @@unique([userId, skillKey])
+  @@index([userId])
+  @@index([tree])
+  @@map("user_skills")
+}
+
+model MonsterProgress {
+  id              String    @id @default(uuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  monsterId       String
+  status          String    @default("LOCKED") // "LOCKED" | "UNLOCKED" | "DEFEATED" | "MASTERED"
+  defeatCount     Int       @default(0)
+  firstDefeatedAt DateTime?
+  lastDefeatedAt  DateTime?
+  bestTurns       Int?
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([userId, monsterId])
+  @@index([userId])
+  @@map("monster_progresses")
+}
+
+model BattleRecord {
+  id                  String   @id @default(uuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  monsterId           String
+  monsterName         String
+  chapter             Int
+  won                 Boolean
+  playerPower         Int
+  playerHpRemaining   Int
+  monsterHpRemaining  Int
+  rewardXp            Int      @default(0)
+  rewardCoins         Int      @default(0)
+  rewardEquipment     String?
+  turnsLog            String   // JSON string of round-by-round combat battle events
+  createdAt           DateTime @default(now())
+
+  @@index([userId])
+  @@index([monsterId])
+  @@index([createdAt])
+  @@map("battle_records")
+}
+
 
 

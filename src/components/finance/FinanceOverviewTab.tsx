@@ -247,7 +247,7 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
             </div>
 
             <div className="h-[280px] w-full">
-              {categoryData.length > 0 ? (
+              {categoryData.length > 0 && periodExpense > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <RePieChart>
                     <Pie 
@@ -259,13 +259,13 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
                       innerRadius={65} 
                       outerRadius={95} 
                       paddingAngle={3}
-                      label={({ name, percent }: any) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                      label={({ name, percent }: any) => `${name || 'Danh mục'} (${Math.round((Number(percent) || 0) * 100)}%)`}
                     >
                       {categoryData.map((_entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
-                    <RechartsTooltip formatter={(value: any) => formatCurrency(Number(value) || 0)} />
+                    <RechartsTooltip formatter={(value: any, name: any) => [formatCurrency(Number(value) || 0), String(name || '')]} />
                     <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
                   </RePieChart>
                 </ResponsiveContainer>

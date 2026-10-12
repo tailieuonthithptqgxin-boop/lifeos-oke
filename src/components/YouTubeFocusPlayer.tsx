@@ -93,24 +93,24 @@ export function YouTubeFocusPlayer({
   const isCurrentFavorite = youtubeMusicService.isFavorite(currentVideoId);
 
   return (
-    <div className={`rounded-3xl border border-purple-100/80 dark:border-purple-900/40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-sm overflow-hidden transition-all duration-300 card-cute ${className}`}>
+    <div className={`rounded-3xl border border-slate-200/80 dark:border-slate-800/80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl shadow-lg overflow-hidden transition-all duration-300 ${className}`}>
       
       {/* Header bar / Mini Control bar */}
-      <div className="p-3.5 sm:p-4 flex items-center justify-between gap-3 border-b border-purple-100/60 dark:border-purple-900/30 bg-purple-50/30 dark:bg-purple-950/20">
+      <div className="p-3.5 sm:p-4 flex items-center justify-between gap-3 border-b border-slate-200/60 dark:border-slate-800/60 bg-slate-50/70 dark:bg-slate-950/40">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-rose-500 to-pink-500 text-white flex items-center justify-center shrink-0 shadow-sm shadow-rose-500/20 animate-wiggle">
-            <Youtube className="w-4 h-4" />
+          <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 shadow-2xs">
+            <Music className="w-4 h-4" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-rose-600 dark:text-rose-400">
-                Study Ambient Music 🎵
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                Focus Audio
               </span>
               {isPlaying && (
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
               )}
             </div>
-            <p className="text-xs font-extrabold text-slate-800 dark:text-slate-200 truncate max-w-[180px] sm:max-w-xs">
+            <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate max-w-[180px] sm:max-w-xs">
               {activeTrack.title}
             </p>
           </div>
@@ -121,10 +121,10 @@ export function YouTubeFocusPlayer({
             type="button"
             onClick={() => toggleFavorite(activeTrack)}
             title={isCurrentFavorite ? 'Xóa khỏi yêu thích' : 'Lưu vào danh sách yêu thích'}
-            className={`btn-squishy p-2 rounded-2xl transition-all cursor-pointer ${
+            className={`p-2 rounded-xl transition-all cursor-pointer ${
               isCurrentFavorite 
-                ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800' 
-                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-purple-50 dark:hover:bg-purple-950/40'
+                ? 'text-amber-500 bg-amber-50 dark:bg-amber-950/40 border border-amber-400/40' 
+                : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
             <Star className={`w-4 h-4 ${isCurrentFavorite ? 'fill-current' : ''}`} />
@@ -134,7 +134,7 @@ export function YouTubeFocusPlayer({
             type="button"
             onClick={() => setIsExpanded(!isExpanded)}
             title={isExpanded ? 'Thu gọn trình phát' : 'Mở rộng tùy chọn nhạc'}
-            className="btn-squishy p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 rounded-2xl hover:bg-purple-50 dark:hover:bg-purple-950/40 transition-colors cursor-pointer"
+            className="p-2 text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           </button>
@@ -156,39 +156,39 @@ export function YouTubeFocusPlayer({
 
         {/* Navigation Tabs for Tracks */}
         <div className="p-3 sm:p-4 space-y-3">
-          <div className="flex items-center gap-1.5 p-1 bg-purple-50/70 dark:bg-slate-800/80 rounded-2xl text-xs border border-purple-100/60 dark:border-purple-900/40">
+          <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl text-xs border border-slate-200 dark:border-slate-700/60">
             <button
               type="button"
               onClick={() => setActiveTab('curated')}
-              className={`btn-squishy flex-1 py-1.5 rounded-xl font-extrabold text-center transition-all cursor-pointer text-xs ${
+              className={`flex-1 py-1.5 rounded-lg font-bold text-center transition-all cursor-pointer text-xs ${
                 activeTab === 'curated'
-                  ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
               }`}
             >
-              Gợi ý chill ✨
+              Gợi ý tuyển chọn
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('favorites')}
-              className={`btn-squishy flex-1 py-1.5 rounded-xl font-extrabold text-center transition-all cursor-pointer text-xs ${
+              className={`flex-1 py-1.5 rounded-lg font-bold text-center transition-all cursor-pointer text-xs ${
                 activeTab === 'favorites'
-                  ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
               }`}
             >
-              Yêu thích ({favorites.length}) ⭐
+              Yêu thích ({favorites.length})
             </button>
             <button
               type="button"
               onClick={() => setActiveTab('custom')}
-              className={`btn-squishy flex-1 py-1.5 rounded-xl font-extrabold text-center transition-all cursor-pointer text-xs ${
+              className={`flex-1 py-1.5 rounded-lg font-bold text-center transition-all cursor-pointer text-xs ${
                 activeTab === 'custom'
-                  ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-2xs'
+                  : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-100'
               }`}
             >
-              + Link riêng 🔗
+              URL Riêng
             </button>
           </div>
 
@@ -201,10 +201,10 @@ export function YouTubeFocusPlayer({
                   <div
                     key={track.id}
                     onClick={() => handleLoadTrack(track)}
-                    className={`btn-squishy flex items-center justify-between p-2 rounded-2xl text-xs cursor-pointer transition-all ${
+                    className={`flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer transition-all ${
                       isSelected
-                        ? 'bg-purple-50 dark:bg-purple-950/50 border border-purple-200 dark:border-purple-800 font-extrabold text-purple-700 dark:text-purple-300 shadow-xs'
-                        : 'hover:bg-purple-50/40 dark:hover:bg-slate-800/40 text-slate-700 dark:text-slate-300'
+                        ? 'bg-emerald-500/10 border border-emerald-500/30 font-bold text-emerald-600 dark:text-emerald-400 shadow-2xs'
+                        : 'hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300'
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">

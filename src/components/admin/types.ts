@@ -1,5 +1,6 @@
 export type AdminTab = 
   | 'requests' 
+  | 'subscriptions'
   | 'plans' 
   | 'languages' 
   | 'users' 
@@ -9,6 +10,31 @@ export type AdminTab =
   | 'gmail_config'
   | 'referrals'
   | 'feedback';
+
+export interface SubscriptionRecord {
+  id: string;
+  userId: string;
+  planId: string;
+  planType: string;
+  planName: string;
+  amount: number;
+  durationDays: number;
+  paymentStatus: string;
+  status: string;
+  txReference?: string;
+  paymentId?: string;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    plan: string;
+    avatar?: string;
+  };
+}
 
 export interface ManagedUser {
   id: string;
@@ -62,8 +88,12 @@ export interface ServicePlan {
   name: string;
   badge?: string;
   description: string;
+  price?: number;
   monthlyPrice: number;
   yearlyPrice: number;
+  durationDays?: number;
+  type?: 'PERSONAL' | 'TEAM';
+  maxTeamMembers?: number;
   billingCycle: string;
   status: 'ACTIVE' | 'INACTIVE';
   order: number;

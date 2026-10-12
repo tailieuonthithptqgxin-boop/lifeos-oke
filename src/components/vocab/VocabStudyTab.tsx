@@ -32,7 +32,8 @@ export const VocabStudyTab: React.FC<VocabStudyTabProps> = ({
   activeLang
 }) => {
   const isChinese = activeLang?.id === 'zh';
-  const foreignLangShort = isChinese ? 'Trung' : 'Anh';
+  const isJapanese = activeLang?.id === 'ja';
+  const foreignLangShort = isJapanese ? 'Nhật' : isChinese ? 'Trung' : 'Anh';
 
   return (
     <div className="max-w-2xl mx-auto bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 shadow-xs space-y-6">
@@ -123,7 +124,11 @@ export const VocabStudyTab: React.FC<VocabStudyTabProps> = ({
                     )}
                   </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    {isChinese ? 'Nhìn nghĩa tiếng Việt, nhớ lại chữ Hán/Pinyin và phát âm' : 'Nhìn nghĩa tiếng Việt, nhớ lại từ tiếng Anh và phát âm'}
+                    {isJapanese
+                      ? 'Nhìn nghĩa tiếng Việt, nhớ lại từ tiếng Nhật (Kanji/Hiragana) và phát âm'
+                      : isChinese
+                      ? 'Nhìn nghĩa tiếng Việt, nhớ lại chữ Hán/Pinyin và phát âm'
+                      : 'Nhìn nghĩa tiếng Việt, nhớ lại từ tiếng Anh và phát âm'}
                   </p>
                 </div>
               </div>
@@ -201,7 +206,11 @@ export const VocabStudyTab: React.FC<VocabStudyTabProps> = ({
                     )}
                   </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    Nghe phát âm tự động và gõ chính xác mặt chữ
+                    {isJapanese
+                      ? 'Nghe phát âm tiếng Nhật và gõ chính xác Kanji hoặc Hiragana'
+                      : isChinese
+                      ? 'Nghe phát âm tiếng Trung và gõ chính xác Hán tự hoặc Pinyin'
+                      : 'Nghe phát âm tự động và gõ chính xác mặt chữ'}
                   </p>
                 </div>
               </div>
@@ -235,10 +244,10 @@ export const VocabStudyTab: React.FC<VocabStudyTabProps> = ({
               }`}
             >
               <span className="font-bold text-xs block">
-                {isChinese ? '🌟 Kho chuẩn HSK' : '🌟 3000 Từ chuẩn'}
+                {isJapanese ? '🌟 Kho chuẩn JLPT' : isChinese ? '🌟 Kho chuẩn HSK' : '🌟 3000 Từ chuẩn'}
               </span>
               <span className="text-[11px] text-slate-400">
-                {isChinese ? 'HSK 1 - 9 (10,240 từ)' : 'Tài liệu DOCX'}
+                {isJapanese ? 'JLPT N5 - N1 (7,847 từ)' : isChinese ? 'HSK 1 - 9 (10,240 từ)' : 'Tài liệu DOCX'}
               </span>
             </button>
 

@@ -427,92 +427,80 @@ export function CheckoutView({
                 </div>
 
                 {/* Plan Selection Grid */}
-                <div className="grid md:grid-cols-2 gap-4">
-                  {/* PRO Card */}
-                  <div
-                    onClick={() => setSelectedPlan('PRO')}
-                    className={`cursor-pointer rounded-3xl p-6 border-2 transition-all relative ${
-                      selectedPlan === 'PRO'
-                        ? 'border-blue-600 bg-white dark:bg-slate-900 shadow-md ring-2 ring-blue-500/20'
-                        : 'border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 dark:text-white text-lg">LifeOS PRO</span>
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
-                          {PLAN_DETAILS.PRO.badge}
-                        </span>
-                      </div>
-                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                        selectedPlan === 'PRO' ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300'
-                      }`}>
-                        {selectedPlan === 'PRO' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                      </div>
-                    </div>
+                <div className={`grid gap-4 ${Object.keys(PLAN_DETAILS).length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
+                  {Object.entries(PLAN_DETAILS).map(([planKey, planCfg]: [string, any]) => {
+                    const isSelected = selectedPlan === planKey;
+                    const isTeam = planKey.includes('TEAM') || planCfg.type === 'TEAM';
+                    const planPrice = cycle === 'yearly' && planCfg.yearlyPrice && planCfg.yearlyPrice > 0
+                      ? planCfg.yearlyPrice
+                      : planCfg.monthlyPrice || planCfg.price || 0;
+                    const durationLabel = cycle === 'yearly' && planCfg.yearlyPrice && planCfg.yearlyPrice > 0
+                      ? 'năm'
+                      : (planCfg.durationDays ? `${planCfg.durationDays} ngày` : 'tháng');
 
-                    <div className="mb-4">
-                      <div className="text-2xl font-black text-slate-900 dark:text-white">
-                        {cycle === 'yearly' ? formatCurrency(PLAN_DETAILS.PRO.yearlyPrice) : formatCurrency(PLAN_DETAILS.PRO.monthlyPrice)}
-                        <span className="text-xs font-normal text-slate-500">/{cycle === 'yearly' ? 'năm' : 'tháng'}</span>
-                      </div>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        {cycle === 'yearly' ? `Tương đương ${PLAN_DETAILS.PRO.yearlyUsd}/năm (~${formatCurrency(Math.round(PLAN_DETAILS.PRO.yearlyPrice / 12))}/tháng)` : `Tương đương ${PLAN_DETAILS.PRO.monthlyUsd}/tháng`}
-                      </p>
-                    </div>
+                    return (
+                      <div
+                        key={planKey}
+                        onClick={() => setSelectedPlan(planKey)}
+                        className={`cursor-pointer rounded-3xl p-6 border-2 transition-all relative flex flex-col justify-between ${
+                          isSelected
+                            ? isTeam
+                              ? 'border-purple-600 bg-white dark:bg-slate-900 shadow-md ring-2 ring-purple-500/20'
+                              : 'border-blue-600 bg-white dark:bg-slate-900 shadow-md ring-2 ring-blue-500/20'
+                            : 'border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 hover:border-slate-300'
+                        }`}
+                      >
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-slate-900 dark:text-white text-base">
+                                {planCfg.name}
+                              </span>
+                              {planCfg.badge && (
+                                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded ${
+                                  isTeam
+                                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300'
+                                    : 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300'
+                                }`}>
+                                  {planCfg.badge}
+                                </span>
+                              )}
+                            </div>
+                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
+                              isSelected
+                                ? isTeam ? 'border-purple-600 bg-purple-600 text-white' : 'border-blue-600 bg-blue-600 text-white'
+                                : 'border-slate-300'
+                            }`}>
+                              {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                            </div>
+                          </div>
 
-                    <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-300 pt-3 border-t border-slate-100 dark:border-slate-800">
-                      {PLAN_DETAILS.PRO.benefits.map((b, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <Check className="w-3.5 h-3.5 text-blue-500 shrink-0 mt-0.5" />
-                          <span>{b}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                          <div className="mb-4">
+                            <div className={`text-2xl font-black ${isTeam ? 'text-purple-600 dark:text-purple-400' : 'text-slate-900 dark:text-white'}`}>
+                              {formatCurrency(planPrice)}
+                              <span className="text-xs font-normal text-slate-500">/{durationLabel}</span>
+                            </div>
+                            {planCfg.description && (
+                              <p className="text-[11px] text-slate-400 mt-1 line-clamp-2">
+                                {planCfg.description}
+                              </p>
+                            )}
+                          </div>
+                        </div>
 
-                  {/* TEAM Card */}
-                  <div
-                    onClick={() => setSelectedPlan('TEAM')}
-                    className={`cursor-pointer rounded-3xl p-6 border-2 transition-all relative ${
-                      selectedPlan === 'TEAM'
-                        ? 'border-blue-600 bg-white dark:bg-slate-900 shadow-md ring-2 ring-blue-500/20'
-                        : 'border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 dark:text-white text-lg">LifeOS TEAM</span>
-                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300">
-                          {PLAN_DETAILS.TEAM.badge}
-                        </span>
+                        {Array.isArray(planCfg.benefits) && planCfg.benefits.length > 0 && (
+                          <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-300 pt-3 border-t border-slate-100 dark:border-slate-800">
+                            {planCfg.benefits.slice(0, 5).map((b: string, idx: number) => (
+                              <li key={idx} className="flex items-start gap-2">
+                                <Check className={`w-3.5 h-3.5 shrink-0 mt-0.5 ${isTeam ? 'text-purple-500' : 'text-blue-500'}`} />
+                                <span className="line-clamp-2">{b}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
                       </div>
-                      <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                        selectedPlan === 'TEAM' ? 'border-blue-600 bg-blue-600 text-white' : 'border-slate-300'
-                      }`}>
-                        {selectedPlan === 'TEAM' && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                      </div>
-                    </div>
-
-                    <div className="mb-4">
-                      <div className="text-2xl font-black text-slate-900 dark:text-white">
-                        {cycle === 'yearly' ? formatCurrency(PLAN_DETAILS.TEAM.yearlyPrice) : formatCurrency(PLAN_DETAILS.TEAM.monthlyPrice)}
-                        <span className="text-xs font-normal text-slate-500">/{cycle === 'yearly' ? 'năm' : 'tháng'}</span>
-                      </div>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        {cycle === 'yearly' ? `Tương đương ${PLAN_DETAILS.TEAM.yearlyUsd}/năm (~${formatCurrency(Math.round(PLAN_DETAILS.TEAM.yearlyPrice / 12))}/tháng)` : `Tương đương ${PLAN_DETAILS.TEAM.monthlyUsd}/tháng`}
-                      </p>
-                    </div>
-
-                    <ul className="space-y-2 text-xs text-slate-600 dark:text-slate-300 pt-3 border-t border-slate-100 dark:border-slate-800">
-                      {PLAN_DETAILS.TEAM.benefits.map((b, idx) => (
-                        <li key={idx} className="flex items-start gap-2">
-                          <Check className="w-3.5 h-3.5 text-purple-500 shrink-0 mt-0.5" />
-                          <span>{b}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                    );
+                  })}
                 </div>
 
                 {/* Summary & Coupon */}

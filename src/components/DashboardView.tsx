@@ -16,15 +16,18 @@ import { EmptyState } from './EmptyState';
 import { soundEngine } from '../lib/soundEngine';
 import { GenZMood, MOOD_PRESETS, getTodayMood, setTodayMood } from '../lib/moodEngine';
 import { ShareStoryModal } from './ShareStoryModal';
-import { computeLifeHarmony } from '../lib/lifeHarmonyEngine';
+import { compute5DHarmony } from '../lib/lifeHarmonyEngine';
 import { LifeHarmonyRadarWidget } from './LifeHarmonyRadarWidget';
+import { loadVocabData, buildTodayStudyPlan } from '../lib/vocabEngine';
 
 export function DashboardView() {
   const { 
     tasks, events, transactions, goals, habits, habitRecords, subjects,
     focusSessions, focusGoals, studyAssignments, projects = [], financeAccounts = [],
+    budgets = [],
     addTask, updateTask, addTransaction, updateHabit, addHabitRecord, lifeScore, dailyCapacity,
-    setCurrentView, clearWorkspace, workspaceMode, onboardingPreferences, language, currentUser
+    setCurrentView, clearWorkspace, workspaceMode, onboardingPreferences, language, currentUser,
+    subscriptionStatus
   } = useAppStore();
 
   const t = useTranslation(language);
@@ -137,23 +140,37 @@ export function DashboardView() {
     (habitRecords || []).some(r => r.habitId === h.id && r.date === dateStr && r.status === 'Completed')
   );
 
-  // Daily Score Calculation (0 - 100 points)
+  // Due Vocabulary Words count based on Spaced Repetition (Real Data)
+  const dueVocabCount = React.useMemo(() => {
+    try {
+      const vocab = loadVocabData(currentUser?.id || 'current_user');
+      const activeLang = (vocab?.languages || []).find(l => l.id === vocab?.activeLanguageId) || vocab?.languages?.[0];
+      const langId = activeLang?.id || 'en';
+      const words = (vocab?.words && vocab.words[langId]) || [];
+      const plan = buildTodayStudyPlan(words, activeLang?.dailyNewWordTarget || 10, activeLang?.dailyReviewTarget || 30);
+      return plan.totalToStudy || 0;
+    } catch {
+      return 0;
+    }
+  }, [currentUser?.id]);
+
+  // Daily Score Calculation (0 - 100 points) - STRICT REAL DATA ONLY
   // Tasks: 30 pts max
   const taskScore = todayTasks.length > 0 
     ? (completedTasks.length / todayTasks.length) * 30 
-    : (tasks.length > 0 ? (tasks.filter(t => t.status === 'Hoàn thành').length / tasks.length) * 20 : 20);
+    : (tasks.length > 0 ? (tasks.filter(t => t.status === 'Hoàn thành').length / tasks.length) * 20 : 0);
   // Habits: 25 pts max
   const habitScore = habits.length > 0 
     ? (completedHabitsToday.length / habits.length) * 25 
-    : 20;
+    : 0;
   // Study/Focus: 25 pts max
-  const focusScore = targetStudyMinutes > 0 
+  const focusScore = targetStudyMinutes > 0 && todayFocusMinutes > 0
     ? Math.min(25, (todayFocusMinutes / targetStudyMinutes) * 25) 
-    : 15;
+    : 0;
   // Goals progress: 20 pts max
   const goalScore = activeGoals.length > 0 
     ? (avgGoalProgress / 100) * 20 
-    : 15;
+    : 0;
   const dailyScore = Math.min(100, Math.round(taskScore + habitScore + focusScore + goalScore));
 
   // Finance Summary Calculations
@@ -243,30 +260,32 @@ export function DashboardView() {
     { name: 'Remaining', value: 100 - dailyScore, fill: '#f1f5f9' }
   ];
 
-  const harmonyOverview = computeLifeHarmony({
-    completedTasks: completedTasks.length,
-    totalTasks: todayTasks.length,
-    completedHabits: completedHabitsToday.length,
-    totalHabits: habits.length,
-    focusMinutesToday: todayFocusMinutes,
-    todayExpense: todayExpenses,
-    activeGoalsCount: (goals || []).filter(g => g.status !== 'Hoàn thành').length,
-    completedGoalsCount: (goals || []).filter(g => g.status === 'Hoàn thành').length
+  const harmonyOverview = compute5DHarmony({
+    tasks: tasks || [],
+    habits: habits || [],
+    habitRecords: habitRecords || [],
+    focusSessions: focusSessions || [],
+    focusGoals: focusGoals || [],
+    transactions: transactions || [],
+    budgets: budgets || [],
+    financeAccounts: financeAccounts || [],
+    goals: goals || [],
+    selectedDate: dateStr
   });
 
   return (
     <div className="p-3.5 sm:p-6 max-w-7xl mx-auto space-y-5 sm:space-y-6">
       {/* 1. Bento Hero Banner with Dynamic Greeting, Streak & Quick Actions */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-900 via-slate-900 to-slate-950 p-5 sm:p-7 text-white shadow-xl border border-indigo-500/20">
+      <div className="relative overflow-hidden rounded-3xl bg-slate-900/95 dark:bg-slate-950/95 p-5 sm:p-7 text-white shadow-xl border border-slate-800/80">
         {/* Ambient mesh background effects */}
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
         
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-3 max-w-xl">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-indigo-200 text-xs font-semibold">
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-emerald-400 text-xs font-semibold">
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
                 <span>{formatDate(selectedDate)} · {currentTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
 
@@ -298,7 +317,7 @@ export function DashboardView() {
                               setTodayMoodState(key);
                               setShowMoodPicker(false);
                             }}
-                            className={`w-full flex items-center gap-2.5 p-2 rounded-xl text-left transition-colors cursor-pointer ${todayMood === key ? 'bg-indigo-600 text-white font-bold' : 'text-slate-300 hover:bg-slate-800'}`}
+                            className={`w-full flex items-center gap-2.5 p-2 rounded-xl text-left transition-colors cursor-pointer ${todayMood === key ? 'bg-emerald-600 text-white font-bold' : 'text-slate-300 hover:bg-slate-800'}`}
                           >
                             <span className="text-base">{m.emoji}</span>
                             <div className="min-w-0">
@@ -320,10 +339,10 @@ export function DashboardView() {
                   soundEngine.playPop();
                   setShowShareStory(true);
                 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/30 text-pink-300 hover:text-white hover:bg-pink-500/30 text-xs font-bold transition-all cursor-pointer active:scale-95"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-slate-300 hover:text-white hover:border-emerald-500/40 text-xs font-bold transition-all cursor-pointer"
               >
                 <span>📸</span>
-                <span>Flex Story</span>
+                <span>Chia sẻ Story</span>
               </button>
             </div>
 
@@ -332,7 +351,7 @@ export function DashboardView() {
                 <span>{greeting.text}, {currentUser?.name || 'Bạn'}!</span>
                 <span className="inline-block animate-wave text-2xl">{MOOD_PRESETS[todayMood].emoji}</span>
               </h1>
-              <p className="text-xs text-indigo-200/90 italic mt-0.5">
+              <p className="text-xs text-slate-400 italic mt-0.5">
                 {MOOD_PRESETS[todayMood].quote}
               </p>
               <p className="text-sm text-slate-300 mt-1 leading-relaxed">
@@ -342,42 +361,105 @@ export function DashboardView() {
               </p>
             </div>
 
+            {/* 3 CORE QUESTIONS: "Tôi đang ở đâu? Tôi đang có gì? Tôi nên làm gì tiếp theo?" */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 py-1">
+              {/* Question 1: Tôi đang ở đâu? */}
+              <div className="p-3 rounded-2xl bg-slate-800/70 border border-slate-700/70 flex flex-col justify-between">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tôi đang ở đâu?</span>
+                <div className="mt-1">
+                  <span className="text-xs font-black text-white block truncate">
+                    {subscriptionStatus?.planName || 'Gói Trải Nghiệm'}
+                  </span>
+                  <span className="text-[11px] text-slate-300">
+                    {subscriptionStatus?.remainingDays !== undefined ? `${subscriptionStatus.remainingDays} ngày còn lại` : 'Đang hoạt động'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('subscription')}
+                  className="mt-2 text-[10px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
+                >
+                  Gia hạn / Nâng cấp <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
+
+              {/* Question 2: Tôi đang có gì? */}
+              <div className="p-3 rounded-2xl bg-slate-800/70 border border-slate-700/70 flex flex-col justify-between">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tôi đang có gì?</span>
+                <div className="mt-1">
+                  <span className="text-xs font-black text-white block truncate">
+                    {formatCurrency(totalBalance)}
+                  </span>
+                  <span className="text-[11px] text-slate-300">
+                    {pendingTasks.length} việc · {dueVocabCount} từ ôn
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('finance')}
+                  className="mt-2 text-[10px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
+                >
+                  Quản lý ví & thu chi <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
+
+              {/* Question 3: Tôi nên làm gì tiếp theo? */}
+              <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 flex flex-col justify-between">
+                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">Tôi nên làm gì tiếp theo?</span>
+                <div className="mt-1">
+                  <span className="text-xs font-black text-emerald-200 block truncate">
+                    {dueVocabCount > 0 ? `Ôn ${dueVocabCount} từ vựng` : pendingTasks[0]?.title || 'Hoàn thành ngày!'}
+                  </span>
+                  <span className="text-[11px] text-emerald-400/80">
+                    {dueVocabCount > 0 ? 'Đến chu kỳ Spaced Rep' : 'Ưu tiên hôm nay'}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => dueVocabCount > 0 ? setCurrentView('study') : setShowQuickTaskModal(true)}
+                  className="mt-2 text-[10px] font-bold text-emerald-300 hover:text-white flex items-center gap-1 cursor-pointer"
+                >
+                  {dueVocabCount > 0 ? 'Bắt đầu học ngay' : '+ Thêm việc mới'} <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
+            </div>
+
             {/* Quick Actions Cluster (1-click workflows) */}
-            <div className="flex flex-wrap items-center gap-2.5 pt-2">
+            <div className="flex flex-wrap items-center gap-2.5 pt-1">
               <button
                 type="button"
                 onClick={() => {
                   soundEngine.playPop();
                   setShowQuickTaskModal(true);
                 }}
-                className="px-4 py-2 rounded-2xl bg-gradient-to-r from-pink-500 via-rose-500 to-purple-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-pink-500/30 transition-all btn-squishy"
+                className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>+ Thêm Task ✨</span>
+                <span>+ Thêm Task</span>
               </button>
               <button
                 type="button"
                 onClick={() => setCurrentView('finance')}
-                className="px-3.5 py-2 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/15 flex items-center gap-1.5 backdrop-blur-md transition-all btn-squishy"
+                className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs border border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
               >
-                <Wallet className="w-3.5 h-3.5 text-emerald-300" />
-                <span>Ghi chi tiêu 💸</span>
+                <Wallet className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Ghi chi tiêu</span>
               </button>
               <button
                 type="button"
                 onClick={() => setCurrentView('focus')}
-                className="px-3.5 py-2 rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs border border-white/15 flex items-center gap-1.5 backdrop-blur-md transition-all btn-squishy"
+                className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs border border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
               >
-                <Clock className="w-3.5 h-3.5 text-amber-300" />
-                <span>Pomodoro ⏱️</span>
+                <Clock className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Tập trung</span>
               </button>
               <button
                 type="button"
                 onClick={() => setCurrentView('study')}
-                className="px-3.5 py-2 rounded-2xl bg-gradient-to-r from-purple-500/20 to-indigo-500/20 hover:from-purple-500/30 hover:to-indigo-500/30 text-purple-200 hover:text-white font-bold text-xs border border-purple-400/30 flex items-center gap-1.5 backdrop-blur-md transition-all btn-squishy"
+                className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs border border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
               >
-                <BookOpen className="w-3.5 h-3.5 text-purple-300" />
-                <span>Ôn Từ Vựng 📚</span>
+                <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{dueVocabCount > 0 ? `Ôn Từ (${dueVocabCount})` : 'Học Từ Vựng'}</span>
               </button>
             </div>
           </div>
@@ -423,6 +505,40 @@ export function DashboardView() {
           </div>
         </div>
       </div>
+
+      {/* 1.4. Due Vocabulary High Priority Alert Card (Spaced Repetition) */}
+      {dueVocabCount > 0 && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 border border-emerald-300 dark:border-emerald-900/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 text-white flex items-center justify-center shrink-0 shadow-md">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                  Đến hạn ôn tập Spaced Repetition (Ebbinghaus)
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 animate-pulse">
+                  {dueVocabCount} từ cần ôn
+                </span>
+              </div>
+              <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white mt-0.5">
+                Các từ vựng đã đến điểm rơi trí nhớ cần củng cố để lưu vào trí nhớ dài hạn
+              </h3>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
+            <button
+              type="button"
+              onClick={() => setCurrentView('study')}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs transition-all shadow-md shadow-emerald-600/20 flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>Ôn ngay {dueVocabCount} từ 🚀</span>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 1.5. Continue Where You Left Off / Recommended Next Action */}
       {pendingTasks.length > 0 && (
@@ -967,7 +1083,7 @@ export function DashboardView() {
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-4xl font-black text-slate-900 dark:text-white">{dailyScore}</span>
                 <span className="text-xs font-medium text-slate-500">
-                  {dailyScore >= 90 ? 'Excellent' : dailyScore >= 75 ? 'Good' : dailyScore >= 40 ? 'Normal' : 'Poor'}
+                  {dailyScore >= 90 ? 'Xuất sắc' : dailyScore >= 75 ? 'Tốt' : dailyScore >= 40 ? 'Bình thường' : dailyScore > 0 ? 'Cần cố gắng' : 'Chưa có hoạt động'}
                 </span>
               </div>
             </div>

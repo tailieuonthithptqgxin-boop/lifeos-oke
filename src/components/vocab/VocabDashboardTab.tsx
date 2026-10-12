@@ -10,15 +10,18 @@ import {
   VocabCollection,
   VocabWord,
   System3000Word,
-  SystemChineseHskWord
+  SystemChineseHskWord,
+  SystemJapaneseJlptWord
 } from '../../lib/vocabEngine';
 
 interface VocabDashboardTabProps {
   activeLang: LearningLanguage;
   system3000Words: System3000Word[];
   systemChineseWords: SystemChineseHskWord[];
+  systemJapaneseWords?: SystemJapaneseJlptWord[];
   analytics3000: any;
   analyticsChineseHsk: any;
+  analyticsJapaneseJlpt?: any;
   langWords: VocabWord[];
   personalAnalytics: any;
   langCollections: VocabCollection[];
@@ -32,8 +35,10 @@ export const VocabDashboardTab: React.FC<VocabDashboardTabProps> = ({
   activeLang,
   system3000Words,
   systemChineseWords,
+  systemJapaneseWords = [],
   analytics3000,
   analyticsChineseHsk,
+  analyticsJapaneseJlpt,
   langWords,
   personalAnalytics,
   langCollections,
@@ -43,7 +48,8 @@ export const VocabDashboardTab: React.FC<VocabDashboardTabProps> = ({
   onNavigateTab
 }) => {
   const isChinese = activeLang.id === 'zh';
-  const foreignLangShort = isChinese ? 'Trung' : 'Anh';
+  const isJapanese = activeLang.id === 'ja';
+  const foreignLangShort = isChinese ? 'Trung' : isJapanese ? 'Nhật' : 'Anh';
 
   return (
     <div className="space-y-6">
@@ -57,7 +63,7 @@ export const VocabDashboardTab: React.FC<VocabDashboardTabProps> = ({
             Không gian học tập: {activeLang.name}
           </h2>
           <p className="text-xs sm:text-sm text-blue-100 max-w-xl leading-relaxed">
-            Tích hợp trọn vẹn bộ <strong>{isChinese ? '10,240 từ vựng HSK 1 - 9 chuẩn quốc tế' : '3000 từ thông dụng chuẩn từ tài liệu DOCX'}</strong> và <strong>kho từ vựng cá nhân riêng biệt</strong> của bạn.
+            Tích hợp trọn vẹn bộ <strong>{isJapanese ? '7,847 từ vựng JLPT N5 - N1 chuẩn hoá' : isChinese ? '10,240 từ vựng HSK 1 - 9 chuẩn quốc tế' : '3000 từ thông dụng chuẩn từ tài liệu DOCX'}</strong> và <strong>kho từ vựng cá nhân riêng biệt</strong> của bạn.
           </p>
         </div>
 
@@ -118,7 +124,7 @@ export const VocabDashboardTab: React.FC<VocabDashboardTabProps> = ({
                 1. Flashcard: {foreignLangShort} → Việt
               </h4>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
-                Nhìn {isChinese ? 'chữ Hán / Pinyin' : 'từ tiếng Anh'}, nhớ lại nghĩa tiếng Việt trước khi lật đáp án (Active Recall).
+                Nhìn {isJapanese ? 'từ tiếng Nhật (Kanji/Hiragana)' : isChinese ? 'chữ Hán / Pinyin' : 'từ tiếng Anh'}, nhớ lại nghĩa tiếng Việt trước khi lật đáp án (Active Recall).
               </p>
             </div>
             <button
@@ -141,7 +147,7 @@ export const VocabDashboardTab: React.FC<VocabDashboardTabProps> = ({
                 2. Đảo chiều: Việt → {foreignLangShort}
               </h4>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
-                Hiển thị nghĩa tiếng Việt trước, nhớ lại {isChinese ? 'chữ Hán / Pinyin' : 'từ tiếng Anh'} và phát âm chuẩn.
+                Hiển thị nghĩa tiếng Việt trước, nhớ lại {isJapanese ? 'từ tiếng Nhật (Kanji/Hiragana)' : isChinese ? 'chữ Hán / Pinyin' : 'từ tiếng Anh'} và phát âm chuẩn.
               </p>
             </div>
             <button
@@ -187,7 +193,7 @@ export const VocabDashboardTab: React.FC<VocabDashboardTabProps> = ({
                 4. Luyện gõ chính tả (Spelling)
               </h4>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
-                Ẩn mặt chữ {isChinese ? 'Hán' : ''}, tự động phát âm loa, gõ {isChinese ? 'chữ Hán / Pinyin' : 'từ vựng'} vào ô và kiểm tra chính xác.
+                Ẩn mặt chữ {isJapanese ? 'tiếng Nhật' : isChinese ? 'Hán' : ''}, tự động phát âm loa, gõ {isJapanese ? 'Kanji / Hiragana' : isChinese ? 'chữ Hán / Pinyin' : 'từ vựng'} vào ô và kiểm tra chính xác.
               </p>
             </div>
             <button
@@ -204,8 +210,68 @@ export const VocabDashboardTab: React.FC<VocabDashboardTabProps> = ({
       {/* TWO DEDICATED SOURCE TILES */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         
-        {/* Tile 1: System Words (Oxford 3000 for EN, HSK 1-9 for ZH) */}
-        {activeLang.id === 'zh' ? (
+        {/* Tile 1: System Words (Oxford 3000 for EN, HSK 1-9 for ZH, JLPT N5-N1 for JA) */}
+        {activeLang.id === 'ja' ? (
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs flex flex-col justify-between space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="p-3 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 rounded-2xl text-2xl">
+                  🇯🇵
+                </span>
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                  Kho chuẩn JLPT N5 - N1
+                </span>
+              </div>
+
+              <div>
+                <h3 className="text-xl font-black text-slate-900 dark:text-white">
+                  Kho từ vựng JLPT N5 - N1
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  Toàn bộ {systemJapaneseWords.length.toLocaleString()} từ vựng tiếng Nhật đầy đủ Kanji, Hiragana, âm Hán Việt và nghĩa tiếng Việt chuẩn hóa.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800 text-center">
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40">
+                  <span className="text-[10px] text-slate-400 block font-medium">Tổng từ</span>
+                  <span className="text-base font-black text-slate-800 dark:text-slate-200">
+                    {systemJapaneseWords.length.toLocaleString()}
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40">
+                  <span className="text-[10px] text-emerald-500 block font-medium">Đã thuộc</span>
+                  <span className="text-base font-black text-emerald-600">
+                    {analyticsJapaneseJlpt?.masteredCount || 0}
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40">
+                  <span className="text-[10px] text-purple-500 block font-medium">Đang học</span>
+                  <span className="text-base font-black text-purple-600">
+                    {(analyticsJapaneseJlpt?.learningCount || 0) + (analyticsJapaneseJlpt?.reviewingCount || 0)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => onNavigateTab('japaneseJlpt')}
+                className="flex-1 py-2.5 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-600 dark:text-emerald-400 text-xs font-bold rounded-xl transition cursor-pointer text-center"
+              >
+                Khám phá kho JLPT ({systemJapaneseWords.length.toLocaleString()} từ)
+              </button>
+              <button
+                type="button"
+                onClick={() => onStartStudy('flashcard', '3000', 'due')}
+                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-xs flex items-center gap-1"
+              >
+                <Brain className="w-3.5 h-3.5" /> Học ngay
+              </button>
+            </div>
+          </div>
+        ) : activeLang.id === 'zh' ? (
           <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 shadow-xs flex flex-col justify-between space-y-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between">

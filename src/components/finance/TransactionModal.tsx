@@ -8,13 +8,14 @@ interface TransactionModalProps {
   accounts: any[];
 }
 
-export function TransactionModal({ onClose, onSave, accounts }: TransactionModalProps) {
+export function TransactionModal({ onClose, onSave, accounts = [] }: TransactionModalProps) {
   const { projects = [] } = useAppStore();
+  const safeAccounts = Array.isArray(accounts) ? accounts : [];
   const [formData, setFormData] = useState<any>({
     type: 'Chi tiêu',
     amount: '',
     category: '',
-    accountId: accounts[0]?.id || '',
+    accountId: safeAccounts.length > 0 ? safeAccounts[0].id : '',
     toAccountId: '',
     date: new Date().toISOString().split('T')[0],
     note: ''

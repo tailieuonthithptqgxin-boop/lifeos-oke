@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowRight, CheckCircle2, ShieldAlert, UserCheck, Sparkles, 
   Flame, Zap, Trophy, Brain, Layers, Star, ArrowUpRight, Check 
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
+import { apiCall } from '../lib/apiClient';
 
 interface PublicLandingViewProps {
   onLoginClick: () => void;
@@ -11,6 +12,23 @@ interface PublicLandingViewProps {
 
 export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
   const { setCurrentView } = useAppStore();
+  const [plans, setPlans] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchPlans = async () => {
+      try {
+        const res = await apiCall('/api/payments/plans');
+        if (res && res.success && Array.isArray(res.plans)) {
+          setPlans(res.plans);
+        }
+      } catch (e) {}
+    };
+    fetchPlans();
+  }, []);
+
+  const p1m = plans.find(p => p.id === 'PERSONAL_1M');
+  const p3m = plans.find(p => p.id === 'PERSONAL_3M');
+  const pTeam = plans.find(p => p.id === 'TEAM_1M' || p.id === 'TEAM');
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white relative overflow-hidden">
@@ -208,7 +226,7 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
               <h3 className="text-lg font-bold text-white mb-1">Cá Nhân (1 Tháng)</h3>
               <p className="text-xs text-slate-400 mb-6">Dành cho cá nhân trải nghiệm phương pháp sống mới.</p>
               <div className="text-3xl font-black text-white mb-6">
-                15.000 ₫ <span className="text-xs text-slate-400 font-normal">/ 30 ngày</span>
+                {p1m?.pricing?.monthly?.displayPrice || `${(p1m?.price || 15000).toLocaleString('vi-VN')} ₫`} <span className="text-xs text-slate-400 font-normal">/ {p1m?.billingCycle || '30 ngày'}</span>
               </div>
               <ul className="space-y-3 text-xs text-slate-300 mb-8">
                 <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-indigo-400 shrink-0" /> Mở khóa toàn bộ chức năng LifeOS</li>
@@ -228,13 +246,13 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
           {/* Gói 3 Tháng - Hot */}
           <div className="relative bg-gradient-to-b from-indigo-950 via-slate-900 to-slate-950 rounded-3xl p-8 border-2 border-indigo-500 shadow-2xl shadow-indigo-500/20 flex flex-col justify-between scale-105 z-10">
             <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-extrabold text-[10px] tracking-wider uppercase shadow-md">
-              Lựa Chọn Phổ Biến Nhất
+              {p3m?.badge || 'Lựa Chọn Phổ Biến Nhất'}
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white mb-1">Cá Nhân (3 Tháng)</h3>
-              <p className="text-xs text-indigo-200 mb-6">Đủ thời gian để hình thành thói quen sống vững bền.</p>
+              <h3 className="text-lg font-bold text-white mb-1">{p3m?.name || 'Cá Nhân (3 Tháng)'}</h3>
+              <p className="text-xs text-indigo-200 mb-6">{p3m?.description || 'Đủ thời gian để hình thành thói quen sống vững bền.'}</p>
               <div className="text-3xl font-black text-white mb-6">
-                40.000 ₫ <span className="text-xs text-slate-400 font-normal">/ 90 ngày</span>
+                {p3m?.pricing?.monthly?.displayPrice || `${(p3m?.price || 40000).toLocaleString('vi-VN')} ₫`} <span className="text-xs text-slate-400 font-normal">/ {p3m?.billingCycle || '90 ngày'}</span>
               </div>
               <ul className="space-y-3 text-xs text-slate-200 mb-8">
                 <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-400 shrink-0" /> Đầy đủ tính năng Pro Edition</li>
@@ -247,17 +265,17 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
               onClick={onLoginClick}
               className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white font-extrabold text-xs shadow-lg shadow-indigo-500/30 transition-all cursor-pointer"
             >
-              Chọn Gói Tiết Kiệm (40k)
+              Chọn Gói Tiết Kiệm ({((p3m?.price || 40000) / 1000)}k)
             </button>
           </div>
 
           {/* Gói Team */}
           <div className="bg-slate-900/80 rounded-3xl p-8 border border-white/10 flex flex-col justify-between hover:border-white/20 transition-all">
             <div>
-              <h3 className="text-lg font-bold text-white mb-1">Gói Đội Ngũ (Team 5 người)</h3>
-              <p className="text-xs text-slate-400 mb-6">Dành cho nhóm làm việc, học nhóm cùng tiến bộ.</p>
+              <h3 className="text-lg font-bold text-white mb-1">{pTeam?.name || 'Gói Đội Ngũ (Team 5 người)'}</h3>
+              <p className="text-xs text-slate-400 mb-6">{pTeam?.description || 'Dành cho nhóm làm việc, học nhóm cùng tiến bộ.'}</p>
               <div className="text-3xl font-black text-white mb-6">
-                50.000 ₫ <span className="text-xs text-slate-400 font-normal">/ 30 ngày</span>
+                {pTeam?.pricing?.monthly?.displayPrice || `${(pTeam?.price || 50000).toLocaleString('vi-VN')} ₫`} <span className="text-xs text-slate-400 font-normal">/ {pTeam?.billingCycle || '30 ngày'}</span>
               </div>
               <ul className="space-y-3 text-xs text-slate-300 mb-8">
                 <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-purple-400 shrink-0" /> Cho nhóm tối đa 5 thành viên</li>
