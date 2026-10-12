@@ -1,0 +1,1194 @@
+{
+  "scannedFiles": 213,
+  "mathRandom": [
+    {
+      "file": "src/backend/routes/api.ts",
+      "line": 1217,
+      "content": "const orderId = `ORD_${Date.now()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;"
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "line": 1925,
+      "content": "const orderId = `ORD_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;"
+    },
+    {
+      "file": "src/backend/services/progression.service.ts",
+      "line": 501,
+      "content": "const rand = Math.random() * 100;"
+    },
+    {
+      "file": "src/backend/services/r2.service.ts",
+      "line": 133,
+      "content": "const randomStr = Math.random().toString(36).substring(2, 8);"
+    },
+    {
+      "file": "src/backend/services/referral.service.ts",
+      "line": 48,
+      "content": "code += chars.charAt(Math.floor(Math.random() * chars.length));"
+    },
+    {
+      "file": "src/backend/services/rpg.service.ts",
+      "line": 986,
+      "content": "* Zero Math.random(). Zero fake data."
+    },
+    {
+      "file": "src/backend/services/rpg.service.ts",
+      "line": 1418,
+      "content": "const isCrit = Math.random() < critChance;"
+    },
+    {
+      "file": "src/backend/services/rpg.service.ts",
+      "line": 1438,
+      "content": "if (monsterHp > 0 && doubleStrikeChance > 0 && Math.random() < doubleStrikeChance) {"
+    },
+    {
+      "file": "src/backend/services/rpg.service.ts",
+      "line": 1504,
+      "content": "const battleRecordId = `battle_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;"
+    },
+    {
+      "file": "src/backend/services/rpg.service.ts",
+      "line": 1529,
+      "content": "const roll = Math.random() * 100;"
+    },
+    {
+      "file": "src/components/companion/GlobalCompanionOverlay.tsx",
+      "line": 132,
+      "content": "const nextDelay = Math.floor(Math.random() * range) + baseMin;"
+    },
+    {
+      "file": "src/components/companion/LiveMascotCharacter.tsx",
+      "line": 37,
+      "content": "const delay = Math.random() * 2600 + 3200;"
+    },
+    {
+      "file": "src/components/companion/LiveMascotCharacter.tsx",
+      "line": 40,
+      "content": "const isDouble = Math.random() > 0.75;"
+    },
+    {
+      "file": "src/components/companion/LiveMascotCharacter.tsx",
+      "line": 62,
+      "content": "const delay = Math.random() * 4000 + 4000;"
+    },
+    {
+      "file": "src/components/companion/LiveMascotCharacter.tsx",
+      "line": 66,
+      "content": "const nextGaze = gazes[Math.floor(Math.random() * gazes.length)];"
+    },
+    {
+      "file": "src/components/companion/LiveMascotCharacter.tsx",
+      "line": 81,
+      "content": "const delay = Math.random() * 3000 + 3500;"
+    },
+    {
+      "file": "src/components/companion/LiveMascotCharacter.tsx",
+      "line": 85,
+      "content": "setHeadTilt(tilts[Math.floor(Math.random() * tilts.length)]);"
+    },
+    {
+      "file": "src/components/companion/LiveMascotCharacter.tsx",
+      "line": 86,
+      "content": "setBodySway(Math.random() > 0.5 ? 1 : -1);"
+    },
+    {
+      "file": "src/components/companion/LiveMascotCharacter.tsx",
+      "line": 100,
+      "content": "const delay = Math.random() * 20000 + 25000;"
+    },
+    {
+      "file": "src/components/companion/StudyCompanionWidget.tsx",
+      "line": 116,
+      "content": "const nextDelay = Math.floor(Math.random() * range) + baseMin;"
+    },
+    {
+      "file": "src/components/companion/StudyCompanionWidget.tsx",
+      "line": 151,
+      "content": "const randomGreet = greetings[Math.floor(Math.random() * greetings.length)];"
+    },
+    {
+      "file": "src/components/DecisionEngineView.tsx",
+      "line": 173,
+      "content": "id: `dec_${Math.random().toString(36).substr(2, 9)}`,"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 1302,
+      "content": "id: Math.random().toString(36).substring(2, 9),"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 1428,
+      "content": "id: goal?.id || Math.random().toString(36).substring(2, 9),"
+    },
+    {
+      "file": "src/components/NotesView.tsx",
+      "line": 229,
+      "content": "id: Math.random().toString(36).substring(2, 11),"
+    },
+    {
+      "file": "src/components/NotesView.tsx",
+      "line": 1528,
+      "content": "id: Math.random().toString(36).substring(2, 11),"
+    },
+    {
+      "file": "src/components/vocab/StudySessionScreen.tsx",
+      "line": 305,
+      "content": ".sort(() => Math.random() - 0.5)"
+    },
+    {
+      "file": "src/components/vocab/StudySessionScreen.tsx",
+      "line": 311,
+      "content": "return options.sort(() => Math.random() - 0.5);"
+    },
+    {
+      "file": "src/components/vocab/VocabMasterView.tsx",
+      "line": 299,
+      "content": "const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, maxCards);"
+    },
+    {
+      "file": "src/components/vocab/VocabMasterView.tsx",
+      "line": 427,
+      "content": "id: 'word_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),"
+    },
+    {
+      "file": "src/components/vocab/VocabMasterView.tsx",
+      "line": 1084,
+      "content": "id: 'word_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),"
+    },
+    {
+      "file": "src/lib/analytics.ts",
+      "line": 50,
+      "content": "id: `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,"
+    },
+    {
+      "file": "src/lib/chineseVocab/chineseActiveRecallEngine.ts",
+      "line": 27,
+      "content": "const shuffledTargets = [...targetWords].sort(() => Math.random() - 0.5).slice(0, questionCount);"
+    },
+    {
+      "file": "src/lib/chineseVocab/chineseActiveRecallEngine.ts",
+      "line": 33,
+      "content": ".sort(() => Math.random() - 0.5)"
+    },
+    {
+      "file": "src/lib/chineseVocab/chineseActiveRecallEngine.ts",
+      "line": 50,
+      "content": "const options = [target.term, ...distractors.map(d => d.term)].sort(() => Math.random() - 0.5);"
+    },
+    {
+      "file": "src/lib/chineseVocab/chineseActiveRecallEngine.ts",
+      "line": 67,
+      "content": "const options = [target.term, ...distractors.map(d => d.term)].sort(() => Math.random() - 0.5);"
+    },
+    {
+      "file": "src/lib/chineseVocab/chineseActiveRecallEngine.ts",
+      "line": 84,
+      "content": "const options = [target.pinyin, ...distractors.map(d => d.pinyin)].sort(() => Math.random() - 0.5);"
+    },
+    {
+      "file": "src/lib/chineseVocab/chineseActiveRecallEngine.ts",
+      "line": 101,
+      "content": "const options = [target.term, ...distractors.map(d => d.term)].sort(() => Math.random() - 0.5);"
+    },
+    {
+      "file": "src/lib/chineseVocab/chineseActiveRecallEngine.ts",
+      "line": 120,
+      "content": "const options = [target.term, ...distractors.map(d => d.term)].sort(() => Math.random() - 0.5);"
+    },
+    {
+      "file": "src/lib/chineseVocab/chineseActiveRecallEngine.ts",
+      "line": 137,
+      "content": "const options = [target.term, ...distractors.map(d => d.term)].sort(() => Math.random() - 0.5);"
+    },
+    {
+      "file": "src/lib/chineseVocab/chineseActiveRecallEngine.ts",
+      "line": 155,
+      "content": "const options = [target.meaning, ...distractors.map(d => d.meaning)].sort(() => Math.random() - 0.5);"
+    },
+    {
+      "file": "src/lib/companion/companionTelemetry.ts",
+      "line": 123,
+      "content": "id: `unk_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,"
+    },
+    {
+      "file": "src/lib/companionQuotes.ts",
+      "line": 232,
+      "content": "selected = freshCandidates[Math.floor(Math.random() * freshCandidates.length)];"
+    },
+    {
+      "file": "src/lib/companionQuotes.ts",
+      "line": 237,
+      "content": "? nonConsecutive[Math.floor(Math.random() * nonConsecutive.length)]"
+    },
+    {
+      "file": "src/lib/companionQuotes.ts",
+      "line": 276,
+      "content": "const chosenCategory = pool[Math.floor(Math.random() * pool.length)];"
+    },
+    {
+      "file": "src/lib/companionQuotes.ts",
+      "line": 281,
+      "content": "const chosenCategory = pool[Math.floor(Math.random() * pool.length)];"
+    },
+    {
+      "file": "src/lib/confetti.ts",
+      "line": 65,
+      "content": "const angle = Math.random() * Math.PI * 2;"
+    },
+    {
+      "file": "src/lib/confetti.ts",
+      "line": 66,
+      "content": "const velocity = Math.random() * 8 + 3;"
+    },
+    {
+      "file": "src/lib/confetti.ts",
+      "line": 72,
+      "content": "size: Math.random() * 7 + 4,"
+    },
+    {
+      "file": "src/lib/confetti.ts",
+      "line": 73,
+      "content": "color: PASTEL_PALETTE[Math.floor(Math.random() * PASTEL_PALETTE.length)],"
+    },
+    {
+      "file": "src/lib/confetti.ts",
+      "line": 74,
+      "content": "rotation: Math.random() * 360,"
+    },
+    {
+      "file": "src/lib/confetti.ts",
+      "line": 75,
+      "content": "rotationSpeed: (Math.random() - 0.5) * 12,"
+    },
+    {
+      "file": "src/lib/confetti.ts",
+      "line": 77,
+      "content": "decay: Math.random() * 0.018 + 0.012,"
+    },
+    {
+      "file": "src/lib/offlineSyncQueue.ts",
+      "line": 49,
+      "content": "id: `mut_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,"
+    },
+    {
+      "file": "src/lib/soundEngine.ts",
+      "line": 235,
+      "content": "const startTime = now + i * 0.05 + Math.random() * 0.02;"
+    },
+    {
+      "file": "src/lib/spacedRepetitionScheduler.ts",
+      "line": 265,
+      "content": "id: 'log_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 506,
+      "content": "const tempId = item.id || `tmp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;"
+    },
+    {
+      "file": "src/lib/__tests__/companionTest.ts",
+      "line": 118,
+      "content": "const calculateDelay = () => Math.floor(Math.random() * 60000) + 120000;"
+    }
+  ],
+  "commission30": [
+    {
+      "file": "src/backend/services/referral.service.ts",
+      "line": 159,
+      "content": "const commissionRate = 0.30;"
+    }
+  ],
+  "mockOccurrences": [
+    {
+      "file": "src/backend/db.ts",
+      "line": 1376,
+      "content": "async seedUserSampleData(userId: string) {"
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "line": 3430,
+      "content": "await dbService.seedUserSampleData(userId);"
+    },
+    {
+      "file": "src/components/MyAccountView.tsx",
+      "line": 69,
+      "content": "seedSampleData,"
+    },
+    {
+      "file": "src/components/MyAccountView.tsx",
+      "line": 763,
+      "content": "onClick={seedSampleData}"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 374,
+      "content": "const seedSampleData = async () => {"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 795,
+      "content": "seedSampleData,"
+    }
+  ],
+  "apiRoutes": [
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/languages",
+      "line": 51
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/payments/plans",
+      "line": 68
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/data/:collection",
+      "line": 200
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/templates/:id/apply",
+      "line": 234
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/journey",
+      "line": 432
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/journey/milestone",
+      "line": 446
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "DELETE",
+      "endpoint": "/journey/milestone/:id",
+      "line": 480
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/progression",
+      "line": 499
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/progression/quest/claim",
+      "line": 513
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/progression/challenge/claim",
+      "line": 533
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/progression/reward/unlock",
+      "line": 553
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/progression/reward/equip",
+      "line": 573
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/progression/chest/open",
+      "line": 594
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/rpg/character",
+      "line": 613
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/rpg/monsters",
+      "line": 629
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/rpg/battle",
+      "line": 644
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/rpg/equipment",
+      "line": 664
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/rpg/equipment/equip",
+      "line": 680
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/rpg/equipment/upgrade",
+      "line": 701
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/rpg/skills",
+      "line": 722
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/rpg/skills/unlock",
+      "line": 737
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/rpg/battles/history",
+      "line": 758
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/habits/:id/toggle",
+      "line": 782
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/data/:collection",
+      "line": 857
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "PUT",
+      "endpoint": "/data/:collection/:id",
+      "line": 928
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "DELETE",
+      "endpoint": "/data/:collection/:id",
+      "line": 1015
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "DELETE",
+      "endpoint": "/notifications/all",
+      "line": 1058
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "PUT",
+      "endpoint": "/notifications/:id/read",
+      "line": 1075
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/coupons/validate",
+      "line": 1097
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/cart/checkout",
+      "line": 1158
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/payments/bank-config",
+      "line": 1518
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/payments/plans",
+      "line": 1528
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "PUT",
+      "endpoint": "/admin/payments/bank-config",
+      "line": 1561
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/plans",
+      "line": 1593
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "PUT",
+      "endpoint": "/admin/plans/:id",
+      "line": 1607
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/plans/audit-history",
+      "line": 1705
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/plans/reset-defaults",
+      "line": 1723
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/languages",
+      "line": 1754
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "PUT",
+      "endpoint": "/admin/languages",
+      "line": 1767
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "DELETE",
+      "endpoint": "/admin/languages/:code",
+      "line": 1817
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/payments/checkout-session",
+      "line": 1858
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/payments/submit-request",
+      "line": 2026
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/payments/my-requests",
+      "line": 2100
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/payments/active-pending-request",
+      "line": 2120
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/payments/cancel-request",
+      "line": 2143
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/payments/requests",
+      "line": 2189
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/payments/:id/approve",
+      "line": 2263
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/payments/:id/reject",
+      "line": 2401
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/payments/:id/refund",
+      "line": 2507
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/subscriptions",
+      "line": 2538
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/payments/subscription",
+      "line": 2560
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/team/my-team",
+      "line": 2613
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "PUT",
+      "endpoint": "/team/name",
+      "line": 2625
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/team/members",
+      "line": 2642
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "DELETE",
+      "endpoint": "/team/members/:userId",
+      "line": 2659
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/team/invite-code",
+      "line": 2673
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/team/join",
+      "line": 2682
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/payments/simulate-instant-activation",
+      "line": 2702
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/payments/simulate-expire",
+      "line": 2719
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/payments/subscription/cancel-auto-renew",
+      "line": 2742
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/payments/subscription/resume-auto-renew",
+      "line": 2778
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/auth/upgrade-plan",
+      "line": 2805
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/saas-metrics",
+      "line": 2854
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/users/:id/grant-subscription",
+      "line": 2867
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/users/:id/revoke-subscription",
+      "line": 2903
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/users/:id/detail",
+      "line": 2936
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "PUT",
+      "endpoint": "/admin/users/:id/admin-notes",
+      "line": 2993
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/payments/webhook-simulate",
+      "line": 3015
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/life-harmony",
+      "line": 3071
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/today",
+      "line": 3091
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/finance/transaction",
+      "line": 3195
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/focus/complete",
+      "line": 3212
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/decisions/:id/select-option",
+      "line": 3280
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/decisions/evaluate",
+      "line": 3314
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/decisions/:id/convert-execution",
+      "line": 3329
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/automations/evaluate",
+      "line": 3382
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/settings",
+      "line": 3397
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "PUT",
+      "endpoint": "/settings",
+      "line": 3407
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/clear-workspace",
+      "line": 3417
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/seed-sample",
+      "line": 3427
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/metrics",
+      "line": 3440
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/users",
+      "line": 3485
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/users",
+      "line": 3502
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "PUT",
+      "endpoint": "/admin/users/:id/status",
+      "line": 3556
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "PUT",
+      "endpoint": "/admin/users/:id/plan",
+      "line": 3589
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "PUT",
+      "endpoint": "/admin/users/:id/reset-password",
+      "line": 3629
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/audit-logs",
+      "line": 3661
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/export/:collection",
+      "line": 3685
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/tasks/:taskId/attachments",
+      "line": 3707
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/tasks/:taskId/attachments",
+      "line": 3733
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "DELETE",
+      "endpoint": "/tasks/:taskId/attachments/:attachmentId",
+      "line": 3783
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/workspace/backup/export",
+      "line": 3808
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/workspace/backup/import",
+      "line": 3911
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/gmail/config",
+      "line": 4113
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "PUT",
+      "endpoint": "/admin/gmail/config",
+      "line": 4132
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/gmail/test",
+      "line": 4161
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/gmail/logs",
+      "line": 4175
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/referrals/dashboard",
+      "line": 4193
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/referrals/withdraw",
+      "line": 4208
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/referrals/withdrawals",
+      "line": 4231
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/referrals/overview",
+      "line": 4245
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/referrals/withdrawals",
+      "line": 4259
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/referrals/withdrawals/:id/approve",
+      "line": 4274
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/referrals/withdrawals/:id/reject",
+      "line": 4291
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/feedback",
+      "line": 4316
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/feedback/my",
+      "line": 4341
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/feedback/public",
+      "line": 4355
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/feedback/:id/vote",
+      "line": 4369
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/feedback",
+      "line": 4383
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "PATCH",
+      "endpoint": "/admin/feedback/:id",
+      "line": 4403
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "POST",
+      "endpoint": "/register",
+      "line": 42
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "POST",
+      "endpoint": "/login",
+      "line": 182
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "POST",
+      "endpoint": "/logout",
+      "line": 313
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "POST",
+      "endpoint": "/logout-all",
+      "line": 325
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "GET",
+      "endpoint": "/me",
+      "line": 345
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "PUT",
+      "endpoint": "/profile",
+      "line": 394
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "POST",
+      "endpoint": "/change-password",
+      "line": 431
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "POST",
+      "endpoint": "/forgot-password",
+      "line": 478
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "POST",
+      "endpoint": "/reset-password",
+      "line": 542
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "POST",
+      "endpoint": "/onboarding-setup",
+      "line": 610
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "GET",
+      "endpoint": "/sessions",
+      "line": 656
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "POST",
+      "endpoint": "/sessions/revoke-others",
+      "line": 688
+    },
+    {
+      "file": "src/backend/routes/customModules.routes.ts",
+      "method": "GET",
+      "endpoint": "/",
+      "line": 16
+    },
+    {
+      "file": "src/backend/routes/customModules.routes.ts",
+      "method": "POST",
+      "endpoint": "/",
+      "line": 43
+    },
+    {
+      "file": "src/backend/routes/customModules.routes.ts",
+      "method": "PUT",
+      "endpoint": "/:id",
+      "line": 120
+    },
+    {
+      "file": "src/backend/routes/customModules.routes.ts",
+      "method": "DELETE",
+      "endpoint": "/:id",
+      "line": 199
+    },
+    {
+      "file": "src/backend/routes/customModules.routes.ts",
+      "method": "GET",
+      "endpoint": "/:slug/records",
+      "line": 239
+    },
+    {
+      "file": "src/backend/routes/customModules.routes.ts",
+      "method": "POST",
+      "endpoint": "/:slug/records",
+      "line": 281
+    },
+    {
+      "file": "src/backend/routes/customModules.routes.ts",
+      "method": "PUT",
+      "endpoint": "/:slug/records/:id",
+      "line": 330
+    },
+    {
+      "file": "src/backend/routes/customModules.routes.ts",
+      "method": "DELETE",
+      "endpoint": "/:slug/records/:id",
+      "line": 376
+    },
+    {
+      "file": "src/backend/routes/r2.routes.ts",
+      "method": "GET",
+      "endpoint": "/status",
+      "line": 15
+    },
+    {
+      "file": "src/backend/routes/r2.routes.ts",
+      "method": "POST",
+      "endpoint": "/presigned-url",
+      "line": 33
+    },
+    {
+      "file": "src/backend/routes/r2.routes.ts",
+      "method": "POST",
+      "endpoint": "/upload-base64",
+      "line": 63
+    },
+    {
+      "file": "src/backend/routes/r2.routes.ts",
+      "method": "GET",
+      "endpoint": "/files",
+      "line": 100
+    },
+    {
+      "file": "src/backend/routes/r2.routes.ts",
+      "method": "GET",
+      "endpoint": "/metadata",
+      "line": 122
+    },
+    {
+      "file": "src/backend/routes/r2.routes.ts",
+      "method": "GET",
+      "endpoint": "/download",
+      "line": 149
+    },
+    {
+      "file": "src/backend/routes/r2.routes.ts",
+      "method": "DELETE",
+      "endpoint": "/file",
+      "line": 176
+    },
+    {
+      "file": "src/backend/routes/vocab.routes.ts",
+      "method": "GET",
+      "endpoint": "/analytics",
+      "line": 16
+    },
+    {
+      "file": "src/backend/routes/vocab.routes.ts",
+      "method": "POST",
+      "endpoint": "/review",
+      "line": 35
+    },
+    {
+      "file": "src/backend/routes/vocab.routes.ts",
+      "method": "GET",
+      "endpoint": "/history",
+      "line": 95
+    },
+    {
+      "file": "src/backend/routes/vocab.routes.ts",
+      "method": "POST",
+      "endpoint": "/sync",
+      "line": 114
+    },
+    {
+      "file": "src/backend/serverMain.ts",
+      "method": "GET",
+      "endpoint": "/health",
+      "line": 111
+    },
+    {
+      "file": "src/backend/serverMain.ts",
+      "method": "GET",
+      "endpoint": "/ready",
+      "line": 131
+    }
+  ]
+}
