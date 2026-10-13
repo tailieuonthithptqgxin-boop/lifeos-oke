@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import { 
   TrendingUp, TrendingDown, Calendar, DollarSign, PieChart as PieChartIcon, 
   BarChart3, Activity, AlertCircle, CheckCircle2, Info, Sparkles, 
-  Receipt, Plus, Percent, Clock, AlertTriangle, ArrowUpRight, ArrowDownRight
+  Receipt, Plus, Percent, Clock, AlertTriangle, ArrowUpRight, ArrowDownRight,
+  Layers
 } from 'lucide-react';
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, 
@@ -11,6 +12,7 @@ import {
 } from 'recharts';
 import { formatCurrency, formatCompactCurrency, formatDate } from '../../lib/utils';
 import { Transaction, Budget, SavingGoal } from '../../lib/types';
+import { FinanceMonthlyComparisonTab } from './FinanceMonthlyComparisonTab';
 
 interface FinanceAnalyticsTabProps {
   transactions: Transaction[];
@@ -21,6 +23,7 @@ interface FinanceAnalyticsTabProps {
 
 type PeriodType = 'this_month' | 'last_month' | 'last_30_days' | 'this_quarter' | 'this_year' | 'all';
 type GranularityType = 'day' | 'week' | 'month';
+type AnalyticsSubView = 'period' | 'monthly_comparison';
 
 const CATEGORY_COLORS = [
   '#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6', 
@@ -33,6 +36,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
   savingGoals = [],
   onOpenTxModal
 }) => {
+  const [subView, setSubView] = useState<AnalyticsSubView>('period');
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('this_month');
   const [chartGranularity, setChartGranularity] = useState<GranularityType>('day');
   const [chartType, setChartType] = useState<'area' | 'bar'>('area');
@@ -541,7 +545,43 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* 1. HEADER SECTION (WITH DYNAMIC CURRENT DATE SUBTITLE) */}
+      {/* Top Switch between Period Analysis and Multi-Month Comparison */}
+      <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl w-fit">
+        <button
+          type="button"
+          onClick={() => setSubView('period')}
+          className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            subView === 'period'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs font-black'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Activity className="w-4 h-4 text-emerald-500" />
+          <span>Phân tích theo kỳ</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setSubView('monthly_comparison')}
+          className={`px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            subView === 'monthly_comparison'
+              ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs font-black'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Layers className="w-4 h-4 text-blue-500" />
+          <span>So sánh giữa các tháng</span>
+        </button>
+      </div>
+
+      {subView === 'monthly_comparison' ? (
+        <FinanceMonthlyComparisonTab
+          transactions={transactions}
+          budgets={budgets}
+          onOpenTxModal={onOpenTxModal}
+        />
+      ) : (
+        <>
+          {/* 1. HEADER SECTION (WITH DYNAMIC CURRENT DATE SUBTITLE) */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
@@ -1188,28 +1228,30 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         </div>
       </div>
 
-      {/* 6. EMPTY STATE (WHEN CURRENT PERIOD HAS NO TRANSACTIONS AT ALL) */}
-      {currentPeriodTx.length === 0 && (
-        <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-950 p-8 sm:p-12 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 text-center flex flex-col items-center justify-center space-y-4">
-          <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-            <Receipt className="w-8 h-8" />
-          </div>
-          <div className="max-w-md space-y-1.5">
-            <h4 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
-              Chưa có dữ liệu thu chi
-            </h4>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              Hãy thêm giao dịch để bắt đầu phân tích tình hình tài chính theo thời gian thực.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onOpenTxModal}
-            className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all shadow-md shadow-emerald-500/20 cursor-pointer"
-          >
-            <Plus className="w-4 h-4 stroke-[3]" /> Thêm Giao dịch ngay
-          </button>
-        </div>
+          {/* 6. EMPTY STATE (WHEN CURRENT PERIOD HAS NO TRANSACTIONS AT ALL) */}
+          {currentPeriodTx.length === 0 && (
+            <div className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-950 p-8 sm:p-12 rounded-3xl border border-dashed border-slate-300 dark:border-slate-800 text-center flex flex-col items-center justify-center space-y-4">
+              <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                <Receipt className="w-8 h-8" />
+              </div>
+              <div className="max-w-md space-y-1.5">
+                <h4 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
+                  Chưa có dữ liệu thu chi
+                </h4>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                  Hãy thêm giao dịch để bắt đầu phân tích tình hình tài chính theo thời gian thực.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={onOpenTxModal}
+                className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all shadow-md shadow-emerald-500/20 cursor-pointer"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" /> Thêm Giao dịch ngay
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
