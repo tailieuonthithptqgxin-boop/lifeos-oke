@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../lib/store';
 import { 
   Wallet, Plus, Target, ArrowRightLeft,
-  PieChart, Activity, LayoutDashboard
+  PieChart, Activity, LayoutDashboard, TrendingUp
 } from 'lucide-react';
 import { formatCurrency, formatCompactCurrency } from '../lib/utils';
 
@@ -16,13 +16,14 @@ import { TransactionModal } from './finance/TransactionModal';
 
 // Tab Views
 import { FinanceOverviewTab } from './finance/FinanceOverviewTab';
+import { FinanceAnalyticsTab } from './finance/FinanceAnalyticsTab';
 import { FinanceAccountsTab } from './finance/FinanceAccountsTab';
 import { FinanceTransactionsTab } from './finance/FinanceTransactionsTab';
 import { FinanceBudgetsTab } from './finance/FinanceBudgetsTab';
 import { FinanceGoalsTab } from './finance/FinanceGoalsTab';
 import { FinanceScenarioTab } from './finance/FinanceScenarioTab';
 
-type Tab = 'overview' | 'accounts' | 'transactions' | 'budgets' | 'goals' | 'scenario';
+type Tab = 'overview' | 'analytics' | 'accounts' | 'transactions' | 'budgets' | 'goals' | 'scenario';
 
 export function FinanceView() {
   const { 
@@ -192,6 +193,7 @@ export function FinanceView() {
       {/* Navigation Tabs */}
       <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 shrink-0">
         <FinanceTabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<LayoutDashboard className="w-4 h-4" />} label="Tổng quan" />
+        <FinanceTabButton active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} icon={<TrendingUp className="w-4 h-4" />} label="Phân tích thu chi" />
         <FinanceTabButton active={activeTab === 'accounts'} onClick={() => setActiveTab('accounts')} icon={<Wallet className="w-4 h-4" />} label="Tài khoản" />
         <FinanceTabButton active={activeTab === 'transactions'} onClick={() => setActiveTab('transactions')} icon={<ArrowRightLeft className="w-4 h-4" />} label="Giao dịch" />
         <FinanceTabButton active={activeTab === 'budgets'} onClick={() => setActiveTab('budgets')} icon={<PieChart className="w-4 h-4" />} label="Ngân sách" />
@@ -224,6 +226,15 @@ export function FinanceView() {
             setEditingAccount(acc || null);
             setShowAccountModal(true);
           }}
+        />
+      )}
+
+      {activeTab === 'analytics' && (
+        <FinanceAnalyticsTab
+          transactions={transactions}
+          budgets={budgets}
+          savingGoals={savingGoals}
+          onOpenTxModal={() => setShowTxModal(true)}
         />
       )}
 
