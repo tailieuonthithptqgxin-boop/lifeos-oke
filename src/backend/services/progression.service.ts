@@ -1318,5 +1318,91 @@ export const progressionService = {
       sourceId,
       description: `Thử thách tuần: ${challenge.title}`
     });
+  },
+
+  /**
+   * Real System Leaderboard
+   * Aggregates real users, their focus sessions and progressions from PostgreSQL.
+   * Zero mock data.
+   */
+  async getLeaderboard(currentUserId: string) {
+    const prisma = getPrisma();
+    const users = await prisma.user.findMany({
+      where: { status: 'ACTIVE' },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        avatar: true,
+        userProgression: {
+          select: {
+            totalXp: true,
+            level: true,
+            currentStreak: true,
+            longestStreak: true,
+            equippedTitle: true
+          }
+        },
+        focusSessions: {
+          where: { status: 'Completed' },
+          select: {
+            actualDuration: true,
+            createdAt: true
+          }
+        }
+      }
+    });
+
+    const parsed = users.map(u => {
+      const focusMinutes = u.focusSessions.reduce((sum, s) => sum + (s.actualDuration || 0), 0);
+      const streakDays = u.userProgression?.currentStreak || 0;
+      const level = u.userProgression?.level || 1;
+      const xp = u.userProgression?.totalXp || 0;
+      const cpScore = Math.floor(level * 35 + streakDays * 20 + xp);
+
+      let badge = u.userProgression?.equippedTitle || 'Tân Binh Đang Lên';
+      if (streakDays >= 14) badge = '🔥 Kỷ Luật Thép';
+      else if (streakDays >= 7) badge = 'Chiến Binh Kỷ Luật';
+      else if (level >= 5) badge = 'Bậc Thầy Tập Trung';
+
+      const isMe = u.id === currentUserId;
+      const displayName = isMe
+        ? `${u.name || 'Bạn'} (Tôi)`
+        : (u.name || u.email.split('@')[0]);
+
+      return {
+        id: u.id,
+        name: displayName,
+        avatar: u.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'User')}&background=059669&color=fff`,
+        badge,
+        focusMinutes,
+        streakDays,
+        cpScore,
+        isCurrentUser: isMe
+      };
+    });
+
+    const focusLeaderboard = [...parsed]
+      .sort((a, b) => b.focusMinutes - a.focusMinutes || b.cpScore - a.cpScore)
+      .map((item, index) => ({ ...item, rank: index + 1 }));
+
+    const streakLeaderboard = [...parsed]
+      .sort((a, b) => b.streakDays - a.streakDays || b.cpScore - a.cpScore)
+      .map((item, index) => ({ ...item, rank: index + 1 }));
+
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const activeFocusToday = await prisma.focusSession.count({
+      where: {
+        createdAt: { gte: startOfToday }
+      }
+    });
+
+    return {
+      focusLeaderboard,
+      streakLeaderboard,
+      activeFocusToday
+    };
   }
 };
+

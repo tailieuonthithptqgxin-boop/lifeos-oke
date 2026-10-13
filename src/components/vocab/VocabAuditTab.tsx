@@ -40,6 +40,7 @@ export function VocabAuditTab({
   const [statusFilter, setStatusFilter] = useState<'all' | 'needs_review' | 'flagged_error' | 'confusables' | 'dialects' | 'multi_meaning' | 'proposals' | 'verified'>('all');
   const [sourceFilter, setSourceFilter] = useState<'all' | '3000' | 'personal'>('all');
   const [isScanning, setIsScanning] = useState(false);
+  const [auditVersion, setAuditVersion] = useState(0);
 
   // Run or re-calculate quality audit
   const auditResult = useMemo(() => {
@@ -48,7 +49,7 @@ export function VocabAuditTab({
       sourceFilter === '3000' ? [] : personalWords,
       userData.verificationOverrides || {}
     );
-  }, [systemWords, personalWords, userData.verificationOverrides, sourceFilter]);
+  }, [systemWords, personalWords, userData.verificationOverrides, sourceFilter, auditVersion]);
 
   const { summary, reports, problematicReports } = auditResult;
 
@@ -249,7 +250,10 @@ export function VocabAuditTab({
             type="button"
             onClick={() => {
               setIsScanning(true);
-              setTimeout(() => setIsScanning(false), 700);
+              requestAnimationFrame(() => {
+                setAuditVersion(v => v + 1);
+                setIsScanning(false);
+              });
             }}
             className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
           >

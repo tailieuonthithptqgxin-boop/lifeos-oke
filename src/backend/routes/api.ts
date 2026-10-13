@@ -127,6 +127,7 @@ apiRouter.use(async (req: AuthRequest, res: Response, next: any) => {
     path.startsWith('/life-harmony') ||
     path.startsWith('/journey') ||
     path.startsWith('/progression') ||
+    path.startsWith('/leaderboard') ||
     path.startsWith('/team/my-team') ||
     path.startsWith('/team/join') ||
     (path.startsWith('/r2/upload-base64') && req.body?.folder === 'receipts');
@@ -773,6 +774,23 @@ apiRouter.delete('/journey/milestone/:id', async (req: AuthRequest, res: Respons
   } catch (err: any) {
     console.error('Error deleting journey milestone:', err);
     res.status(500).json({ success: false, message: err.message || 'Lỗi khi xóa cột mốc.' });
+  }
+});
+
+// --------------------------------------------------------------------------
+// REAL USER COMMUNITY LEADERBOARD (ZERO FAKE DATA)
+// --------------------------------------------------------------------------
+apiRouter.get('/leaderboard', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    const data = await progressionService.getLeaderboard(userId);
+    res.json({
+      success: true,
+      data
+    });
+  } catch (err: any) {
+    console.error('Error fetching leaderboard:', err);
+    res.status(500).json({ success: false, message: err.message || 'Lỗi khi tải bảng xếp hạng thực tế.' });
   }
 });
 

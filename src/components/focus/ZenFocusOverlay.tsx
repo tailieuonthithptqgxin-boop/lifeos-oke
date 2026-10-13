@@ -17,17 +17,17 @@ interface ZenFocusOverlayProps {
 
 type AmbientTrack = 'none' | 'lofi' | 'rain' | 'brown_noise' | 'forest' | 'cafe';
 
-const MOTIVATION_PEER_STREAM = [
-  '🔥 Minh Anh (Hà Nội) vừa hoàn thành 45p Pomodoro (+45 XP)',
-  '❄️ Quốc Bảo (TP.HCM) vừa bảo vệ chuỗi 21 ngày thành công',
-  '📚 Thùy Linh vừa ôn xong 35 từ vựng JLPT N2',
-  '⚡ Đức Huy vừa giải quyết xong 3 nhiệm vụ P.A.R.A',
-  '🧘 Thu Trang vừa hoàn tất 30p Thiền & Focus',
-  '🎯 Hoàng Nam vừa kích hoạt Streak Shield tuần này'
+const MINDFUL_FOCUS_TIPS = [
+  '💡 Mẹo Deep Work: Tắt mọi thông báo để bảo toàn tối đa Dopamine làm việc sâu.',
+  '🧠 Nhịp sinh học não bộ: 25 phút Pomodoro tối ưu hóa khả năng ghi nhớ dài hạn.',
+  '✨ Chánh niệm: Hít thở sâu 4 giây - giữ 4 giây - thở ra 4 giây để đưa cơ thể về nhịp Flow.',
+  '🎯 Đơn nhiệm (Single-tasking): Xử lý dứt điểm 1 mục tiêu duy nhất trước khi chuyển việc.',
+  '🛡️ Không gian tĩnh: Âm thanh sóng âm mộc giúp loại bỏ tạp âm môi trường và giảm xao nhãng.',
+  '🚀 Kỷ luật tự giác: Mỗi phút bạn ngồi lại với công việc là một bước tiến vượt bậc của bản thân.'
 ];
 
 export function ZenFocusOverlay({ isOpen, onClose, defaultTaskId }: ZenFocusOverlayProps) {
-  const { tasks = [], addFocusSession, updateTask } = useAppStore();
+  const { tasks = [], focusSessions = [], addFocusSession, updateTask } = useAppStore();
 
   const [mode, setMode] = useState<'POMODORO' | 'FLOW'>('POMODORO');
   const [durationMinutes, setDurationMinutes] = useState(25);
@@ -52,12 +52,23 @@ export function ZenFocusOverlay({ isOpen, onClose, defaultTaskId }: ZenFocusOver
   const liveXpEarned = Math.floor(elapsedTotalSeconds / 60) * 2;
   const liveCpEarned = Math.floor(elapsedTotalSeconds / 60) * 5;
 
-  // Study With Me: Virtual Co-working Peers & Live Toast Stream
-  const [onlinePeers, setOnlinePeers] = useState(() => {
-    const hour = new Date().getHours();
-    return (hour >= 8 && hour <= 23) ? 140 + Math.floor(Math.random() * 45) : 75 + Math.floor(Math.random() * 20);
-  });
+  // Real focus session counters (zero fake data)
+  const [systemFocusToday, setSystemFocusToday] = useState<number | null>(null);
   const [activePeerToast, setActivePeerToast] = useState<string | null>(null);
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const myTodayFocusCount = focusSessions.filter(s => s.createdAt && s.createdAt.startsWith(todayStr)).length;
+
+  useEffect(() => {
+    if (!isOpen) return;
+    apiCall('/leaderboard')
+      .then(res => {
+        if (res?.data?.activeFocusToday !== undefined) {
+          setSystemFocusToday(res.data.activeFocusToday);
+        }
+      })
+      .catch(() => {});
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen || !isRunning) {
@@ -66,10 +77,10 @@ export function ZenFocusOverlay({ isOpen, onClose, defaultTaskId }: ZenFocusOver
     }
 
     const interval = setInterval(() => {
-      const idx = Math.floor(Math.random() * MOTIVATION_PEER_STREAM.length);
-      setActivePeerToast(MOTIVATION_PEER_STREAM[idx]);
+      const idx = Math.floor(Math.random() * MINDFUL_FOCUS_TIPS.length);
+      setActivePeerToast(MINDFUL_FOCUS_TIPS[idx]);
       setTimeout(() => setActivePeerToast(null), 6500);
-    }, 22000);
+    }, 25000);
 
     return () => clearInterval(interval);
   }, [isOpen, isRunning]);
@@ -321,10 +332,14 @@ export function ZenFocusOverlay({ isOpen, onClose, defaultTaskId }: ZenFocusOver
             <span className="text-emerald-400">ZEN FOCUS MODE</span>
           </div>
 
-          {/* Live Virtual Co-working Peers Indicator */}
+          {/* Real Deep Work Sessions Indicator */}
           <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs font-bold backdrop-blur-md">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping shrink-0" />
-            <span>🟢 {onlinePeers} bạn đang cùng Focus</span>
+            <span>
+              🟢 {systemFocusToday !== null && systemFocusToday > 0 
+                ? `${systemFocusToday} phiên Deep Work hôm nay` 
+                : (myTodayFocusCount > 0 ? `${myTodayFocusCount} phiên của bạn hôm nay` : 'Phiên Deep Work tập trung cao độ')}
+            </span>
           </div>
         </div>
 

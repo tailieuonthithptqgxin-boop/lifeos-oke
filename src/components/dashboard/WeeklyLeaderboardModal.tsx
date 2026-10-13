@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Trophy, Flame, Clock, Sparkles, X, 
-  Crown, Share2, TrendingUp, Zap, Award, ChevronRight
+  Crown, Share2, TrendingUp, Zap, Award, ChevronRight, Loader2
 } from 'lucide-react';
 import { soundEngine } from '../../lib/soundEngine';
 import { useAppStore } from '../../lib/store';
 import { retentionEngine } from '../../lib/retentionEngine';
+import { apiCall } from '../../lib/apiClient';
 
 interface LeaderboardUser {
   rank: number;
@@ -21,69 +22,103 @@ interface LeaderboardUser {
 interface WeeklyLeaderboardModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onOpenShareStory: () => void;
+  onOpenShareStory?: () => void;
+  onShare?: () => void;
 }
 
 export function WeeklyLeaderboardModal({
   isOpen,
   onClose,
-  onOpenShareStory
+  onOpenShareStory,
+  onShare
 }: WeeklyLeaderboardModalProps) {
   const { currentUser, focusSessions = [] } = useAppStore();
   const [activeTab, setActiveTab] = useState<'focus' | 'streak'>('focus');
+  const [isLoading, setIsLoading] = useState(false);
+  const [apiFocusList, setApiFocusList] = useState<LeaderboardUser[]>([]);
+  const [apiStreakList, setApiStreakList] = useState<LeaderboardUser[]>([]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let isMounted = true;
+    setIsLoading(true);
+
+    apiCall('/leaderboard')
+      .then(res => {
+        if (isMounted && res?.data) {
+          setApiFocusList(res.data.focusLeaderboard || []);
+          setApiStreakList(res.data.streakLeaderboard || []);
+        }
+      })
+      .catch(err => {
+        console.warn('Leaderboard fetch error, fallback to local user data:', err);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => { isMounted = false; };
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
   // Real user calculated stats for current week
   const profile = retentionEngine.getProfile(currentUser?.id);
-  const myStreak = profile.streak || 1;
+  const myStreak = profile.streak || 0;
   const currentLevel = profile.level || 1;
   
   // Real focus minutes of current user
   const myTotalFocusMinutes = focusSessions
     .filter(s => s.status === 'Completed')
-    .reduce((sum, s) => sum + (s.actualDuration || 0), 0) || 120;
+    .reduce((sum, s) => sum + (s.actualDuration || 0), 0);
 
   const myCp = Math.floor(currentLevel * 35 + myStreak * 20);
 
-  // Community Leaderboard (Simulated realistic peers + real current user dynamically positioned)
-  const baseFocusPeers: Omit<LeaderboardUser, 'rank'>[] = [
-    { name: 'Hoàng Minh', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&fit=crop', badge: '🥇 Top 1 Tuần', focusMinutes: 480, streakDays: 24, cpScore: 1320 },
-    { name: 'Thu Thảo (IELTS 8.0)', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&fit=crop', badge: '🥈 Bậc Thầy Bạc', focusMinutes: 410, streakDays: 18, cpScore: 1050 },
-    { name: 'Đức Huy (Dev Vibe)', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&fit=crop', badge: '🥉 Thợ Săn DeepWork', focusMinutes: 345, streakDays: 15, cpScore: 890 },
-    { name: 'Lan Phương', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&fit=crop', badge: 'Top 5', focusMinutes: 280, streakDays: 12, cpScore: 740 },
-    { name: 'Bảo Nam', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&fit=crop', badge: 'Top 10', focusMinutes: 210, streakDays: 9, cpScore: 610 },
-  ];
-
-  const baseStreakPeers: Omit<LeaderboardUser, 'rank'>[] = [
-    { name: 'Thanh Hằng (JLPT N1)', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&fit=crop', badge: '🔥 Chuỗi 35 Ngày', focusMinutes: 520, streakDays: 35, cpScore: 1650 },
-    { name: 'Khánh Duy', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&fit=crop', badge: '🔥 Chuỗi 28 Ngày', focusMinutes: 390, streakDays: 28, cpScore: 1290 },
-    { name: 'Quỳnh Nga', avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=100&fit=crop', badge: '🔥 Chuỗi 21 Ngày', focusMinutes: 310, streakDays: 21, cpScore: 980 },
-    { name: 'Tuấn Kiệt', avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=100&fit=crop', badge: 'Top 5', focusMinutes: 240, streakDays: 16, cpScore: 760 },
-    { name: 'Mai Linh', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&fit=crop', badge: 'Top 10', focusMinutes: 195, streakDays: 11, cpScore: 590 },
-  ];
-
-  // Insert current user and sort dynamically
-  const currentUserEntry: Omit<LeaderboardUser, 'rank'> = {
+  // Current user entry
+  const currentUserEntry: LeaderboardUser = {
+    rank: 1,
     name: `${currentUser?.name || 'Bạn'} (Tôi)`,
     avatar: currentUser?.avatar || 'https://ui-avatars.com/api/?name=User&background=059669&color=fff',
-    badge: myStreak >= 7 ? 'Chiến Binh Kỷ Luật' : 'Tân Binh Đang Lên',
+    badge: myStreak >= 14 ? '🔥 Kỷ Luật Thép' : (myStreak >= 7 ? 'Chiến Binh Kỷ Luật' : 'Tân Binh Đang Lên'),
     focusMinutes: myTotalFocusMinutes,
     streakDays: myStreak,
     cpScore: myCp,
     isCurrentUser: true
   };
 
-  const currentList = activeTab === 'focus' 
-    ? [...baseFocusPeers, currentUserEntry].sort((a, b) => b.focusMinutes - a.focusMinutes)
-    : [...baseStreakPeers, currentUserEntry].sort((a, b) => b.streakDays - a.streakDays);
+  const baseList = activeTab === 'focus' ? apiFocusList : apiStreakList;
 
-  const rankedList: LeaderboardUser[] = currentList.map((item, index) => ({
+  let combinedList: LeaderboardUser[] = [];
+  if (baseList.length > 0) {
+    const hasMe = baseList.some(u => u.isCurrentUser || (currentUser && u.name.includes(currentUser.name)));
+    if (hasMe) {
+      combinedList = baseList.map(u => {
+        if (u.isCurrentUser || (currentUser && u.name.includes(currentUser.name))) {
+          return {
+            ...u,
+            focusMinutes: Math.max(u.focusMinutes, myTotalFocusMinutes),
+            streakDays: Math.max(u.streakDays, myStreak),
+            isCurrentUser: true
+          };
+        }
+        return u;
+      });
+    } else {
+      combinedList = [...baseList, currentUserEntry];
+    }
+  } else {
+    combinedList = [currentUserEntry];
+  }
+
+  const rankedList: LeaderboardUser[] = (activeTab === 'focus'
+    ? [...combinedList].sort((a, b) => b.focusMinutes - a.focusMinutes || b.cpScore - a.cpScore)
+    : [...combinedList].sort((a, b) => b.streakDays - a.streakDays || b.cpScore - a.cpScore)
+  ).map((item, index) => ({
     ...item,
     rank: index + 1
   }));
 
-  const myRank = rankedList.find(u => u.isCurrentUser)?.rank || 4;
+  const myRank = rankedList.find(u => u.isCurrentUser)?.rank || 1;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
@@ -178,7 +213,7 @@ export function WeeklyLeaderboardModal({
             onClick={() => {
               soundEngine.playPop();
               onClose();
-              onOpenShareStory();
+              (onShare || onOpenShareStory)?.();
             }}
             className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all cursor-pointer hover:scale-105 active:scale-95"
           >
@@ -189,7 +224,13 @@ export function WeeklyLeaderboardModal({
 
         {/* Scrollable Leaderboard List */}
         <div className="px-5 sm:px-6 py-2 overflow-y-auto space-y-2 flex-1">
-          {rankedList.map((user) => {
+          {isLoading && (
+            <div className="py-8 flex flex-col items-center justify-center gap-2 text-slate-400">
+              <Loader2 className="w-5 h-5 animate-spin text-amber-400" />
+              <span className="text-xs">Đang đồng bộ dữ liệu bảng xếp hạng...</span>
+            </div>
+          )}
+          {!isLoading && rankedList.map((user) => {
             const isTop1 = user.rank === 1;
             const isTop2 = user.rank === 2;
             const isTop3 = user.rank === 3;

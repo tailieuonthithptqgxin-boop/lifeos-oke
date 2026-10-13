@@ -33,6 +33,7 @@ export function ChineseQualityControlView({
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [scriptMode, setScriptMode] = useState<'simplified' | 'traditional' | 'both'>('simplified');
   const [isScanning, setIsScanning] = useState(false);
+  const [auditVersion, setAuditVersion] = useState(0);
 
   // Run audit
   const auditResult = useMemo(() => {
@@ -41,7 +42,7 @@ export function ChineseQualityControlView({
       personalWords,
       userData.verificationOverrides || {}
     );
-  }, [systemWords, personalWords, userData.verificationOverrides]);
+  }, [systemWords, personalWords, userData.verificationOverrides, auditVersion]);
 
   const { summary, reports, problematicReports } = auditResult;
 
@@ -173,7 +174,10 @@ export function ChineseQualityControlView({
             type="button"
             onClick={() => {
               setIsScanning(true);
-              setTimeout(() => setIsScanning(false), 600);
+              requestAnimationFrame(() => {
+                setAuditVersion(v => v + 1);
+                setIsScanning(false);
+              });
             }}
             className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer"
           >
