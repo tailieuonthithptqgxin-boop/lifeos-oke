@@ -402,11 +402,12 @@ export function DashboardView() {
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
         
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-3 max-w-xl">
+        <div className="relative z-10 flex flex-col xl:flex-row items-stretch xl:items-start justify-between gap-6">
+          <div className="space-y-4 flex-1 min-w-0">
+            {/* Top Badge Cluster */}
             <div className="flex flex-wrap items-center gap-2">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-emerald-400 text-xs font-semibold">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 <span>{formatDate(selectedDate)} · {currentTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
 
@@ -553,15 +554,16 @@ export function DashboardView() {
               </button>
             </div>
 
+            {/* Greeting */}
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-2 flex-wrap">
                 <span>{greeting.text}, {currentUser?.name || 'Bạn'}!</span>
                 <span className="inline-block animate-wave text-2xl">{MOOD_PRESETS[todayMood].emoji}</span>
               </h1>
               <p className="text-xs text-slate-400 italic mt-0.5">
                 {MOOD_PRESETS[todayMood].quote}
               </p>
-              <p className="text-sm text-slate-300 mt-1 leading-relaxed">
+              <p className="text-xs sm:text-sm text-slate-300 mt-1 leading-relaxed">
                 {pendingTasks.length > 0 
                   ? `Bạn có ${pendingTasks.length} việc cần hoàn thành hôm nay. ${greeting.sub}`
                   : `Tất cả việc hôm nay đã sẵn sàng! ${greeting.sub}`}
@@ -569,24 +571,24 @@ export function DashboardView() {
             </div>
 
             {/* THE 3-SECOND RULE COCKPIT: TRẠM CHỈ HUY 3 GIÂY CHO GEN Z */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 py-1">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 py-1">
               {/* Pillar 1: 3 Việc Quyết Định Hôm Nay (Daily Trifecta 1-Touch Complete) */}
-              <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 flex flex-col justify-between shadow-xs">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-700/50">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-black text-emerald-400 uppercase tracking-wider">🎯 3 Việc Hôm Nay</span>
-                    <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-300 font-bold">1-chạm</span>
+              <div className="p-4 rounded-2xl bg-slate-800/90 border border-slate-700/80 flex flex-col justify-between shadow-xs min-h-[160px]">
+                <div className="flex items-center justify-between pb-2.5 border-b border-slate-700/50 gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-xs font-black text-emerald-400 uppercase tracking-wider truncate">🎯 3 Việc Hôm Nay</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-bold shrink-0">1-chạm</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowQuickTaskModal(true)}
-                    className="text-[10px] font-bold text-slate-400 hover:text-white cursor-pointer"
+                    className="text-xs font-bold text-slate-300 hover:text-white px-2 py-0.5 rounded-lg hover:bg-slate-700 transition-colors cursor-pointer shrink-0"
                   >
                     + Thêm
                   </button>
                 </div>
 
-                <div className="my-2 space-y-1.5">
+                <div className="my-2.5 space-y-2 flex-1 flex flex-col justify-center">
                   {cockpitTrifectaTasks.length > 0 ? (
                     cockpitTrifectaTasks.map((task) => (
                       <div
@@ -622,8 +624,8 @@ export function DashboardView() {
                       </div>
                     ))
                   ) : (
-                    <div className="py-2 text-center text-slate-400 text-xs flex items-center justify-center gap-1.5">
-                      <span>🏆</span>
+                    <div className="py-2.5 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
+                      <span className="text-base">🏆</span>
                       <span className="font-bold text-emerald-400">Đã dọn dẹp sạch việc hôm nay!</span>
                     </div>
                   )}
@@ -632,32 +634,32 @@ export function DashboardView() {
                 <button
                   type="button"
                   onClick={() => setCurrentView('tasks')}
-                  className="text-[10px] font-bold text-slate-400 hover:text-emerald-400 flex items-center gap-1 transition-colors cursor-pointer self-start"
+                  className="text-xs font-bold text-slate-400 hover:text-emerald-400 flex items-center gap-1 transition-colors cursor-pointer self-start pt-1"
                 >
-                  Xem toàn bộ ({pendingTasks.length} việc) <ChevronRight className="w-3 h-3" />
+                  Xem toàn bộ ({pendingTasks.length} việc) <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
 
               {/* Pillar 2: Hạn Mức An Toàn Hôm Nay (Daily Safe-to-Spend) */}
-              <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 flex flex-col justify-between shadow-xs">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-700/50">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-black text-teal-400 uppercase tracking-wider">💳 An Toàn Tiêu Hôm Nay</span>
-                    <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-teal-500/15 text-teal-300 font-bold">Auto</span>
+              <div className="p-4 rounded-2xl bg-slate-800/90 border border-slate-700/80 flex flex-col justify-between shadow-xs min-h-[160px]">
+                <div className="flex items-center justify-between pb-2.5 border-b border-slate-700/50 gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-xs font-black text-teal-400 uppercase tracking-wider truncate">💳 An Toàn Tiêu</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-300 font-bold shrink-0">Auto</span>
                   </div>
-                  <span className="text-[10px] text-slate-400">còn {daysRemainingInMonth} ngày</span>
+                  <span className="text-xs text-slate-400 shrink-0">còn {daysRemainingInMonth} ngày</span>
                 </div>
 
-                <div className="my-2">
-                  <div className="flex items-baseline gap-2">
-                    <span className={`text-lg sm:text-xl font-black tracking-tight ${
+                <div className="my-2.5 flex-1 flex flex-col justify-center">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className={`text-xl sm:text-2xl font-black tracking-tight ${
                       safeToSpendTodayRemaining >= 0 ? 'text-emerald-400' : 'text-rose-400'
                     }`}>
                       {safeToSpendTodayRemaining >= 0 
                         ? formatCurrency(safeToSpendTodayRemaining)
                         : `-${formatCurrency(Math.abs(safeToSpendTodayRemaining))}`}
                     </span>
-                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                       safeToSpendTodayRemaining >= 0
                         ? 'bg-emerald-500/20 text-emerald-300'
                         : 'bg-rose-500/20 text-rose-300 animate-pulse'
@@ -665,32 +667,32 @@ export function DashboardView() {
                       {safeToSpendTodayRemaining >= 0 ? 'An toàn' : 'Vượt hạn mức!'}
                     </span>
                   </div>
-                  <p className="text-[10px] text-slate-400 mt-1">
-                    Hạn mức: {formatCurrency(dailySafeToSpendBudget)}/ngày · Đã chi hôm nay: {formatCurrency(todayExpenses)}
+                  <p className="text-[11px] text-slate-400 mt-1 leading-snug">
+                    Hạn mức: {formatCurrency(dailySafeToSpendBudget)}/ngày · Đã chi: {formatCurrency(todayExpenses)}
                   </p>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => setCurrentView('finance')}
-                  className="text-[10px] font-bold text-teal-400 hover:text-teal-300 flex items-center gap-1 transition-colors cursor-pointer self-start"
+                  className="text-xs font-bold text-teal-400 hover:text-teal-300 flex items-center gap-1 transition-colors cursor-pointer self-start pt-1"
                 >
-                  Sổ quỹ & chi tiết ví <ChevronRight className="w-3 h-3" />
+                  Sổ quỹ & chi tiết ví <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
 
               {/* Pillar 3: Kỷ Luật & Nút Vào Việc Siêu Tốc (Focus Launcher) */}
-              <div className="p-3.5 rounded-2xl bg-gradient-to-br from-emerald-950/60 to-slate-900 border border-emerald-500/30 flex flex-col justify-between shadow-xs">
-                <div className="flex items-center justify-between pb-2 border-b border-emerald-500/20">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] font-black text-amber-400 uppercase tracking-wider">🔥 Chuỗi Kỷ Luật & Focus</span>
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/60 to-slate-900 border border-emerald-500/30 flex flex-col justify-between shadow-xs min-h-[160px]">
+                <div className="flex items-center justify-between pb-2.5 border-b border-emerald-500/20 gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-xs font-black text-amber-400 uppercase tracking-wider truncate">🔥 Chuỗi Kỷ Luật</span>
                   </div>
-                  <span className="text-[10px] font-bold text-emerald-400">
+                  <span className="text-xs font-bold text-emerald-400 shrink-0">
                     {streakShield.isRestDayActive ? 'Đang nghỉ ngơi' : `${streakShield.freezeCount} Băng ❄️`}
                   </span>
                 </div>
 
-                <div className="my-2">
+                <div className="my-2 flex-1 flex flex-col justify-center">
                   <p className="text-xs text-slate-300 leading-snug">
                     {todayFocusMinutes > 0 
                       ? `Hôm nay đã tập trung ${todayFocusMinutes} phút deep work.`
@@ -713,9 +715,9 @@ export function DashboardView() {
                 <button
                   type="button"
                   onClick={() => setCurrentView('focus')}
-                  className="text-[10px] font-bold text-slate-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer self-start"
+                  className="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer self-start pt-1"
                 >
-                  Mở trang Pomodoro <ChevronRight className="w-3 h-3" />
+                  Mở trang Pomodoro <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
@@ -761,7 +763,7 @@ export function DashboardView() {
           </div>
 
           {/* Right Hero Cluster: Date Switcher & Embedded Retention Widget */}
-          <div className="flex flex-col sm:flex-row lg:flex-col items-start lg:items-end justify-between gap-4 border-t lg:border-t-0 border-white/10 pt-4 lg:pt-0">
+          <div className="flex flex-col sm:flex-row xl:flex-col items-start xl:items-end justify-between gap-4 border-t xl:border-t-0 border-white/10 pt-4 xl:pt-0 shrink-0">
             {/* Date Selector Segmented Control */}
             <div className="flex items-center bg-white/10 backdrop-blur-md p-1 rounded-2xl border border-white/15 text-xs">
               <button 
@@ -790,7 +792,7 @@ export function DashboardView() {
             </div>
 
             {/* Retention Widget: Streak & Daily Quests */}
-            <div className="w-full sm:w-auto min-w-[280px]">
+            <div className="w-full sm:w-auto xl:w-[280px]">
               <RetentionWidget onQuestClick={(cat) => {
                 if (cat === 'task') setShowQuickTaskModal(true);
                 else if (cat === 'vocab') setCurrentView('study');
