@@ -74,15 +74,14 @@ async function startServer() {
   // Trust reverse proxy (Nginx / Cloudflare on VPS)
   app.set('trust proxy', 1);
 
-  // Security Headers (OWASP Recommended)
+  // Security Headers (Configured for Safe Embedding & Media Playback)
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
     res.setHeader(
       'Content-Security-Policy',
-      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://images.unsplash.com https://ui-avatars.com; connect-src 'self' ws: wss:; media-src 'self' data: blob:; worker-src 'self' blob:;"
+      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://images.unsplash.com https://ui-avatars.com; connect-src 'self' ws: wss:; media-src 'self' data: blob:; worker-src 'self' blob:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com; frame-ancestors 'self' *;"
     );
     next();
   });
