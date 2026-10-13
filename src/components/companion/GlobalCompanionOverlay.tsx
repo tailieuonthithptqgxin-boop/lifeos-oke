@@ -58,9 +58,15 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
   const periodicTimerRef = useRef<any>(null);
   const moodResetTimeoutRef = useRef<any>(null);
 
-  // Sync settings when userId changes
+  // Sync settings when userId changes or custom update event is fired
   useEffect(() => {
-    setSettings(companionEngine.getSettings(userId));
+    const handleUpdate = () => {
+      setSettings(companionEngine.getSettings(userId));
+    };
+
+    handleUpdate();
+    window.addEventListener('lifeos-companion-settings-updated', handleUpdate);
+    return () => window.removeEventListener('lifeos-companion-settings-updated', handleUpdate);
   }, [userId]);
 
   const profile = MASCOT_PROFILES[settings.mascotId] || MASCOT_PROFILES.lumi;
@@ -198,6 +204,9 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
   const handleSaveSettings = (updated: Partial<CompanionSettings>) => {
     const saved = companionEngine.saveSettings(updated, userId);
     setSettings(saved);
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('lifeos-companion-settings-updated', { detail: saved }));
+    }
   };
 
   const handleToggleQuietMode = (e: React.MouseEvent) => {

@@ -369,21 +369,23 @@ function AppContent() {
       <PwaPromptBanner />
 
       {/* Floating Action Button for Omni Quick-Capture (1-touch on mobile/desktop) */}
-      <div className="fixed bottom-20 md:bottom-6 right-36 sm:right-40 md:right-40 z-50 flex items-center group">
+      <div className="fixed bottom-24 md:bottom-7 right-4 sm:right-6 md:right-28 z-50 flex items-center group">
         <button
           type="button"
           id="btn-omni-quick-capture"
           onClick={() => toggleCommand()}
-          title="Lệnh nhanh 1-chạm (Ctrl + K)"
+          title="Mở bảng Lệnh nhanh & Tìm kiếm (Phím tắt: Ctrl + K)"
           aria-label="Lệnh nhanh 1-chạm (Ctrl + K)"
-          className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-400 hover:from-emerald-500 hover:to-teal-300 text-slate-950 font-black shadow-xl shadow-emerald-500/30 flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer border border-emerald-300/40 relative"
+          className="h-11 sm:h-12 px-3.5 sm:px-4 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-slate-950 font-black shadow-xl shadow-emerald-500/25 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer border border-emerald-300/40"
         >
-          <Zap className="w-5 h-5 fill-slate-950 group-hover:rotate-12 transition-transform" />
+          <div className="w-6 h-6 rounded-full bg-slate-950/20 flex items-center justify-center">
+            <Zap className="w-3.5 h-3.5 fill-slate-950 stroke-slate-950" />
+          </div>
+          <span className="text-xs font-black tracking-tight hidden sm:inline">Lệnh nhanh</span>
+          <kbd className="hidden lg:inline-block px-1.5 py-0.5 rounded-md bg-slate-950/25 text-[10px] font-mono font-bold text-slate-950">
+            Ctrl K
+          </kbd>
         </button>
-        {/* Hover Pill Label */}
-        <span className="hidden lg:group-hover:inline-flex absolute right-14 whitespace-nowrap px-2.5 py-1 rounded-xl bg-slate-900/95 text-emerald-400 text-xs font-bold border border-emerald-500/30 shadow-lg backdrop-blur-md pointer-events-none animate-in fade-in zoom-in-95 duration-150">
-          ⚡ Lệnh nhanh (Ctrl+K)
-        </span>
       </div>
     </div>
   );

@@ -52,6 +52,9 @@ export function RetentionWidget({ onQuestClick, compact = false }: RetentionWidg
       const res = await apiCall('/api/progression');
       if (res && res.data) {
         setData(res.data);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('lifeos-progression-updated', { detail: res.data }));
+        }
       }
     } catch (e) {
       console.warn('RetentionWidget: could not load progression', e);

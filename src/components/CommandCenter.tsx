@@ -244,6 +244,27 @@ export function CommandCenter() {
         });
       }
 
+      // /companion or >mascot or nhanvat (Bật / Tắt nhân vật đồng hành)
+      if ('companion'.startsWith(cmd) || 'mascot'.startsWith(cmd) || 'nhanvat'.startsWith(cmd) || 'pet'.startsWith(cmd) || 'lumi'.startsWith(cmd)) {
+        list.push({
+          id: 'cmd-toggle-companion',
+          title: '🌟 Bật / Tắt Nhân Vật AI Đồng Hành (Mascot Companion)',
+          subtitle: 'Mở lại hoặc ẩn nhân vật đồng hành sống động trên màn hình',
+          category: 'Lệnh nhanh',
+          icon: Sparkles,
+          badge: 'Nhân vật AI',
+          action: () => {
+            soundEngine.playPop();
+            const current = JSON.parse(localStorage.getItem('lifeos_companion_settings') || '{}');
+            const nextEnabled = !current.enabled;
+            const updated = { ...current, enabled: nextEnabled, focusCompanionMode: nextEnabled ? 'normal' : 'off' };
+            localStorage.setItem('lifeos_companion_settings', JSON.stringify(updated));
+            window.dispatchEvent(new CustomEvent('lifeos-companion-settings-updated', { detail: updated }));
+            toggleCommand();
+          }
+        });
+      }
+
       // /quiz or >quiz or persona
       if ('quiz'.startsWith(cmd) || 'persona'.startsWith(cmd) || 'onboard'.startsWith(cmd) || 'tinhcach'.startsWith(cmd)) {
         list.push({

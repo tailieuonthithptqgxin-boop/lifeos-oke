@@ -12,7 +12,8 @@ import {
   Brain,
   HelpCircle,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Music
 } from 'lucide-react';
 import { speakWord, computeMemoryLevel, VocabWord } from '../../lib/vocabEngine';
 import { isEquivalentAnswer } from '../../lib/vocabVerificationEngine';
@@ -20,6 +21,7 @@ import { CompanionMood, CompanionDialoguePool } from '../../lib/companionEngine'
 import { companionEventBus } from '../../lib/companion/companionEventBus';
 import { StudyCompanionWidget } from '../companion/StudyCompanionWidget';
 import { soundEngine } from '../../lib/soundEngine';
+import { YouTubeFocusPlayer } from '../YouTubeFocusPlayer';
 
 interface StudySessionScreenProps {
   activeLang: any;
@@ -78,6 +80,7 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [flyDirection, setFlyDirection] = useState<'left' | 'right' | null>(null);
   const [enterDirection, setEnterDirection] = useState<'left' | 'right' | null>(null);
+  const [showMusicPlayer, setShowMusicPlayer] = useState<boolean>(false);
 
   const touchStartXRef = useRef<number>(0);
   const touchStartYRef = useRef<number>(0);
@@ -406,24 +409,39 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
   return (
     <div className="max-w-2xl mx-auto space-y-4">
       {/* Session Top Bar */}
-      <div className="flex items-center justify-between text-xs">
+      <div className="flex items-center justify-between text-xs gap-2">
         <button
           type="button"
           onClick={onExitSession}
-          className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-bold inline-flex items-center gap-1 cursor-pointer"
+          className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-bold inline-flex items-center gap-1 cursor-pointer shrink-0"
         >
-          <ArrowLeft className="w-4 h-4" /> Thoát phiên
+          <ArrowLeft className="w-4 h-4" /> Thoát
         </button>
 
-        <span className="font-bold text-slate-600 dark:text-slate-400">
+        <span className="font-bold text-slate-600 dark:text-slate-400 shrink-0">
           Từ {currentIndex + 1} / {words.length} ({progressPercent}%)
         </span>
 
         <div className="flex items-center gap-2">
-          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${memoryLevelInfo.color}`}>
+          {/* YouTube Lo-Fi Music Button */}
+          <button
+            type="button"
+            onClick={() => setShowMusicPlayer(prev => !prev)}
+            className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer border ${
+              showMusicPlayer
+                ? 'bg-red-500/15 border-red-500/40 text-red-500 shadow-xs'
+                : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+            }`}
+            title="Nghe nhạc YouTube Lo-Fi tập trung"
+          >
+            <Music className="w-3 h-3 text-red-500" />
+            <span className="hidden sm:inline">{showMusicPlayer ? 'Ẩn nhạc' : 'Nhạc YouTube'}</span>
+          </button>
+
+          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border hidden sm:inline-block ${memoryLevelInfo.color}`}>
             {memoryLevelInfo.label}
           </span>
-          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase shadow-xs ${
+          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase shadow-xs shrink-0 ${
             mode === 'flashcard_reverse'
               ? 'bg-indigo-600 text-white'
               : mode === 'quiz'
@@ -433,12 +451,12 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
               : 'bg-emerald-600 text-white'
           }`}>
             {mode === 'flashcard_reverse' 
-              ? `🔄 Đảo chiều: Việt → ${foreignLangShort}` 
+              ? `🔄 Đảo chiều` 
               : mode === 'quiz' 
-              ? '📝 Trắc nghiệm 4 đáp án (Quiz)' 
+              ? '📝 Quiz' 
               : mode === 'spelling' 
-              ? '✍️ Luyện gõ chính tả (Spelling)' 
-              : `🎴 Flashcard: ${foreignLangShort} → Việt`}
+              ? '✍️ Gõ từ' 
+              : `🎴 Flashcard`}
           </span>
         </div>
       </div>
@@ -447,6 +465,13 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
       <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
         <div className="bg-emerald-600 h-1.5 rounded-full transition-all duration-300" style={{ width: `${progressPercent}%` }} />
       </div>
+
+      {/* Floating Collapsible Music Player Drawer */}
+      {showMusicPlayer && (
+        <div className="w-full animate-in slide-in-from-top-2 duration-200">
+          <YouTubeFocusPlayer defaultExpanded={true} />
+        </div>
+      )}
 
       {/* FLASHCARD / EXERCISE CARD CONTAINER */}
       <div className="relative w-full">

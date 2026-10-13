@@ -263,10 +263,19 @@ export function DashboardView() {
   const now = new Date();
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
   const daysRemainingInMonth = Math.max(1, daysInMonth - now.getDate() + 1);
-  const userMonthlyBudget = (budgets || []).find((b: any) => b.category === 'All' || b.period === 'monthly')?.amount || (monthlyIncome > 0 ? monthlyIncome : 10000000);
+  
+  // Real budget calculation - support limit or amount properties, no fake 10M fallback
+  const totalConfiguredBudget = (budgets || []).reduce((sum: number, b: any) => sum + (Number(b.limit) || Number(b.amount) || 0), 0);
+  const hasBudgetBaseline = totalConfiguredBudget > 0 || monthlyIncome > 0;
+  const userMonthlyBudget = totalConfiguredBudget > 0 ? totalConfiguredBudget : (monthlyIncome > 0 ? monthlyIncome : 0);
   const remainingBudgetMonth = Math.max(0, userMonthlyBudget - monthlyExpense);
-  const dailySafeToSpendBudget = Math.round(remainingBudgetMonth / daysRemainingInMonth);
-  const safeToSpendTodayRemaining = dailySafeToSpendBudget - todayExpenses;
+  const dailySafeToSpendBudget = hasBudgetBaseline ? Math.round(remainingBudgetMonth / daysRemainingInMonth) : 0;
+  const safeToSpendTodayRemaining = hasBudgetBaseline ? (dailySafeToSpendBudget - todayExpenses) : -todayExpenses;
+  
+  // Real discipline streak calculation
+  const maxHabitStreak = (habits || []).length > 0 
+    ? Math.max(0, ...(habits || []).map((h: any) => Number(h.streak) || 0)) 
+    : 0;
 
   // Cockpit 3-Second Priority Tasks
   const cockpitTrifectaTasks = [...pendingTasks]
@@ -651,25 +660,43 @@ export function DashboardView() {
                 </div>
 
                 <div className="my-2.5 flex-1 flex flex-col justify-center">
-                  <div className="flex items-baseline gap-2 flex-wrap">
-                    <span className={`text-xl sm:text-2xl font-black tracking-tight ${
-                      safeToSpendTodayRemaining >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                    }`}>
-                      {safeToSpendTodayRemaining >= 0 
-                        ? formatCurrency(safeToSpendTodayRemaining)
-                        : `-${formatCurrency(Math.abs(safeToSpendTodayRemaining))}`}
-                    </span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                      safeToSpendTodayRemaining >= 0
-                        ? 'bg-emerald-500/20 text-emerald-300'
-                        : 'bg-rose-500/20 text-rose-300 animate-pulse'
-                    }`}>
-                      {safeToSpendTodayRemaining >= 0 ? 'An toàn' : 'Vượt hạn mức!'}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400 mt-1 leading-snug">
-                    Hạn mức: {formatCurrency(dailySafeToSpendBudget)}/ngày · Đã chi: {formatCurrency(todayExpenses)}
-                  </p>
+                  {hasBudgetBaseline ? (
+                    <>
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className={`text-xl sm:text-2xl font-black tracking-tight ${
+                          safeToSpendTodayRemaining >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                        }`}>
+                          {safeToSpendTodayRemaining >= 0 
+                            ? formatCurrency(safeToSpendTodayRemaining)
+                            : `-${formatCurrency(Math.abs(safeToSpendTodayRemaining))}`}
+                        </span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                          safeToSpendTodayRemaining >= 0
+                            ? 'bg-emerald-500/20 text-emerald-300'
+                            : 'bg-rose-500/20 text-rose-300 animate-pulse'
+                        }`}>
+                          {safeToSpendTodayRemaining >= 0 ? 'An toàn' : 'Vượt hạn mức!'}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-1 leading-snug">
+                        Hạn mức: {formatCurrency(dailySafeToSpendBudget)}/ngày · Đã chi: {formatCurrency(todayExpenses)}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-300">
+                          {todayExpenses > 0 ? `-${formatCurrency(todayExpenses)}` : '0 ₫'}
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300">
+                          Chưa đặt ngân sách
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-400 mt-1 leading-snug">
+                        {todayExpenses > 0 ? `Đã chi hôm nay: ${formatCurrency(todayExpenses)}` : 'Chưa thiết lập ngân sách tháng hoặc chưa có thu nhập'}
+                      </p>
+                    </>
+                  )}
                 </div>
 
                 <button
@@ -677,7 +704,7 @@ export function DashboardView() {
                   onClick={() => setCurrentView('finance')}
                   className="text-xs font-bold text-teal-400 hover:text-teal-300 flex items-center gap-1 transition-colors cursor-pointer self-start pt-1"
                 >
-                  Sổ quỹ & chi tiết ví <ChevronRight className="w-3.5 h-3.5" />
+                  {hasBudgetBaseline ? 'Sổ quỹ & chi tiết ví' : '+ Thiết lập ngân sách ngay'} <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
 
@@ -686,6 +713,9 @@ export function DashboardView() {
                 <div className="flex items-center justify-between pb-2.5 border-b border-emerald-500/20 gap-2">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span className="text-xs font-black text-amber-400 uppercase tracking-wider truncate">🔥 Chuỗi Kỷ Luật</span>
+                    <span className="text-[11px] font-black text-amber-300 px-1.5 py-0.2 rounded-md bg-amber-500/20 shrink-0">
+                      {maxHabitStreak} ngày
+                    </span>
                   </div>
                   <span className="text-xs font-bold text-emerald-400 shrink-0">
                     {streakShield.isRestDayActive ? 'Đang nghỉ ngơi' : `${streakShield.freezeCount} Băng ❄️`}

@@ -339,6 +339,32 @@ export const VocabStudyTab: React.FC<VocabStudyTabProps> = ({
           </div>
         </div>
 
+        {/* Step 4: Chế độ tập trung Dedicated Focus Mode & Nhạc YouTube Lo-Fi */}
+        <div className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-indigo-50/80 to-purple-50/80 dark:from-indigo-950/40 dark:to-purple-950/40 border border-indigo-200/60 dark:border-indigo-800/50">
+          <div className="space-y-0.5 pr-2">
+            <span className="text-xs font-black text-indigo-950 dark:text-indigo-200 flex items-center gap-1.5">
+              <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> 
+              Phòng Học Focus Toàn Màn Hình + Nhạc YouTube (Khuyên dùng)
+            </span>
+            <p className="text-[11px] text-slate-600 dark:text-slate-300">
+              Giao diện không xao nhãng, tích hợp nghe nhạc YouTube Lo-Fi, phím tắt thông minh và đồng hồ theo dõi.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setUseDedicatedFocusMode(prev => !prev)}
+            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer ${
+              useDedicatedFocusMode ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-700'
+            }`}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                useDedicatedFocusMode ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+
         {/* Launch Button */}
         <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
           <button

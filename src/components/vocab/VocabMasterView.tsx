@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { companionContextEngine } from '../../lib/companion/companionContextEngine';
 import { 
   BarChart2, Calendar, Activity, BookOpen, Bookmark, Layers, 
-  Brain, ShieldCheck, Settings, Plus
+  Brain, ShieldCheck, Settings, Plus, Headphones, Music, Sparkles
 } from 'lucide-react';
 import {
   LearningLanguage,
@@ -62,7 +62,7 @@ interface VocabMasterViewProps {
   currentUser?: any;
 }
 
-type VocabTab = 'dashboard' | 'today' | 'memory' | 'oxford3000' | 'chineseHsk' | 'japaneseJlpt' | 'personal' | 'collections' | 'study' | 'audit' | 'settings';
+type VocabTab = 'dashboard' | 'today' | 'focus' | 'memory' | 'oxford3000' | 'chineseHsk' | 'japaneseJlpt' | 'personal' | 'collections' | 'study' | 'audit' | 'settings';
 
 export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
   const userId = currentUser?.id || 'current_user';
@@ -619,6 +619,23 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
           )}
         </button>
 
+        {/* Dedicated Vocab Focus Room Tab with YouTube Music */}
+        <button
+          type="button"
+          onClick={() => { setActiveTab('focus'); setStudySessionActive(false); }}
+          className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'focus' && !studySessionActive
+              ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white shadow-md shadow-indigo-500/25 ring-2 ring-indigo-400/30'
+              : 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/70 hover:bg-indigo-100/80 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 border border-indigo-200/60 dark:border-indigo-800/40'
+          }`}
+        >
+          <Headphones className="w-4 h-4 text-indigo-500 animate-bounce" />
+          <span>Phòng Học Focus + Nhạc 🎧</span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-500 text-white flex items-center gap-0.5">
+            <Music className="w-2.5 h-2.5" /> YouTube
+          </span>
+        </button>
+
         {/* Memory & Forgetting Curve Tab */}
         <button
           type="button"
@@ -790,13 +807,25 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
 
       {/* 3. MAIN CONTENT BODY */}
 
-      {/* ACTIVE STUDY SESSION RUNNER: ALL 4 MODES POWERED BY STUDY SESSION SCREEN */}
+      {/* ACTIVE STUDY SESSION RUNNER: DEDICATED FOCUS MODE OR STANDARD STUDY SESSION */}
       {studySessionActive && (
-        <StudySessionScreen
-          activeLang={activeLang}
-          words={studyQueue}
-          currentIndex={currentCardIndex}
-          mode={studyMode}
+        useDedicatedFocusMode ? (
+          <DedicatedVocabFocusView
+            topicTitle={`Phiên học: ${activeLang.name} (${studyQueue.length} từ)`}
+            words={studyQueue}
+            activeLang={activeLang}
+            onExit={() => setStudySessionActive(false)}
+            onUpdateWordProgress={(wordId, rating) => {
+              updateVocabData(prev => recordReviewOutcome(prev, wordId, rating, studyMode));
+            }}
+            onToggleFavorite={handleToggleFavorite}
+          />
+        ) : (
+          <StudySessionScreen
+            activeLang={activeLang}
+            words={studyQueue}
+            currentIndex={currentCardIndex}
+            mode={studyMode}
             isRevealed={isAnswerRevealed}
             isCompleted={sessionCompleted}
             stats={sessionStats}
@@ -814,6 +843,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
             onExitSession={() => setStudySessionActive(false)}
             onRestartSession={() => handleStartStudy(studyMode, studySource, studyTargetQueue)}
           />
+        )
       )}
 
       {/* TAB A: DASHBOARD */}
@@ -847,6 +877,25 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
           onStartStudyBatch={(words, mode) => handleStartStudyExplicit(words, mode)}
           onOpenWordDetail={(word) => setDetailWord(word)}
         />
+      )}
+
+      {/* TAB A.2: DEDICATED VOCAB FOCUS ROOM WITH YOUTUBE MUSIC */}
+      {!studySessionActive && activeTab === 'focus' && (
+        <div className="rounded-3xl overflow-hidden border border-slate-200/80 dark:border-slate-800/80 shadow-2xl min-h-[600px] flex flex-col">
+          <DedicatedVocabFocusView
+            topicTitle={`Phòng Học Focus: ${activeLang.name} (${(todayStudyPlan.totalToStudy > 0 ? todayStudyPlan.dueTodayWords : allCombinedWords).slice(0, 20).length} từ)`}
+            words={(todayStudyPlan.totalToStudy > 0 && todayStudyPlan.dueTodayWords.length > 0 
+              ? todayStudyPlan.dueTodayWords 
+              : allCombinedWords
+            ).slice(0, 20)}
+            activeLang={activeLang}
+            onExit={() => setActiveTab('today')}
+            onUpdateWordProgress={(wordId, rating) => {
+              updateVocabData(prev => recordReviewOutcome(prev, wordId, rating, 'flashcard'));
+            }}
+            onToggleFavorite={handleToggleFavorite}
+          />
+        </div>
       )}
 
       {/* TAB A.2: MEMORY DASHBOARD & FORGETTING CURVE */}

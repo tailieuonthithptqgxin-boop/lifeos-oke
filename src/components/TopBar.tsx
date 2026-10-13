@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { 
   Menu, Moon, Sun, Search, Bell, Plus, Inbox, ShoppingCart, 
   Shield, CheckSquare, DollarSign, Calendar, Target, Zap, 
-  User, LogOut, ChevronDown, CheckCircle2, Globe, Sparkles, Lock, Flame, Award, Volume2, VolumeX
+  User, LogOut, ChevronDown, CheckCircle2, Globe, Sparkles, Lock, Flame, Award, Volume2, VolumeX, Bot
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { useTranslation } from '../lib/i18n';
 import { retentionEngine, RetentionProfile } from '../lib/retentionEngine';
 import { soundEngine } from '../lib/soundEngine';
 import { ZenFocusOverlay } from './focus/ZenFocusOverlay';
+import { apiCall } from '../lib/apiClient';
+import { companionEngine, MASCOT_PROFILES } from '../lib/companionEngine';
 
 export function TopBar() {
   const [showNotifications, setShowNotifications] = useState(false);
@@ -21,7 +23,7 @@ export function TopBar() {
     isMobileMenuOpen, toggleMobileMenu, theme, setTheme, cart, 
     setCurrentView, currentUser, logout, toggleCommand, currentView, 
     language, setLanguage, activeLanguages, notifications, markNotificationRead, 
-    clearAllNotifications, inbox, removeInboxItem, subscriptionStatus
+    clearAllNotifications, inbox, removeInboxItem, subscriptionStatus, habits
   } = useAppStore();
   
   const t = useTranslation(language);
@@ -43,10 +45,61 @@ export function TopBar() {
   const [retentionProfile, setRetentionProfile] = useState<RetentionProfile>(() =>
     retentionEngine.getProfile(currentUser?.id)
   );
+  const [progressionData, setProgressionData] = useState<any>(null);
+  const [companionSettings, setCompanionSettings] = useState(() => 
+    companionEngine.getSettings(currentUser?.id)
+  );
 
   useEffect(() => {
-    setRetentionProfile(retentionEngine.getProfile(currentUser?.id));
-  }, [currentUser, currentView]);
+    const handleCompanionUpdate = () => {
+      setCompanionSettings(companionEngine.getSettings(currentUser?.id));
+    };
+    handleCompanionUpdate();
+    window.addEventListener('lifeos-companion-settings-updated', handleCompanionUpdate);
+    return () => window.removeEventListener('lifeos-companion-settings-updated', handleCompanionUpdate);
+  }, [currentUser?.id]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadProg = async () => {
+      try {
+        const res = await apiCall('/api/progression');
+        if (res && res.data && isMounted) {
+          setProgressionData(res.data);
+          const synced = retentionEngine.syncWithServer(res.data, currentUser?.id);
+          if (synced) setRetentionProfile(synced);
+        }
+      } catch (e) {}
+    };
+
+    loadProg();
+
+    const handleProgUpdate = (e: any) => {
+      if (!isMounted) return;
+      if (e?.detail) {
+        setProgressionData(e.detail);
+        const synced = retentionEngine.syncWithServer(e.detail, currentUser?.id);
+        if (synced) setRetentionProfile(synced);
+      } else {
+        loadProg();
+      }
+    };
+
+    window.addEventListener('lifeos-progression-updated', handleProgUpdate);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('lifeos-progression-updated', handleProgUpdate);
+    };
+  }, [currentUser?.id, currentView]);
+
+  const maxHabitStreak = (habits || []).reduce((max: number, h: any) => Math.max(max, h.streak || 0), 0);
+  const realStreak = progressionData?.currentStreak !== undefined
+    ? progressionData.currentStreak
+    : (maxHabitStreak > 0 ? maxHabitStreak : (retentionProfile?.streak ?? 0));
+  const realLevel = progressionData?.level ?? (retentionProfile?.level || 1);
+  const realXp = progressionData?.totalXp ?? (retentionProfile?.xp || 0);
+  const realCoins = progressionData?.coins ?? (retentionProfile?.coins || Math.floor(realLevel * 40 + 50));
+  const realCp = Math.floor(realLevel * 35 + realStreak * 20 + realXp);
 
   const cartItemCount = (cart || []).reduce((sum, item) => sum + item.quantity, 0);
   const userRole = (currentUser?.role || '').toUpperCase();
@@ -91,23 +144,23 @@ export function TopBar() {
         <button
           type="button"
           onClick={() => setCurrentView('journey')}
-          title={`Hồ sơ Anh Hùng: Level ${retentionProfile?.level || 1} · ${retentionProfile?.streak || 1} ngày streak · Nhấn để xem bản đồ chiến đấu RPG`}
+          title={`Hồ sơ Anh Hùng: Level ${realLevel} · ${realStreak} ngày streak · Nhấn để xem bản đồ chiến đấu RPG`}
           className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 text-white border border-slate-700/80 hover:border-emerald-500/80 font-black text-xs shadow-md shadow-slate-950/20 hover:scale-105 active:scale-95 transition-all cursor-pointer group"
         >
           <span className="px-2 py-0.5 rounded-md bg-amber-400 text-slate-950 text-[10px] font-black uppercase">
-            LV.{retentionProfile?.level || 1}
+            LV.{realLevel}
           </span>
           <div className="flex items-center gap-1 text-emerald-400">
             <Zap className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
-            <span className="font-mono text-[11px]">{(((retentionProfile?.level || 1) * 35) + ((retentionProfile?.streak || 1) * 20)).toLocaleString()} CP</span>
+            <span className="font-mono text-[11px]">{realCp.toLocaleString()} CP</span>
           </div>
           <div className="flex items-center gap-1 text-amber-300 border-l border-slate-700/80 pl-2">
             <span className="text-[11px]">🪙</span>
-            <span className="font-mono text-[11px]">{Math.floor((retentionProfile?.level || 1) * 40 + 50)}</span>
+            <span className="font-mono text-[11px]">{realCoins}</span>
           </div>
           <div className="flex items-center gap-0.5 text-rose-400 border-l border-slate-700/80 pl-2">
             <Flame className="w-3.5 h-3.5 fill-rose-500 text-rose-500 animate-pulse" />
-            <span className="font-mono text-[11px]">{retentionProfile?.streak || 1}d</span>
+            <span className="font-mono text-[11px]">{realStreak}d</span>
           </div>
         </button>
 
@@ -229,6 +282,39 @@ export function TopBar() {
             </>
           )}
         </div>
+
+        {/* AI Companion Quick Toggle Button */}
+        <button
+          type="button"
+          onClick={() => {
+            soundEngine.playPop();
+            const nextEnabled = !companionSettings.enabled;
+            const updated = companionEngine.saveSettings({ 
+              enabled: nextEnabled,
+              focusCompanionMode: nextEnabled ? 'normal' : 'off'
+            }, currentUser?.id);
+            setCompanionSettings(updated);
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent('lifeos-companion-settings-updated', { detail: updated }));
+            }
+          }}
+          className={`p-2.5 rounded-2xl transition-all cursor-pointer btn-squishy flex items-center gap-1.5 ${
+            companionSettings.enabled && companionSettings.focusCompanionMode !== 'off'
+              ? 'text-amber-500 hover:text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 ring-1 ring-amber-500/30 shadow-xs'
+              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+          title={companionSettings.enabled && companionSettings.focusCompanionMode !== 'off'
+            ? `Bé ${MASCOT_PROFILES[companionSettings.mascotId]?.name || 'Lumi'} đang bật · Bấm để tắt nhân vật`
+            : 'Nhân vật AI đang tắt · Bấm để mở lại Bé AI Companion ngay!'}
+          aria-label="Bật/Tắt nhân vật AI"
+        >
+          <span className="text-base select-none">
+            {MASCOT_PROFILES[companionSettings.mascotId]?.avatar || '🌟'}
+          </span>
+          <span className="hidden xl:inline text-xs font-bold">
+            {companionSettings.enabled && companionSettings.focusCompanionMode !== 'off' ? 'AI Bật' : 'Mở AI'}
+          </span>
+        </button>
 
         {/* Quick Theme Toggle Button */}
         <button
@@ -442,6 +528,42 @@ export function TopBar() {
                         <>
                           <Moon className="w-3.5 h-3.5 text-slate-600" />
                           <span>{t('Sáng')}</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* AI Study Companion Toggle */}
+                  <div className="flex items-center justify-between px-3 py-1.5 text-slate-600 dark:text-slate-400">
+                    <span className="flex items-center gap-1.5">
+                      <span>{MASCOT_PROFILES[companionSettings.mascotId]?.avatar || '🌟'}</span>
+                      <span>Nhân vật AI Companion</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        soundEngine.playPop();
+                        const nextEnabled = !companionSettings.enabled;
+                        const updated = companionEngine.saveSettings({ 
+                          enabled: nextEnabled,
+                          focusCompanionMode: nextEnabled ? 'normal' : 'off'
+                        }, currentUser?.id);
+                        setCompanionSettings(updated);
+                        if (typeof window !== 'undefined') {
+                          window.dispatchEvent(new CustomEvent('lifeos-companion-settings-updated', { detail: updated }));
+                        }
+                      }}
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 font-semibold transition-colors cursor-pointer"
+                    >
+                      {companionSettings.enabled && companionSettings.focusCompanionMode !== 'off' ? (
+                        <>
+                          <Bot className="w-3.5 h-3.5 text-amber-500" />
+                          <span className="text-amber-600 dark:text-amber-400">Đang bật</span>
+                        </>
+                      ) : (
+                        <>
+                          <Bot className="w-3.5 h-3.5 text-slate-400" />
+                          <span>Đang tắt</span>
                         </>
                       )}
                     </button>

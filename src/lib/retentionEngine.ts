@@ -122,24 +122,19 @@ export const retentionEngine = {
     profile.xp = typeof profile.xp === 'number' && !isNaN(profile.xp) ? profile.xp : 0;
     profile.level = typeof profile.level === 'number' && !isNaN(profile.level) ? profile.level : 1;
 
-    // Refresh streak logic against today
+    // Refresh streak logic against today: Do NOT increment streak automatically on day change.
+    // Streak only increments when habits or quests are actually completed.
     if (profile.lastActiveDate !== today) {
       const last = new Date(profile.lastActiveDate);
       const curr = new Date(today);
       const diffDays = Math.round((curr.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
 
-      if (diffDays === 1) {
-        // Consecutive day
-        profile.streak += 1;
-        if (profile.streak > profile.bestStreak) {
-          profile.bestStreak = profile.streak;
-        }
-      } else if (diffDays > 1) {
+      if (diffDays > 1) {
         // Streak broken -> check if previous streak > 1 and offer 24h resurrection challenge
         if (profile.streak > 1) {
           streakFreezeEngine.markStreakAtRisk(profile.streak, userId);
         }
-        profile.streak = 1;
+        profile.streak = 0;
       }
       profile.lastActiveDate = today;
       profile.todayCompletedCount = 0;
@@ -158,6 +153,28 @@ export const retentionEngine = {
     profile.levelTitle = LEVEL_TITLES[Math.min(level - 1, LEVEL_TITLES.length - 1)];
     profile.progressToNextLevel = profile.xp % 100;
 
+    return profile;
+  },
+
+  syncWithServer(serverData: any, userId?: string): RetentionProfile {
+    if (!serverData) return this.getProfile(userId);
+    let profile = this.getProfile(userId);
+    if (typeof serverData.currentStreak === 'number') {
+      profile.streak = serverData.currentStreak;
+    }
+    if (typeof serverData.longestStreak === 'number') {
+      profile.bestStreak = Math.max(serverData.longestStreak, profile.streak);
+    }
+    if (typeof serverData.totalXp === 'number') {
+      profile.xp = serverData.totalXp;
+    }
+    if (typeof serverData.level === 'number') {
+      profile.level = serverData.level;
+    }
+    if (serverData.levelTitle) {
+      profile.levelTitle = serverData.levelTitle;
+    }
+    this.saveProfile(profile, userId);
     return profile;
   },
 
