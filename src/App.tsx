@@ -369,16 +369,22 @@ function AppContent() {
       <PwaPromptBanner />
 
       {/* Floating Action Button for Omni Quick-Capture (1-touch on mobile/desktop) */}
-      <button
-        type="button"
-        id="btn-omni-quick-capture"
-        onClick={() => toggleCommand()}
-        title="Ghi nhanh 1-chạm (Ctrl + K)"
-        aria-label="Ghi nhanh 1-chạm"
-        className="fixed bottom-20 md:bottom-6 right-5 z-40 w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-400 hover:from-emerald-500 hover:to-teal-300 text-slate-950 font-black shadow-xl shadow-emerald-500/30 flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer group border border-emerald-300/40"
-      >
-        <Zap className="w-5 h-5 fill-slate-950 group-hover:rotate-12 transition-transform" />
-      </button>
+      <div className="fixed bottom-20 md:bottom-6 right-36 sm:right-40 md:right-40 z-50 flex items-center group">
+        <button
+          type="button"
+          id="btn-omni-quick-capture"
+          onClick={() => toggleCommand()}
+          title="Lệnh nhanh 1-chạm (Ctrl + K)"
+          aria-label="Lệnh nhanh 1-chạm (Ctrl + K)"
+          className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-400 hover:from-emerald-500 hover:to-teal-300 text-slate-950 font-black shadow-xl shadow-emerald-500/30 flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer border border-emerald-300/40 relative"
+        >
+          <Zap className="w-5 h-5 fill-slate-950 group-hover:rotate-12 transition-transform" />
+        </button>
+        {/* Hover Pill Label */}
+        <span className="hidden lg:group-hover:inline-flex absolute right-14 whitespace-nowrap px-2.5 py-1 rounded-xl bg-slate-900/95 text-emerald-400 text-xs font-bold border border-emerald-500/30 shadow-lg backdrop-blur-md pointer-events-none animate-in fade-in zoom-in-95 duration-150">
+          ⚡ Lệnh nhanh (Ctrl+K)
+        </span>
+      </div>
     </div>
   );
 }
