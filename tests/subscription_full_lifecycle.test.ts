@@ -334,9 +334,16 @@ async function runSubscriptionLifecycleTests() {
   } finally {
     // Cleanup test users and related records
     try {
-      await prisma.subscription.deleteMany({ where: { userId: { in: [testUser.id, `sub_90d_${testRunId}@lifeos.vn`] } } });
-      await prisma.payment.deleteMany({ where: { userId: testUser.id } });
-      await prisma.user.deleteMany({ where: { email: { in: [testUser.email, `sub_90d_${testRunId}@lifeos.vn`] } } });
+      const usersToClean = await prisma.user.findMany({
+        where: { email: { in: [testUserEmail, `sub_90d_${testRunId}@lifeos.vn`] } },
+        select: { id: true }
+      });
+      const ids = usersToClean.map(u => u.id);
+      if (ids.length > 0) {
+        await prisma.subscription.deleteMany({ where: { userId: { in: ids } } });
+        await prisma.payment.deleteMany({ where: { userId: { in: ids } } });
+        await prisma.user.deleteMany({ where: { id: { in: ids } } });
+      }
     } catch (e) {}
   }
 }

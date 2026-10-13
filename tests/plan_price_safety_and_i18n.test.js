@@ -305,11 +305,22 @@ describe('Admin Service Plans Management, Price Safety & Languages Test Suite', 
 
   after(async () => {
     try {
-      const { getPrisma } = await import('../src/backend/db.js');
-      const prisma = getPrisma();
-      await prisma.user.deleteMany({
-        where: { email: { in: [userEmail, adminEmail] } }
+      const { PrismaClient } = await import('@prisma/client');
+      const prisma = new PrismaClient();
+      const testUsers = await prisma.user.findMany({
+        where: { email: { in: [userEmail, adminEmail] } },
+        select: { id: true }
       });
-    } catch (e) {}
+      const ids = testUsers.map(u => u.id);
+      if (ids.length > 0) {
+        await prisma.payment.deleteMany({ where: { userId: { in: ids } } });
+        await prisma.order.deleteMany({ where: { userId: { in: ids } } });
+        await prisma.subscription.deleteMany({ where: { userId: { in: ids } } });
+        await prisma.user.deleteMany({ where: { id: { in: ids } } });
+      }
+      await prisma.$disconnect();
+    } catch (e) {
+      console.error('Teardown cleanup error:', e);
+    }
   });
 });

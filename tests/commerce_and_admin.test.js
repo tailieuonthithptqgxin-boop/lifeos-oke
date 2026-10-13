@@ -246,9 +246,17 @@ describe('Commerce, Decision & Admin Operations Test Suite', () => {
     try {
       const { PrismaClient } = await import('@prisma/client');
       const prisma = new PrismaClient();
-      await prisma.user.deleteMany({
-        where: { email: { in: [userEmail, adminEmail] } }
+      const testUsers = await prisma.user.findMany({
+        where: { email: { in: [userEmail, adminEmail] } },
+        select: { id: true }
       });
+      const ids = testUsers.map(u => u.id);
+      if (ids.length > 0) {
+        await prisma.payment.deleteMany({ where: { userId: { in: ids } } });
+        await prisma.order.deleteMany({ where: { userId: { in: ids } } });
+        await prisma.subscription.deleteMany({ where: { userId: { in: ids } } });
+        await prisma.user.deleteMany({ where: { id: { in: ids } } });
+      }
       if (activeCouponCode) {
         await prisma.coupon.deleteMany({ where: { code: activeCouponCode } });
       }
