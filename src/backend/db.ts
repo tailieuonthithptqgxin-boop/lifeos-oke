@@ -412,6 +412,11 @@ function formatIncomingData(collectionName: string, data: any) {
     } else {
       payload.actualScore = null;
     }
+  } else if (collectionName === 'focusSessions') {
+    delete payload.taskId;
+    delete payload.interruptions;
+    if (payload.plannedDuration !== undefined) payload.plannedDuration = parseFloat(payload.plannedDuration) || 25;
+    if (payload.actualDuration !== undefined) payload.actualDuration = parseFloat(payload.actualDuration) || 0;
   } else if (collectionName === 'studySessions') {
     if (payload.durationMinutes !== undefined) payload.durationMinutes = parseInt(payload.durationMinutes, 10) || 60;
   } else if (collectionName === 'budgets') {
