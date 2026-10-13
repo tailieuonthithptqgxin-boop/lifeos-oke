@@ -1,14 +1,56 @@
 // Web Audio API Procedural Sound Engine
 // Zero external mp3 dependencies, works 100% offline and instantaneous latency!
+import { hapticEngine } from './hapticEngine';
+
+export type SoundpackId = 'modern_pop' | 'mechanical_thock' | 'water_drop' | 'arcade_8bit';
+
+export interface SoundpackConfig {
+  id: SoundpackId;
+  name: string;
+  emoji: string;
+  description: string;
+}
+
+export const SOUNDPACKS: Record<SoundpackId, SoundpackConfig> = {
+  modern_pop: {
+    id: 'modern_pop',
+    name: 'Modern Pop',
+    emoji: '🫧',
+    description: 'Bong bóng vỡ pop nhẹ nhàng, thanh thoát'
+  },
+  mechanical_thock: {
+    id: 'mechanical_thock',
+    name: 'Thocky Mechanical',
+    emoji: '⌨️',
+    description: 'Tiếng phím cơ switch bôi trơn thocky cực phê tai'
+  },
+  water_drop: {
+    id: 'water_drop',
+    name: 'Water Drop',
+    emoji: '💧',
+    description: 'Giọt nước rơi trong trẻo, thư giãn chữa lành ASMR'
+  },
+  arcade_8bit: {
+    id: 'arcade_8bit',
+    name: '8-Bit Arcade',
+    emoji: '👾',
+    description: 'Âm thanh điện tử retro game thùng thập niên 90'
+  }
+};
 
 class SoundEngine {
   private ctx: AudioContext | null = null;
   private enabled: boolean = true;
+  private soundpack: SoundpackId = 'modern_pop';
 
   constructor() {
     try {
       const saved = localStorage.getItem('lifeos_sfx_enabled');
       this.enabled = saved !== null ? saved === 'true' : true;
+      const savedPack = localStorage.getItem('lifeos_soundpack') as SoundpackId;
+      if (savedPack && SOUNDPACKS[savedPack]) {
+        this.soundpack = savedPack;
+      }
     } catch {
       this.enabled = true;
     }
@@ -39,6 +81,19 @@ class SoundEngine {
     } catch {}
   }
 
+  public getSoundpack(): SoundpackId {
+    return this.soundpack;
+  }
+
+  public setSoundpack(pack: SoundpackId) {
+    if (!SOUNDPACKS[pack]) return;
+    this.soundpack = pack;
+    try {
+      localStorage.setItem('lifeos_soundpack', pack);
+    } catch {}
+    this.playPop();
+  }
+
   public toggle(): boolean {
     this.setEnabled(!this.enabled);
     if (this.enabled) {
@@ -49,17 +104,74 @@ class SoundEngine {
 
   // 1. Pop Sound (Dopamine checkmark / button click)
   public playPop() {
+    hapticEngine.trigger('light');
     if (!this.enabled) return;
     const ctx = this.initContext();
     if (!ctx) return;
 
+    const now = ctx.currentTime;
+
+    // Procedural sound based on selected soundpack
+    if (this.soundpack === 'mechanical_thock') {
+      // Mechanical keyboard switch 'thock' (punchy low frequency transient)
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.exponentialRampToValueAtTime(70, now + 0.05);
+
+      gain.gain.setValueAtTime(0.28, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.06);
+      return;
+    }
+
+    if (this.soundpack === 'water_drop') {
+      // Natural organic water droplet
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(920, now);
+      osc.frequency.exponentialRampToValueAtTime(1750, now + 0.04);
+      osc.frequency.exponentialRampToValueAtTime(1350, now + 0.08);
+
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.09);
+      return;
+    }
+
+    if (this.soundpack === 'arcade_8bit') {
+      // 8-bit retro arcade blip
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.setValueAtTime(880, now + 0.035);
+
+      gain.gain.setValueAtTime(0.07, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.08);
+      return;
+    }
+
+    // Default: Modern Pop sine sweep (400Hz -> 880Hz)
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
 
     osc.type = 'sine';
-    const now = ctx.currentTime;
-    
-    // Quick frequency sweep up: 400Hz -> 850Hz
     osc.frequency.setValueAtTime(400, now);
     osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
 
@@ -75,6 +187,7 @@ class SoundEngine {
 
   // 2. Success / Level Up / Quest Done Chime
   public playSuccess() {
+    hapticEngine.trigger('success');
     if (!this.enabled) return;
     const ctx = this.initContext();
     if (!ctx) return;

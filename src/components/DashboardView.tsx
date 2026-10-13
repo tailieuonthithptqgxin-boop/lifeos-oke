@@ -19,6 +19,18 @@ import { ShareStoryModal } from './ShareStoryModal';
 import { compute5DHarmony } from '../lib/lifeHarmonyEngine';
 import { LifeHarmonyRadarWidget } from './LifeHarmonyRadarWidget';
 import { loadVocabData, buildTodayStudyPlan } from '../lib/vocabEngine';
+import { DailyTrifectaWidget } from './dashboard/DailyTrifectaWidget';
+import { ZenFocusOverlay } from './focus/ZenFocusOverlay';
+import { DopaminePetWidget } from './companion/DopaminePetWidget';
+import { SundayWeeklyResetModal } from './dashboard/SundayWeeklyResetModal';
+import { streakFreezeEngine } from '../lib/streakFreezeEngine';
+import { vibeThemeEngine } from '../lib/vibeThemeEngine';
+import { VibeThemeModal } from './VibeThemeModal';
+import { LifeOsWrappedModal } from './dashboard/LifeOsWrappedModal';
+import { AiLifeBuddyCopilotModal } from './companion/AiLifeBuddyCopilotModal';
+import { QuickPersonaQuizModal } from './onboarding/QuickPersonaQuizModal';
+import { StreakResurrectionModal } from './dashboard/StreakResurrectionModal';
+import { WeeklyLeaderboardModal } from './dashboard/WeeklyLeaderboardModal';
 
 export function DashboardView() {
   const { 
@@ -51,9 +63,67 @@ export function DashboardView() {
   const [todayMood, setTodayMoodState] = useState<GenZMood>(() => getTodayMood());
   const [showShareStory, setShowShareStory] = useState(false);
   const [showMoodPicker, setShowMoodPicker] = useState(false);
+  const [showSundayReset, setShowSundayReset] = useState(false);
+  const [showVibeThemeModal, setShowVibeThemeModal] = useState(false);
+  const [showWrappedModal, setShowWrappedModal] = useState(false);
+  const [showAiBuddyModal, setShowAiBuddyModal] = useState(false);
+  const [showPersonaQuizModal, setShowPersonaQuizModal] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [streakShield, setStreakShield] = useState(() => streakFreezeEngine.getStatus(currentUser?.id));
+  const [resurrectionStatus, setResurrectionStatus] = useState(() => streakFreezeEngine.getResurrectionStatus(currentUser?.id));
+  const [showResurrectionModal, setShowResurrectionModal] = useState(false);
+  const [zenFocusOpen, setZenFocusOpen] = useState(false);
+  const [zenFocusTaskId, setZenFocusTaskId] = useState<string | undefined>(undefined);
   const [quickTaskTitle, setQuickTaskTitle] = useState('');
   const [quickTaskPriority, setQuickTaskPriority] = useState<any>('Trung bình');
   const [quickTaskHours, setQuickTaskHours] = useState<number>(1);
+
+  // Sync streak shield & resurrection when user changes
+  useEffect(() => {
+    setStreakShield(streakFreezeEngine.getStatus(currentUser?.id));
+    setResurrectionStatus(streakFreezeEngine.getResurrectionStatus(currentUser?.id));
+  }, [currentUser]);
+
+  // Global lifeos event triggers from Spotlight / Command palette
+  useEffect(() => {
+    const handleOpenZen = () => setZenFocusOpen(true);
+    const handleOpenReset = () => setShowSundayReset(true);
+    const handleOpenStory = () => setShowShareStory(true);
+    const handleOpenMood = () => setShowMoodPicker(true);
+    const handleOpenTheme = () => setShowVibeThemeModal(true);
+    const handleOpenWrapped = () => setShowWrappedModal(true);
+    const handleOpenAi = () => setShowAiBuddyModal(true);
+    const handleOpenQuiz = () => setShowPersonaQuizModal(true);
+    const handleOpenLeaderboard = () => setShowLeaderboard(true);
+    const handleToggleRestDay = () => {
+      streakFreezeEngine.toggleRestDay(currentUser?.id);
+      setStreakShield(streakFreezeEngine.getStatus(currentUser?.id));
+    };
+
+    window.addEventListener('lifeos:open-zen-focus', handleOpenZen);
+    window.addEventListener('lifeos:open-sunday-reset', handleOpenReset);
+    window.addEventListener('lifeos:open-share-story', handleOpenStory);
+    window.addEventListener('lifeos:open-mood-picker', handleOpenMood);
+    window.addEventListener('lifeos:open-theme-modal', handleOpenTheme);
+    window.addEventListener('lifeos:open-wrapped-modal', handleOpenWrapped);
+    window.addEventListener('lifeos:open-ai-buddy', handleOpenAi);
+    window.addEventListener('lifeos:open-persona-quiz', handleOpenQuiz);
+    window.addEventListener('lifeos:open-leaderboard', handleOpenLeaderboard);
+    window.addEventListener('lifeos:toggle-rest-day', handleToggleRestDay);
+
+    return () => {
+      window.removeEventListener('lifeos:open-zen-focus', handleOpenZen);
+      window.removeEventListener('lifeos:open-sunday-reset', handleOpenReset);
+      window.removeEventListener('lifeos:open-share-story', handleOpenStory);
+      window.removeEventListener('lifeos:open-mood-picker', handleOpenMood);
+      window.removeEventListener('lifeos:open-theme-modal', handleOpenTheme);
+      window.removeEventListener('lifeos:open-wrapped-modal', handleOpenWrapped);
+      window.removeEventListener('lifeos:open-ai-buddy', handleOpenAi);
+      window.removeEventListener('lifeos:open-persona-quiz', handleOpenQuiz);
+      window.removeEventListener('lifeos:open-leaderboard', handleOpenLeaderboard);
+      window.removeEventListener('lifeos:toggle-rest-day', handleToggleRestDay);
+    };
+  }, [currentUser]);
   
   // Routine persistence by date
   const [routineState, setRoutineState] = useState<Record<number, boolean>>(() => {
@@ -189,6 +259,23 @@ export function DashboardView() {
     .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
     .slice(0, 3);
 
+  // 3-Second Rule Cockpit Calculations
+  const now = new Date();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const daysRemainingInMonth = Math.max(1, daysInMonth - now.getDate() + 1);
+  const userMonthlyBudget = (budgets || []).find((b: any) => b.category === 'All' || b.period === 'monthly')?.amount || (monthlyIncome > 0 ? monthlyIncome : 10000000);
+  const remainingBudgetMonth = Math.max(0, userMonthlyBudget - monthlyExpense);
+  const dailySafeToSpendBudget = Math.round(remainingBudgetMonth / daysRemainingInMonth);
+  const safeToSpendTodayRemaining = dailySafeToSpendBudget - todayExpenses;
+
+  // Cockpit 3-Second Priority Tasks
+  const cockpitTrifectaTasks = [...pendingTasks]
+    .sort((a, b) => {
+      const prioOrder: Record<string, number> = { 'Nghiêm trọng': 0, 'Cao': 1, 'Trung bình': 2, 'Thấp': 3 };
+      return (prioOrder[a.priority || 'Trung bình'] ?? 2) - (prioOrder[b.priority || 'Trung bình'] ?? 2);
+    })
+    .slice(0, 3);
+
   // Projects Summary Calculations
   const activeProjects = (projects || []).filter(p => p.status !== 'Hoàn thành' && p.status !== 'Tạm dừng');
   const recentProjects = [...(projects || [])]
@@ -275,6 +362,40 @@ export function DashboardView() {
 
   return (
     <div className="p-3.5 sm:p-6 max-w-7xl mx-auto space-y-5 sm:space-y-6">
+      {/* Streak Resurrection 24h Second Chance Alert Banner */}
+      {resurrectionStatus.isPending && (
+        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-950/70 via-rose-950/50 to-amber-950/70 border border-amber-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl animate-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
+              <Flame className="w-6 h-6 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-wider text-amber-300">
+                  Thử Thách 24h Cứu Chuỗi 🛡️
+                </span>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono font-bold animate-pulse">
+                  Đang đếm ngược
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm font-bold text-white mt-0.5">
+                Chuỗi {resurrectionStatus.lostStreak} ngày của bạn vừa bị đứt! Hoàn thành 1 thử thách để hồi sinh chuỗi ngay.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              soundEngine.playPop();
+              setShowResurrectionModal(true);
+            }}
+            className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs shrink-0 cursor-pointer shadow-md shadow-amber-500/20 transition-all hover:scale-105 active:scale-95"
+          >
+            Cứu Chuỗi Ngay
+          </button>
+        </div>
+      )}
+
       {/* 1. Bento Hero Banner with Dynamic Greeting, Streak & Quick Actions */}
       <div className="relative overflow-hidden rounded-3xl bg-slate-900/95 dark:bg-slate-950/95 p-5 sm:p-7 text-white shadow-xl border border-slate-800/80">
         {/* Ambient mesh background effects */}
@@ -344,6 +465,92 @@ export function DashboardView() {
                 <span>📸</span>
                 <span>Chia sẻ Story</span>
               </button>
+
+              {/* Rest Day / Streak Freeze Shield Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  streakFreezeEngine.toggleRestDay(currentUser?.id);
+                  setStreakShield(streakFreezeEngine.getStatus(currentUser?.id));
+                }}
+                title={streakShield.isRestDayActive 
+                  ? "Chế độ nghỉ ngơi đang bật · Chuỗi Streak của bạn được bảo vệ 100%" 
+                  : `Bạn có ${streakShield.freezeCount} Băng Chuỗi ❄️. Bấm để bật chế độ nghỉ ngơi Rest Day`}
+                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold transition-all cursor-pointer ${
+                  streakShield.isRestDayActive
+                    ? 'bg-lime-500/20 text-lime-300 border-lime-500/50 shadow-xs'
+                    : 'bg-slate-800/80 border-slate-700/80 text-slate-300 hover:text-white hover:border-lime-500/40'
+                }`}
+              >
+                <span>{streakShield.isRestDayActive ? '🍵' : '❄️'}</span>
+                <span>{streakShield.isRestDayActive ? 'Đang nghỉ ngơi' : `${streakShield.freezeCount} Băng Chuỗi`}</span>
+              </button>
+
+              {/* Vibe Theme Switcher */}
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  setShowVibeThemeModal(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-purple-300 hover:text-white hover:border-purple-400/50 text-xs font-bold transition-all cursor-pointer"
+              >
+                <span>🎨</span>
+                <span className="hidden sm:inline">Theme Vibe</span>
+              </button>
+
+              {/* Monthly Wrapped Trigger */}
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  setShowWrappedModal(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-amber-300 hover:text-white hover:border-amber-400/50 text-xs font-bold transition-all cursor-pointer"
+              >
+                <span>🎉</span>
+                <span>Wrapped</span>
+              </button>
+
+              {/* AI Life Buddy Copilot Trigger */}
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  setShowAiBuddyModal(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:text-white hover:bg-emerald-500/30 text-xs font-bold transition-all cursor-pointer shadow-xs shadow-emerald-500/10"
+              >
+                <span>🤖</span>
+                <span>AI Buddy</span>
+              </button>
+
+              {/* Persona Quiz Trigger */}
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  setShowPersonaQuizModal(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-teal-300 hover:text-white hover:border-teal-400/50 text-xs font-bold transition-all cursor-pointer"
+              >
+                <span>🎯</span>
+                <span>Persona</span>
+              </button>
+
+              {/* Weekly Hall of Fame Leaderboard Trigger */}
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  setShowLeaderboard(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/25 to-yellow-500/20 border border-amber-400/40 text-amber-300 hover:text-white hover:border-amber-300 text-xs font-black transition-all cursor-pointer shadow-xs shadow-amber-500/10 hover:scale-105 active:scale-95"
+              >
+                <span>🏆</span>
+                <span>Bảng Phong Thần</span>
+              </button>
             </div>
 
             <div>
@@ -361,65 +568,154 @@ export function DashboardView() {
               </p>
             </div>
 
-            {/* 3 CORE QUESTIONS: "Tôi đang ở đâu? Tôi đang có gì? Tôi nên làm gì tiếp theo?" */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 py-1">
-              {/* Question 1: Tôi đang ở đâu? */}
-              <div className="p-3 rounded-2xl bg-slate-800/70 border border-slate-700/70 flex flex-col justify-between">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tôi đang ở đâu?</span>
-                <div className="mt-1">
-                  <span className="text-xs font-black text-white block truncate">
-                    {subscriptionStatus?.planName || 'Gói Trải Nghiệm'}
-                  </span>
-                  <span className="text-[11px] text-slate-300">
-                    {subscriptionStatus?.remainingDays !== undefined ? `${subscriptionStatus.remainingDays} ngày còn lại` : 'Đang hoạt động'}
-                  </span>
+            {/* THE 3-SECOND RULE COCKPIT: TRẠM CHỈ HUY 3 GIÂY CHO GEN Z */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 py-1">
+              {/* Pillar 1: 3 Việc Quyết Định Hôm Nay (Daily Trifecta 1-Touch Complete) */}
+              <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 flex flex-col justify-between shadow-xs">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-700/50">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-black text-emerald-400 uppercase tracking-wider">🎯 3 Việc Hôm Nay</span>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-emerald-500/15 text-emerald-300 font-bold">1-chạm</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowQuickTaskModal(true)}
+                    className="text-[10px] font-bold text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    + Thêm
+                  </button>
                 </div>
+
+                <div className="my-2 space-y-1.5">
+                  {cockpitTrifectaTasks.length > 0 ? (
+                    cockpitTrifectaTasks.map((task) => (
+                      <div
+                        key={task.id}
+                        className="group flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-slate-700/40 transition-colors"
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              soundEngine.playSuccess();
+                              updateTask(task.id, { status: 'Hoàn thành' });
+                              setCelebration({
+                                title: 'Xuất sắc!',
+                                subtitle: `Đã hoàn thành: "${task.title}"`,
+                                xpAwarded: 30
+                              });
+                            }}
+                            title="Đánh dấu hoàn thành"
+                            className="w-4 h-4 rounded-full border-2 border-emerald-500/60 hover:bg-emerald-500 hover:border-emerald-500 transition-all shrink-0 cursor-pointer flex items-center justify-center text-slate-950 font-black text-[9px]"
+                          />
+                          <span className="text-xs font-bold text-slate-200 truncate group-hover:text-white">
+                            {task.title}
+                          </span>
+                        </div>
+                        <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
+                          task.priority === 'Cao' || task.priority === 'Nghiêm trọng'
+                            ? 'bg-rose-500/20 text-rose-300'
+                            : 'bg-slate-700 text-slate-300'
+                        }`}>
+                          {task.priority || 'P2'}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="py-2 text-center text-slate-400 text-xs flex items-center justify-center gap-1.5">
+                      <span>🏆</span>
+                      <span className="font-bold text-emerald-400">Đã dọn dẹp sạch việc hôm nay!</span>
+                    </div>
+                  )}
+                </div>
+
                 <button
                   type="button"
-                  onClick={() => setCurrentView('subscription')}
-                  className="mt-2 text-[10px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
+                  onClick={() => setCurrentView('tasks')}
+                  className="text-[10px] font-bold text-slate-400 hover:text-emerald-400 flex items-center gap-1 transition-colors cursor-pointer self-start"
                 >
-                  Gia hạn / Nâng cấp <ChevronRight className="w-3 h-3" />
+                  Xem toàn bộ ({pendingTasks.length} việc) <ChevronRight className="w-3 h-3" />
                 </button>
               </div>
 
-              {/* Question 2: Tôi đang có gì? */}
-              <div className="p-3 rounded-2xl bg-slate-800/70 border border-slate-700/70 flex flex-col justify-between">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Tôi đang có gì?</span>
-                <div className="mt-1">
-                  <span className="text-xs font-black text-white block truncate">
-                    {formatCurrency(totalBalance)}
-                  </span>
-                  <span className="text-[11px] text-slate-300">
-                    {pendingTasks.length} việc · {dueVocabCount} từ ôn
-                  </span>
+              {/* Pillar 2: Hạn Mức An Toàn Hôm Nay (Daily Safe-to-Spend) */}
+              <div className="p-3.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 flex flex-col justify-between shadow-xs">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-700/50">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-black text-teal-400 uppercase tracking-wider">💳 An Toàn Tiêu Hôm Nay</span>
+                    <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-teal-500/15 text-teal-300 font-bold">Auto</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400">còn {daysRemainingInMonth} ngày</span>
                 </div>
+
+                <div className="my-2">
+                  <div className="flex items-baseline gap-2">
+                    <span className={`text-lg sm:text-xl font-black tracking-tight ${
+                      safeToSpendTodayRemaining >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                    }`}>
+                      {safeToSpendTodayRemaining >= 0 
+                        ? formatCurrency(safeToSpendTodayRemaining)
+                        : `-${formatCurrency(Math.abs(safeToSpendTodayRemaining))}`}
+                    </span>
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-bold ${
+                      safeToSpendTodayRemaining >= 0
+                        ? 'bg-emerald-500/20 text-emerald-300'
+                        : 'bg-rose-500/20 text-rose-300 animate-pulse'
+                    }`}>
+                      {safeToSpendTodayRemaining >= 0 ? 'An toàn' : 'Vượt hạn mức!'}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    Hạn mức: {formatCurrency(dailySafeToSpendBudget)}/ngày · Đã chi hôm nay: {formatCurrency(todayExpenses)}
+                  </p>
+                </div>
+
                 <button
                   type="button"
                   onClick={() => setCurrentView('finance')}
-                  className="mt-2 text-[10px] font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer"
+                  className="text-[10px] font-bold text-teal-400 hover:text-teal-300 flex items-center gap-1 transition-colors cursor-pointer self-start"
                 >
-                  Quản lý ví & thu chi <ChevronRight className="w-3 h-3" />
+                  Sổ quỹ & chi tiết ví <ChevronRight className="w-3 h-3" />
                 </button>
               </div>
 
-              {/* Question 3: Tôi nên làm gì tiếp theo? */}
-              <div className="p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 flex flex-col justify-between">
-                <span className="text-[10px] font-black text-emerald-400 uppercase tracking-wider">Tôi nên làm gì tiếp theo?</span>
-                <div className="mt-1">
-                  <span className="text-xs font-black text-emerald-200 block truncate">
-                    {dueVocabCount > 0 ? `Ôn ${dueVocabCount} từ vựng` : pendingTasks[0]?.title || 'Hoàn thành ngày!'}
-                  </span>
-                  <span className="text-[11px] text-emerald-400/80">
-                    {dueVocabCount > 0 ? 'Đến chu kỳ Spaced Rep' : 'Ưu tiên hôm nay'}
+              {/* Pillar 3: Kỷ Luật & Nút Vào Việc Siêu Tốc (Focus Launcher) */}
+              <div className="p-3.5 rounded-2xl bg-gradient-to-br from-emerald-950/60 to-slate-900 border border-emerald-500/30 flex flex-col justify-between shadow-xs">
+                <div className="flex items-center justify-between pb-2 border-b border-emerald-500/20">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-black text-amber-400 uppercase tracking-wider">🔥 Chuỗi Kỷ Luật & Focus</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-400">
+                    {streakShield.isRestDayActive ? 'Đang nghỉ ngơi' : `${streakShield.freezeCount} Băng ❄️`}
                   </span>
                 </div>
+
+                <div className="my-2">
+                  <p className="text-xs text-slate-300 leading-snug">
+                    {todayFocusMinutes > 0 
+                      ? `Hôm nay đã tập trung ${todayFocusMinutes} phút deep work.`
+                      : 'Chưa có phiên tập trung nào hôm nay. Hãy bắt đầu ngay!'}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      soundEngine.playPop();
+                      setZenFocusTaskId(cockpitTrifectaTasks[0]?.id);
+                      setZenFocusOpen(true);
+                    }}
+                    className="w-full mt-2.5 py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Zap className="w-3.5 h-3.5 fill-slate-950" />
+                    <span>Vào Việc Ngay 25 Phút (Zen)</span>
+                  </button>
+                </div>
+
                 <button
                   type="button"
-                  onClick={() => dueVocabCount > 0 ? setCurrentView('study') : setShowQuickTaskModal(true)}
-                  className="mt-2 text-[10px] font-bold text-emerald-300 hover:text-white flex items-center gap-1 cursor-pointer"
+                  onClick={() => setCurrentView('focus')}
+                  className="text-[10px] font-bold text-slate-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer self-start"
                 >
-                  {dueVocabCount > 0 ? 'Bắt đầu học ngay' : '+ Thêm việc mới'} <ChevronRight className="w-3 h-3" />
+                  Mở trang Pomodoro <ChevronRight className="w-3 h-3" />
                 </button>
               </div>
             </div>
@@ -503,6 +799,58 @@ export function DashboardView() {
               }} />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* 1.05 Sunday Weekly Reset Ritual Trigger Card */}
+      <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-950/60 via-teal-950/40 to-slate-900 border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-1/3 w-60 h-60 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+        
+        <div className="relative z-10 flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-slate-950 font-black flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
+            <Calendar className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">
+                Nghi Thức Tuần · Sunday Weekly Reset 🌿
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-black flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-amber-400" /> +100 XP Thưởng
+              </span>
+            </div>
+            <h3 className="font-bold text-sm text-white mt-0.5">
+              Đúc kết 7 ngày qua, dọn dẹp tâm trí & thiết lập 3 mục tiêu lớn tuần mới
+            </h3>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => {
+            soundEngine.playPop();
+            setShowSundayReset(true);
+          }}
+          className="relative z-10 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs flex items-center gap-1.5 transition-all shadow-md shadow-emerald-500/20 cursor-pointer shrink-0 self-end sm:self-center hover:scale-105 active:scale-95"
+        >
+          <Sparkles className="w-3.5 h-3.5 fill-slate-950" />
+          <span>Bắt đầu Reset</span>
+        </button>
+      </div>
+
+      {/* 1.1 The Daily Trifecta Widget & Dopamine Pet Evolution Widget (Bento Grid) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch">
+        <div className="lg:col-span-2">
+          <DailyTrifectaWidget
+            onStartZenFocus={(taskId) => {
+              setZenFocusTaskId(taskId);
+              setZenFocusOpen(true);
+            }}
+            onOpenQuickTask={() => setShowQuickTaskModal(true)}
+          />
+        </div>
+        <div className="lg:col-span-1 flex flex-col">
+          <DopaminePetWidget />
         </div>
       </div>
 
@@ -979,7 +1327,7 @@ export function DashboardView() {
                                 title: 'Tuyệt vời! Hoàn thành toàn bộ mục tiêu hôm nay!',
                                 subtitle: 'Bạn đã hoàn tất tất cả các công việc dự kiến trong ngày. Đỉnh cao của sự kỷ luật!',
                                 xpAwarded: 50,
-                                streakCount: retentionEngine.getProfile(currentUser?.id).streak
+                                streakCount: retentionEngine.getProfile(currentUser?.id)?.streak || 1
                               });
                             }
                           }
@@ -1335,6 +1683,72 @@ export function DashboardView() {
         todayCompletedTasks={completedTasks.length}
         moodEmoji={MOOD_PRESETS[todayMood].emoji}
         moodLabel={MOOD_PRESETS[todayMood].label}
+      />
+
+      {/* Zen Focus Mode Overlay launched from Trifecta */}
+      <ZenFocusOverlay
+        isOpen={zenFocusOpen}
+        onClose={() => setZenFocusOpen(false)}
+        defaultTaskId={zenFocusTaskId}
+      />
+
+      {/* Sunday Weekly Reset Ritual Modal */}
+      <SundayWeeklyResetModal
+        isOpen={showSundayReset}
+        onClose={() => setShowSundayReset(false)}
+        onOpenStoryShare={() => setShowShareStory(true)}
+      />
+
+      {/* Aesthetic Vibe Theme Selector Modal */}
+      <VibeThemeModal
+        isOpen={showVibeThemeModal}
+        onClose={() => setShowVibeThemeModal(false)}
+      />
+
+      {/* Monthly Spotify-Style LifeOS Wrapped Modal */}
+      <LifeOsWrappedModal
+        isOpen={showWrappedModal}
+        onClose={() => setShowWrappedModal(false)}
+        onOpenStoryShare={() => setShowShareStory(true)}
+      />
+
+      {/* AI Life Buddy Copilot Modal */}
+      <AiLifeBuddyCopilotModal
+        isOpen={showAiBuddyModal}
+        onClose={() => setShowAiBuddyModal(false)}
+      />
+
+      {/* 15-Second Quick Persona Quiz Modal */}
+      <QuickPersonaQuizModal
+        isOpen={showPersonaQuizModal}
+        onClose={() => setShowPersonaQuizModal(false)}
+      />
+
+      {/* Streak Resurrection 24h Challenge Modal */}
+      <StreakResurrectionModal
+        userId={currentUser?.id}
+        isOpen={showResurrectionModal}
+        onClose={() => setShowResurrectionModal(false)}
+        onResurrected={(restored) => {
+          setStreakShield(streakFreezeEngine.getStatus(currentUser?.id));
+          setResurrectionStatus(streakFreezeEngine.getResurrectionStatus(currentUser?.id));
+          setCelebration({
+            title: 'Hồi Sinh Thành Công!',
+            subtitle: `Chuỗi kỉ luật của bạn đã được nối tiếp ${restored} ngày! 🔥`,
+            xpAwarded: 50
+          });
+        }}
+        onStartFocus={() => setZenFocusOpen(true)}
+      />
+
+      {/* Weekly Hall of Fame Leaderboard Modal */}
+      <WeeklyLeaderboardModal
+        isOpen={showLeaderboard}
+        onClose={() => setShowLeaderboard(false)}
+        onShare={() => {
+          setShowLeaderboard(false);
+          setShowShareStory(true);
+        }}
       />
     </div>
   );

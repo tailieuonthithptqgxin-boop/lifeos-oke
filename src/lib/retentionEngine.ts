@@ -1,3 +1,5 @@
+import { streakFreezeEngine } from './streakFreezeEngine';
+
 export interface UserBadge {
   id: string;
   name: string;
@@ -106,11 +108,19 @@ export const retentionEngine = {
       const saved = localStorage.getItem(key);
       if (saved) {
         const parsed = JSON.parse(saved);
-        profile = { ...profile, ...parsed };
+        if (parsed && typeof parsed === 'object') {
+          profile = { ...profile, ...parsed };
+        }
       }
     } catch (e) {
       console.warn('Failed to parse retention profile:', e);
     }
+
+    // Guarantee numeric streak & stats
+    profile.streak = typeof profile.streak === 'number' && !isNaN(profile.streak) ? profile.streak : 1;
+    profile.bestStreak = typeof profile.bestStreak === 'number' && !isNaN(profile.bestStreak) ? profile.bestStreak : profile.streak;
+    profile.xp = typeof profile.xp === 'number' && !isNaN(profile.xp) ? profile.xp : 40;
+    profile.level = typeof profile.level === 'number' && !isNaN(profile.level) ? profile.level : 1;
 
     // Refresh streak logic against today
     if (profile.lastActiveDate !== today) {
@@ -125,7 +135,10 @@ export const retentionEngine = {
           profile.bestStreak = profile.streak;
         }
       } else if (diffDays > 1) {
-        // Streak broken
+        // Streak broken -> check if previous streak > 1 and offer 24h resurrection challenge
+        if (profile.streak > 1) {
+          streakFreezeEngine.markStreakAtRisk(profile.streak, userId);
+        }
         profile.streak = 1;
       }
       profile.lastActiveDate = today;

@@ -198,13 +198,13 @@ export function ReferralView() {
           <div className="space-y-3 max-w-2xl">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/20 text-white text-xs font-bold">
               <Gift className="w-3.5 h-3.5 text-amber-300" />
-              <span>Chương Trình Giới Thiệu Bạn Bè Nhận 30% Hoa Hồng</span>
+              <span>Chương Trình Giới Thiệu Bạn Bè Nhận 20% Hoa Hồng</span>
             </div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white flex items-center gap-2.5">
-              <span>Lan Tỏa LifeOS, Nhận Thưởng 30% Mỗi Đơn Hàng</span>
+              <span>Lan Tỏa LifeOS, Nhận Thưởng 20% Mỗi Đơn Hàng</span>
             </h1>
             <p className="text-sm sm:text-base text-emerald-100 font-medium leading-relaxed">
-              Mỗi khi bạn bè đăng ký qua mã giới thiệu và thanh toán gói dịch vụ hợp lệ, bạn sẽ lập tức nhận <span className="font-black text-amber-300 underline decoration-wavy">30% giá trị đơn hàng</span> vào ví tiền thưởng!
+              Mỗi khi bạn bè đăng ký qua mã giới thiệu và thanh toán gói dịch vụ hợp lệ, bạn sẽ lập tức nhận <span className="font-black text-amber-300 underline decoration-wavy">20% giá trị đơn hàng</span> vào ví tiền thưởng!
             </p>
           </div>
 
@@ -392,7 +392,7 @@ export function ReferralView() {
         {/* Stat 3 */}
         <div className="card-cute rounded-3xl p-5 bg-white dark:bg-slate-900 border border-purple-100 dark:border-purple-950/40 shadow-xs space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">Tổng tiền thưởng (30%)</span>
+            <span className="text-xs font-bold text-slate-500">Tổng tiền thưởng (20%)</span>
             <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600">
               <Award className="w-4 h-4" />
             </div>
@@ -460,7 +460,7 @@ export function ReferralView() {
               <div className="text-center py-12 text-slate-400 space-y-2">
                 <Gift className="w-10 h-10 mx-auto text-purple-300 animate-pulse" />
                 <p className="font-bold text-sm text-slate-600 dark:text-slate-300">Chưa có giao dịch hoa hồng nào</p>
-                <p className="text-xs">Hãy chia sẻ link cho bạn bè ngay để nhận hoa hồng 30% khi họ kích hoạt dịch vụ!</p>
+                <p className="text-xs">Hãy chia sẻ link cho bạn bè ngay để nhận hoa hồng 20% khi họ kích hoạt dịch vụ!</p>
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -485,7 +485,7 @@ export function ReferralView() {
                           {formatCurrency(comm.orderAmount)}
                         </td>
                         <td className="py-3 font-bold text-purple-600 dark:text-purple-400">
-                          30%
+                          {comm.rate ? `${Math.round(comm.rate * 100)}%` : '20%'}
                         </td>
                         <td className="py-3 font-black text-emerald-600 dark:text-emerald-400">
                           +{formatCurrency(comm.rewardAmount)}

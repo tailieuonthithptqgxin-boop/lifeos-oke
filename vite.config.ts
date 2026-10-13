@@ -19,7 +19,7 @@ export default defineConfig(() => {
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
     build: {
-      chunkSizeWarningLimit: 1200,
+      chunkSizeWarningLimit: 4000,
       rollupOptions: {
         output: {
           manualChunks(id) {
@@ -31,6 +31,12 @@ export default defineConfig(() => {
             }
             if (id.includes('japaneseJlptWords.json')) {
               return 'data-japanese-jlpt';
+            }
+            if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('node_modules/lucide-react')) {
+              return 'vendor-icons';
             }
           },
         },

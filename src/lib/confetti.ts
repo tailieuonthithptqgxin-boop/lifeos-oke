@@ -121,3 +121,5 @@ export function triggerConfetti(options: ConfettiOptions = {}) {
 
   animationId = requestAnimationFrame(update);
 }
+
+export const confetti = triggerConfetti;

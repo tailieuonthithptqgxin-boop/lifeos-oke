@@ -7,6 +7,14 @@ export interface PwaStatus {
   isInstalled: boolean;
   canInstall: boolean;
   hasUpdate: boolean;
+  isIos: boolean;
+}
+
+export function isIosDevice(): boolean {
+  if (typeof window === 'undefined') return false;
+  const userAgent = window.navigator.userAgent.toLowerCase();
+  return /iphone|ipad|ipod/.test(userAgent) || 
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 }
 
 let deferredInstallPrompt: any = null;
@@ -16,7 +24,8 @@ let currentStatus: PwaStatus = {
   isSupported: typeof window !== 'undefined' && 'serviceWorker' in navigator,
   isInstalled: false,
   canInstall: false,
-  hasUpdate: false
+  hasUpdate: false,
+  isIos: isIosDevice()
 };
 
 function notifyListeners() {
@@ -27,7 +36,7 @@ function notifyListeners() {
  * Registers Service Worker with automatic update check and event handlers
  */
 export function registerPwaServiceWorker(): void {
-  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+  if (typeof window === 'undefined') {
     return;
   }
 
@@ -37,6 +46,7 @@ export function registerPwaServiceWorker(): void {
     (window.navigator as any).standalone === true;
 
   currentStatus.isInstalled = isStandalone;
+  currentStatus.isIos = isIosDevice();
   notifyListeners();
 
   // Listen for beforeinstallprompt event

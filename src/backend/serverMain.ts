@@ -74,12 +74,16 @@ async function startServer() {
   // Trust reverse proxy (Nginx / Cloudflare on VPS)
   app.set('trust proxy', 1);
 
-  // Security Headers
+  // Security Headers (OWASP Recommended)
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'SAMEORIGIN');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://images.unsplash.com https://ui-avatars.com; connect-src 'self' ws: wss:; media-src 'self' data: blob:; worker-src 'self' blob:;"
+    );
     next();
   });
 
@@ -197,41 +201,132 @@ async function startServer() {
 
 
     // Seed default system templates if empty
+    // Seed default system templates if empty or incomplete
     const templates = await dbService.getSystemTemplates();
-    if (templates.length === 0) {
+    if (templates.length < 12) {
       await dbService.seedTemplates([
         {
           id: 'tpl_para_system',
-          title: 'Hệ thống Quản lý P.A.R.A',
-          description: 'Khung tổ chức dự án, khu vực, tài nguyên và lưu trữ theo phương pháp Tiago Forte',
+          title: 'Hệ thống Quản lý P.A.R.A (Tiago Forte)',
+          description: 'Khung tổ chức dự án, khu vực, tài nguyên và lưu trữ theo phương pháp Second Brain hiện đại',
           category: 'Productivity',
           tier: 'Free',
-          tags: ['PARA', 'Productivity', 'Organization'],
+          tags: ['PARA', 'Productivity', 'Organization', 'SecondBrain'],
           price: 0,
           isFree: true
         },
         {
           id: 'tpl_finance_freedom',
-          title: 'Lộ trình Tự do Tài chính 50/30/20',
-          description: 'Hệ thống quản lý chi tiêu, hạn mức ngân sách và danh mục tiết kiệm thông minh',
+          title: 'Lộ trình Tự do Tài chính 50/30/20 & 100M Đầu Tiên',
+          description: 'Hệ thống quản lý chi tiêu, hạn mức ngân sách, hũ tích lũy và luật 72h chống mua sắm bốc đồng',
           category: 'Finance',
-          tier: 'Pro',
-          tags: ['Finance', 'Budgeting', 'Savings'],
-          price: 99000,
-          isFree: false
+          tier: 'Free',
+          tags: ['Finance', 'Budgeting', 'Savings', 'TàiChính'],
+          price: 0,
+          isFree: true
         },
         {
           id: 'tpl_atomic_habits',
-          title: 'Ma trận Xây dựng Thói quen Bền vững',
-          description: 'Theo dõi chuỗi streak, đo lường tỷ lệ hoàn thành và phản hồi năng lượng mỗi ngày',
+          title: 'Ma trận Xây dựng Thói quen Bền vững (Atomic Habits)',
+          description: 'Theo dõi chuỗi streak, đo lường tỷ lệ hoàn thành và thói quen 2 phút khởi động',
           category: 'Habits',
           tier: 'Free',
-          tags: ['Habits', 'Health', 'Routines'],
+          tags: ['Habits', 'Health', 'Routines', 'KỷLuật'],
+          price: 0,
+          isFree: true
+        },
+        {
+          id: 'tpl_solo_freelancer',
+          title: 'Solo Freelancer & Digital Nomad OS',
+          description: 'Quy trình nhận brief, cọc 50%, bàn giao, thu hồi công nợ và hũ tài chính thuế 30%',
+          category: 'Management',
+          tier: 'Free',
+          tags: ['Freelancer', 'DựÁn', 'KháchHàng', 'Work'],
+          price: 0,
+          isFree: true
+        },
+        {
+          id: 'tpl_student_scholarship',
+          title: 'Sinh viên Học bá – JLPT/IELTS & GPA 3.6+',
+          description: 'Quản lý tín chỉ, đếm ngược ngày thi, Spaced Repetition từ vựng và khung Deep Work 90 phút',
+          category: 'Study',
+          tier: 'Free',
+          tags: ['HọcTập', 'GPA', 'IELTS', 'JLPT'],
+          price: 0,
+          isFree: true
+        },
+        {
+          id: 'tpl_adhd_anti_overthinking',
+          title: 'ADHD & Anti-Overthinking Engine',
+          description: 'Khắc phục trì hoãn với Daily Trifecta 3 việc, Brain Dump xả stress và quy tắc 2 phút',
+          category: 'Productivity',
+          tier: 'Free',
+          tags: ['ADHD', 'Focus', 'AntiProcrastination', 'TâmLý'],
+          price: 0,
+          isFree: true
+        },
+        {
+          id: 'tpl_ecommerce_koc',
+          title: 'Shop Online & KOC Affiliate Master',
+          description: 'Lịch kịch bản video TikTok 7 ngày, quản lý hoa hồng đa sàn và checklist đóng gói niêm phong',
+          category: 'Management',
+          tier: 'Free',
+          tags: ['Ecommerce', 'TikTokShop', 'Affiliate', 'KOC'],
+          price: 0,
+          isFree: true
+        },
+        {
+          id: 'tpl_fitness_recomp',
+          title: 'Fitness & Body Recomp (Push/Pull/Legs & Macro)',
+          description: 'Lịch tập gym PPL 5 ngày, theo dõi lượng nước 2.5L, chỉ số đạm/calo và giấc ngủ phục hồi 8h',
+          category: 'Health',
+          tier: 'Free',
+          tags: ['Gym', 'Fitness', 'DinhDưỡng', 'SứcKhỏe'],
+          price: 0,
+          isFree: true
+        },
+        {
+          id: 'tpl_podcast_creator',
+          title: 'Content Creator & Video Podcast Studio',
+          description: 'Pipeline sản xuất từ ý tưởng tập, kịch bản khách mời, lịch ghi âm đến cắt ghép Shorts/Reels',
+          category: 'Productivity',
+          tier: 'Free',
+          tags: ['Creator', 'Podcast', 'Media', 'SángTạo'],
+          price: 0,
+          isFree: true
+        },
+        {
+          id: 'tpl_thesis_research',
+          title: 'Nghiên cứu Khoa học & Luận văn Thạc sĩ',
+          description: 'Theo dõi tài liệu trích dẫn, khung đề cương 5 chương, tiến độ viết và phản biện khoa học',
+          category: 'Study',
+          tier: 'Free',
+          tags: ['LuậnVăn', 'NghiênCứu', 'HọcThuật', 'Paper'],
+          price: 0,
+          isFree: true
+        },
+        {
+          id: 'tpl_mindfulness_zen',
+          title: 'Thiền định, Thư giãn & Sức khỏe Tinh thần (Mindfulness)',
+          description: 'Nhật ký 3 điều biết ơn mỗi tối, bài tập thở Box Breathing 5 phút và Digital Detox cuối tuần',
+          category: 'Health',
+          tier: 'Free',
+          tags: ['Zen', 'ChữaLành', 'Thiền', 'MentalHealth'],
+          price: 0,
+          isFree: true
+        },
+        {
+          id: 'tpl_startup_mvp',
+          title: 'Startup Founder 30-Day MVP Sprint',
+          description: 'Khung triển khai startup tinh gọn: Phỏng vấn 20 khách hàng, Vibe code MVP, Launch Product Hunt',
+          category: 'Management',
+          tier: 'Free',
+          tags: ['Startup', 'Founder', 'MVP', 'KinhDoanh'],
           price: 0,
           isFree: true
         }
       ]);
-      console.log('✅ Default system templates seeded');
+      console.log('✅ 12 System templates seeded successfully');
     }
 
     // Seed default promotional coupons if none exist

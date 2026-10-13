@@ -8,12 +8,14 @@ import { useAppStore } from '../lib/store';
 import { useTranslation } from '../lib/i18n';
 import { retentionEngine, RetentionProfile } from '../lib/retentionEngine';
 import { soundEngine } from '../lib/soundEngine';
+import { ZenFocusOverlay } from './focus/ZenFocusOverlay';
 
 export function TopBar() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showInboxModal, setShowInboxModal] = useState(false);
+  const [showZenFocus, setShowZenFocus] = useState(false);
 
   const { 
     isMobileMenuOpen, toggleMobileMenu, theme, setTheme, cart, 
@@ -23,6 +25,20 @@ export function TopBar() {
   } = useAppStore();
   
   const t = useTranslation(language);
+
+  // Global Shift + F shortcut for Zen Focus Mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.shiftKey && (e.key === 'F' || e.key === 'f')) {
+        const target = e.target as HTMLElement;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+        e.preventDefault();
+        setShowZenFocus(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const [retentionProfile, setRetentionProfile] = useState<RetentionProfile>(() =>
     retentionEngine.getProfile(currentUser?.id)
@@ -75,24 +91,36 @@ export function TopBar() {
         <button
           type="button"
           onClick={() => setCurrentView('journey')}
-          title={`Hồ sơ Anh Hùng: Level ${retentionProfile.level} · ${retentionProfile.streak} ngày streak · Nhấn để xem bản đồ chiến đấu RPG`}
+          title={`Hồ sơ Anh Hùng: Level ${retentionProfile?.level || 1} · ${retentionProfile?.streak || 1} ngày streak · Nhấn để xem bản đồ chiến đấu RPG`}
           className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 text-white border border-slate-700/80 hover:border-emerald-500/80 font-black text-xs shadow-md shadow-slate-950/20 hover:scale-105 active:scale-95 transition-all cursor-pointer group"
         >
           <span className="px-2 py-0.5 rounded-md bg-amber-400 text-slate-950 text-[10px] font-black uppercase">
-            LV.{retentionProfile.level}
+            LV.{retentionProfile?.level || 1}
           </span>
           <div className="flex items-center gap-1 text-emerald-400">
             <Zap className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
-            <span className="font-mono text-[11px]">{((retentionProfile.level * 35) + (retentionProfile.streak * 20)).toLocaleString()} CP</span>
+            <span className="font-mono text-[11px]">{(((retentionProfile?.level || 1) * 35) + ((retentionProfile?.streak || 1) * 20)).toLocaleString()} CP</span>
           </div>
           <div className="flex items-center gap-1 text-amber-300 border-l border-slate-700/80 pl-2">
             <span className="text-[11px]">🪙</span>
-            <span className="font-mono text-[11px]">{Math.floor(retentionProfile.level * 40 + 50)}</span>
+            <span className="font-mono text-[11px]">{Math.floor((retentionProfile?.level || 1) * 40 + 50)}</span>
           </div>
           <div className="flex items-center gap-0.5 text-rose-400 border-l border-slate-700/80 pl-2">
             <Flame className="w-3.5 h-3.5 fill-rose-500 text-rose-500 animate-pulse" />
-            <span className="font-mono text-[11px]">{retentionProfile.streak}d</span>
+            <span className="font-mono text-[11px]">{retentionProfile?.streak || 1}d</span>
           </div>
+        </button>
+
+        {/* Zen Focus Mode Button */}
+        <button
+          type="button"
+          onClick={() => setShowZenFocus(true)}
+          title="Chế độ Zen Focus (Shift + F)"
+          className="p-2 sm:px-3 sm:py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 shadow-xs"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-emerald-500 fill-emerald-500 animate-pulse" />
+          <span className="hidden md:inline text-xs font-black">Zen Focus</span>
+          <kbd className="hidden lg:inline text-[9px] font-mono font-bold opacity-75 bg-emerald-500/15 px-1 rounded">⇧F</kbd>
         </button>
 
         {/* Primary Action Button: + Tạo mới */}
@@ -539,6 +567,12 @@ export function TopBar() {
           </div>
         </div>
       )}
+
+      {/* Full-Screen Immersive Zen Focus Overlay */}
+      <ZenFocusOverlay
+        isOpen={showZenFocus}
+        onClose={() => setShowZenFocus(false)}
+      />
     </header>
   );
 }

@@ -22,6 +22,7 @@ import { LockedWorkspaceOverlay } from './components/LockedWorkspaceOverlay';
 import { GlobalCompanionOverlay } from './components/companion/GlobalCompanionOverlay';
 import { PwaPromptBanner } from './components/PwaPromptBanner';
 import { lazyWithRetry } from './lib/lazyWithRetry';
+import { Zap } from 'lucide-react';
 
 // Lazy-load heavier / secondary views with auto-retry on network/dev hiccups
 const CalendarView = lazyWithRetry(() => import('./components/CalendarView').then(m => ({ default: m.CalendarView })));
@@ -85,7 +86,8 @@ function AppContent() {
     logout,
     language,
     theme,
-    subscriptionStatus
+    subscriptionStatus,
+    toggleCommand
   } = useAppStore();
 
   React.useEffect(() => {
@@ -365,6 +367,18 @@ function AppContent() {
       </div>
       <GlobalCompanionOverlay />
       <PwaPromptBanner />
+
+      {/* Floating Action Button for Omni Quick-Capture (1-touch on mobile/desktop) */}
+      <button
+        type="button"
+        id="btn-omni-quick-capture"
+        onClick={() => toggleCommand()}
+        title="Ghi nhanh 1-chạm (Ctrl + K)"
+        aria-label="Ghi nhanh 1-chạm"
+        className="fixed bottom-20 md:bottom-6 right-5 z-40 w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 via-teal-500 to-emerald-400 hover:from-emerald-500 hover:to-teal-300 text-slate-950 font-black shadow-xl shadow-emerald-500/30 flex items-center justify-center transition-all hover:scale-110 active:scale-95 cursor-pointer group border border-emerald-300/40"
+      >
+        <Zap className="w-5 h-5 fill-slate-950 group-hover:rotate-12 transition-transform" />
+      </button>
     </div>
   );
 }

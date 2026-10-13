@@ -34,6 +34,8 @@ import { useTranslation } from '../lib/i18n';
 import { ViewState } from '../lib/types';
 import { apiCall } from '../lib/apiClient';
 
+import { SidebarCustomizerModal, getVisibleNavModules } from './SidebarCustomizerModal';
+
 interface NavItem {
   id: ViewState;
   label: string;
@@ -42,31 +44,34 @@ interface NavItem {
   description?: string;
 }
 
-const MAIN_ITEMS: NavItem[] = [
+// 1. Nhịp sống hàng ngày (Daily Rhythm)
+const DAILY_RHYTHM_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Hôm nay', icon: LayoutDashboard },
-  { id: 'journey', label: 'Hành trình', icon: Compass },
-  { id: 'tasks', label: 'Công việc', icon: CheckSquare },
   { id: 'focus', label: 'Tập trung', icon: Zap },
-  { id: 'study', label: 'Học tập', icon: BookOpen },
+  { id: 'journey', label: 'Hành trình', icon: Compass },
+];
+
+// 2. Không gian sống & Làm việc (Life & Work Spaces)
+const SPACES_ITEMS: NavItem[] = [
+  { id: 'tasks', label: 'Công việc', icon: CheckSquare },
+  { id: 'projects', label: 'Dự án (P.A.R.A)', icon: FolderKanban },
   { id: 'habits', label: 'Thói quen', icon: Target },
   { id: 'finance', label: 'Tài chính', icon: DollarSign },
-  { id: 'notes', label: 'Nhật ký', icon: FileText },
+  { id: 'study', label: 'Học tập & Từ vựng', icon: BookOpen },
+  { id: 'notes', label: 'Nhật ký & Ghi chú', icon: FileText },
+  { id: 'goals', label: 'Mục tiêu', icon: Target },
+  { id: 'calendar', label: 'Lịch biểu', icon: Calendar },
 ];
 
-const SECONDARY_ITEMS: NavItem[] = [
-  { id: 'calendar', label: 'Lịch biểu', icon: Calendar },
+// 3. Hệ sinh thái & Tiện ích (Ecosystem & Tools)
+const SYSTEM_ITEMS: NavItem[] = [
+  { id: 'marketplace', label: 'Thư viện mẫu', icon: ShoppingBag },
+  { id: 'automation', label: 'Quy tắc tự động', icon: Cpu },
+  { id: 'decision', label: 'Ra quyết định', icon: GitBranch },
   { id: 'subscription', label: 'Gói cước & Đội ngũ', icon: CreditCard },
-  { id: 'referral', label: 'Giới thiệu nhận 30%', icon: Gift },
+  { id: 'referral', label: 'Giới thiệu nhận 20%', icon: Gift },
   { id: 'feedback', label: 'Góp ý & Hỗ trợ', icon: MessageSquare },
   { id: 'admin', label: 'Quản trị hệ thống', icon: Shield, adminOnly: true }
-];
-
-const EXTENDED_ITEMS: NavItem[] = [
-  { id: 'projects', label: 'Dự án', icon: FolderKanban },
-  { id: 'goals', label: 'Mục tiêu dài hạn', icon: Target },
-  { id: 'marketplace', label: 'Thư viện mẫu', icon: ShoppingBag },
-  { id: 'decision', label: 'Ra quyết định', icon: GitBranch },
-  { id: 'automation', label: 'Quy tắc tự động', icon: Cpu },
 ];
 
 export function Sidebar() {
@@ -87,6 +92,8 @@ export function Sidebar() {
 
   const t = useTranslation(language);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showCustomizer, setShowCustomizer] = useState(false);
+  const [visibleModules, setVisibleModules] = useState<string[]>(() => getVisibleNavModules());
   const [customModules, setCustomModules] = useState<Array<{ id: string; name: string; slug: string; icon: string }>>([]);
 
   React.useEffect(() => {
@@ -102,9 +109,11 @@ export function Sidebar() {
   const userRole = (currentUser?.role || '').toUpperCase();
   const isAdmin = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
 
-  const availableSecondaryItems = SECONDARY_ITEMS.filter(item => !item.adminOnly || isAdmin);
-  const availableExtendedItems = EXTENDED_ITEMS;
-  const isCurrentInExtended = availableExtendedItems.some(item => item.id === currentView);
+  const isVisible = (id: string) => id === 'dashboard' || visibleModules.includes(id);
+
+  const availableDailyItems = DAILY_RHYTHM_ITEMS.filter(item => isVisible(item.id));
+  const availableSpacesItems = SPACES_ITEMS.filter(item => isVisible(item.id));
+  const availableSystemItems = SYSTEM_ITEMS.filter(item => (!item.adminOnly || isAdmin) && isVisible(item.id));
 
   const renderNavButton = (item: NavItem) => {
     const Icon = item.icon;
@@ -186,35 +195,52 @@ export function Sidebar() {
             </div>
           </div>
 
-          {/* Close button on mobile */}
-          <button
-            type="button"
-            onClick={toggleMobileMenu}
-            aria-label={t('Đóng danh mục')}
-            className="md:hidden p-2 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1">
+            {/* Quick Customize Sidebar */}
+            <button
+              type="button"
+              onClick={() => setShowCustomizer(true)}
+              title={t('Cá nhân hóa danh mục')}
+              className="p-1.5 rounded-xl text-slate-400 hover:text-emerald-500 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors cursor-pointer"
+            >
+              <Sliders className="w-4 h-4" />
+            </button>
+
+            {/* Close button on mobile */}
+            <button
+              type="button"
+              onClick={toggleMobileMenu}
+              aria-label={t('Đóng danh mục')}
+              className="md:hidden p-1.5 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Navigation list */}
         <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
           
-          {/* Main Navigation (TODAY, JOURNEY, TASKS, FOCUS, LEARN, HABITS, MONEY, JOURNAL) */}
-          <div className="space-y-1">
-            <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-              {t('Hệ điều hành')}
+          {/* Group 1: Nhịp sống hàng ngày (DAILY RHYTHM) */}
+          {availableDailyItems.length > 0 && (
+            <div className="space-y-1">
+              <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center justify-between">
+                <span>{t('Nhịp sống')}</span>
+                <span className="text-[9px] text-emerald-500 font-bold lowercase">hôm nay</span>
+              </div>
+              {availableDailyItems.map(renderNavButton)}
             </div>
-            {MAIN_ITEMS.map(renderNavButton)}
-          </div>
+          )}
 
-          {/* Secondary Navigation (CALENDAR, SUBSCRIPTION, REFERRAL, FEEDBACK, ADMIN) */}
-          <div className="space-y-1 pt-3 border-t border-slate-200/60 dark:border-slate-800/60">
-            <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-              {t('Tiện ích & Cài đặt')}
+          {/* Group 2: Không gian sống & Làm việc (SPACES) */}
+          {availableSpacesItems.length > 0 && (
+            <div className="space-y-1 pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
+              <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                {t('Không gian sống')} ({availableSpacesItems.length})
+              </div>
+              {availableSpacesItems.map(renderNavButton)}
             </div>
-            {availableSecondaryItems.map(renderNavButton)}
-          </div>
+          )}
 
           {/* Section: Lĩnh vực mở rộng (Custom Modules) */}
           {customModules.length > 0 && (
@@ -252,30 +278,15 @@ export function Sidebar() {
             </div>
           )}
 
-          {/* Section 5: Công cụ Bổ trợ (Thu gọn / Mở rộng) */}
-          <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-            <button
-              type="button"
-              onClick={() => setShowAdvanced(prev => !prev)}
-              className="w-full flex items-center justify-between px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors cursor-pointer"
-            >
-              <span className="flex items-center gap-1.5 uppercase text-[10px] font-bold tracking-wider text-slate-400 dark:text-slate-500">
-                <Sliders className="w-3 h-3" />
-                {t('Công cụ mở rộng')} ({availableExtendedItems.length})
-              </span>
-              {showAdvanced || isCurrentInExtended ? (
-                <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
-              ) : (
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-              )}
-            </button>
-
-            {(showAdvanced || isCurrentInExtended) && (
-              <div className="mt-1 space-y-1 pl-1 animate-in fade-in duration-150">
-                {availableExtendedItems.map(renderNavButton)}
+          {/* Group 3: Hệ sinh thái & Tiện ích (ECOSYSTEM & TOOLS) */}
+          {availableSystemItems.length > 0 && (
+            <div className="space-y-1 pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
+              <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                {t('Hệ thống & Tiện ích')}
               </div>
-            )}
-          </div>
+              {availableSystemItems.map(renderNavButton)}
+            </div>
+          )}
         </nav>
 
         {/* Quick Preferences: Theme & Language */}
@@ -357,6 +368,13 @@ export function Sidebar() {
           </div>
         </div>
       </aside>
+
+      {/* Sidebar Customizer Modal */}
+      <SidebarCustomizerModal
+        isOpen={showCustomizer}
+        onClose={() => setShowCustomizer(false)}
+        onSaved={(mods) => setVisibleModules(mods)}
+      />
     </>
   );
 }

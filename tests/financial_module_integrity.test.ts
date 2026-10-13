@@ -126,15 +126,15 @@ async function runFinancialTests() {
     }
 
     // -------------------------------------------------------------
-    // [Test 7] User B thanh toán đơn hàng -> Cộng hoa hồng 30% cho User A
+    // [Test 7] User B thanh toán đơn hàng -> Cộng hoa hồng 20% cho User A
     // -------------------------------------------------------------
-    console.log('\n[Test 7] User B mua gói 100.000đ -> Cấp hoa hồng 30% (30.000đ) vào ví User A:');
+    console.log('\n[Test 7] User B mua gói 100.000đ -> Cấp hoa hồng 20% (20.000đ) vào ví User A:');
     const orderIdTest = `ORD_FIN_${Date.now()}`;
     const comm = await referralService.processOrderApproved(orderIdTest, 100000, userB.id);
-    if (comm && comm.rewardAmount === 30000) {
+    if (comm && comm.rewardAmount === 20000) {
       const refreshedProfileA = await referralService.getOrCreateProfile(userA.id);
-      if (refreshedProfileA.approvedReward === 30000 && refreshedProfileA.totalCommission === 30000) {
-        console.log(`  ✓ PASSED: Đã cộng đúng 30.000đ vào ví User A. Số dư khả dụng hiện tại: ${refreshedProfileA.approvedReward}đ.`);
+      if (refreshedProfileA.approvedReward === 20000 && refreshedProfileA.totalCommission === 20000) {
+        console.log(`  ✓ PASSED: Đã cộng đúng 20.000đ vào ví User A. Số dư khả dụng hiện tại: ${refreshedProfileA.approvedReward}đ.`);
         passedCount++;
       } else {
         throw new Error('Test 7 Failed: Số dư ví User A không khớp.');
@@ -167,9 +167,9 @@ async function runFinancialTests() {
     // -------------------------------------------------------------
     // [Test 9] Cấp thêm hoa hồng để đủ min withdrawal 50k -> Rút tiền thành công
     // -------------------------------------------------------------
-    console.log('\n[Test 9] User A tích lũy thêm 30.000đ (tổng 60.000đ) và tạo yêu cầu rút 50.000đ:');
+    console.log('\n[Test 9] User A tích lũy thêm 30.000đ (tổng 50.000đ) và tạo yêu cầu rút 50.000đ:');
     const orderIdTest2 = `ORD_FIN_2_${Date.now()}`;
-    await referralService.processOrderApproved(orderIdTest2, 100000, userB.id);
+    await referralService.processOrderApproved(orderIdTest2, 150000, userB.id);
     const wReq = await referralService.requestWithdrawal(userA.id, {
       amount: 50000,
       bankName: 'Vietcombank',
@@ -180,7 +180,7 @@ async function runFinancialTests() {
     if (
       wReq && 
       wReq.status === 'PENDING' && 
-      profileAfterReq.approvedReward === 10000 && 
+      profileAfterReq.approvedReward === 0 && 
       profileAfterReq.withdrawalPending === 50000
     ) {
       console.log(`  ✓ PASSED: Tiền đã được khóa vào withdrawalPending: 50.000đ, số dư khả dụng còn lại: ${profileAfterReq.approvedReward}đ.`);
@@ -224,7 +224,7 @@ async function runFinancialTests() {
     if (
       rejectedReq.status === 'REJECTED' &&
       profileAfterReject.withdrawalPending === 0 &&
-      profileAfterReject.approvedReward === 60000
+      profileAfterReject.approvedReward === 50000
     ) {
       console.log(`  ✓ PASSED: Yêu cầu chuyển sang REJECTED, 50.000đ được hoàn trả 100% về ví. Số dư khả dụng hiện tại: ${profileAfterReject.approvedReward}đ.`);
       passedCount++;
@@ -249,7 +249,7 @@ async function runFinancialTests() {
       approvedReq.txReference === 'VCB-FT-2026101199' &&
       profileAfterPaid.withdrawalPending === 0 &&
       profileAfterPaid.paidReward === 50000 &&
-      profileAfterPaid.approvedReward === 10000
+      profileAfterPaid.approvedReward === 0
     ) {
       console.log(`  ✓ PASSED: Giải ngân thành công! paidReward = 50.000đ, mã giao dịch ngân hàng: ${approvedReq.txReference}.`);
       passedCount++;

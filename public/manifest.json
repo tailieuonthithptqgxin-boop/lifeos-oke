@@ -1,7 +1,7 @@
 {
-  "name": "QUẢN LÍ CÁ NHÂN",
-  "short_name": "QUẢN LÍ",
-  "description": "Hệ thống quản lý cá nhân toàn diện: công việc, thói quen, học tập, tài chính và mục tiêu.",
+  "name": "LifeOS - Hệ Điều Hành Cá Nhân Gen Z",
+  "short_name": "LifeOS",
+  "description": "Hệ điều hành quản lý cuộc sống toàn diện cho Gen Z: Deep Work, Tài chính, Thói quen & RPG Gamification.",
   "start_url": "/",
   "id": "/",
   "display": "standalone",

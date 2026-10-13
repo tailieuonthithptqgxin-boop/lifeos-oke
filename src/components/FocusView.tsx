@@ -15,6 +15,8 @@ import { analytics } from '../lib/analytics';
 import { soundEngine } from '../lib/soundEngine';
 import { triggerConfetti } from '../lib/confetti';
 import { webNotification } from '../lib/webNotification';
+import { WeeklyLeaderboardModal } from './dashboard/WeeklyLeaderboardModal';
+import { ShareStoryModal } from './ShareStoryModal';
 
 export function FocusView() {
   const { 
@@ -32,6 +34,8 @@ export function FocusView() {
   const [selectedTaskId, setSelectedTaskId] = useState<string>('');
   const [isZenMode, setIsZenMode] = useState(false);
   const [showMusicPanel, setShowMusicPanel] = useState(true);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showShareStory, setShowShareStory] = useState(false);
 
   // Companion Dynamic Mood & Dialogue State
   const [companionMood, setCompanionMood] = useState<CompanionMood>('idle');
@@ -312,6 +316,26 @@ export function FocusView() {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Live Co-working Presence */}
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+            <span>🟢 {135 + (new Date().getHours() % 12) * 5} bạn đang Deep Work</span>
+          </div>
+
+          {/* Weekly Hall of Fame Leaderboard Trigger */}
+          <button
+            type="button"
+            onClick={() => {
+              soundEngine.playPop();
+              setShowLeaderboard(true);
+            }}
+            className="px-3 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500/20 to-yellow-500/15 border border-amber-400/40 text-amber-700 dark:text-amber-300 hover:border-amber-400 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
+            title="Bảng Phong Thần Kỷ Luật Tuần"
+          >
+            <span>🏆</span>
+            <span className="hidden sm:inline">Bảng Phong Thần</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setShowMusicPanel(!showMusicPanel)}
@@ -649,6 +673,22 @@ export function FocusView() {
           </div>
         </div>
       )}
+
+      {/* Weekly Hall of Fame Leaderboard Modal */}
+      <WeeklyLeaderboardModal
+        isOpen={showLeaderboard}
+        onClose={() => setShowLeaderboard(false)}
+        onShare={() => {
+          setShowLeaderboard(false);
+          setShowShareStory(true);
+        }}
+      />
+
+      {/* Aesthetic Story Share Modal */}
+      <ShareStoryModal
+        isOpen={showShareStory}
+        onClose={() => setShowShareStory(false)}
+      />
 
     </div>
   );

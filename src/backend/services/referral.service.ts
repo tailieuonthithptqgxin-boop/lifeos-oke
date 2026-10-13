@@ -124,7 +124,7 @@ export class ReferralService {
         data: {
           userId: referrerProfile.userId,
           title: '🎉 Bạn có 1 người bạn mới đăng ký qua mã giới thiệu!',
-          message: `Một người bạn vừa đăng ký tài khoản thành công qua mã ${cleanCode}. Khi bạn ấy phát sinh đơn hàng, bạn sẽ nhận được 30% hoa hồng!`,
+          message: `Một người bạn vừa đăng ký tài khoản thành công qua mã ${cleanCode}. Khi bạn ấy phát sinh đơn hàng, bạn sẽ nhận được 20% hoa hồng!`,
           type: 'info'
         }
       })
@@ -155,8 +155,8 @@ export class ReferralService {
     });
     if (existingCommission) return null;
 
-    // Calculate 30% reward
-    const commissionRate = 0.30;
+    // Calculate 20% reward (Official Business Rule)
+    const commissionRate = 0.20;
     const rewardAmount = Math.round(orderAmount * commissionRate);
 
     if (rewardAmount <= 0) return null;
@@ -192,14 +192,14 @@ export class ReferralService {
           amount: rewardAmount,
           previousBal: referrerProfile.approvedReward,
           newBal: referrerProfile.approvedReward + rewardAmount,
-          reason: `Hoa hồng 30% từ đơn hàng ${orderId} (${orderAmount.toLocaleString('vi-VN')} ₫)`
+          reason: `Hoa hồng 20% từ đơn hàng ${orderId} (${orderAmount.toLocaleString('vi-VN')} ₫)`
         }
       }),
       // Send celebration notification to referrer
       prisma.notification.create({
         data: {
           userId: relationship.referrerId,
-          title: '💰 Nhận thưởng hoa hồng giới thiệu 30%!',
+          title: '💰 Nhận thưởng hoa hồng giới thiệu 20%!',
           message: `Chúc mừng bạn! Người bạn bạn giới thiệu vừa thanh toán đơn hàng. Bạn nhận được +${rewardAmount.toLocaleString('vi-VN')} ₫ hoa hồng vào ví thưởng!`,
           type: 'success'
         }
@@ -233,13 +233,13 @@ export class ReferralService {
           amount: rewardAmount,
           previousBal: referrerProfile.approvedReward,
           newBal: referrerProfile.approvedReward + rewardAmount,
-          reason: `Hoa hồng 30% từ đơn hàng ${orderId} (${orderAmount.toLocaleString('vi-VN')} ₫)`
+          reason: `Hoa hồng 20% từ đơn hàng ${orderId} (${orderAmount.toLocaleString('vi-VN')} ₫)`
         }
       });
       await prisma.notification.create({
         data: {
           userId: relationship.referrerId,
-          title: '💰 Nhận thưởng hoa hồng giới thiệu 30%!',
+          title: '💰 Nhận thưởng hoa hồng giới thiệu 20%!',
           message: `Chúc mừng bạn! Người bạn bạn giới thiệu vừa thanh toán đơn hàng. Bạn nhận được +${rewardAmount.toLocaleString('vi-VN')} ₫ hoa hồng vào ví thưởng!`,
           type: 'success'
         }

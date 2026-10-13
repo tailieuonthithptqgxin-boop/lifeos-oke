@@ -179,8 +179,8 @@ export function compute5DHarmony(params: Compute5DHarmonyInput): LifeHarmonyOver
       return dates.includes(selectedDate) || hasRecordToday;
     }).length;
 
-    const todayRate = (completedToday / totalHabits) * 100;
-    const maxStreak = Math.max(0, ...userHabits.map(h => Number(h.streak || h.currentStreak || 0)));
+    const todayRate = totalHabits > 0 ? (completedToday / totalHabits) * 100 : 0;
+    const maxStreak = Math.max(0, ...(userHabits || []).map(h => Number(h?.streak || h?.currentStreak || 0)));
     const streakFactor = Math.min(100, maxStreak * 10); // 10 days streak = 100 pts
     const habitScore = Math.min(100, Math.max(0, Math.round(todayRate * 0.7 + streakFactor * 0.3)));
 

@@ -391,6 +391,289 @@ apiRouter.post('/templates/:id/apply', async (req: AuthRequest, res: Response) =
 
       createdSummary.habits = 4;
       createdSummary.view = 'habits';
+    } else if (id === 'tpl_solo_freelancer') {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const p1 = await prisma.project.create({
+        data: { userId, name: '💼 Pipeline Khách Hàng & Dự Án Freelance', description: 'Quy trình chuẩn: Nhận brief -> Cọc 50% -> Thực thi -> Thu nốt 50% -> Bàn giao', status: 'Đang làm', color: '#6366f1' }
+      });
+
+      await prisma.task.createMany({
+        data: [
+          { userId, projectId: p1.id, title: 'Gửi bảng báo giá chi tiết và hợp đồng dịch vụ cho Khách A', priority: 'Cao', status: 'Chưa làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'Thu cọc 50% trước khi bắt tay vào thực hiện thiết kế/code', priority: 'Cao', status: 'Chưa làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'Gửi bản nháp Review V1 & Lấy phản hồi trong 48h', priority: 'Trung bình', status: 'Đang làm' },
+          { userId, projectId: p1.id, title: 'Xuất hóa đơn quyết toán và nhận 50% phần còn lại trước khi giao source/file gốc', priority: 'Cao', status: 'Đang chờ' }
+        ]
+      });
+
+      await prisma.financeAccount.createMany({
+        data: [
+          { userId, name: 'Ví Thuế & Quỹ Rủi Ro Freelancer (30%)', type: 'Đầu tư', balance: 0, currency: 'VND', color: '#10b981' },
+          { userId, name: 'Ví Doanh Thu Dự Án Client (50%)', type: 'Ngân hàng', balance: 0, currency: 'VND', color: '#6366f1' }
+        ]
+      });
+
+      await prisma.note.create({
+        data: {
+          userId,
+          title: 'Mẫu Email Báo Giá & Điều Khoản Chống Bùng Kèo Khách Hàng',
+          content: '### Điều khoản Freelance Chuẩn:\n1. **Đặt cọc**: Tối thiểu 50% tổng giá trị dự án trước khi kickoff.\n2. **Số lần sửa**: Tối đa 3 vòng chỉnh sửa lớn. Các yêu cầu phát sinh tính phí theo giờ.\n3. **Bàn giao**: Bàn giao toàn quyền sở hữu file gốc sau khi thanh toán 100% chi phí.',
+          category: 'Management',
+          tags: '["Freelancer", "Template", "Contract"]'
+        }
+      });
+
+      createdSummary.projects = 1;
+      createdSummary.tasks = 4;
+      createdSummary.accounts = 2;
+      createdSummary.notes = 1;
+      createdSummary.view = 'projects';
+    } else if (id === 'tpl_student_scholarship') {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const examDateStr = new Date(Date.now() + 86400000 * 30).toISOString().split('T')[0];
+
+      const p1 = await prisma.project.create({
+        data: { userId, name: '🎓 Chiến Dịch Luyện Thi JLPT/IELTS & GPA 3.6+', description: 'Khung ôn luyện Spaced Repetition, bài tập lớn và đồ án học phần', status: 'Đang làm', color: '#ec4899' }
+      });
+
+      await prisma.task.createMany({
+        data: [
+          { userId, projectId: p1.id, title: 'Học 20 từ vựng Spaced Repetition (Lặp lại ngắt quãng)', priority: 'Cao', status: 'Chưa làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'Giải 1 đề thi thử trong 90 phút bấm giờ nghiêm túc', priority: 'Cao', status: 'Đang làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'Đọc và tóm tắt 1 bài báo nghiên cứu chuyên ngành', priority: 'Trung bình', status: 'Chưa làm' },
+          { userId, projectId: p1.id, title: 'Kiểm tra lịch thi và điểm danh chuyên cần các môn', priority: 'Thấp', status: 'Chưa làm', dueDate: examDateStr }
+        ]
+      });
+
+      await prisma.habit.createMany({
+        data: [
+          { userId, name: 'Học từ vựng 15 phút đầu ngày', category: 'Study', target: 15, unitLabel: 'phút', unit: 'minutes', status: 'Active' },
+          { userId, name: 'Phiên Deep Work không điện thoại 90p', category: 'Study', target: 90, unitLabel: 'phút', unit: 'minutes', status: 'Active' }
+        ]
+      });
+
+      await prisma.note.create({
+        data: {
+          userId,
+          title: 'Bảng Phương Pháp Ôn Tập Active Recall & Pomodoro Học Bá',
+          content: '### Kỹ thuật Học Tập Đỉnh Cao:\n- **Active Recall**: Tự gấp sách lại và viết ra những gì nhớ được.\n- **Spaced Repetition**: Ôn lại vào ngày 1, ngày 3, ngày 7 và ngày 30.\n- **Feynman Technique**: Giải thích lại kiến thức cho một người không biết gì hiểu được.',
+          category: 'Study',
+          tags: '["ActiveRecall", "SpacedRepetition", "GPA"]'
+        }
+      });
+
+      createdSummary.projects = 1;
+      createdSummary.tasks = 4;
+      createdSummary.habits = 2;
+      createdSummary.notes = 1;
+      createdSummary.view = 'projects';
+    } else if (id === 'tpl_adhd_anti_overthinking') {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const p1 = await prisma.project.create({
+        data: { userId, name: '🧠 Khắc Phục Trì Hoãn & Chống Quá Tải Não (Anti-ADHD)', description: 'Giữ tâm trí thanh thản: Chỉ tập trung vào 3 việc/ngày, loại bỏ 90% xao nhãng', status: 'Đang làm', color: '#10b981' }
+      });
+
+      await prisma.task.createMany({
+        data: [
+          { userId, projectId: p1.id, title: 'Việc 1 của Daily Trifecta: Nhiệm vụ quan trọng nhất', priority: 'Cao', status: 'Chưa làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'Việc 2 của Daily Trifecta: Nhiệm vụ thứ nhì', priority: 'Trung bình', status: 'Chưa làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'Việc 3 của Daily Trifecta: Nhiệm vụ thứ ba', priority: 'Trung bình', status: 'Chưa làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'Dọn dẹp mặt bàn làm việc & đóng các tab trình duyệt thừa (5 phút)', priority: 'Thấp', status: 'Chưa làm', dueDate: todayStr }
+        ]
+      });
+
+      await prisma.habit.createMany({
+        data: [
+          { userId, name: 'Quy tắc 2 phút: Việc dưới 2p làm ngay', category: 'Productivity', target: 1, unitLabel: 'lần', unit: 'times', status: 'Active' },
+          { userId, name: 'Không chạm điện thoại 30p sau thức dậy', category: 'Health', target: 30, unitLabel: 'phút', unit: 'minutes', status: 'Active' }
+        ]
+      });
+
+      await prisma.note.create({
+        data: {
+          userId,
+          title: 'Hộp Xả Tâm Trí (Brain Dump Box) - Ném Hết Suy Nghĩ Vào Đây',
+          content: 'Mỗi khi đầu óc bị ngập trong suy nghĩ lộn xộn:\n1. Gõ hết ra trang này không cần sắp xếp.\n2. Chọn đúng 1 việc có thể làm ngay trong 5 phút.\n3. Hít thở sâu 3 nhịp và bắt tay vào làm.',
+          category: 'Productivity',
+          tags: '["ADHD", "BrainDump", "Overthinking"]'
+        }
+      });
+
+      createdSummary.projects = 1;
+      createdSummary.tasks = 4;
+      createdSummary.habits = 2;
+      createdSummary.notes = 1;
+      createdSummary.view = 'tasks';
+    } else if (id === 'tpl_ecommerce_koc') {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const p1 = await prisma.project.create({
+        data: { userId, name: '🛍️ Kế Hoạch Video KOC & Bán Hàng TikTok/Shopee', description: 'Pipeline sáng tạo nội dung, gắn link affiliate và theo dõi hoa hồng', status: 'Đang làm', color: '#f59e0b' }
+      });
+
+      await prisma.task.createMany({
+        data: [
+          { userId, projectId: p1.id, title: 'Nghiên cứu 5 Hook mở đầu video đang viral trong ngành', priority: 'Cao', status: 'Chưa làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'Quay video unboxing & review công năng thực tế sản phẩm', priority: 'Cao', status: 'Đang làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'Edit chèn subtitle nổi bật và xuất bản đúng 11h30 hoặc 19h45', priority: 'Cao', status: 'Chưa làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'Gắn link Bio & Đối soát số đơn hàng sau 24 giờ', priority: 'Trung bình', status: 'Chưa làm' }
+        ]
+      });
+
+      await prisma.habit.createMany({
+        data: [
+          { userId, name: 'Đăng 1 video ngắn TikTok/Reels', category: 'Personal', target: 1, unitLabel: 'video', unit: 'times', status: 'Active' },
+          { userId, name: 'Phản hồi tương tác 10 bình luận đầu tiên', category: 'Personal', target: 10, unitLabel: 'cmt', unit: 'times', status: 'Active' }
+        ]
+      });
+
+      createdSummary.projects = 1;
+      createdSummary.tasks = 4;
+      createdSummary.habits = 2;
+      createdSummary.view = 'projects';
+    } else if (id === 'tpl_fitness_recomp') {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const p1 = await prisma.project.create({
+        data: { userId, name: '💪 Thử Thách Lột Xác Thể Chất 90 Ngày (Push/Pull/Legs)', description: 'Tối ưu vóc dáng, tăng cơ giảm mỡ với chế độ tập khoa học và dinh dưỡng chuẩn', status: 'Đang làm', color: '#ef4444' }
+      });
+
+      await prisma.task.createMany({
+        data: [
+          { userId, projectId: p1.id, title: 'Buổi tập Push (Ngực - Vai - Tay sau) 45 phút', priority: 'Cao', status: 'Chưa làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'Đi bộ đạt tối thiểu 8.000 bước chân trong ngày', priority: 'Trung bình', status: 'Đang làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'Chuẩn bị hộp cơm giàu đạm (ức gà / thịt bò / trứng luộc)', priority: 'Trung bình', status: 'Chưa làm', dueDate: todayStr }
+        ]
+      });
+
+      await prisma.habit.createMany({
+        data: [
+          { userId, name: 'Uống đủ 2.5 lít nước mỗi ngày', category: 'Health', target: 2500, unitLabel: 'ml', unit: 'ml', status: 'Active' },
+          { userId, name: 'Nạp đủ 120g - 140g Đạm (Protein)', category: 'Health', target: 130, unitLabel: 'gram', unit: 'grams', status: 'Active' },
+          { userId, name: 'Ngủ đủ 7-8 tiếng để cơ bắp phục hồi', category: 'Health', target: 8, unitLabel: 'tiếng', unit: 'hours', status: 'Active' }
+        ]
+      });
+
+      createdSummary.projects = 1;
+      createdSummary.tasks = 3;
+      createdSummary.habits = 3;
+      createdSummary.view = 'habits';
+    } else if (id === 'tpl_podcast_creator') {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const p1 = await prisma.project.create({
+        data: { userId, name: '🎙️ Sản Xuất Series Video Podcast Mùa 1', description: 'Pipeline chuyên nghiệp từ lên ý tưởng, mời khách mời, thu âm đến phân phối đa nền tảng', status: 'Đang làm', color: '#8b5cf6' }
+      });
+
+      await prisma.task.createMany({
+        data: [
+          { userId, projectId: p1.id, title: 'Soạn Outline 5 câu hỏi phỏng vấn đào sâu cho Tập 1', priority: 'Cao', status: 'Chưa làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'Test âm thanh Microphone & Ánh sáng trước giờ thu âm 30p', priority: 'Cao', status: 'Chưa làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'Cắt 3 đoạn trích đắt giá (Golden Clips) làm Shorts/Reels', priority: 'Trung bình', status: 'Chưa làm' }
+        ]
+      });
+
+      await prisma.note.create({
+        data: {
+          userId,
+          title: 'Checklist Chuẩn Bị Thiết Bị & Khung Câu Hỏi Podcast',
+          content: '### Khung Phỏng Vấn Vàng:\n1. Bước ngoặt lớn nhất trong sự nghiệp của bạn là gì?\n2. Sai lầm đắt giá nhất bạn từng phạm phải?\n3. Lời khuyên cho những bạn trẻ đang hoang mang tìm lối đi?',
+          category: 'Productivity',
+          tags: '["Podcast", "Media", "Studio"]'
+        }
+      });
+
+      createdSummary.projects = 1;
+      createdSummary.tasks = 3;
+      createdSummary.notes = 1;
+      createdSummary.view = 'projects';
+    } else if (id === 'tpl_thesis_research') {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const p1 = await prisma.project.create({
+        data: { userId, name: '📚 Đề Tài Nghiên Cứu Khoa Học & Luận Văn Thạc Sĩ', description: 'Khung cấu trúc luận văn 5 chương chuẩn học thuật quốc tế', status: 'Đang làm', color: '#0284c7' }
+      });
+
+      await prisma.task.createMany({
+        data: [
+          { userId, projectId: p1.id, title: 'Tổng hợp và trích dẫn 15 bài báo khoa học chuẩn APA', priority: 'Cao', status: 'Đang làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'Hoàn thiện bản thảo Chương 1 (Đặt vấn đề & Mục tiêu)', priority: 'Cao', status: 'Chưa làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'Thu thập và làm sạch mẫu khảo sát thực địa', priority: 'Trung bình', status: 'Chưa làm' }
+        ]
+      });
+
+      await prisma.habit.createMany({
+        data: [
+          { userId, name: 'Viết tối thiểu 300 từ học thuật mỗi ngày', category: 'Study', target: 300, unitLabel: 'từ', unit: 'words', status: 'Active' },
+          { userId, name: 'Đọc 1 bài báo Q1/Q2 chuyên ngành', category: 'Study', target: 1, unitLabel: 'bài', unit: 'times', status: 'Active' }
+        ]
+      });
+
+      createdSummary.projects = 1;
+      createdSummary.tasks = 3;
+      createdSummary.habits = 2;
+      createdSummary.view = 'projects';
+    } else if (id === 'tpl_mindfulness_zen') {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const p1 = await prisma.project.create({
+        data: { userId, name: '🌿 Chữa Lành, Tĩnh Tâm & Cân Bằng Cảm Xúc', description: 'Tái tạo năng lượng tinh thần, giảm tải căng thẳng và sống trọn vẹn từng khoảnh khắc', status: 'Đang làm', color: '#059669' }
+      });
+
+      await prisma.task.createMany({
+        data: [
+          { userId, projectId: p1.id, title: 'Đi dạo ngoài trời không đeo tai nghe 20 phút', priority: 'Trung bình', status: 'Chưa làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'Gửi 1 lời nhắn cảm ơn chân thành đến người thân yêu', priority: 'Thấp', status: 'Chưa làm', dueDate: todayStr }
+        ]
+      });
+
+      await prisma.habit.createMany({
+        data: [
+          { userId, name: 'Ghi 3 điều biết ơn vào nhật ký tối', category: 'Personal', target: 3, unitLabel: 'điều', unit: 'times', status: 'Active' },
+          { userId, name: 'Tập thở Box Breathing 5 phút khi stress', category: 'Health', target: 5, unitLabel: 'phút', unit: 'minutes', status: 'Active' },
+          { userId, name: 'Tắt Wi-Fi điện thoại lúc 21h30', category: 'Health', target: 1, unitLabel: 'lần', unit: 'times', status: 'Active' }
+        ]
+      });
+
+      await prisma.note.create({
+        data: {
+          userId,
+          title: 'Nhật Ký Biết Ơn & Những Điều Khiến Tôi Bình Yên',
+          content: '### 3 Điều tôi biết ơn hôm nay:\n1. Một tách trà ấm và không gian yên tĩnh buổi sớm.\n2. Cơ thể khỏe mạnh và đôi mắt sáng để làm việc.\n3. Những người luôn lắng nghe và đồng hành cùng tôi.',
+          category: 'Personal',
+          tags: '["Gratitude", "Peace", "Mindfulness"]'
+        }
+      });
+
+      createdSummary.projects = 1;
+      createdSummary.tasks = 2;
+      createdSummary.habits = 3;
+      createdSummary.notes = 1;
+      createdSummary.view = 'habits';
+    } else if (id === 'tpl_startup_mvp') {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const p1 = await prisma.project.create({
+        data: { userId, name: '🚀 30-Day Lean Startup & MVP Launch Sprint', description: 'Quy trình khởi nghiệp tinh gọn: Phỏng vấn khách hàng, Vibe code MVP và ra mắt sản phẩm', status: 'Đang làm', color: '#7c3aed' }
+      });
+
+      await prisma.task.createMany({
+        data: [
+          { userId, projectId: p1.id, title: 'Phỏng vấn 10 khách hàng mục tiêu để xác nhận nỗi đau', priority: 'Cao', status: 'Đang làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'Vibe code phiên bản MVP cốt lõi giải quyết đúng 1 vấn đề', priority: 'Cao', status: 'Chưa làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'Tạo Landing Page tinh gọn kèm form đăng ký sớm (Waitlist)', priority: 'Cao', status: 'Chưa làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'Đăng bài Launch trên Threads, Twitter và Product Hunt', priority: 'Trung bình', status: 'Chưa làm' }
+        ]
+      });
+
+      await prisma.note.create({
+        data: {
+          userId,
+          title: 'Bản Đồ Lean Canvas Tinh Gọn 1 Trang',
+          content: '### Câu hỏi sống còn của Startup:\n1. **Vấn đề cốt lõi**: Khách hàng đang mất thời gian/tiền bạc nhiều nhất ở đâu?\n2. **Giải pháp 10x**: Sản phẩm của mình nhanh hơn/rẻ hơn/dễ dùng hơn giải pháp cũ như thế nào?\n3. **Kênh phân phối**: Làm sao để tiếp cận 100 người dùng đầu tiên với 0đ chi phí quảng cáo?',
+          category: 'Management',
+          tags: '["LeanStartup", "MVP", "Growth"]'
+        }
+      });
+
+      createdSummary.projects = 1;
+      createdSummary.tasks = 4;
+      createdSummary.notes = 1;
+      createdSummary.view = 'projects';
     } else {
       // General template
       const proj = await prisma.project.create({

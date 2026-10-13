@@ -4,7 +4,7 @@ import { useTranslation } from '../lib/i18n';
 import {
   Search, CheckSquare, Calendar, Wallet, FolderKanban,
   FileText, Target, Repeat, Scale, Cpu, User, ShoppingBag,
-  ArrowRight, Sparkles, X, Plus, Clock, Shield, BookOpen, Zap
+  ArrowRight, Sparkles, X, Plus, Clock, Shield, BookOpen, Zap, Heart, Palette, Coffee, Trophy
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '../lib/utils';
 import { ViewState } from '../lib/types';
@@ -35,6 +35,7 @@ export function CommandCenter() {
     decisions,
     addTask,
     addTransaction,
+    addNote,
     language
   } = useAppStore();
 
@@ -42,6 +43,7 @@ export function CommandCenter() {
 
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [activeCategory, setActiveCategory] = useState<'all' | 'commands' | 'tasks' | 'finance' | 'pages'>('all');
   const [successToast, setSuccessToast] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -99,48 +101,216 @@ export function CommandCenter() {
     const q = query.trim().toLowerCase();
     const list: SearchResultItem[] = [];
 
-    // Check for Slash Command mode
-    if (q.startsWith('/')) {
-      const parts = q.slice(1).split(' ');
+    // Check for Slash / Arrow Command mode
+    if (q.startsWith('/') || q.startsWith('>')) {
+      const cleanQ = q.replace(/^[/|>]/, '').trim();
+      const parts = cleanQ.split(' ');
       const cmd = parts[0];
       const param = parts.slice(1).join(' ').trim();
 
-      if ('task'.startsWith(cmd)) {
+      // /zen or >zen
+      if ('zen'.startsWith(cmd) || 'focus'.startsWith(cmd)) {
+        list.push({
+          id: 'cmd-zen',
+          title: '🧘 Bật Zen Focus Mode Toàn Màn Hình (Shift + F)',
+          subtitle: 'Không gian Deep Work tối giản OLED + Âm thanh thư giãn Web Audio offline',
+          category: 'Lệnh nhanh',
+          icon: Sparkles,
+          badge: 'Deep Work',
+          action: () => {
+            soundEngine.playPop();
+            window.dispatchEvent(new CustomEvent('lifeos:open-zen-focus'));
+            toggleCommand();
+          }
+        });
+      }
+
+      // /reset or >reset
+      if ('reset'.startsWith(cmd) || 'sunday'.startsWith(cmd) || 'tuan'.startsWith(cmd)) {
+        list.push({
+          id: 'cmd-reset',
+          title: '🌿 Lễ Tổng Kết Tuần (Sunday Weekly Reset)',
+          subtitle: 'Nhìn lại tuần cũ, đúc kết bài học & đặt 3 mục tiêu lớn tuần mới (+100 XP)',
+          category: 'Lệnh nhanh',
+          icon: Calendar,
+          badge: 'Nghi thức tuần',
+          action: () => {
+            soundEngine.playPop();
+            window.dispatchEvent(new CustomEvent('lifeos:open-sunday-reset'));
+            toggleCommand();
+          }
+        });
+      }
+
+      // /story or >story or /flex
+      if ('story'.startsWith(cmd) || 'flex'.startsWith(cmd) || 'khoe'.startsWith(cmd)) {
+        list.push({
+          id: 'cmd-story',
+          title: '📸 Xuất Thẻ Flex Instagram Story (Tỉ Lệ 9:16)',
+          subtitle: 'Tải ảnh PNG thẩm mỹ để chia sẻ thành tích và chuỗi Streak lên Story/Threads',
+          category: 'Lệnh nhanh',
+          icon: Zap,
+          badge: 'Story 9:16',
+          action: () => {
+            soundEngine.playPop();
+            window.dispatchEvent(new CustomEvent('lifeos:open-share-story'));
+            toggleCommand();
+          }
+        });
+      }
+
+      // /pet or >pet
+      if ('pet'.startsWith(cmd) || 'mascot'.startsWith(cmd) || 'donghanh'.startsWith(cmd)) {
+        list.push({
+          id: 'cmd-pet',
+          title: '🦊 Tương Tác Cùng Linh Thú Đồng Hành',
+          subtitle: 'Nhận câu thoại động viên dopamine và kiểm tra cấp độ tiến hóa của linh thú',
+          category: 'Lệnh nhanh',
+          icon: Heart,
+          badge: 'Linh thú',
+          action: () => {
+            soundEngine.playPop();
+            window.dispatchEvent(new CustomEvent('lifeos:poke-pet'));
+            toggleCommand();
+          }
+        });
+      }
+
+      // /theme or >theme
+      if ('theme'.startsWith(cmd) || 'vibe'.startsWith(cmd) || 'mau'.startsWith(cmd)) {
+        list.push({
+          id: 'cmd-theme',
+          title: '🎨 Đổi Vibe Thẩm Mỹ (Cyber Emerald, Matcha Latte, Midnight...)',
+          subtitle: 'Cá nhân hóa giao diện LifeOS theo mood và phong cách của bạn',
+          category: 'Lệnh nhanh',
+          icon: Palette,
+          badge: 'Aesthetic',
+          action: () => {
+            soundEngine.playPop();
+            window.dispatchEvent(new CustomEvent('lifeos:open-theme-modal'));
+            toggleCommand();
+          }
+        });
+      }
+
+      // /wrapped or >wrapped
+      if ('wrapped'.startsWith(cmd) || 'thang'.startsWith(cmd) || 'month'.startsWith(cmd)) {
+        list.push({
+          id: 'cmd-wrapped',
+          title: '🎉 LifeOS Wrapped Tháng (Tổng kết phong cách Spotify)',
+          subtitle: 'Mở story tổng kết thành tích Deep Work, Tasks và Danh hiệu tháng để flex',
+          category: 'Lệnh nhanh',
+          icon: Trophy,
+          badge: 'Wrapped',
+          action: () => {
+            soundEngine.playPop();
+            window.dispatchEvent(new CustomEvent('lifeos:open-wrapped-modal'));
+            toggleCommand();
+          }
+        });
+      }
+
+      // /rest or >rest
+      if ('rest'.startsWith(cmd) || 'chill'.startsWith(cmd) || 'nghi'.startsWith(cmd)) {
+        list.push({
+          id: 'cmd-rest',
+          title: '🍵 Bật Chế Độ Nghỉ Ngơi & Bảo Vệ Streak (Rest Day Mode)',
+          subtitle: 'Khóa chuỗi kỉ luật hôm nay để sạc lại năng lượng, chống kiệt sức',
+          category: 'Lệnh nhanh',
+          icon: Coffee,
+          badge: 'Chữa lành',
+          action: () => {
+            soundEngine.playPop();
+            window.dispatchEvent(new CustomEvent('lifeos:toggle-rest-day'));
+            toggleCommand();
+          }
+        });
+      }
+
+      // /ai or >ai or copilot
+      if ('ai'.startsWith(cmd) || 'copilot'.startsWith(cmd) || 'buddy'.startsWith(cmd) || 'troly'.startsWith(cmd)) {
+        list.push({
+          id: 'cmd-ai-buddy',
+          title: '🤖 Mở AI Life Buddy Copilot (Trợ lý cá nhân Gen Z)',
+          subtitle: 'Tự xếp Daily Trifecta, chia nhỏ Overthinking Task, Roast chi tiêu và tư vấn thông minh',
+          category: 'Lệnh nhanh',
+          icon: Cpu,
+          badge: 'AI Copilot',
+          action: () => {
+            soundEngine.playPop();
+            window.dispatchEvent(new CustomEvent('lifeos:open-ai-buddy'));
+            toggleCommand();
+          }
+        });
+      }
+
+      // /quiz or >quiz or persona
+      if ('quiz'.startsWith(cmd) || 'persona'.startsWith(cmd) || 'onboard'.startsWith(cmd) || 'tinhcach'.startsWith(cmd)) {
+        list.push({
+          id: 'cmd-persona-quiz',
+          title: '🎯 Khảo Sát Phong Cách Cá Nhân 15s (Persona Quiz)',
+          subtitle: 'Thiết lập Vibe theme, linh thú khởi đầu và tự động gieo 3 nhiệm vụ Trifecta (+50 XP)',
+          category: 'Lệnh nhanh',
+          icon: Target,
+          badge: '15s Quiz',
+          action: () => {
+            soundEngine.playPop();
+            window.dispatchEvent(new CustomEvent('lifeos:open-persona-quiz'));
+            toggleCommand();
+          }
+        });
+      }
+
+      // /task or >task
+      if ('task'.startsWith(cmd) || 'viec'.startsWith(cmd)) {
+        const isUrgent = param.includes('!gap') || param.includes('!high') || param.includes('!uutu');
+        const isLow = param.includes('!thap') || param.includes('!low');
+        const isTomorrow = /\bmai\b/i.test(param);
+        const cleanTitle = param.replace(/!(gap|high|uutu|thap|low)/gi, '').trim();
+
         list.push({
           id: 'cmd-task',
-          title: param ? `Tạo công việc: "${param}"` : 'Tạo công việc mới: /task [tên công việc]',
-          subtitle: 'Nhấn Enter để thêm ngay vào danh sách việc cần làm',
+          title: cleanTitle ? `Tạo công việc: "${cleanTitle}"` : 'Tạo công việc mới: /task [tên] [!gap]',
+          subtitle: cleanTitle 
+            ? `Ưu tiên: ${isUrgent ? 'Cao (!gap)' : isLow ? 'Thấp' : 'Trung bình'} · Hạn: ${isTomorrow ? 'Ngày mai' : 'Hôm nay'}` 
+            : 'Mẹo: Gõ /task Hoàn thành đồ án !gap để tự gán ưu tiên cao',
           category: 'Lệnh nhanh',
           icon: CheckSquare,
-          badge: 'Nhiệm vụ',
+          badge: isUrgent ? 'Ưu tiên Cao' : 'Nhiệm vụ',
           action: () => {
-            if (param) {
+            if (cleanTitle) {
+              soundEngine.playPop();
+              const due = isTomorrow 
+                ? new Date(Date.now() + 86400000).toISOString().split('T')[0]
+                : new Date().toISOString().split('T')[0];
               addTask({
-                title: param,
+                title: cleanTitle,
                 status: 'Chưa làm',
-                priority: 'Trung bình',
-                dueDate: null,
+                priority: isUrgent ? 'Cao' : isLow ? 'Thấp' : 'Trung bình',
+                dueDate: due,
                 projectId: null,
-                notes: 'Tạo từ Spotlight'
+                notes: 'Tạo nhanh từ Spotlight'
               });
-              setSuccessToast(`Đã tạo công việc "${param}"`);
+              setSuccessToast(`Đã tạo công việc "${cleanTitle}"`);
               setTimeout(() => { toggleCommand(); setSuccessToast(null); }, 600);
             }
           }
         });
       }
 
-      if ('expense'.startsWith(cmd) || 'chi'.startsWith(cmd)) {
+      // /expense or /chi or >pay
+      if ('expense'.startsWith(cmd) || 'chi'.startsWith(cmd) || 'pay'.startsWith(cmd)) {
         list.push({
           id: 'cmd-expense',
           title: param ? `Ghi chi tiêu: ${param}` : 'Ghi chi tiêu nhanh: /expense [số tiền] [nội dung]',
-          subtitle: 'VD: /expense 50000 Ăn sáng',
+          subtitle: 'VD: /expense 50k Trà sữa',
           category: 'Lệnh nhanh',
           icon: Wallet,
           badge: 'Chi tiêu',
           action: () => {
             const rawParts = param.split(' ');
-            const amt = parseInt(rawParts[0].replace(/\D/g, '')) || 0;
+            let amt = parseInt(rawParts[0].replace(/\D/g, '')) || 0;
+            if (rawParts[0].toLowerCase().includes('k') || amt < 1000) amt *= 1000;
             const desc = rawParts.slice(1).join(' ') || 'Chi tiêu nhanh';
             if (amt > 0) {
               soundEngine.playPop();
@@ -174,29 +344,70 @@ export function CommandCenter() {
         });
       }
 
-      if ('focus'.startsWith(cmd) || 'pomo'.startsWith(cmd)) {
-        list.push({
-          id: 'cmd-focus',
-          title: 'Bật Chế Độ Tập Trung (Focus Mode & Lo-Fi Music)',
-          subtitle: 'Bật đồng hồ Pomodoro và phát nhạc YouTube nền',
-          category: 'Lệnh nhanh',
-          icon: Clock,
-          badge: 'Deep Work',
-          action: () => {
-            soundEngine.playPop();
-            setCurrentView('focus');
-            toggleCommand();
-          }
-        });
-      }
-
       return list;
     }
 
     // Default / General Search across everything
     if (!q) {
-      // When empty: show common quick jump navigation items & shortcuts
-      navItems.slice(0, 6).forEach((item) => {
+      // 1. Top Recommended Gen Z Power Actions
+      list.push({
+        id: 'rec-zen',
+        title: '🧘 Bật Chế Độ Zen Focus Mode (Shift + F)',
+        subtitle: 'Toàn màn hình tối giản OLED + Âm thanh thư giãn offline',
+        category: 'Lệnh nhanh',
+        icon: Sparkles,
+        badge: 'Phím tắt ⇧F',
+        action: () => {
+          soundEngine.playPop();
+          window.dispatchEvent(new CustomEvent('lifeos:open-zen-focus'));
+          toggleCommand();
+        }
+      });
+
+      list.push({
+        id: 'rec-reset',
+        title: '🌿 Lễ Tổng Kết Tuần (Sunday Weekly Reset)',
+        subtitle: 'Nhìn lại 7 ngày qua, đúc kết bài học & đặt 3 mục tiêu lớn mới (+100 XP)',
+        category: 'Lệnh nhanh',
+        icon: Calendar,
+        badge: 'Nghi thức',
+        action: () => {
+          soundEngine.playPop();
+          window.dispatchEvent(new CustomEvent('lifeos:open-sunday-reset'));
+          toggleCommand();
+        }
+      });
+
+      list.push({
+        id: 'rec-story',
+        title: '📸 Xuất Thẻ Flex Instagram Story (9:16)',
+        subtitle: 'Tải ảnh PNG aesthetic để flex thành tích & streak lên Stories/Threads',
+        category: 'Lệnh nhanh',
+        icon: Zap,
+        badge: 'Story 9:16',
+        action: () => {
+          soundEngine.playPop();
+          window.dispatchEvent(new CustomEvent('lifeos:open-share-story'));
+          toggleCommand();
+        }
+      });
+
+      list.push({
+        id: 'rec-pet',
+        title: '🦊 Tương Tác Cùng Linh Thú Đồng Hành',
+        subtitle: 'Nhận năng lượng tích cực và xem cấp độ tiến hóa của linh thú',
+        category: 'Lệnh nhanh',
+        icon: Heart,
+        badge: 'Linh thú',
+        action: () => {
+          soundEngine.playPop();
+          window.dispatchEvent(new CustomEvent('lifeos:poke-pet'));
+          toggleCommand();
+        }
+      });
+
+      // 2. Common Quick Jump Navigation
+      navItems.slice(0, 5).forEach((item) => {
         list.push({
           id: `nav-${item.view}`,
           title: item.title,
@@ -213,19 +424,61 @@ export function CommandCenter() {
       return list;
     }
 
-    // Natural Language Quick Capture for Financial Expenses (e.g. "ăn trưa 45k", "chi 50000 xăng", "mua sách 120k")
-    const moneyMatch = q.match(/(\d+)\s*(k|nghìn|ngan|vnd|đ)?/i);
-    const isExpenseHint = /chi|mua|ăn|uống|xăng|cà phê|cafe|tiền|trả/i.test(q) || /k$/i.test(q);
-    if (moneyMatch && isExpenseHint) {
-      let rawNum = parseInt(moneyMatch[1], 10);
-      const unit = (moneyMatch[2] || '').toLowerCase();
-      if (unit === 'k' || rawNum < 1000) rawNum *= 1000;
+    // ==========================================
+    // OMNI QUICK-CAPTURE NATURAL LANGUAGE PARSER
+    // ==========================================
+
+    // 1. Natural Language INCOME (e.g. "+15m Lương tháng", "lương 15m", "+500k thưởng")
+    const isIncomeExplicit = q.startsWith('+') || /^(thu|lương|thưởng|nhận)\s+/i.test(q);
+    const incomeMoneyMatch = q.match(/(?:\+)?(\d+[\d,.]*)\s*(m|tr|triệu|k|nghìn|ngan)?/i);
+    if (isIncomeExplicit && incomeMoneyMatch) {
+      let num = parseFloat(incomeMoneyMatch[1].replace(/,/g, ''));
+      const unit = (incomeMoneyMatch[2] || '').toLowerCase();
+      if (unit === 'm' || unit === 'tr' || unit === 'triệu') num *= 1000000;
+      else if (unit === 'k' || unit === 'nghìn' || unit === 'ngan' || num < 1000) num *= 1000;
+      
+      if (num > 0) {
+        const desc = q.replace(/^[+\s]+/, '').replace(/(?:thu|lương|thưởng|nhận)\s+/i, '').replace(/(\d+[\d,.]*)\s*(m|tr|triệu|k|nghìn|ngan)?/i, '').trim() || 'Thu nhập / Lương';
+        list.unshift({
+          id: 'nl-income',
+          title: `💰 Ghi thu nhập: +${formatCurrency(num)} ("${desc}")`,
+          subtitle: 'Nhấn Enter để cộng ngay vào ví tiền của bạn',
+          category: 'Lệnh nhanh',
+          icon: Wallet,
+          badge: 'Thu nhập',
+          action: () => {
+            soundEngine.playPop();
+            addTransaction({
+              amount: num,
+              type: 'Thu nhập',
+              category: 'Lương & Thưởng',
+              date: new Date().toISOString().split('T')[0],
+              description: desc
+            });
+            setSuccessToast(`Đã ghi nhận thu nhập +${formatCurrency(num)}: "${desc}" ✨`);
+            setTimeout(() => { toggleCommand(); setSuccessToast(null); }, 600);
+          }
+        });
+      }
+    }
+
+    // 2. Natural Language EXPENSE (e.g. "ăn trưa 45k", "-45k cafe", "mua sách 120k", "cafe highland 45k", "xăng 70k")
+    const isExpenseExplicit = q.startsWith('-') || /^(chi|mua|tiền|trả)\s+/i.test(q);
+    const expenseMoneyMatch = q.match(/(?:-)?(\d+[\d,.]*)\s*(m|tr|triệu|k|nghìn|ngan|đ|vnd)?/i);
+    const isExpenseContext = isExpenseExplicit || /chi|mua|ăn|uống|xăng|cà phê|cafe|tiền|trả|bánh|cơm|grab|shopee|lazada/i.test(q) || /(?:k|tr|m)$/i.test(q);
+    
+    if (expenseMoneyMatch && isExpenseContext && !isIncomeExplicit) {
+      let rawNum = parseFloat(expenseMoneyMatch[1].replace(/,/g, ''));
+      const unit = (expenseMoneyMatch[2] || '').toLowerCase();
+      if (unit === 'm' || unit === 'tr' || unit === 'triệu') rawNum *= 1000000;
+      else if (unit === 'k' || unit === 'nghìn' || unit === 'ngan' || rawNum < 1000) rawNum *= 1000;
+
       if (rawNum > 0) {
-        const desc = q.replace(/(\d+)\s*(k|nghìn|ngan|vnd|đ)?/i, '').replace(/^(chi|mua|tiền)\s*/i, '').trim() || 'Chi tiêu nhanh';
+        const desc = q.replace(/^[-|\s]+/, '').replace(/(\d+[\d,.]*)\s*(m|tr|triệu|k|nghìn|ngan|đ|vnd)?/i, '').replace(/^(chi|mua|tiền)\s*/i, '').trim() || 'Chi tiêu nhanh';
         list.unshift({
           id: 'nl-expense',
-          title: `💸 Ghi nhanh chi tiêu: ${formatCurrency(rawNum)} ("${desc}")`,
-          subtitle: 'Nhấn Enter để ghi sổ chi tiêu tức thì',
+          title: `💸 Ghi nhanh chi tiêu: -${formatCurrency(rawNum)} ("${desc}")`,
+          subtitle: 'Nhấn Enter để trừ vào ngân sách & ghi sổ tức thì',
           category: 'Lệnh nhanh',
           icon: Wallet,
           badge: 'Chi tiêu',
@@ -245,29 +498,67 @@ export function CommandCenter() {
       }
     }
 
-    // Natural Language Quick Capture for Tasks (e.g. "task làm bài tập", "học toán !cao")
-    if (/^(task|việc|todo)\s+/i.test(q) || /!(cao|gap|thap)/i.test(q)) {
-      const isHigh = /!(cao|gap)/i.test(q);
-      const isLow = /!thap/i.test(q);
+    // 3. Natural Language QUICK NOTE (e.g. "#note Ý tưởng app podcast", "note: Mua quà sinh nhật")
+    if (q.startsWith('#note') || q.startsWith('note:') || q.startsWith('#ghi') || q.startsWith('#y')) {
+      const cleanContent = q.replace(/^(#note|note:|#ghi|#y)\s*/i, '').trim();
+      if (cleanContent) {
+        list.unshift({
+          id: 'nl-note',
+          title: `📝 Lưu ghi chú nhanh: "${cleanContent}"`,
+          subtitle: 'Nhấn Enter để lưu ngay vào Sổ tay Second Brain',
+          category: 'Lệnh nhanh',
+          icon: FileText,
+          badge: 'Ghi chú',
+          action: () => {
+            soundEngine.playPop();
+            if (typeof addNote === 'function') {
+              addNote({
+                title: cleanContent.slice(0, 40),
+                content: cleanContent,
+                tags: ['QuickCapture'],
+                date: new Date().toISOString().split('T')[0]
+              });
+            }
+            setSuccessToast(`Đã lưu ghi chú "${cleanContent.slice(0, 30)}..." ✨`);
+            setTimeout(() => { toggleCommand(); setSuccessToast(null); }, 600);
+          }
+        });
+      }
+    }
+
+    // 4. Natural Language TASK (e.g. "Họp team 15:00 mai !p1", "Làm bài tập N3 !gap", "task chuẩn bị slide")
+    const isTaskKeyword = /^(task|việc|todo)\s+/i.test(q);
+    const hasPriorityFlag = /!(cao|gap|p1|uutu|thap|low|p3)/i.test(q);
+    const hasTomorrow = /\b(mai|ngày mai|tomorrow)\b/i.test(q);
+    const looksLikeTask = isTaskKeyword || hasPriorityFlag || hasTomorrow || (/^(họp|làm|viết|nộp|gọi|gửi|mua|đọc|ôn)\s+/i.test(q) && !expenseMoneyMatch);
+
+    if (looksLikeTask && !q.startsWith('#') && !isIncomeExplicit) {
+      const isHigh = /!(cao|gap|p1|uutu)/i.test(q);
+      const isLow = /!(thap|low|p3)/i.test(q);
       const priority = isHigh ? 'Cao' : (isLow ? 'Thấp' : 'Trung bình');
-      const cleanTitle = q.replace(/^(task|việc|todo)\s+/i, '').replace(/!(cao|gap|thap)/i, '').trim();
+      const cleanTitle = q.replace(/^(task|việc|todo)\s+/i, '').replace(/!(cao|gap|p1|uutu|thap|low|p3)/gi, '').trim();
+      
       if (cleanTitle) {
+        const dueDate = hasTomorrow 
+          ? new Date(Date.now() + 86400000).toISOString().split('T')[0]
+          : new Date().toISOString().split('T')[0];
+
         list.unshift({
           id: 'nl-task',
-          title: `✨ Tạo nhanh công việc: "${cleanTitle}" (Ưu tiên: ${priority})`,
-          subtitle: 'Nhấn Enter để thêm ngay vào danh sách công việc',
+          title: `✨ Tạo nhanh công việc: "${cleanTitle}"`,
+          subtitle: `Ưu tiên: ${priority} · Hạn chót: ${hasTomorrow ? 'Ngày mai' : 'Hôm nay'} · Nhấn Enter để thêm`,
           category: 'Lệnh nhanh',
           icon: CheckSquare,
-          badge: 'Nhiệm vụ',
+          badge: isHigh ? 'Ưu tiên Cao' : 'Nhiệm vụ',
           action: () => {
             soundEngine.playPop();
             addTask({
               title: cleanTitle,
               status: 'Chưa làm',
               priority,
-              dueDate: null,
+              dueDate,
               projectId: null,
-              notes: 'Tạo nhanh qua Command Center'
+              notes: 'Tạo nhanh qua Omni Quick-Capture'
             });
             setSuccessToast(`Đã tạo công việc "${cleanTitle}" ✨`);
             setTimeout(() => { toggleCommand(); setSuccessToast(null); }, 600);
@@ -420,13 +711,19 @@ export function CommandCenter() {
       }
     });
 
-    return list.slice(0, 25);
-  }, [query, navItems, tasks, projects, notes, goals, habits, transactions, decisions, addTask, addTransaction, setCurrentView, toggleCommand]);
+    let filtered = list;
+    if (activeCategory === 'commands') filtered = list.filter(i => i.category === 'Lệnh nhanh');
+    else if (activeCategory === 'tasks') filtered = list.filter(i => i.category === 'Công việc');
+    else if (activeCategory === 'finance') filtered = list.filter(i => i.category === 'Tài chính');
+    else if (activeCategory === 'pages') filtered = list.filter(i => i.category === 'Điều hướng');
+
+    return filtered.slice(0, 25);
+  }, [query, activeCategory, navItems, tasks, projects, notes, goals, habits, transactions, decisions, addTask, addTransaction, setCurrentView, toggleCommand]);
 
   // Adjust selection when query changes
   useEffect(() => {
     setSelectedIndex(0);
-  }, [query]);
+  }, [query, activeCategory]);
 
   // Keyboard navigation inside modal
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -465,14 +762,14 @@ export function CommandCenter() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder={t('Tìm kiếm công việc, dự án, ghi chú, ví tiền hoặc gõ /task, /expense...')}
+            placeholder={t("Gõ nhanh... VD: 'Cafe 45k', '+15m Lương', 'Họp mai !gap', '#note Ý tưởng'...")}
             className="w-full text-base sm:text-lg bg-transparent outline-none text-slate-900 dark:text-white placeholder:text-slate-400 font-medium"
           />
           {query ? (
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg"
+              className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -481,6 +778,44 @@ export function CommandCenter() {
               ESC
             </kbd>
           )}
+        </div>
+
+        {/* Quick Syntax Chips */}
+        {!query && (
+          <div className="flex items-center gap-1.5 px-4 py-2 bg-emerald-500/5 dark:bg-emerald-950/20 border-b border-emerald-500/10 text-[11px] overflow-x-auto no-scrollbar">
+            <span className="text-emerald-600 dark:text-emerald-400 font-bold shrink-0">⚡ Mẫu gõ 1-chạm:</span>
+            <button type="button" onClick={() => setQuery('Cafe 45k')} className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-emerald-500 cursor-pointer shrink-0 font-medium">"Cafe 45k"</button>
+            <button type="button" onClick={() => setQuery('+15m Lương')} className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-emerald-500 cursor-pointer shrink-0 font-medium">"+15m Lương"</button>
+            <button type="button" onClick={() => setQuery('Họp 15h mai !gap')} className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-emerald-500 cursor-pointer shrink-0 font-medium">"Họp mai !gap"</button>
+            <button type="button" onClick={() => setQuery('#note Ý tưởng mới')} className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-emerald-500 cursor-pointer shrink-0 font-medium">"#note Ý tưởng"</button>
+          </div>
+        )}
+
+        {/* Category Filter Tabs */}
+        <div className="flex items-center gap-1.5 px-4 py-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/60 overflow-x-auto text-xs no-scrollbar">
+          {[
+            { id: 'all', label: 'Tất cả' },
+            { id: 'commands', label: '⚡ Lệnh nhanh' },
+            { id: 'tasks', label: '📋 Công việc' },
+            { id: 'finance', label: '💸 Tài chính' },
+            { id: 'pages', label: '🧭 Trang điều hướng' }
+          ].map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => {
+                soundEngine.playPop();
+                setActiveCategory(tab.id as any);
+              }}
+              className={`px-2.5 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all cursor-pointer ${
+                activeCategory === tab.id
+                  ? 'bg-blue-600 text-white shadow-xs'
+                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700/80'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         {/* Success Toast inside modal */}

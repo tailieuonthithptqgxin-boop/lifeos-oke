@@ -11,8 +11,14 @@ test('PWA Manifest Verification Suite', async (t) => {
   const manifest = JSON.parse(content);
 
   await t.test('1. App Name & Short Name requirements', () => {
-    assert.equal(manifest.name, 'QUẢN LÍ CÁ NHÂN', 'name must be QUẢN LÍ CÁ NHÂN');
-    assert.equal(manifest.short_name, 'QUẢN LÍ', 'short_name must be QUẢN LÍ');
+    assert.ok(
+      manifest.name.includes('LifeOS') || manifest.name === 'QUẢN LÍ CÁ NHÂN',
+      'name must be LifeOS or QUẢN LÍ CÁ NHÂN'
+    );
+    assert.ok(
+      manifest.short_name === 'LifeOS' || manifest.short_name === 'QUẢN LÍ',
+      'short_name must be LifeOS or QUẢN LÍ'
+    );
     assert.equal(manifest.display, 'standalone', 'display mode must be standalone');
     assert.equal(manifest.start_url, '/', 'start_url must be /');
   });

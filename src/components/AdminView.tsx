@@ -916,7 +916,7 @@ export function AdminView() {
             }`}
           >
             <Users className="w-3.5 h-3.5" />
-            <span>Chương Trình Giới Thiệu (30%)</span>
+            <span>Chương Trình Giới Thiệu (20%)</span>
           </button>
 
           <button

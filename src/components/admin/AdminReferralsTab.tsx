@@ -167,7 +167,7 @@ export function AdminReferralsTab() {
 
         <div className="card-cute rounded-3xl p-5 bg-white dark:bg-slate-900 border border-purple-100 dark:border-purple-950/40 shadow-xs space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">Tổng hoa hồng (30%)</span>
+            <span className="text-xs font-bold text-slate-500">Tổng hoa hồng (20%)</span>
             <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600">
               <Award className="w-4 h-4" />
             </div>
@@ -423,7 +423,7 @@ export function AdminReferralsTab() {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
               <Gift className="w-5 h-5 text-indigo-600" />
-              <span>Toàn Bộ Nhật Ký Trả Thưởng 30% Hoa Hồng</span>
+              <span>Toàn Bộ Nhật Ký Trả Thưởng 20% Hoa Hồng</span>
             </h3>
 
             <div className="relative">
@@ -445,7 +445,7 @@ export function AdminReferralsTab() {
                   <th className="pb-3">Mã Đơn</th>
                   <th className="pb-3">Người Nhận Hoa Hồng</th>
                   <th className="pb-3">Giá trị đơn</th>
-                  <th className="pb-3">Tiền thưởng (30%)</th>
+                  <th className="pb-3">Tiền thưởng (20%)</th>
                   <th className="pb-3">Trạng thái</th>
                   <th className="pb-3">Ngày tạo</th>
                 </tr>

@@ -63,13 +63,13 @@ test('Referral Program & Feedback System Comprehensive Test Suite', async (t) =>
 
   await t.test('3. Order Approved -> Accurate 30% Commission Calculation & Notifications', async () => {
     const orderId = `ORD_TEST_${testRunId}`;
-    const orderAmount = 200000; // 200,000 VND -> 30% is 60,000 VND
+    const orderAmount = 200000; // 200,000 VND -> 20% is 40,000 VND
 
     const commission = await referralService.processOrderApproved(orderId, orderAmount, userB.id);
     assert.ok(commission, 'Commission must be created');
     assert.equal(commission.orderAmount, 200000);
-    assert.equal(commission.commissionRate, 0.30);
-    assert.equal(commission.rewardAmount, 60000, '30% of 200k must be 60k');
+    assert.equal(commission.commissionRate, 0.20);
+    assert.equal(commission.rewardAmount, 40000, '20% of 200k must be 40k');
     assert.equal(commission.status, 'Approved');
 
     // Verify duplicate order reward protection
@@ -80,8 +80,8 @@ test('Referral Program & Feedback System Comprehensive Test Suite', async (t) =>
     const dashboardA = await referralService.getUserDashboard(userA.id);
     assert.equal(dashboardA.totalReferred, 1);
     assert.equal(dashboardA.totalSales, 200000);
-    assert.equal(dashboardA.totalCommission, 60000);
-    assert.equal(dashboardA.approvedReward, 60000);
+    assert.equal(dashboardA.totalCommission, 40000);
+    assert.equal(dashboardA.approvedReward, 40000);
 
     // Verify notification was sent to User A
     const notice = await prisma.notification.findFirst({
@@ -106,12 +106,12 @@ test('Referral Program & Feedback System Comprehensive Test Suite', async (t) =>
   });
 
   await t.test('5. Referral Wallet & Bank Withdrawal Flow (Atomic Locking & Double-Spend Protection)', async () => {
-    // Re-create an approved order for 300,000 VND -> 90,000 VND reward
+    // Re-create an approved order for 500,000 VND -> 20% is 100,000 VND reward
     const orderId2 = `ORD_WITHDRAW_${testRunId}`;
-    await referralService.processOrderApproved(orderId2, 300000, userB.id);
+    await referralService.processOrderApproved(orderId2, 500000, userB.id);
 
     const dash = await referralService.getUserDashboard(userA.id);
-    assert.equal(dash.approvedReward, 90000, 'User A has 90,000 VND available reward');
+    assert.equal(dash.approvedReward, 100000, 'User A has 100,000 VND available reward');
 
     // Rule 1: Cannot withdraw more than available balance
     await assert.rejects(
@@ -155,7 +155,7 @@ test('Referral Program & Feedback System Comprehensive Test Suite', async (t) =>
 
     // Check balances locked
     const dashAfterLock = await referralService.getUserDashboard(userA.id);
-    assert.equal(dashAfterLock.approvedReward, 30000, 'Available balance reduced from 90k to 30k');
+    assert.equal(dashAfterLock.approvedReward, 40000, 'Available balance reduced from 100k to 40k');
     assert.equal(dashAfterLock.withdrawalPending, 60000, 'Withdrawal pending locked at 60k');
 
     // Test Admin Reject -> refunds locked funds back to available balance
@@ -168,7 +168,7 @@ test('Referral Program & Feedback System Comprehensive Test Suite', async (t) =>
     assert.equal(rejectedReq.rejectReason, 'Sai số tài khoản nhận tiền');
 
     const dashAfterReject = await referralService.getUserDashboard(userA.id);
-    assert.equal(dashAfterReject.approvedReward, 90000, 'Available balance restored back to 90k');
+    assert.equal(dashAfterReject.approvedReward, 100000, 'Available balance restored back to 100k');
     assert.equal(dashAfterReject.withdrawalPending, 0, 'Withdrawal pending reduced to 0');
 
     // Test Re-request & Admin Approve -> marks PAID, deducts withdrawalPending, adds to paidReward
@@ -187,7 +187,7 @@ test('Referral Program & Feedback System Comprehensive Test Suite', async (t) =>
     assert.equal(approvedPayout.txReference, 'FT99887766');
 
     const dashFinal = await referralService.getUserDashboard(userA.id);
-    assert.equal(dashFinal.approvedReward, 20000, '90k - 70k = 20k available');
+    assert.equal(dashFinal.approvedReward, 30000, '100k - 70k = 30k available');
     assert.equal(dashFinal.withdrawalPending, 0, 'No more pending');
     assert.equal(dashFinal.paidReward, 70000, 'Paid reward = 70k');
 
