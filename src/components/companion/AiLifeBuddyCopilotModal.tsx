@@ -9,6 +9,8 @@ import { triggerConfetti } from '../../lib/confetti';
 import { formatCurrency } from '../../lib/utils';
 import { LiveMascotCharacter } from './LiveMascotCharacter';
 import { companionEngine, MASCOT_PROFILES } from '../../lib/companionEngine';
+import { companionBrain, CompanionUIContext } from '../../lib/companion/companionBrain';
+import { getCharacterProfile } from '../../lib/companion/characterRegistry';
 
 interface AiLifeBuddyCopilotModalProps {
   isOpen: boolean;
@@ -181,26 +183,32 @@ export function AiLifeBuddyCopilotModal({
 
     setMessages(prev => [...prev, newMsg]);
 
-    // Fast intelligent reply
-    setTimeout(() => {
-      soundEngine.playSuccess();
-      let reply = "Hiểu luôn! Lời khuyên của mình: Hãy tập trung giải quyết 1 việc duy nhất trong 25 phút bằng Zen Focus Mode (Shift+F). Làm xong tự nhiên bạn sẽ thấy nhẹ người liền! ✨";
-      if (/mệt|oải|lười/i.test(userText)) {
-        reply = "Nếu thấy oải, bật ngay chế độ Rest Day 🍵 đi bạn! Không ai có thể chạy 100% tốc độ mỗi ngày được. Sạc lại năng lượng đi, mai mình lại chiến tiếp! 🌿";
-      } else if (/tiền|chi|mua/i.test(userText)) {
-        reply = "Quy tắc vàng 50/30/20: 50% thiết yếu, 30% sở thích, 20% tích lũy. Nếu cái bạn định mua không tăng thêm hạnh phúc sau 3 ngày nữa thì đừng quẹt thẻ nhé! 💳";
-      }
+    const character = getCharacterProfile(mascotId);
+    const uiContext: CompanionUIContext = {
+      currentView: 'dashboard',
+      userState: {
+        role: currentUser?.role || 'USER',
+        subscriptionStatus: (currentUser as any)?.plan || 'FREE'
+      },
+      conversationHistory: messages.map(m => ({
+        sender: m.sender === 'ai' ? 'companion' : 'user',
+        text: m.text,
+        timestamp: Date.now()
+      }))
+    };
 
-      setMessages(prev => [
-        ...prev,
-        {
-          id: String(Date.now() + 1),
-          sender: 'ai',
-          text: reply,
-          time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-        }
-      ]);
-    }, 450);
+    const brainResult = companionBrain.processQuery(userText, uiContext, character);
+    soundEngine.playSuccess();
+
+    setMessages(prev => [
+      ...prev,
+      {
+        id: String(Date.now() + 1),
+        sender: 'ai',
+        text: brainResult.text,
+        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+      }
+    ]);
   };
 
   return (

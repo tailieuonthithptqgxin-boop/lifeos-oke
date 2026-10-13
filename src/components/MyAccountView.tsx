@@ -748,7 +748,7 @@ export function MyAccountView() {
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xs">
         <h4 className="font-bold text-slate-900 dark:text-white text-base">Quản lý Không gian làm việc</h4>
         <p className="text-xs text-slate-500 leading-relaxed">
-          Mỗi tài khoản lưu trữ dữ liệu hoàn toàn độc lập và riêng biệt trên PostgreSQL. Bạn có thể nạp dữ liệu mẫu để thử nghiệm hoặc làm sạch dữ liệu của riêng tài khoản này.
+          Mỗi tài khoản lưu trữ dữ liệu hoàn toàn độc lập và riêng biệt trên cơ sở dữ liệu PostgreSQL. Bạn có thể làm lại khảo sát cá nhân hóa (Onboarding) hoặc làm sạch không gian làm việc của riêng bạn.
         </p>
 
         <div className="flex flex-wrap gap-3 pt-2">
@@ -758,12 +758,6 @@ export function MyAccountView() {
             className="px-4 py-2 bg-blue-50 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs font-semibold rounded-xl flex items-center gap-2 transition-colors cursor-pointer"
           >
             <RotateCcw className="w-4 h-4 text-blue-600" /> Làm lại khảo sát cá nhân hóa (Onboarding)
-          </button>
-          <button
-            onClick={seedSampleData}
-            className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold rounded-xl flex items-center gap-2 transition-colors cursor-pointer"
-          >
-            <Sparkles className="w-4 h-4 text-amber-500" /> Nạp Dữ liệu Mẫu
           </button>
           <button
             onClick={() => {

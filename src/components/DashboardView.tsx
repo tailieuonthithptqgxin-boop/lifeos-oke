@@ -1327,7 +1327,7 @@ export function DashboardView() {
                                 title: 'Tuyệt vời! Hoàn thành toàn bộ mục tiêu hôm nay!',
                                 subtitle: 'Bạn đã hoàn tất tất cả các công việc dự kiến trong ngày. Đỉnh cao của sự kỷ luật!',
                                 xpAwarded: 50,
-                                streakCount: retentionEngine.getProfile(currentUser?.id)?.streak || 1
+                                streakCount: retentionEngine.getProfile(currentUser?.id)?.streak ?? 0
                               });
                             }
                           }
@@ -1467,7 +1467,7 @@ export function DashboardView() {
                             : [...(habit.completedDates || []), dateStr];
                           updateHabit(habit.id, { 
                             completedDates: dates,
-                            streak: isCompleted ? Math.max(0, (habit.streak || 1) - 1) : (habit.streak || 0) + 1
+                            streak: isCompleted ? Math.max(0, (habit.streak ?? 0) - 1) : (habit.streak ?? 0) + 1
                           });
                           addHabitRecord({
                             habitId: habit.id,

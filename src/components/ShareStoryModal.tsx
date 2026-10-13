@@ -40,7 +40,7 @@ export function ShareStoryModal({
 
   const activeProfile = profile || retentionEngine.getProfile(currentUser?.id);
   const displayName = currentUser?.name || userName;
-  const userStreak = activeProfile?.streak || 1;
+  const userStreak = activeProfile?.streak ?? 0;
   const userLevel = activeProfile?.level || 1;
   const userCp = Math.floor((userLevel * 35) + (userStreak * 20));
   const referralCode = (currentUser as any)?.referralCode || 'LIFEOS2026';

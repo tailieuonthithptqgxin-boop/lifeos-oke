@@ -92,13 +92,13 @@ export const retentionEngine = {
     const key = this.getStorageKey(userId);
 
     let profile: RetentionProfile = {
-      streak: 1,
-      bestStreak: 1,
+      streak: 0,
+      bestStreak: 0,
       lastActiveDate: today,
-      xp: 40,
+      xp: 0,
       level: 1,
       levelTitle: LEVEL_TITLES[0],
-      progressToNextLevel: 40,
+      progressToNextLevel: 0,
       badges: DEFAULT_BADGES,
       dailyQuests: [],
       todayCompletedCount: 0
@@ -117,9 +117,9 @@ export const retentionEngine = {
     }
 
     // Guarantee numeric streak & stats
-    profile.streak = typeof profile.streak === 'number' && !isNaN(profile.streak) ? profile.streak : 1;
+    profile.streak = typeof profile.streak === 'number' && !isNaN(profile.streak) ? profile.streak : 0;
     profile.bestStreak = typeof profile.bestStreak === 'number' && !isNaN(profile.bestStreak) ? profile.bestStreak : profile.streak;
-    profile.xp = typeof profile.xp === 'number' && !isNaN(profile.xp) ? profile.xp : 40;
+    profile.xp = typeof profile.xp === 'number' && !isNaN(profile.xp) ? profile.xp : 0;
     profile.level = typeof profile.level === 'number' && !isNaN(profile.level) ? profile.level : 1;
 
     // Refresh streak logic against today

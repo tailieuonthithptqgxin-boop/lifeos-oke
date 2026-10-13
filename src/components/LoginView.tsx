@@ -256,75 +256,7 @@ export function LoginView({ onBack }: LoginViewProps) {
             </div>
           )}
 
-          {/* Quick Login Shortcut Buttons for Admin & Test User */}
-          {mode === 'login' && (
-            <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-violet-50/90 via-purple-50/80 to-pink-50/90 dark:from-slate-800/80 dark:to-purple-950/40 border border-purple-200/80 dark:border-purple-800/50 shadow-xs">
-              <div className="flex items-center justify-between mb-2.5">
-                <div className="flex items-center gap-1.5 text-xs font-black text-purple-900 dark:text-purple-200">
-                  <Sparkles className="w-3.5 h-3.5 text-pink-500 animate-pulse" />
-                  <span>Đăng Nhập Nhanh (Dành cho Quản Trị & Test)</span>
-                </div>
-                <span className="text-[10px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded bg-purple-200/70 dark:bg-purple-900 text-purple-800 dark:text-purple-300">
-                  1-Click
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  disabled={isLoading}
-                  onClick={() => {
-                    setEmail('admin@lifeos.com');
-                    setPassword('Admin@123456');
-                    executeLogin('admin@lifeos.com', 'Admin@123456');
-                  }}
-                  className="p-2.5 rounded-xl bg-white dark:bg-slate-900 hover:bg-violet-50 dark:hover:bg-slate-800 border-2 border-violet-300 dark:border-violet-700 hover:border-violet-500 text-left transition-all shadow-xs group cursor-pointer active:scale-98 disabled:opacity-50"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-xs text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
-                      <ShieldCheck className="w-3.5 h-3.5 text-violet-600" />
-                      Admin
-                    </span>
-                    <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-1 py-0.2 rounded border border-amber-200 dark:border-amber-800">
-                      SUPERADMIN
-                    </span>
-                  </div>
-                  <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-1 truncate">
-                    admin@lifeos.com
-                  </div>
-                  <div className="text-[10px] text-violet-500 dark:text-violet-400 font-semibold mt-0.5 group-hover:underline">
-                    Bấm để đăng nhập ngay →
-                  </div>
-                </button>
 
-                <button
-                  type="button"
-                  disabled={isLoading}
-                  onClick={() => {
-                    setEmail('user@lifeos.com');
-                    setPassword('User@123456');
-                    executeLogin('user@lifeos.com', 'User@123456');
-                  }}
-                  className="p-2.5 rounded-xl bg-white dark:bg-slate-900 hover:bg-pink-50 dark:hover:bg-slate-800 border-2 border-pink-300 dark:border-pink-700 hover:border-pink-500 text-left transition-all shadow-xs group cursor-pointer active:scale-98 disabled:opacity-50"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-extrabold text-xs text-pink-700 dark:text-pink-300 flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5 text-pink-600" />
-                      User
-                    </span>
-                    <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1 py-0.2 rounded border border-emerald-200 dark:border-emerald-800">
-                      MEMBER PRO
-                    </span>
-                  </div>
-                  <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-1 truncate">
-                    user@lifeos.com
-                  </div>
-                  <div className="text-[10px] text-pink-500 dark:text-pink-400 font-semibold mt-0.5 group-hover:underline">
-                    Bấm để đăng nhập ngay →
-                  </div>
-                </button>
-              </div>
-            </div>
-          )}
 
           {/* LOGIN VIEW */}
           {mode === 'login' && (
