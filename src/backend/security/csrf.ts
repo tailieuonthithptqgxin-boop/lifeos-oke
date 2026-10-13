@@ -7,6 +7,7 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
  * Robust CSRF & Origin Verification Middleware
  * Validates Origin / Referer on all mutating HTTP methods (POST, PUT, PATCH, DELETE).
  * Protects against cross-site request forgery attacks.
+ */
 export function csrfProtection(req: Request, res: Response, next: NextFunction): void {
   // In automated test environments only, allow mutation requests
   const isTestBypass = process.env.NODE_ENV !== 'production' && (
