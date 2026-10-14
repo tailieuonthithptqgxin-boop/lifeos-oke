@@ -580,7 +580,7 @@ export function TopBar() {
                   <div className="flex items-center justify-between px-3 py-1.5 text-slate-600 dark:text-slate-400">
                     <span className="flex items-center gap-1.5">
                       <span>{MASCOT_PROFILES[companionSettings.mascotId]?.avatar || '🌟'}</span>
-                      <span>Nhân vật AI Companion</span>
+                      <span>{t('Nhân vật AI Companion')}</span>
                     </span>
                     <button
                       type="button"
@@ -601,12 +601,12 @@ export function TopBar() {
                       {companionSettings.enabled && companionSettings.focusCompanionMode !== 'off' ? (
                         <>
                           <Bot className="w-3.5 h-3.5 text-amber-500" />
-                          <span className="text-amber-600 dark:text-amber-400">Đang bật</span>
+                          <span className="text-amber-600 dark:text-amber-400">{t('Đang bật')}</span>
                         </>
                       ) : (
                         <>
                           <Bot className="w-3.5 h-3.5 text-slate-400" />
-                          <span>Đang tắt</span>
+                          <span>{t('Đang tắt')}</span>
                         </>
                       )}
                     </button>
@@ -614,7 +614,7 @@ export function TopBar() {
 
                   {/* Sound FX Dopamine Toggle */}
                   <div className="flex items-center justify-between px-3 py-1.5 text-slate-600 dark:text-slate-400">
-                    <span>Âm thanh Dopamine</span>
+                    <span>{t('Âm thanh Dopamine')}</span>
                     <button
                       type="button"
                       onClick={() => {
@@ -625,12 +625,12 @@ export function TopBar() {
                       {soundEngine.isEnabled() ? (
                         <>
                           <Volume2 className="w-3.5 h-3.5 text-emerald-500" />
-                          <span className="text-emerald-600 dark:text-emerald-400">Bật</span>
+                          <span className="text-emerald-600 dark:text-emerald-400">{t('Bật')}</span>
                         </>
                       ) : (
                         <>
                           <VolumeX className="w-3.5 h-3.5 text-slate-400" />
-                          <span>Tắt</span>
+                          <span>{t('Tắt')}</span>
                         </>
                       )}
                     </button>
