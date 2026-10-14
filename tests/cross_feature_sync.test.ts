@@ -74,8 +74,7 @@ async function testCrossFeatureSync() {
       category: 'Ăn uống',
       accountId: account.id,
       date: new Date().toISOString().split('T')[0],
-      note: '[Project: Khởi nghiệp] Ăn trưa tiếp đối tác',
-      status: 'Completed'
+      note: '[Project: Khởi nghiệp] Ăn trưa tiếp đối tác'
     });
 
     const updatedAccount1 = await prisma.financeAccount.findUnique({ where: { id: account.id } });
@@ -148,8 +147,7 @@ async function testCrossFeatureSync() {
       category: 'Kinh doanh',
       accountId: account.id,
       date: new Date().toISOString().split('T')[0],
-      note: `[Project: ${project.name}] Mua tên miền website`,
-      status: 'Completed'
+      note: `[Project: ${project.name}] Mua tên miền website`
     });
 
     const allTx = await prisma.transaction.findMany({ where: { userId: user.id } });
