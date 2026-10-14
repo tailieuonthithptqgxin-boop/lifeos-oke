@@ -21,7 +21,11 @@ export default defineConfig(() => {
     json: {
       stringify: true,
     },
+    esbuild: {
+      target: 'es2022',
+    },
     build: {
+      target: 'es2022',
       chunkSizeWarningLimit: 4000,
       rollupOptions: {
         output: {

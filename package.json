@@ -8,7 +8,7 @@
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:migrate": "prisma migrate deploy",
-    "build:server": "esbuild src/backend/serverMain.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/server.mjs",
+    "build:server": "esbuild src/backend/serverMain.ts --bundle --platform=node --format=esm --packages=external --target=es2022 --outfile=dist/server.mjs",
     "build": "prisma generate && node --max-old-space-size=2048 ./node_modules/vite/bin/vite.js build && npm run build:server",
     "start": "node dist/server.mjs",
     "lint": "tsc --noEmit",
