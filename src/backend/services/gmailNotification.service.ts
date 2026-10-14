@@ -8,6 +8,7 @@ export interface GmailSmtpConfig {
   appPassword?: string;
   fromName: string;
   fromEmail: string;
+  replyTo?: string;
   smtpHost?: string;
   smtpPort?: number;
   smtpSecure?: boolean;
@@ -26,6 +27,16 @@ export interface GmailSmtpConfig {
   maxRemindersPerDay: number;
 }
 
+export function getAppBaseUrl(): string {
+  if (process.env.APP_URL && process.env.APP_URL.trim()) {
+    return process.env.APP_URL.trim().replace(/\/$/, '');
+  }
+  if (process.env.NODE_ENV === 'production') {
+    return 'https://www.quanlicanhan.online';
+  }
+  return 'http://localhost:5173';
+}
+
 export const DEFAULT_GMAIL_CONFIG: GmailSmtpConfig = {
   enabled: false,
   serviceType: 'gmail',
@@ -33,6 +44,7 @@ export const DEFAULT_GMAIL_CONFIG: GmailSmtpConfig = {
   appPassword: '',
   fromName: 'Life OS Notification Assistant',
   fromEmail: '',
+  replyTo: '',
   smtpHost: 'smtp.gmail.com',
   smtpPort: 465,
   smtpSecure: true,
@@ -91,7 +103,7 @@ class GmailNotificationService {
       ...DEFAULT_GMAIL_CONFIG,
       enabled: !!(envUser && envPass),
       user: envUser,
-      appPassword: envPass,
+      appPassword: envPass ? envPass.replace(/\s+/g, '') : '',
       fromEmail: envUser || 'notifications@lifeos.local',
       fromName: 'Life OS Assistant'
     };
@@ -105,12 +117,20 @@ class GmailNotificationService {
     // If appPassword is not provided or masked, keep the existing password
     let passwordToSave = current.appPassword || '';
     if (newConfig.appPassword && newConfig.appPassword !== '••••••••••••••••') {
-      passwordToSave = newConfig.appPassword.trim();
+      // Strip spaces (e.g. Google displays 16-character passwords with spaces 'xxxx xxxx xxxx xxxx')
+      passwordToSave = newConfig.appPassword.replace(/\s+/g, '');
     }
 
     const merged: GmailSmtpConfig = {
       ...current,
       ...newConfig,
+      user: newConfig.user !== undefined ? newConfig.user.trim() : current.user,
+      fromEmail: newConfig.fromEmail !== undefined ? newConfig.fromEmail.trim() : current.fromEmail,
+      fromName: newConfig.fromName !== undefined ? newConfig.fromName.trim() : current.fromName,
+      replyTo: newConfig.replyTo !== undefined ? newConfig.replyTo.trim() : (current.replyTo || ''),
+      smtpHost: newConfig.smtpHost !== undefined ? newConfig.smtpHost.trim() : (current.smtpHost || 'smtp.gmail.com'),
+      smtpPort: newConfig.smtpPort !== undefined ? Number(newConfig.smtpPort) : (current.smtpPort || 465),
+      smtpSecure: newConfig.smtpSecure !== undefined ? Boolean(newConfig.smtpSecure) : current.smtpSecure,
       appPassword: passwordToSave
     };
 
@@ -144,23 +164,33 @@ class GmailNotificationService {
     }
 
     try {
+      const cleanPassword = config.appPassword.replace(/\s+/g, '');
+      const port = Number(config.smtpPort) || 465;
+      const isSecure = config.smtpSecure !== undefined ? Boolean(config.smtpSecure) : (port === 465);
+
       if (config.serviceType === 'gmail') {
         this.cachedTransporter = nodemailer.createTransport({
           service: 'gmail',
           auth: {
-            user: config.user,
-            pass: config.appPassword
-          }
+            user: config.user.trim(),
+            pass: cleanPassword
+          },
+          connectionTimeout: 10000,
+          greetingTimeout: 10000,
+          socketTimeout: 15000
         });
       } else {
         this.cachedTransporter = nodemailer.createTransport({
           host: config.smtpHost || 'smtp.gmail.com',
-          port: config.smtpPort || 465,
-          secure: config.smtpSecure !== false,
+          port,
+          secure: isSecure,
           auth: {
-            user: config.user,
-            pass: config.appPassword
-          }
+            user: config.user.trim(),
+            pass: cleanPassword
+          },
+          connectionTimeout: 10000,
+          greetingTimeout: 10000,
+          socketTimeout: 15000
         });
       }
       return { transporter: this.cachedTransporter, config };
@@ -308,6 +338,7 @@ class GmailNotificationService {
     }
 
     const setup = await this.getTransporter();
+    const actionUrl = options.actionUrl || getAppBaseUrl();
 
     // Build Premium Responsive HTML Template
     const emailHtml = `
@@ -345,9 +376,9 @@ class GmailNotificationService {
                       ${options.content}
                     </div>
 
-                    ${options.actionUrl ? `
+                    ${actionUrl ? `
                       <div style="margin-top: 28px; text-align: center;">
-                        <a href="${options.actionUrl}" style="display: inline-block; padding: 12px 28px; background: #4f46e5; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 14px; border-radius: 14px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);">
+                        <a href="${actionUrl}" style="display: inline-block; padding: 12px 28px; background: #4f46e5; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 14px; border-radius: 14px; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);">
                           ${options.actionLabel || 'Xem chi tiết trong Life OS'} &rarr;
                         </a>
                       </div>
@@ -374,6 +405,7 @@ class GmailNotificationService {
       try {
         await setup.transporter.sendMail({
           from: `"${setup.config.fromName}" <${setup.config.fromEmail || setup.config.user}>`,
+          replyTo: setup.config.replyTo || undefined,
           to: options.to,
           subject: options.subject,
           html: emailHtml
@@ -422,6 +454,68 @@ class GmailNotificationService {
         sent: false, 
         message: 'Gmail SMTP chưa cấu hình trong trang Admin. Thông báo đã được lưu trữ trong nhật ký hệ thống.' 
       };
+    }
+  }
+
+  // Universal raw email sender (used by auth password reset and direct mailer)
+  async sendRawEmail(options: {
+    to: string;
+    subject: string;
+    html: string;
+    from?: string;
+    replyTo?: string;
+    category?: string;
+  }): Promise<{ sent: boolean; message: string }> {
+    if (!options.to || !options.to.includes('@')) {
+      return { sent: false, message: 'Địa chỉ email người nhận không hợp lệ.' };
+    }
+
+    const setup = await this.getTransporter();
+    if (setup) {
+      try {
+        const fromHeader = options.from || `"${setup.config.fromName}" <${setup.config.fromEmail || setup.config.user}>`;
+        await setup.transporter.sendMail({
+          from: fromHeader,
+          to: options.to,
+          replyTo: options.replyTo || setup.config.replyTo || undefined,
+          subject: options.subject,
+          html: options.html
+        });
+
+        this.addLog({
+          id: 'log_' + Date.now(),
+          recipientEmail: options.to,
+          subject: options.subject,
+          category: options.category || 'SYSTEM',
+          status: 'SENT',
+          timestamp: new Date().toISOString()
+        });
+
+        return { sent: true, message: 'Email đã được gửi thành công qua SMTP provider.' };
+      } catch (err: any) {
+        console.error('[GmailNotificationService] sendRawEmail error:', err);
+        this.addLog({
+          id: 'log_' + Date.now(),
+          recipientEmail: options.to,
+          subject: options.subject,
+          category: options.category || 'SYSTEM',
+          status: 'FAILED',
+          errorMessage: err.message,
+          timestamp: new Date().toISOString()
+        });
+        return { sent: false, message: `Lỗi gửi email: ${err.message}` };
+      }
+    } else {
+      this.addLog({
+        id: 'log_' + Date.now(),
+        recipientEmail: options.to,
+        subject: options.subject,
+        category: options.category || 'SYSTEM',
+        status: 'SIMULATED',
+        errorMessage: 'Gmail SMTP chưa được cấu hình hoặc chưa bật trong trang Admin.',
+        timestamp: new Date().toISOString()
+      });
+      return { sent: false, message: 'Gmail SMTP chưa được cấu hình hoặc chưa bật trong trang Admin.' };
     }
   }
 

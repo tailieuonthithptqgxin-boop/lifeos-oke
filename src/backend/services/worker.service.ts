@@ -1,5 +1,5 @@
 import { getPrisma } from '../db.js';
-import { gmailService } from './gmailNotification.service.js';
+import { gmailService, getAppBaseUrl } from './gmailNotification.service.js';
 
 class BackgroundWorker {
   private timer: NodeJS.Timeout | null = null;
@@ -113,7 +113,7 @@ class BackgroundWorker {
                     headline: 'Nhiệm vụ của bạn đã quá hạn deadline',
                     content: `Nhiệm vụ <strong>"${safeTitle}"</strong> (hạn chót: <strong>${task.dueDate || todayStr}</strong>) hiện vẫn chưa được hoàn thành.<br/><br/>Ưu tiên: <strong>${task.priority || 'Trung bình'}</strong>. Hãy mở ứng dụng để kiểm tra và cập nhật tiến độ công việc ngay hôm nay.`,
                     actionLabel: 'Xem nhiệm vụ ngay',
-                    actionUrl: 'http://localhost:5173',
+                    actionUrl: getAppBaseUrl(),
                     badgeText: 'Quá hạn',
                     badgeColor: '#ef4444'
                   }).catch(e => console.error('[Gmail Worker] Task overdue email error:', e));
@@ -179,7 +179,7 @@ class BackgroundWorker {
                     headline: 'Chi tiêu đã chạm hoặc vượt ngân sách định mức',
                     content: `Danh mục <strong>"${categoryName}"</strong> của bạn đã chi tiêu <strong>${budget.spent.toLocaleString('vi-VN')} ₫</strong>, vượt qua hạn mức dự kiến <strong>${budget.limit.toLocaleString('vi-VN')} ₫</strong>.<br/><br/>Hãy rà soát lại các khoản chi tiêu gần đây để cân đối tài chính cá nhân hiệu quả hơn.`,
                     actionLabel: 'Kiểm tra sổ chi tiêu',
-                    actionUrl: 'http://localhost:5173',
+                    actionUrl: getAppBaseUrl(),
                     badgeText: 'Cảnh báo ngân sách',
                     badgeColor: '#f97316'
                   }).catch(e => console.error('[Gmail Worker] Budget alert email error:', e));

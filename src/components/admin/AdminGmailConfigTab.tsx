@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Mail, RefreshCw, Check, Send, BellRing, CheckCircle2, 
-  AlertCircle, KeyRound, History, CheckCheck 
+  AlertCircle, KeyRound, History, CheckCheck, Eye, EyeOff, Server, ShieldCheck 
 } from 'lucide-react';
 import { apiCall } from '../../lib/apiClient';
 import { GmailConfig } from './types';
@@ -18,6 +18,7 @@ export function AdminGmailConfigTab({ onShowMessage }: AdminGmailConfigTabProps)
     appPassword: '',
     fromName: 'Life OS Notification Assistant',
     fromEmail: '',
+    replyTo: '',
     smtpHost: 'smtp.gmail.com',
     smtpPort: 465,
     smtpSecure: true,
@@ -37,6 +38,7 @@ export function AdminGmailConfigTab({ onShowMessage }: AdminGmailConfigTabProps)
   const [isLoadingGmailConfig, setIsLoadingGmailConfig] = useState(false);
   const [isSavingGmailConfig, setIsSavingGmailConfig] = useState(false);
   const [isTestingGmail, setIsTestingGmail] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [testEmailAddress, setTestEmailAddress] = useState('');
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [gmailLogs, setGmailLogs] = useState<any[]>([]);
@@ -77,6 +79,28 @@ export function AdminGmailConfigTab({ onShowMessage }: AdminGmailConfigTabProps)
 
   const handleSaveGmailConfig = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (gmailConfig.enabled) {
+      if (!gmailConfig.user || !gmailConfig.user.includes('@')) {
+        onShowMessage?.({ text: 'Vui lòng nhập địa chỉ email người gửi hợp lệ (có dấu @)', type: 'error' });
+        return;
+      }
+      if (gmailConfig.serviceType === 'smtp') {
+        if (!gmailConfig.smtpHost || !gmailConfig.smtpHost.trim()) {
+          onShowMessage?.({ text: 'Vui lòng nhập địa chỉ máy chủ SMTP (SMTP Host)', type: 'error' });
+          return;
+        }
+        const port = Number(gmailConfig.smtpPort);
+        if (!port || port < 1 || port > 65535) {
+          onShowMessage?.({ text: 'Cổng SMTP (Port) phải nằm trong khoảng từ 1 đến 65535 (thường là 465 hoặc 587)', type: 'error' });
+          return;
+        }
+      }
+      if (gmailConfig.replyTo && gmailConfig.replyTo.trim() && !gmailConfig.replyTo.includes('@')) {
+        onShowMessage?.({ text: 'Địa chỉ email phản hồi (Reply-To) không hợp lệ', type: 'error' });
+        return;
+      }
+    }
+
     try {
       setIsSavingGmailConfig(true);
       const res = await apiCall('/api/admin/gmail/config', 'PUT', gmailConfig);
@@ -195,16 +219,29 @@ export function AdminGmailConfigTab({ onShowMessage }: AdminGmailConfigTabProps)
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Mật khẩu ứng dụng (App Password 16 ký tự) *
-                  </label>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                      Mật khẩu ứng dụng (App Password 16 ký tự) *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-[11px] text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 flex items-center gap-1 cursor-pointer"
+                    >
+                      {showPassword ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      <span>{showPassword ? 'Ẩn' : 'Hiện'}</span>
+                    </button>
+                  </div>
                   <input
-                    type="password"
+                    type={showPassword ? 'text' : 'password'}
                     value={gmailConfig.appPassword || ''}
                     onChange={e => setGmailConfig({ ...gmailConfig, appPassword: e.target.value })}
                     placeholder="••••••••••••••••"
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-rose-500 font-mono"
                   />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Để nguyên <code>••••••••••••••••</code> nếu không thay đổi mật khẩu hiện tại.
+                  </p>
                 </div>
               </div>
 
@@ -228,13 +265,90 @@ export function AdminGmailConfigTab({ onShowMessage }: AdminGmailConfigTabProps)
                   </label>
                   <select
                     value={gmailConfig.serviceType}
-                    onChange={e => setGmailConfig({ ...gmailConfig, serviceType: e.target.value as any })}
+                    onChange={e => {
+                      const newType = e.target.value as 'gmail' | 'smtp';
+                      setGmailConfig({
+                        ...gmailConfig,
+                        serviceType: newType,
+                        smtpHost: newType === 'gmail' ? 'smtp.gmail.com' : gmailConfig.smtpHost || 'smtp.gmail.com',
+                        smtpPort: newType === 'gmail' ? 465 : (gmailConfig.smtpPort || 465),
+                        smtpSecure: newType === 'gmail' ? true : gmailConfig.smtpSecure
+                      });
+                    }}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
                   >
-                    <option value="gmail">Gmail Trực tiếp (Cổng 465 SSL)</option>
-                    <option value="smtp">Custom SMTP Server</option>
+                    <option value="gmail">Gmail Trực tiếp (Cổng 465 SSL - Tối ưu nhất)</option>
+                    <option value="smtp">Custom SMTP Server (Cổng 465 / 587)</option>
                   </select>
                 </div>
+              </div>
+
+              {/* Custom SMTP Settings & Reply-To */}
+              {gmailConfig.serviceType === 'smtp' && (
+                <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Server className="w-4 h-4 text-amber-500" />
+                    <h5 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                      Cấu hình Custom SMTP Server
+                    </h5>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                        Máy chủ SMTP (SMTP Host) *
+                      </label>
+                      <input
+                        type="text"
+                        value={gmailConfig.smtpHost || ''}
+                        onChange={e => setGmailConfig({ ...gmailConfig, smtpHost: e.target.value })}
+                        placeholder="smtp.gmail.com hoặc smtp.resend.com"
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-amber-500 font-mono"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                        Cổng SMTP (Port) *
+                      </label>
+                      <input
+                        type="number"
+                        value={gmailConfig.smtpPort || 465}
+                        onChange={e => setGmailConfig({ ...gmailConfig, smtpPort: parseInt(e.target.value) || 465 })}
+                        placeholder="465 (SSL) hoặc 587 (TLS)"
+                        className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-amber-500 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 text-xs cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={gmailConfig.smtpSecure}
+                        onChange={e => setGmailConfig({ ...gmailConfig, smtpSecure: e.target.checked })}
+                        className="rounded text-amber-600 focus:ring-amber-500"
+                      />
+                      <span className="font-medium text-slate-800 dark:text-slate-200">
+                        Bảo mật SSL/TLS (Bắt buộc với cổng 465; bỏ chọn nếu dùng cổng 587 STARTTLS)
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Reply-To Email */}
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Email nhận phản hồi (Reply-To) <span className="text-slate-400 font-normal">(Tùy chọn)</span>
+                </label>
+                <input
+                  type="email"
+                  value={gmailConfig.replyTo || ''}
+                  onChange={e => setGmailConfig({ ...gmailConfig, replyTo: e.target.value })}
+                  placeholder="support@lifeos.com (Người dùng bấm trả lời thư sẽ gửi về đây)"
+                  className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-rose-500 font-mono"
+                />
               </div>
             </div>
 

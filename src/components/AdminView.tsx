@@ -28,8 +28,7 @@ import type {
   BankConfig,
   ServicePlan,
   LanguageItem,
-  PlanAuditLog,
-  GmailConfig
+  PlanAuditLog
 } from './admin/types';
 import { AdminRequestsTab } from './admin/AdminRequestsTab';
 import { AdminSubscriptionsTab } from './admin/AdminSubscriptionsTab';
@@ -137,39 +136,6 @@ export function AdminView() {
     bankCode: 'MB'
   });
   const [isSavingBankConfig, setIsSavingBankConfig] = useState(false);
-
-  // -------------------------------------------------------------
-  // TAB 8: GMAIL STATE
-  // -------------------------------------------------------------
-  const [gmailConfig, setGmailConfig] = useState<GmailConfig>({
-    enabled: false,
-    serviceType: 'gmail',
-    user: '',
-    appPassword: '',
-    fromName: 'Life OS Notification Assistant',
-    fromEmail: '',
-    smtpHost: 'smtp.gmail.com',
-    smtpPort: 465,
-    smtpSecure: true,
-    notifyTaskOverdue: true,
-    notifyTaskUpcoming: true,
-    notifyCalendarUpcoming: true,
-    notifyBudgetThreshold: true,
-    notifySubscriptionExpiry: true,
-    notifyPaymentStatus: true,
-    notifySecurityAlerts: true,
-    quietHoursEnabled: false,
-    quietHoursStart: '22:00',
-    quietHoursEnd: '07:00',
-    maxRemindersPerDay: 5
-  });
-  const [isLoadingGmailConfig, setIsLoadingGmailConfig] = useState(false);
-  const [isSavingGmailConfig, setIsSavingGmailConfig] = useState(false);
-  const [isTestingGmail, setIsTestingGmail] = useState(false);
-  const [testEmailAddress, setTestEmailAddress] = useState('');
-  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
-  const [gmailLogs, setGmailLogs] = useState<any[]>([]);
-  const [isLoadingGmailLogs, setIsLoadingGmailLogs] = useState(false);
 
   // Copy helper
   const handleCopy = (text: string, id: string) => {
@@ -361,72 +327,6 @@ export function AdminView() {
     }
   };
 
-  const fetchGmailConfig = async () => {
-    try {
-      setIsLoadingGmailConfig(true);
-      const res = await apiCall('/api/admin/gmail/config');
-      if (res && res.success && res.config) setGmailConfig(res.config);
-    } catch (err: any) {
-      console.warn('Lỗi khi tải cấu hình Gmail:', err);
-    } finally {
-      setIsLoadingGmailConfig(false);
-    }
-  };
-
-  const fetchGmailLogs = async () => {
-    try {
-      setIsLoadingGmailLogs(true);
-      const res = await apiCall('/api/admin/gmail/logs');
-      if (res && res.success && res.logs) setGmailLogs(res.logs);
-    } catch (err: any) {
-      console.warn('Lỗi khi tải nhật ký email:', err);
-    } finally {
-      setIsLoadingGmailLogs(false);
-    }
-  };
-
-  const handleSaveGmailConfig = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      setIsSavingGmailConfig(true);
-      const res = await apiCall('/api/admin/gmail/config', 'PUT', gmailConfig);
-      if (res && res.success) {
-        setMessage({ text: 'Lưu cấu hình Gmail thành công!', type: 'success' });
-        if (res.config) setGmailConfig(res.config);
-      } else {
-        setMessage({ text: res.message || 'Không thể lưu cấu hình Gmail', type: 'error' });
-      }
-    } catch (err: any) {
-      setMessage({ text: err.message || 'Lỗi khi lưu cấu hình Gmail', type: 'error' });
-    } finally {
-      setIsSavingGmailConfig(false);
-    }
-  };
-
-  const handleTestGmail = async () => {
-    try {
-      setIsTestingGmail(true);
-      setTestResult(null);
-      const res = await apiCall('/api/admin/gmail/test', 'POST', {
-        testEmail: testEmailAddress.trim() || undefined
-      });
-      if (res) {
-        setTestResult(res);
-        if (res.success) {
-          setMessage({ text: res.message, type: 'success' });
-          fetchGmailLogs();
-        } else {
-          setMessage({ text: res.message, type: 'error' });
-        }
-      }
-    } catch (err: any) {
-      setTestResult({ success: false, message: err.message || 'Lỗi kiểm tra kết nối' });
-      setMessage({ text: err.message || 'Lỗi kiểm tra kết nối', type: 'error' });
-    } finally {
-      setIsTestingGmail(false);
-    }
-  };
-
   // Initial load & Tab triggers
   useEffect(() => {
     if (activeTab === 'requests') {
@@ -441,9 +341,6 @@ export function AdminView() {
       fetchSaasMetrics();
     } else if (activeTab === 'bank_config') {
       fetchBankConfig();
-    } else if (activeTab === 'gmail_config') {
-      fetchGmailConfig();
-      fetchGmailLogs();
     }
   }, [activeTab]);
 

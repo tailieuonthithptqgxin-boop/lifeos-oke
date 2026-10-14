@@ -6,7 +6,7 @@ import { DecisionEngineService } from '../services/decisionEngine.service.js';
 import { AutomationEngineService } from '../services/automationEngine.service.js';
 import { subscriptionService, OFFICIAL_PLANS } from '../services/subscription.service.js';
 import { teamService } from '../services/team.service.js';
-import { gmailService } from '../services/gmailNotification.service.js';
+import { gmailService, getAppBaseUrl } from '../services/gmailNotification.service.js';
 import { referralService } from '../services/referral.service.js';
 import { feedbackService } from '../services/feedback.service.js';
 import { lifeHarmonyService } from '../services/lifeHarmony.service.js';
@@ -2759,7 +2759,7 @@ apiRouter.post('/admin/payments/:id/approve', requireAdmin, async (req: AuthRequ
         headline: `Chúc mừng bạn! Gói ${planToActivate} đã được kích hoạt`,
         content: `Yêu cầu thanh toán của bạn (Mã: <strong>${payment.txReference || payment.orderId}</strong>, số tiền: <strong>${(payment.amount || 0).toLocaleString('vi-VN')} ₫</strong>) đã được quản trị viên xác nhận và duyệt thành công.<br/><br/>Tài khoản của bạn đã được nâng cấp lên gói <strong>${planToActivate}</strong>, hạn dùng đến ngày <strong>${new Date(planExpiresAt).toLocaleDateString('vi-VN')}</strong>. Bạn có thể sử dụng đầy đủ mọi tính năng cao cấp của Life OS ngay bây giờ.`,
         actionLabel: 'Truy cập Life OS ngay',
-        actionUrl: 'http://localhost:5173',
+        actionUrl: getAppBaseUrl(),
         badgeText: 'Thanh toán thành công',
         badgeColor: '#10b981'
       }).catch(e => console.error('[Gmail] Error sending payment approve email:', e));
@@ -2872,7 +2872,7 @@ apiRouter.post('/admin/payments/:id/reject', requireAdmin, validateBody(AdminRej
         headline: 'Yêu cầu thanh toán không được phê duyệt',
         content: `Yêu cầu thanh toán của bạn cho mã đơn <strong>${payment.txReference || payment.orderId}</strong> chưa được xác nhận bởi quản trị viên.<br/><br/><strong>Lý do từ chối:</strong> ${reason || 'Thông tin chuyển khoản không trùng khớp hoặc chưa nhận được tiền.'}<br/><br/>Nếu có thắc mắc hoặc cần hỗ trợ, vui lòng phản hồi lại email này hoặc liên hệ quản trị viên để được kiểm tra lại.`,
         actionLabel: 'Kiểm tra tài khoản',
-        actionUrl: 'http://localhost:5173',
+        actionUrl: getAppBaseUrl(),
         badgeText: 'Từ chối thanh toán',
       }).catch(e => console.error('[Gmail] Error sending payment reject email:', e));
     }

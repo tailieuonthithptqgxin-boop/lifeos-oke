@@ -1,5 +1,5 @@
 import { getPrisma } from '../db.js';
-import { gmailService } from './gmailNotification.service.js';
+import { gmailService, getAppBaseUrl } from './gmailNotification.service.js';
 
 export interface PlanDefinition {
   id: string;
@@ -769,7 +769,7 @@ export const subscriptionService = {
             headline: 'Gói dịch vụ đã kết thúc chu kỳ',
             content: `Gói tài khoản <strong>${sub.planName}</strong> của bạn đã hết thời hạn sử dụng. Tài khoản hiện đã được chuyển về gói <strong>Miễn phí (FREE)</strong>.<br/><br/>Để tiếp tục sử dụng đầy đủ các tính năng thông minh không giới hạn, bạn vui lòng gia hạn hoặc nâng cấp gói mới.`,
             actionLabel: 'Gia hạn gói dịch vụ',
-            actionUrl: 'http://localhost:5173',
+            actionUrl: getAppBaseUrl(),
             badgeText: 'Hết hạn gói',
             badgeColor: '#f59e0b'
           }).catch(e => console.error('[Gmail Worker] Expiry email error:', e));
@@ -835,7 +835,7 @@ export const subscriptionService = {
               headline: `Chỉ còn ${remainingDays} ngày là gói dịch vụ sẽ kết thúc`,
               content: `Gói tài khoản <strong>${sub.planName}</strong> của bạn sẽ hết hạn vào ngày <strong>${new Date(sub.endDate).toLocaleDateString('vi-VN')}</strong>.<br/><br/>Hãy gia hạn ngay hôm nay để duy trì chuỗi làm việc và dữ liệu đồng bộ liên tục.`,
               actionLabel: 'Gia hạn gói ngay',
-              actionUrl: 'http://localhost:5173',
+              actionUrl: getAppBaseUrl(),
               badgeText: `Còn ${remainingDays} ngày`,
               badgeColor: '#3b82f6'
             }).catch(e => console.error('[Gmail Worker] Warning email error:', e));

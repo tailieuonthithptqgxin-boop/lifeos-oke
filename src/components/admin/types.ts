@@ -170,6 +170,7 @@ export interface GmailConfig {
   appPassword?: string;
   fromName: string;
   fromEmail: string;
+  replyTo?: string;
   smtpHost: string;
   smtpPort: number;
   smtpSecure: boolean;

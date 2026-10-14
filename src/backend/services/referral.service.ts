@@ -1,5 +1,6 @@
 import { getPrisma } from '../db.js';
 import { r2Service } from './r2.service.js';
+import { getAppBaseUrl } from './gmailNotification.service.js';
 
 export interface ReferralStats {
   referralCode: string;
@@ -377,7 +378,7 @@ export class ReferralService {
       })
     ]);
 
-    const baseUrl = origin || 'http://localhost:5173';
+    const baseUrl = origin || getAppBaseUrl();
     const referralLink = `${baseUrl}/register?ref=${profile.referralCode}`;
 
     return {
