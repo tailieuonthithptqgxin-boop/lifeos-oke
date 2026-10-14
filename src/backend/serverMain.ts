@@ -107,8 +107,8 @@ async function startServer() {
     }
   }
 
-  // Start background worker scheduler
-  workerService.start(60000);
+  // Start background worker scheduler (every 5 minutes to optimize cloud database compute/connections)
+  workerService.start(300000);
 
   // Health check endpoint (Liveness Probe)
   app.get('/health', async (req, res) => {

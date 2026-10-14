@@ -981,22 +981,24 @@ export const dbService = {
   async getUserCollection(collectionName: string, userId: string) {
     const delegate = getModelDelegate(collectionName);
 
-    // Habit records belong to Habit which is owned by User
+    // Habit records belong to Habit which is owned by User (limit to last 365 days of entries)
     if (collectionName === 'habitRecords') {
       const items = await delegate.findMany({
         where: {
           habit: { userId }
         },
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
+        take: 365
       });
       return items.map((item: any) => formatOutgoingData(collectionName, item));
     }
 
-    // Automation executions sort by executedAt
+    // Automation executions sort by executedAt (limit to latest 100)
     if (collectionName === 'automationHistory' || collectionName === 'automationConflicts') {
       const items = await delegate.findMany({
         where: { userId },
-        orderBy: { executedAt: 'desc' }
+        orderBy: { executedAt: 'desc' },
+        take: 100
       });
       return items.map((item: any) => formatOutgoingData(collectionName, item));
     }
@@ -1017,9 +1019,12 @@ export const dbService = {
       return items.map((item: any) => formatOutgoingData(collectionName, item));
     }
 
+    // Bound high-frequency notification/inbox collections to 100 latest items
+    const isHighVolume = collectionName === 'notifications' || collectionName === 'inbox';
     const items = await delegate.findMany({
       where: { userId },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      ...(isHighVolume ? { take: 100 } : {})
     });
     return items.map((item: any) => formatOutgoingData(collectionName, item));
   },

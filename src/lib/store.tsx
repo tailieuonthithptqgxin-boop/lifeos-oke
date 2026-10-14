@@ -276,7 +276,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     window.addEventListener('focus', refreshUserSilent);
-    const intervalId = setInterval(refreshUserSilent, 15000);
+    // OPT-001: Polling at 2-minute interval (plus immediate 'focus' event) prevents request explosion across multiple tabs/users
+    const intervalId = setInterval(refreshUserSilent, 120000);
 
     const handleTabSyncMessage = (event: MessageEvent) => {
       if (event.data?.type === 'LIFEOS_MUTATION_SYNC') {

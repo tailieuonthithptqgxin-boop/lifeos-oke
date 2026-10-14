@@ -5,8 +5,10 @@ class BackgroundWorker {
   private timer: NodeJS.Timeout | null = null;
   private isRunning: boolean = false;
   private lastRunAt: Date | null = null;
+  private lastRetentionSweepAt: number = 0;
 
-  start(intervalMs: number = 60000) {
+  // OPT-002: Default interval 5 minutes (300,000ms) to reduce cloud database compute/connection costs
+  start(intervalMs: number = 300000) {
     if (this.isRunning) return;
     this.isRunning = true;
     console.log('Background Worker Service started (interval:', intervalMs, 'ms)');
@@ -198,6 +200,54 @@ class BackgroundWorker {
         await announcementService.processScheduledAnnouncements();
       } catch (annErr) {
         console.warn('[BackgroundWorker] Scheduled announcements sweep error:', annErr);
+      }
+
+      // 5. Automated Data Retention & Disk Space Optimization Sweep (runs every 6 hours)
+      try {
+        const SIX_HOURS = 6 * 60 * 60 * 1000;
+        if (Date.now() - this.lastRetentionSweepAt > SIX_HOURS) {
+          this.lastRetentionSweepAt = Date.now();
+          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+          const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+          const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+
+          // 5.1. Clean expired sessions
+          await prisma.session.deleteMany({
+            where: { expiresAt: { lt: now } }
+          }).catch(() => {});
+
+          // 5.2. Clean expired or used password reset tokens
+          await prisma.passwordResetToken.deleteMany({
+            where: {
+              OR: [
+                { expiresAt: { lt: now } },
+                { used: true }
+              ]
+            }
+          }).catch(() => {});
+
+          // 5.3. Clean login attempts older than 30 days
+          await prisma.loginAttempt.deleteMany({
+            where: { createdAt: { lt: thirtyDaysAgo } }
+          }).catch(() => {});
+
+          // 5.4. Clean security events older than 60 days
+          await prisma.securityEvent.deleteMany({
+            where: { createdAt: { lt: sixtyDaysAgo } }
+          }).catch(() => {});
+
+          // 5.5. Clean automation executions older than 30 days
+          await prisma.automationExecution.deleteMany({
+            where: { executedAt: { lt: thirtyDaysAgo } }
+          }).catch(() => {});
+
+          // 5.6. Clean audit logs older than 90 days
+          await prisma.auditLog.deleteMany({
+            where: { timestamp: { lt: ninetyDaysAgo } }
+          }).catch(() => {});
+        }
+      } catch (retentionErr) {
+        // Quiet catch for retention sweep
       }
     } catch (err: any) {
       // Quiet catch for top-level tick
