@@ -123,14 +123,15 @@ export function TopBar() {
       </button>
 
       {/* Quick Search Bar */}
-      <div className="flex-1 max-w-lg min-w-0 mr-3 sm:mr-6">
+      <div className="flex-1 max-w-lg min-w-0 mr-2 sm:mr-4 md:mr-6">
         <button 
           type="button" 
           onClick={toggleCommand}
-          className="w-full relative flex items-center text-left pl-9 sm:pl-10 pr-24 py-2 sm:py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-full text-xs sm:text-sm text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-xs transition-all group btn-squishy"
+          className="w-full relative flex items-center text-left pl-8 sm:pl-10 pr-3 md:pr-24 py-2 sm:py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-full text-xs sm:text-sm text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-xs transition-all group btn-squishy"
         >
-          <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-emerald-600 transition-colors shrink-0" />
-          <span className="truncate max-w-[calc(100%-1rem)] font-medium">{t('Tìm kiếm nhanh hoặc mở Command Center...')}</span>
+          <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-emerald-600 transition-colors shrink-0" />
+          <span className="truncate max-w-[calc(100%-1rem)] font-medium sm:hidden">{t('Tìm kiếm nhanh...')}</span>
+          <span className="truncate max-w-[calc(100%-1rem)] font-medium hidden sm:inline">{t('Tìm kiếm nhanh hoặc mở Command Center...')}</span>
           <div className="absolute right-3.5 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 opacity-80 pointer-events-none">
             <kbd className="px-2 py-0.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-black text-emerald-800 dark:text-emerald-300 shadow-2xs">Ctrl</kbd>
             <span className="text-slate-400 text-xs font-bold">+</span>
@@ -140,7 +141,7 @@ export function TopBar() {
       </div>
       
       {/* Right Action Cluster */}
-      <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+      <div className="flex items-center gap-1.5 sm:gap-2.5 md:gap-3 shrink-0">
         
         {/* Modern RPG Game HUD Pill */}
         <button
@@ -171,7 +172,7 @@ export function TopBar() {
           type="button"
           onClick={() => setShowZenFocus(true)}
           title={isVi ? "Chế độ Tập trung Zen (Shift + F)" : "Zen Focus Mode (Shift + F)"}
-          className="p-2 sm:px-3 sm:py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 shadow-xs"
+          className="hidden md:inline-flex p-2 sm:px-3 sm:py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition-all items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 shadow-xs"
         >
           <Sparkles className="w-3.5 h-3.5 text-emerald-500 fill-emerald-500 animate-pulse" />
           <span className="hidden md:inline text-xs font-black">{isVi ? 'Tập trung Zen' : 'Zen Focus'}</span>
@@ -187,9 +188,10 @@ export function TopBar() {
               setShowNotifications(false);
               setShowUserMenu(false);
             }}
-            className="flex items-center gap-1.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all shadow-md shadow-emerald-500/20 cursor-pointer btn-squishy"
+            aria-label={t('Tạo mới')}
+            className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white p-2.5 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all shadow-md shadow-emerald-500/20 cursor-pointer btn-squishy shrink-0"
           >
-            {!hasSubAccess ? <Lock className="w-3.5 h-3.5 text-amber-200" /> : <Plus className="w-4 h-4 stroke-[2.5]" />}
+            {!hasSubAccess ? <Lock className="w-4 h-4 text-amber-200" /> : <Plus className="w-4 h-4 stroke-[2.5]" />}
             <span className="hidden sm:inline">{t('Tạo mới')}</span>
           </button>
 
@@ -300,7 +302,7 @@ export function TopBar() {
               window.dispatchEvent(new CustomEvent('lifeos-companion-settings-updated', { detail: updated }));
             }
           }}
-          className={`p-2.5 rounded-2xl transition-all cursor-pointer btn-squishy flex items-center gap-1.5 ${
+          className={`hidden md:inline-flex p-2.5 rounded-2xl transition-all cursor-pointer btn-squishy items-center gap-1.5 ${
             companionSettings.enabled && companionSettings.focusCompanionMode !== 'off'
               ? 'text-amber-500 hover:text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 ring-1 ring-amber-500/30 shadow-xs'
               : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -322,7 +324,7 @@ export function TopBar() {
         <button
           type="button"
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="p-2.5 text-slate-500 hover:text-violet-600 dark:hover:text-violet-300 hover:bg-violet-50 dark:hover:bg-purple-950/40 rounded-2xl transition-all cursor-pointer btn-squishy"
+          className="hidden md:inline-flex p-2.5 text-slate-500 hover:text-violet-600 dark:hover:text-violet-300 hover:bg-violet-50 dark:hover:bg-purple-950/40 rounded-2xl transition-all cursor-pointer btn-squishy"
           title={theme === 'dark' ? t('Switch to Light Mode') : t('Switch to Dark Mode')}
           aria-label={t('Chuyển chế độ giao diện')}
         >

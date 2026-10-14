@@ -224,12 +224,12 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
   }
 
   // Positioning classes:
-  // Desktop: bottom-6, right-6 (or left-6)
-  // Mobile: bottom-20 (to strictly stay above bottom navigation bar)
+  // On desktop: bottom-6, right-6 (or left-6)
+  // On mobile (< sm): bottom-20 left-3.5 so it docks cleanly on the left without colliding with right FAB or bottom nav
   const isLeft = settings.position === 'bottom-left';
   const posClasses = isLeft
-    ? 'bottom-20 left-3 sm:bottom-6 sm:left-6 md:left-[17.5rem] items-start'
-    : 'bottom-20 right-3 sm:bottom-6 sm:right-6 items-end';
+    ? 'bottom-20 left-3.5 sm:bottom-6 sm:left-6 md:left-[17.5rem] items-start'
+    : 'bottom-20 left-3.5 sm:bottom-6 sm:right-6 items-start sm:items-end';
 
   return (
     <>

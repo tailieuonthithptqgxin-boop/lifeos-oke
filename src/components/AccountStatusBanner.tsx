@@ -75,7 +75,7 @@ export function AccountStatusBanner() {
             </span>
           ) : (
             <span>
-              <strong>{t('Chế độ xem trước (Preview)')}:</strong> {t('Tài khoản chưa kích hoạt gói dịch vụ. Kích hoạt chỉ từ 15.000 ₫/tháng.')}
+              <strong>{t('Chế độ xem trước (Preview)')}:</strong> {t('Tài khoản chưa kích hoạt gói dịch vụ. Kích hoạt chỉ từ 29.000 ₫/tháng.')}
             </span>
           )}
         </span>

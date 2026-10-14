@@ -15,19 +15,19 @@ export interface YouTubeTrack {
 
 export const CURATED_FOCUS_TRACKS: YouTubeTrack[] = [
   {
-    id: 'jfKfPfyJRdk',
-    url: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
+    id: '5qap5aO4i9A',
+    url: 'https://www.youtube.com/watch?v=5qap5aO4i9A',
     title: 'Lofi Hip Hop Radio – Beats to Relax/Study to',
     channel: 'Lofi Girl',
-    thumbnailUrl: 'https://img.youtube.com/vi/jfKfPfyJRdk/hqdefault.jpg',
+    thumbnailUrl: 'https://img.youtube.com/vi/5qap5aO4i9A/hqdefault.jpg',
     category: 'lofi'
   },
   {
-    id: '4xDzrJKXOOY',
-    url: 'https://www.youtube.com/watch?v=4xDzrJKXOOY',
+    id: 'DWcJFNfaw90',
+    url: 'https://www.youtube.com/watch?v=DWcJFNfaw90',
     title: 'synthwave radio – beats to chill/game to',
     channel: 'Lofi Girl',
-    thumbnailUrl: 'https://img.youtube.com/vi/4xDzrJKXOOY/hqdefault.jpg',
+    thumbnailUrl: 'https://img.youtube.com/vi/DWcJFNfaw90/hqdefault.jpg',
     category: 'lofi'
   },
   {
@@ -47,11 +47,11 @@ export const CURATED_FOCUS_TRACKS: YouTubeTrack[] = [
     category: 'ambient'
   },
   {
-    id: 'eKFTSSKCzWA',
-    url: 'https://www.youtube.com/watch?v=eKFTSSKCzWA',
+    id: 'TURbeWK2wwg',
+    url: 'https://www.youtube.com/watch?v=TURbeWK2wwg',
     title: 'Peaceful Piano Music for Deep Concentration & Reading',
     channel: 'Soothing Relaxation',
-    thumbnailUrl: 'https://img.youtube.com/vi/eKFTSSKCzWA/hqdefault.jpg',
+    thumbnailUrl: 'https://img.youtube.com/vi/TURbeWK2wwg/hqdefault.jpg',
     category: 'piano'
   }
 ];
@@ -154,7 +154,11 @@ export const youtubeMusicService = {
 
   getLastPlayedId(): string {
     try {
-      return localStorage.getItem(STORAGE_KEY_LAST_PLAYED) || CURATED_FOCUS_TRACKS[0].id;
+      const saved = localStorage.getItem(STORAGE_KEY_LAST_PLAYED);
+      if (saved && saved !== 'jfKfPfyJRdk' && saved !== '4xDzrJKXOOY' && saved !== 'eKFTSSKCzWA') {
+        return saved;
+      }
+      return CURATED_FOCUS_TRACKS[0].id;
     } catch {
       return CURATED_FOCUS_TRACKS[0].id;
     }

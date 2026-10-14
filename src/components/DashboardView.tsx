@@ -73,6 +73,7 @@ export function DashboardView() {
   const [streakShield, setStreakShield] = useState(() => streakFreezeEngine.getStatus(currentUser?.id));
   const [resurrectionStatus, setResurrectionStatus] = useState(() => streakFreezeEngine.getResurrectionStatus(currentUser?.id));
   const [showResurrectionModal, setShowResurrectionModal] = useState(false);
+  const [showQuickToolsSheet, setShowQuickToolsSheet] = useState(false);
   const [zenFocusOpen, setZenFocusOpen] = useState(false);
   const [zenFocusTaskId, setZenFocusTaskId] = useState<string | undefined>(undefined);
   const [quickTaskTitle, setQuickTaskTitle] = useState('');
@@ -425,7 +426,7 @@ export function DashboardView() {
       )}
 
       {/* 1. Bento Hero Banner with Dynamic Greeting, Streak & Quick Actions */}
-      <div className="relative overflow-hidden rounded-3xl bg-slate-900/95 dark:bg-slate-950/95 p-5 sm:p-7 text-white shadow-xl border border-slate-800/80">
+      <div className="relative overflow-hidden rounded-3xl bg-slate-900/95 dark:bg-slate-950/95 p-4 sm:p-7 text-white shadow-xl border border-slate-800/80 isolate transform-gpu">
         {/* Ambient mesh background effects */}
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -482,104 +483,123 @@ export function DashboardView() {
                 )}
               </div>
 
-              {/* Flex Story Modal Trigger */}
-              <button
-                type="button"
-                onClick={() => {
-                  soundEngine.playPop();
-                  setShowShareStory(true);
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-slate-300 hover:text-white hover:border-emerald-500/40 text-xs font-bold transition-all cursor-pointer"
-              >
-                <span>📸</span>
-                <span>{isVi ? 'Chia sẻ Story' : 'Share Story'}</span>
-              </button>
+              {/* Mobile Quick Tools Drawer Trigger */}
+              <div className="sm:hidden relative">
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundEngine.playPop();
+                    setShowQuickToolsSheet(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/90 hover:bg-slate-700 border border-slate-700/80 text-amber-300 hover:text-white text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
+                >
+                  <span>✨</span>
+                  <span>{isVi ? 'Tiện ích (7)' : 'Tools (7)'}</span>
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                </button>
+              </div>
 
-              {/* Rest Day / Streak Freeze Shield Button */}
-              <button
-                type="button"
-                onClick={() => {
-                  soundEngine.playPop();
-                  streakFreezeEngine.toggleRestDay(currentUser?.id);
-                  setStreakShield(streakFreezeEngine.getStatus(currentUser?.id));
-                }}
-                title={streakShield.isRestDayActive 
-                  ? (isVi ? 'Ngày nghỉ đang bật · Chuỗi của bạn được bảo vệ 100%' : 'Rest Day active · Your streak is 100% protected') 
-                  : (isVi ? `Bạn có ${streakShield.freezeCount} Băng bảo vệ ❄️. Nhấn để kích hoạt Ngày nghỉ` : `You have ${streakShield.freezeCount} Streak Freezes ❄️. Click to activate Rest Day mode`)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold transition-all cursor-pointer ${
-                  streakShield.isRestDayActive
-                    ? 'bg-lime-500/20 text-lime-300 border-lime-500/50 shadow-xs'
-                    : 'bg-slate-800/80 border-slate-700/80 text-slate-300 hover:text-white hover:border-lime-500/40'
-                }`}
-              >
-                <span>{streakShield.isRestDayActive ? '🍵' : '❄️'}</span>
-                <span>{streakShield.isRestDayActive ? (isVi ? 'Ngày nghỉ' : 'Rest Day') : `${streakShield.freezeCount} ${isVi ? 'Băng bảo vệ' : 'Freezes'}`}</span>
-              </button>
+              {/* Tablet & Desktop Inline Badges */}
+              <div className="hidden sm:contents">
+                {/* Flex Story Modal Trigger */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundEngine.playPop();
+                    setShowShareStory(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-slate-300 hover:text-white hover:border-emerald-500/40 text-xs font-bold transition-all cursor-pointer"
+                >
+                  <span>📸</span>
+                  <span>{isVi ? 'Chia sẻ Story' : 'Share Story'}</span>
+                </button>
 
-              {/* Vibe Theme Switcher */}
-              <button
-                type="button"
-                onClick={() => {
-                  soundEngine.playPop();
-                  setShowVibeThemeModal(true);
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-purple-300 hover:text-white hover:border-purple-400/50 text-xs font-bold transition-all cursor-pointer"
-              >
-                <span>🎨</span>
-                <span className="hidden sm:inline">{isVi ? 'Giao diện' : 'Vibe Theme'}</span>
-              </button>
+                {/* Rest Day / Streak Freeze Shield Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundEngine.playPop();
+                    streakFreezeEngine.toggleRestDay(currentUser?.id);
+                    setStreakShield(streakFreezeEngine.getStatus(currentUser?.id));
+                  }}
+                  title={streakShield.isRestDayActive 
+                    ? (isVi ? 'Ngày nghỉ đang bật · Chuỗi của bạn được bảo vệ 100%' : 'Rest Day active · Your streak is 100% protected') 
+                    : (isVi ? `Bạn có ${streakShield.freezeCount} Băng bảo vệ ❄️. Nhấn để kích hoạt Ngày nghỉ` : `You have ${streakShield.freezeCount} Streak Freezes ❄️. Click to activate Rest Day mode`)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold transition-all cursor-pointer ${
+                    streakShield.isRestDayActive
+                      ? 'bg-lime-500/20 text-lime-300 border-lime-500/50 shadow-xs'
+                      : 'bg-slate-800/80 border-slate-700/80 text-slate-300 hover:text-white hover:border-lime-500/40'
+                  }`}
+                >
+                  <span>{streakShield.isRestDayActive ? '🍵' : '❄️'}</span>
+                  <span>{streakShield.isRestDayActive ? (isVi ? 'Ngày nghỉ' : 'Rest Day') : `${streakShield.freezeCount} ${isVi ? 'Băng bảo vệ' : 'Freezes'}`}</span>
+                </button>
 
-              {/* Monthly Wrapped Trigger */}
-              <button
-                type="button"
-                onClick={() => {
-                  soundEngine.playPop();
-                  setShowWrappedModal(true);
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-amber-300 hover:text-white hover:border-amber-400/50 text-xs font-bold transition-all cursor-pointer"
-              >
-                <span>🎉</span>
-                <span>{isVi ? 'Tổng kết' : 'Wrapped'}</span>
-              </button>
+                {/* Vibe Theme Switcher */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundEngine.playPop();
+                    setShowVibeThemeModal(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-purple-300 hover:text-white hover:border-purple-400/50 text-xs font-bold transition-all cursor-pointer"
+                >
+                  <span>🎨</span>
+                  <span className="hidden sm:inline">{isVi ? 'Giao diện' : 'Vibe Theme'}</span>
+                </button>
 
-              {/* AI Life Buddy Copilot Trigger */}
-              <button
-                type="button"
-                onClick={() => {
-                  soundEngine.playPop();
-                  setShowAiBuddyModal(true);
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:text-white hover:bg-emerald-500/30 text-xs font-bold transition-all cursor-pointer shadow-xs shadow-emerald-500/10"
-              >
-                <span>🤖</span>
-                <span>{isVi ? 'Trợ lý AI' : 'AI Buddy'}</span>
-              </button>
+                {/* Monthly Wrapped Trigger */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundEngine.playPop();
+                    setShowWrappedModal(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-amber-300 hover:text-white hover:border-amber-400/50 text-xs font-bold transition-all cursor-pointer"
+                >
+                  <span>🎉</span>
+                  <span>{isVi ? 'Tổng kết' : 'Wrapped'}</span>
+                </button>
 
-              {/* Persona Quiz Trigger */}
-              <button
-                type="button"
-                onClick={() => {
-                  soundEngine.playPop();
-                  setShowPersonaQuizModal(true);
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-teal-300 hover:text-white hover:border-teal-400/50 text-xs font-bold transition-all cursor-pointer"
-              >
-                <span>🎯</span>
-                <span>{isVi ? 'Hồ sơ cá nhân' : 'Persona'}</span>
-              </button>
+                {/* AI Life Buddy Copilot Trigger */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundEngine.playPop();
+                    setShowAiBuddyModal(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:text-white hover:bg-emerald-500/30 text-xs font-bold transition-all cursor-pointer shadow-xs shadow-emerald-500/10"
+                >
+                  <span>🤖</span>
+                  <span>{isVi ? 'Trợ lý AI' : 'AI Buddy'}</span>
+                </button>
 
-              {/* Weekly Hall of Fame Leaderboard Trigger */}
-              <button
-                type="button"
-                onClick={() => {
-                  soundEngine.playPop();
-                  setShowLeaderboard(true);
-                }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/25 to-yellow-500/20 border border-amber-400/40 text-amber-300 hover:text-white hover:border-amber-300 text-xs font-black transition-all cursor-pointer shadow-xs shadow-amber-500/10 hover:scale-105 active:scale-95"
-              >
-                <span>🏆</span>
-                <span>{isVi ? 'Bảng xếp hạng' : 'Leaderboard'}</span>
-              </button>
+                {/* Persona Quiz Trigger */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundEngine.playPop();
+                    setShowPersonaQuizModal(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-teal-300 hover:text-white hover:border-teal-400/50 text-xs font-bold transition-all cursor-pointer"
+                >
+                  <span>🎯</span>
+                  <span>{isVi ? 'Hồ sơ cá nhân' : 'Persona'}</span>
+                </button>
+
+                {/* Weekly Hall of Fame Leaderboard Trigger */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundEngine.playPop();
+                    setShowLeaderboard(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/25 to-yellow-500/20 border border-amber-400/40 text-amber-300 hover:text-white hover:border-amber-300 text-xs font-black transition-all cursor-pointer shadow-xs shadow-amber-500/10 hover:scale-105 active:scale-95"
+                >
+                  <span>🏆</span>
+                  <span>{isVi ? 'Bảng xếp hạng' : 'Leaderboard'}</span>
+                </button>
+              </div>
             </div>
 
             {/* Greeting */}
@@ -1806,6 +1826,193 @@ export function DashboardView() {
           setShowShareStory(true);
         }}
       />
+
+      {/* Mobile Quick Tools Bottom Sheet Modal */}
+      {showQuickToolsSheet && (
+        <div className="fixed inset-0 z-50 flex flex-col justify-end sm:hidden animate-in fade-in duration-200">
+          <div 
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity" 
+            onClick={() => setShowQuickToolsSheet(false)} 
+          />
+          <div className="relative z-10 bg-slate-900 border-t border-slate-800 rounded-t-3xl p-5 shadow-2xl max-h-[85vh] overflow-y-auto space-y-4 animate-in slide-in-from-bottom duration-300">
+            {/* Grab Handle */}
+            <div className="w-12 h-1.5 bg-slate-700 rounded-full mx-auto" />
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-black text-white flex items-center gap-2">
+                  <span>✨</span>
+                  <span>{isVi ? 'Tiện ích & Tính năng nhanh' : 'Quick Tools & Actions'}</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5 font-medium">
+                  {isVi ? 'Truy cập 1-chạm vào các tính năng Gen Z của LifeOS' : '1-tap access to Gen Z LifeOS features'}
+                </p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setShowQuickToolsSheet(false)}
+                className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 gap-2.5 pt-1">
+              {/* 1. Share Story */}
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  setShowQuickToolsSheet(false);
+                  setShowShareStory(true);
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition-all active:scale-[0.98] cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-slate-700/60 flex items-center justify-center text-lg shrink-0">
+                  📸
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-xs text-white truncate">{isVi ? 'Chia sẻ Flex Story' : 'Share Story'}</div>
+                  <div className="text-[11px] text-slate-400 truncate">{isVi ? 'Tạo ảnh story aesthetic khoe tiến độ' : 'Generate aesthetic progress card'}</div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
+              </button>
+
+              {/* 2. Rest Day / Streak Freeze */}
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  streakFreezeEngine.toggleRestDay(currentUser?.id);
+                  setStreakShield(streakFreezeEngine.getStatus(currentUser?.id));
+                }}
+                className={`w-full flex items-center gap-3 p-3 rounded-2xl border text-left transition-all active:scale-[0.98] cursor-pointer ${
+                  streakShield.isRestDayActive
+                    ? 'bg-lime-500/15 border-lime-500/40'
+                    : 'bg-slate-800/80 border-slate-700/80 hover:bg-slate-800'
+                }`}
+              >
+                <div className="w-10 h-10 rounded-xl bg-slate-700/60 flex items-center justify-center text-lg shrink-0">
+                  {streakShield.isRestDayActive ? '🍵' : '❄️'}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-xs text-white truncate">
+                    {streakShield.isRestDayActive ? (isVi ? 'Ngày nghỉ: Đang BẬT' : 'Rest Day: Active') : (isVi ? 'Bảo vệ chuỗi (Streak Freeze)' : 'Streak Freeze')}
+                  </div>
+                  <div className="text-[11px] text-slate-400 truncate">
+                    {streakShield.isRestDayActive 
+                      ? (isVi ? 'Chuỗi hôm nay được bảo vệ an toàn 100%' : 'Your streak is 100% protected') 
+                      : (isVi ? `Bạn có ${streakShield.freezeCount} lượt băng. Nhấn để bật Ngày nghỉ` : `${streakShield.freezeCount} freezes available. Tap to toggle`)}
+                  </div>
+                </div>
+                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${streakShield.isRestDayActive ? 'bg-lime-500/20 text-lime-300' : 'bg-slate-700 text-slate-300'}`}>
+                  {streakShield.isRestDayActive ? (isVi ? 'Đang bật' : 'ON') : `${streakShield.freezeCount} ❄️`}
+                </span>
+              </button>
+
+              {/* 3. Vibe Theme */}
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  setShowQuickToolsSheet(false);
+                  setShowVibeThemeModal(true);
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition-all active:scale-[0.98] cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center text-lg shrink-0">
+                  🎨
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-xs text-white truncate">{isVi ? 'Đổi Tone Màu Vibe Theme' : 'Vibe Theme'}</div>
+                  <div className="text-[11px] text-slate-400 truncate">{isVi ? 'Matcha Latte, Cyber Emerald, Midnight Neon' : 'Switch aesthetic color vibes'}</div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
+              </button>
+
+              {/* 4. Monthly Wrapped */}
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  setShowQuickToolsSheet(false);
+                  setShowWrappedModal(true);
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition-all active:scale-[0.98] cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center text-lg shrink-0">
+                  🎉
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-xs text-white truncate">{isVi ? 'Bản tin Tổng kết LifeOS Wrapped' : 'LifeOS Wrapped'}</div>
+                  <div className="text-[11px] text-slate-400 truncate">{isVi ? 'Xem lại toàn bộ thành tựu và chỉ số tháng' : 'Monthly achievements recap'}</div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
+              </button>
+
+              {/* 5. AI Life Buddy Copilot */}
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  setShowQuickToolsSheet(false);
+                  setShowAiBuddyModal(true);
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-left transition-all active:scale-[0.98] cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-lg shrink-0">
+                  🤖
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-xs text-emerald-300 truncate">{isVi ? 'Trợ lý AI Life Buddy Copilot' : 'AI Life Buddy'}</div>
+                  <div className="text-[11px] text-slate-400 truncate">{isVi ? 'Tâm sự, hỏi đáp chiến lược học tập & thói quen' : 'Chat & get smart life insights'}</div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-emerald-500/60 shrink-0" />
+              </button>
+
+              {/* 6. Persona Quiz */}
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  setShowQuickToolsSheet(false);
+                  setShowPersonaQuizModal(true);
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition-all active:scale-[0.98] cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center text-lg shrink-0">
+                  🎯
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-xs text-white truncate">{isVi ? 'Trắc nghiệm Phong cách Persona' : 'Persona Quiz'}</div>
+                  <div className="text-[11px] text-slate-400 truncate">{isVi ? 'Khám phá kiểu tính cách làm việc & năng lượng' : 'Discover productivity archetype'}</div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
+              </button>
+
+              {/* 7. Weekly Leaderboard */}
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  setShowQuickToolsSheet(false);
+                  setShowLeaderboard(true);
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-400/30 text-left transition-all active:scale-[0.98] cursor-pointer"
+              >
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center text-lg shrink-0">
+                  🏆
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-xs text-amber-300 truncate">{isVi ? 'Bảng Phong Thần Kỷ Luật Tuần' : 'Discipline Leaderboard'}</div>
+                  <div className="text-[11px] text-slate-400 truncate">{isVi ? 'Vinh danh Top thành viên có streak và focus cao nhất' : 'Hall of Fame weekly rankings'}</div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-amber-500/60 shrink-0" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

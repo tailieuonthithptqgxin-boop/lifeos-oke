@@ -146,7 +146,7 @@ export function YouTubeFocusPlayer({
         <div className="relative aspect-video w-full bg-black/90 max-h-48 sm:max-h-56">
           <iframe
             key={currentVideoId}
-            src={`https://www.youtube-nocookie.com/embed/${currentVideoId}?autoplay=${isPlaying ? '1' : '0'}&enablejsapi=1&origin=${typeof window !== 'undefined' ? window.location.origin : ''}`}
+            src={`https://www.youtube-nocookie.com/embed/${currentVideoId}?autoplay=${isPlaying ? '1' : '0'}&rel=0`}
             title="YouTube Focus Player"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
