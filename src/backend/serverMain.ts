@@ -1,4 +1,15 @@
 import 'dotenv/config';
+import dns from 'dns';
+
+// Force IPv4-first DNS lookup to prevent ENETUNREACH on cloud environments (Railway, Docker, VPS) without IPv6 routing
+try {
+  if (dns.setDefaultResultOrder) {
+    dns.setDefaultResultOrder('ipv4first');
+  }
+} catch (e) {
+  // Ignore on older Node runtimes
+}
+
 import express from 'express';
 import path from 'path';
 import fs from 'fs';

@@ -1,5 +1,15 @@
 import nodemailer from 'nodemailer';
+import dns from 'dns';
 import { getPrisma } from '../db.js';
+
+// Force IPv4-first DNS lookup to eliminate ENETUNREACH IPv6 connection errors
+try {
+  if (dns.setDefaultResultOrder) {
+    dns.setDefaultResultOrder('ipv4first');
+  }
+} catch (e) {
+  // Ignore
+}
 
 export interface GmailSmtpConfig {
   enabled: boolean;
@@ -151,6 +161,36 @@ class GmailNotificationService {
     return merged;
   }
 
+  // Helper to create transport instance with IPv4 forced and proper timeouts
+  private createTransporterInstance(config: GmailSmtpConfig, overridePort?: number, overrideSecure?: boolean): any {
+    const cleanPassword = (config.appPassword || '').replace(/\s+/g, '');
+    const isGmail = config.serviceType === 'gmail' || !config.smtpHost || config.smtpHost.includes('gmail');
+    const host = isGmail ? 'smtp.gmail.com' : (config.smtpHost || 'smtp.gmail.com');
+    const port = overridePort !== undefined 
+      ? overridePort 
+      : (Number(config.smtpPort) || (isGmail ? 465 : 587));
+    const isSecure = overrideSecure !== undefined 
+      ? overrideSecure 
+      : (config.smtpSecure !== undefined ? Boolean(config.smtpSecure) : (port === 465));
+
+    return nodemailer.createTransport({
+      host,
+      port,
+      secure: isSecure,
+      auth: {
+        user: config.user.trim(),
+        pass: cleanPassword
+      },
+      family: 4, // CRITICAL: Force IPv4 to prevent ENETUNREACH on IPv6-disabled cloud networks (Railway, VPS, Docker)
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 20000,
+      tls: {
+        rejectUnauthorized: false
+      }
+    } as any);
+  }
+
   // Create transporter based on active configuration
   private async getTransporter(): Promise<{ transporter: any; config: GmailSmtpConfig } | null> {
     const config = await this.getConfig();
@@ -164,35 +204,7 @@ class GmailNotificationService {
     }
 
     try {
-      const cleanPassword = config.appPassword.replace(/\s+/g, '');
-      const port = Number(config.smtpPort) || 465;
-      const isSecure = config.smtpSecure !== undefined ? Boolean(config.smtpSecure) : (port === 465);
-
-      if (config.serviceType === 'gmail') {
-        this.cachedTransporter = nodemailer.createTransport({
-          service: 'gmail',
-          auth: {
-            user: config.user.trim(),
-            pass: cleanPassword
-          },
-          connectionTimeout: 10000,
-          greetingTimeout: 10000,
-          socketTimeout: 15000
-        });
-      } else {
-        this.cachedTransporter = nodemailer.createTransport({
-          host: config.smtpHost || 'smtp.gmail.com',
-          port,
-          secure: isSecure,
-          auth: {
-            user: config.user.trim(),
-            pass: cleanPassword
-          },
-          connectionTimeout: 10000,
-          greetingTimeout: 10000,
-          socketTimeout: 15000
-        });
-      }
+      this.cachedTransporter = this.createTransporterInstance(config);
       return { transporter: this.cachedTransporter, config };
     } catch (err) {
       console.error('[GmailNotificationService] Transporter initialization failed:', err);
@@ -200,20 +212,86 @@ class GmailNotificationService {
     }
   }
 
-  // Verify connection to Gmail SMTP server
+  // Verify connection to Gmail SMTP server with auto-fallback between ports 465 and 587
   async testConnection(testToEmail?: string): Promise<{ success: boolean; message: string }> {
-    const setup = await this.getTransporter();
-    if (!setup) {
+    const config = await this.getConfig();
+    if (!config.enabled || !config.user || !config.appPassword) {
       return {
         success: false,
         message: 'Gmail chưa được bật hoặc thiếu Tài khoản Gmail / Mật khẩu ứng dụng (App Password).'
       };
     }
 
-    try {
-      await setup.transporter.verify();
+    let activeTransporter: any = null;
+    let usedPort = Number(config.smtpPort) || 465;
+    let usedSecure = config.smtpSecure !== undefined ? Boolean(config.smtpSecure) : (usedPort === 465);
 
-      if (testToEmail) {
+    // Primary attempt with IPv4
+    try {
+      activeTransporter = this.createTransporterInstance(config, usedPort, usedSecure);
+      await activeTransporter.verify();
+      this.cachedTransporter = activeTransporter;
+    } catch (primaryErr: any) {
+      console.warn(`[GmailNotificationService] Primary verify on port ${usedPort} failed: ${primaryErr.message}. Attempting alternate port fallback...`);
+      
+      // Auto-fallback: if 465 failed, try 587. If 587 failed, try 465.
+      const fallbackPort = usedPort === 465 ? 587 : 465;
+      const fallbackSecure = fallbackPort === 465;
+
+      try {
+        const fallbackTransporter = this.createTransporterInstance(config, fallbackPort, fallbackSecure);
+        await fallbackTransporter.verify();
+        
+        // Fallback succeeded! Switch to fallback and persist update to config
+        activeTransporter = fallbackTransporter;
+        this.cachedTransporter = activeTransporter;
+        usedPort = fallbackPort;
+        usedSecure = fallbackSecure;
+
+        // Auto update config with working port in DB
+        await this.updateConfig({
+          smtpPort: fallbackPort,
+          smtpSecure: fallbackSecure
+        });
+        console.log(`[GmailNotificationService] Successfully switched and saved working SMTP port: ${fallbackPort} (secure: ${fallbackSecure})`);
+      } catch (fallbackErr: any) {
+        // Both failed: report clear, helpful error message
+        this.addLog({
+          id: 'test_err_' + Date.now(),
+          recipientEmail: testToEmail || 'test@verify.local',
+          subject: 'Kiểm tra kết nối Gmail',
+          category: 'TEST_CONNECTION',
+          status: 'FAILED',
+          errorMessage: primaryErr.message,
+          timestamp: new Date().toISOString()
+        });
+
+        const isAuthError = primaryErr.message?.includes('Invalid login') || 
+                            primaryErr.message?.includes('535') || 
+                            primaryErr.message?.includes('Username and Password not accepted') ||
+                            primaryErr.message?.includes('BadCredentials');
+
+        const isNetworkError = primaryErr.message?.includes('ENETUNREACH') || 
+                               primaryErr.message?.includes('ETIMEDOUT') || 
+                               primaryErr.message?.includes('ECONNREFUSED');
+
+        let hint = '';
+        if (isAuthError) {
+          hint = ' Google từ chối tài khoản hoặc mật khẩu. Bạn hãy tạo và dùng "Mật khẩu ứng dụng" (App Password 16 ký tự, ví dụ: abcd efgh ijkl mnop) tại myaccount.google.com/apppasswords thay vì mật khẩu đăng nhập thông thường.';
+        } else if (isNetworkError) {
+          hint = ' Kết nối mạng đến máy chủ SMTP thất bại. Hệ thống đã tự động thử nghiệm qua IPv4 ở cả cổng 465 và 587 nhưng máy chủ hosting đang chặn kết nối mạng ra ngoài.';
+        }
+
+        return {
+          success: false,
+          message: `Lỗi kết nối Gmail SMTP: ${primaryErr.message}.${hint}`
+        };
+      }
+    }
+
+    // Now send test email if recipient was provided
+    if (testToEmail) {
+      try {
         const testHtml = `
           <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 580px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; overflow: hidden;">
             <div style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); padding: 32px 24px; text-align: center; color: #ffffff;">
@@ -222,7 +300,7 @@ class GmailNotificationService {
             </div>
             <div style="padding: 32px 24px; color: #1e293b; line-height: 1.6;">
               <p style="font-size: 15px; margin-top: 0;">Xin chào Quản trị viên,</p>
-              <p style="font-size: 14px; color: #475569;">Email này được gửi tự động để kiểm tra thiết lập Gmail SMTP trên trang Quản trị Life OS. Mọi cấu hình kết nối đã hoạt động hoàn toàn chính xác.</p>
+              <p style="font-size: 14px; color: #475569;">Email này được gửi tự động để kiểm tra thiết lập Gmail SMTP trên trang Quản trị Life OS. Mọi cấu hình kết nối đã hoạt động hoàn toàn chính xác (Cổng kết nối: <b>${usedPort}</b>).</p>
               <div style="background: #f8fafc; border-left: 4px solid #10b981; padding: 14px 18px; border-radius: 8px; margin: 20px 0; font-size: 13px; color: #0f766e;">
                 <strong>Trạng thái:</strong> Sẵn sàng tự động gửi nhắc việc, cảnh báo ngân sách, lịch biểu và thanh toán.
               </div>
@@ -231,8 +309,8 @@ class GmailNotificationService {
           </div>
         `;
 
-        await setup.transporter.sendMail({
-          from: `"${setup.config.fromName}" <${setup.config.fromEmail || setup.config.user}>`,
+        await activeTransporter.sendMail({
+          from: `"${config.fromName}" <${config.fromEmail || config.user}>`,
           to: testToEmail,
           subject: '✅ [Life OS] Kiểm tra kết nối Gmail thành công',
           html: testHtml
@@ -249,30 +327,20 @@ class GmailNotificationService {
 
         return {
           success: true,
-          message: `Kết nối Gmail SMTP thành công! Email thử nghiệm đã gửi tới ${testToEmail}.`
+          message: `Kết nối Gmail SMTP thành công qua cổng ${usedPort}! Email thử nghiệm đã gửi tới ${testToEmail}.`
+        };
+      } catch (sendErr: any) {
+        return {
+          success: false,
+          message: `Xác thực máy chủ thành công qua cổng ${usedPort} nhưng gửi email thử nghiệm thất bại: ${sendErr.message}`
         };
       }
-
-      return {
-        success: true,
-        message: 'Xác thực tài khoản Gmail SMTP thành công!'
-      };
-    } catch (err: any) {
-      this.addLog({
-        id: 'test_err_' + Date.now(),
-        recipientEmail: testToEmail || 'test@verify.local',
-        subject: 'Kiểm tra kết nối Gmail',
-        category: 'TEST_CONNECTION',
-        status: 'FAILED',
-        errorMessage: err.message,
-        timestamp: new Date().toISOString()
-      });
-
-      return {
-        success: false,
-        message: `Lỗi kết nối Gmail SMTP: ${err.message}. Hãy chắc chắn bạn dùng 'Mật khẩu ứng dụng' (App Password 16 ký tự) của Google thay vì mật khẩu đăng nhập thông thường.`
-      };
     }
+
+    return {
+      success: true,
+      message: `Xác thực tài khoản Gmail SMTP thành công qua cổng ${usedPort}!`
+    };
   }
 
   // Check if current hour is within quiet hours
@@ -424,6 +492,39 @@ class GmailNotificationService {
         return { sent: true, message: 'Đã gửi Gmail thông báo thành công!' };
       } catch (err: any) {
         console.error('[GmailNotificationService] Error sending mail:', err);
+        const isNetworkErr = err.message?.includes('ENETUNREACH') || 
+                             err.message?.includes('ETIMEDOUT') || 
+                             err.message?.includes('ECONNREFUSED');
+        if (isNetworkErr) {
+          try {
+            const currentPort = Number(setup.config.smtpPort) || 465;
+            const altPort = currentPort === 465 ? 587 : 465;
+            const altSecure = altPort === 465;
+            const altTransporter = this.createTransporterInstance(setup.config, altPort, altSecure);
+            await altTransporter.sendMail({
+              from: `"${setup.config.fromName}" <${setup.config.fromEmail || setup.config.user}>`,
+              replyTo: setup.config.replyTo || undefined,
+              to: options.to,
+              subject: options.subject,
+              html: emailHtml
+            });
+            this.cachedTransporter = altTransporter;
+            await this.updateConfig({ smtpPort: altPort, smtpSecure: altSecure });
+            this.addLog({
+              id: 'log_' + Date.now(),
+              recipientEmail: options.to,
+              recipientName: options.recipientName,
+              subject: options.subject,
+              category: options.category,
+              status: 'SENT',
+              timestamp: new Date().toISOString()
+            });
+            return { sent: true, message: `Đã tự động đổi sang cổng ${altPort} và gửi Gmail thành công!` };
+          } catch (altErr: any) {
+            console.error('[GmailNotificationService] Alternate port also failed:', altErr);
+          }
+        }
+
         this.addLog({
           id: 'log_' + Date.now(),
           recipientEmail: options.to,
@@ -494,6 +595,42 @@ class GmailNotificationService {
         return { sent: true, message: 'Email đã được gửi thành công qua SMTP provider.' };
       } catch (err: any) {
         console.error('[GmailNotificationService] sendRawEmail error:', err);
+        const isNetworkErr = err.message?.includes('ENETUNREACH') || 
+                             err.message?.includes('ETIMEDOUT') || 
+                             err.message?.includes('ECONNREFUSED');
+        if (isNetworkErr) {
+          try {
+            const currentPort = Number(setup.config.smtpPort) || 465;
+            const altPort = currentPort === 465 ? 587 : 465;
+            const altSecure = altPort === 465;
+            const altTransporter = this.createTransporterInstance(setup.config, altPort, altSecure);
+            const fromHeader = options.from || `"${setup.config.fromName}" <${setup.config.fromEmail || setup.config.user}>`;
+            await altTransporter.sendMail({
+              from: fromHeader,
+              to: options.to,
+              replyTo: options.replyTo || setup.config.replyTo || undefined,
+              subject: options.subject,
+              html: options.html
+            });
+
+            this.cachedTransporter = altTransporter;
+            await this.updateConfig({ smtpPort: altPort, smtpSecure: altSecure });
+
+            this.addLog({
+              id: 'log_' + Date.now(),
+              recipientEmail: options.to,
+              subject: options.subject,
+              category: options.category || 'SYSTEM',
+              status: 'SENT',
+              timestamp: new Date().toISOString()
+            });
+
+            return { sent: true, message: `Email đã được gửi thành công sau khi tự động chuyển sang cổng ${altPort}.` };
+          } catch (altErr: any) {
+            console.error('[GmailNotificationService] Fallback transporter also failed:', altErr.message);
+          }
+        }
+
         this.addLog({
           id: 'log_' + Date.now(),
           recipientEmail: options.to,
