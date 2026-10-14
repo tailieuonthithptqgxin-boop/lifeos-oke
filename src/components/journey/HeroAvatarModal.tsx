@@ -358,6 +358,10 @@ export function HeroAvatarModal({ isOpen, onClose, frameClass = 'ring-2 ring-sla
                       <button
                         type="button"
                         disabled={isSaving}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleApplyAvatar(avatar.url);
+                        }}
                         className={`w-full py-1.5 rounded-xl text-[11px] font-black transition cursor-pointer ${
                           isEquipped
                             ? 'bg-emerald-500 text-slate-950'

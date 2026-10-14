@@ -83,7 +83,10 @@ export function AdminSubscriptionsTab({ onShowMessage }: AdminSubscriptionsTabPr
 
   const handleRefundSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!refundTarget || !refundTarget.paymentId) return;
+    if (!refundTarget || !refundTarget.paymentId) {
+      onShowMessage?.({ text: 'Không tìm thấy thông tin thanh toán hợp lệ để hoàn tiền!', type: 'error' });
+      return;
+    }
 
     try {
       setIsRefunding(true);

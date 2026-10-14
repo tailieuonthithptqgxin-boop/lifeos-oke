@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 
 let prismaClient: PrismaClient | null = null;
 
@@ -107,6 +107,82 @@ function getModelDelegate(collectionName: string) {
     throw new Error(`Collection '${collectionName}' does not exist in PostgreSQL schema`);
   }
   return delegate;
+}
+
+export const COLLECTION_TO_MODEL_NAME: Record<string, string> = {
+  tasks: 'Task',
+  projects: 'Project',
+  goals: 'Goal',
+  habits: 'Habit',
+  notes: 'Note',
+  events: 'CalendarEvent',
+  calendarEvents: 'CalendarEvent',
+  routines: 'ScheduleBlock',
+  scheduleBlocks: 'ScheduleBlock',
+  reminders: 'Reminder',
+  focusSessions: 'FocusSession',
+  focusGoals: 'FocusGoal',
+  financeAccounts: 'FinanceAccount',
+  transactions: 'Transaction',
+  budgets: 'Budget',
+  savingGoals: 'SavingGoal',
+  debts: 'Debt',
+  recurringTransactions: 'RecurringTransaction',
+  subjects: 'Subject',
+  studyTopics: 'StudyAssignment',
+  studyAssignments: 'StudyAssignment',
+  studyExams: 'StudyExam',
+  studySessions: 'StudySession',
+  habitRecords: 'HabitLog',
+  decisions: 'Decision',
+  decisionRules: 'AutomationRule',
+  automationRules: 'AutomationRule',
+  automationHistory: 'AutomationExecution',
+  automationConflicts: 'AutomationExecution',
+  subscriptions: 'Subscription',
+  cart: 'CartItem',
+  cartItems: 'CartItem',
+  orders: 'Order',
+  coupons: 'Coupon',
+  products: 'SystemTemplate',
+  inbox: 'SupportTicket',
+  supportTickets: 'SupportTicket',
+  notifications: 'Notification'
+};
+
+const MODEL_SCALAR_FIELDS_MAP: Record<string, Set<string>> = (() => {
+  const map: Record<string, Set<string>> = {};
+  try {
+    const models = (Prisma as any)?.dmmf?.datamodel?.models || [];
+    for (const m of models) {
+      const scalarFields = new Set<string>();
+      for (const f of m.fields || []) {
+        if (!f.relationName) {
+          scalarFields.add(f.name);
+        }
+      }
+      map[m.name] = scalarFields;
+      map[m.name.toLowerCase()] = scalarFields;
+    }
+  } catch (err) {
+    console.warn('Failed to parse Prisma DMMF models', err);
+  }
+  return map;
+})();
+
+export function sanitizePayloadForModel(collectionName: string, payload: any): any {
+  if (!payload || typeof payload !== 'object') return payload;
+  const modelName = COLLECTION_TO_MODEL_NAME[collectionName];
+  if (!modelName) return payload;
+  const validFields = MODEL_SCALAR_FIELDS_MAP[modelName];
+  if (!validFields) return payload;
+
+  for (const key of Object.keys(payload)) {
+    if (!validFields.has(key)) {
+      delete payload[key];
+    }
+  }
+  return payload;
 }
 
 // Helper to serialize array/object fields to JSON strings for Postgres text fields
@@ -318,13 +394,27 @@ function formatIncomingData(collectionName: string, data: any) {
     delete payload.title;
     delete payload.category;
     delete payload.priority;
-  } else if (collectionName === 'goals' || collectionName === 'focusGoals') {
+  } else if (collectionName === 'goals') {
     if (!payload.title && payload.name) payload.title = payload.name;
     delete payload.name;
     if (payload.target !== undefined && payload.targetValue === undefined) {
       payload.targetValue = Number(payload.target) || 100;
     }
     delete payload.target;
+  } else if (collectionName === 'focusGoals') {
+    if (payload.targetHours !== undefined) payload.targetHours = parseFloat(payload.targetHours) || 3;
+    else if (payload.target !== undefined) payload.targetHours = parseFloat(payload.target) || 3;
+    delete payload.target;
+    delete payload.title;
+    delete payload.name;
+    const VALID_FOCUS_GOAL_FIELDS = new Set([
+      'id', 'userId', 'type', 'targetHours', 'startDate', 'createdAt', 'updatedAt'
+    ]);
+    for (const key of Object.keys(payload)) {
+      if (!VALID_FOCUS_GOAL_FIELDS.has(key)) {
+        delete payload[key];
+      }
+    }
   } else if (collectionName === 'savingGoals') {
     if (!payload.title && payload.name) payload.title = payload.name;
     delete payload.name;
@@ -430,10 +520,31 @@ function formatIncomingData(collectionName: string, data: any) {
       payload.actualScore = null;
     }
   } else if (collectionName === 'focusSessions') {
-    delete payload.taskId;
-    delete payload.interruptions;
+    if (!payload.title) {
+      payload.title = payload.notes || payload.description || 'Phiên tập trung';
+    }
+    if (payload.duration !== undefined) {
+      if (payload.plannedDuration === undefined) payload.plannedDuration = parseFloat(payload.duration) || 25;
+      if (payload.actualDuration === undefined) payload.actualDuration = parseFloat(payload.duration) || 25;
+    }
     if (payload.plannedDuration !== undefined) payload.plannedDuration = parseFloat(payload.plannedDuration) || 25;
     if (payload.actualDuration !== undefined) payload.actualDuration = parseFloat(payload.actualDuration) || 0;
+    
+    // Serialize interruptions if array/object
+    if (Array.isArray(payload.interruptions) || (typeof payload.interruptions === 'object' && payload.interruptions !== null)) {
+      payload.interruptions = JSON.stringify(payload.interruptions);
+    }
+
+    // Strict Prisma whitelist for FocusSession model
+    const VALID_FOCUS_FIELDS = new Set([
+      'id', 'userId', 'title', 'mode', 'status', 'plannedDuration', 'actualDuration',
+      'startTime', 'endTime', 'taskId', 'notes', 'reflection', 'interruptions', 'createdAt'
+    ]);
+    for (const key of Object.keys(payload)) {
+      if (!VALID_FOCUS_FIELDS.has(key)) {
+        delete payload[key];
+      }
+    }
   } else if (collectionName === 'studySessions') {
     if (payload.durationMinutes !== undefined) payload.durationMinutes = parseInt(payload.durationMinutes, 10) || 60;
   } else if (collectionName === 'budgets') {
@@ -501,6 +612,7 @@ function formatIncomingData(collectionName: string, data: any) {
   if (typeof payload.subtotal === 'string') payload.subtotal = parseFloat(payload.subtotal) || 0;
   if (typeof payload.total === 'string') payload.total = parseFloat(payload.total) || 0;
 
+  sanitizePayloadForModel(collectionName, payload);
   return payload;
 }
 
@@ -604,6 +716,16 @@ function formatOutgoingData(collectionName: string, item: any) {
   } else if (collectionName === 'habitRecords') {
     if (record.status === undefined) {
       record.status = record.completed ? 'Completed' : 'Skipped';
+    }
+  } else if (collectionName === 'focusSessions') {
+    if (record.interruptions && typeof record.interruptions === 'string') {
+      try {
+        record.interruptions = JSON.parse(record.interruptions);
+      } catch (e) {
+        record.interruptions = [];
+      }
+    } else if (!record.interruptions) {
+      record.interruptions = [];
     }
   }
 
@@ -922,6 +1044,7 @@ export const dbService = {
         payload.completed = payload.status === 'Completed';
       }
       delete payload.status;
+      sanitizePayloadForModel(collectionName, payload);
       const created = await delegate.create({ data: payload });
       return formatOutgoingData(collectionName, created);
     }
@@ -929,6 +1052,7 @@ export const dbService = {
     if (collectionName === 'coupons') {
       const payload = formatIncomingData(collectionName, rawData);
       delete payload.userId;
+      sanitizePayloadForModel(collectionName, payload);
       const created = await delegate.create({ data: payload });
       return formatOutgoingData(collectionName, created);
     }
@@ -993,11 +1117,15 @@ export const dbService = {
       return formatOutgoingData(collectionName, created);
     }
 
+    sanitizePayloadForModel(collectionName, payload);
     const created = await delegate.create({ data: payload });
     return formatOutgoingData(collectionName, created);
   },
 
   async updateUserCollectionItem(collectionName: string, userId: string, id: string, rawUpdates: any, userRole?: string) {
+    if (!id || id === 'undefined' || id === 'null' || typeof id !== 'string' || !id.trim()) {
+      throw new Error(`Mã bản ghi (ID) không hợp lệ hoặc bị thiếu.`);
+    }
     const delegate = getModelDelegate(collectionName);
     const isAdmin = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
 
@@ -1019,6 +1147,7 @@ export const dbService = {
         payload.completed = payload.status === 'Completed';
         delete payload.status;
       }
+      sanitizePayloadForModel(collectionName, payload);
       const updated = await delegate.update({
         where: { id },
         data: payload
@@ -1032,6 +1161,7 @@ export const dbService = {
       delete payload.userId;
       delete payload.createdAt;
       delete payload.updatedAt;
+      sanitizePayloadForModel(collectionName, payload);
       const updated = await delegate.update({
         where: { id },
         data: payload
@@ -1052,6 +1182,7 @@ export const dbService = {
     delete payload.userId;
     delete payload.createdAt;
     delete payload.updatedAt;
+    sanitizePayloadForModel(collectionName, payload);
 
     if (collectionName === 'transactions') {
       const prisma = getPrisma();
@@ -1119,6 +1250,9 @@ export const dbService = {
   },
 
   async deleteUserCollectionItem(collectionName: string, userId: string, id: string, userRole?: string) {
+    if (!id || id === 'undefined' || id === 'null' || typeof id !== 'string' || !id.trim()) {
+      throw new Error(`Mã bản ghi (ID) không hợp lệ hoặc bị thiếu.`);
+    }
     const delegate = getModelDelegate(collectionName);
     const isAdmin = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
 

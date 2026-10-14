@@ -514,8 +514,21 @@ export const subscriptionService = {
     const prisma = getPrisma();
     const now = new Date();
 
-    const plan = await this.getPlanById(planId) || (await this.getPlans(true))[0];
-    const durationDays = paymentInfo?.customDurationDays || plan.durationDays || (plan.id === 'PERSONAL_3M' ? 90 : 30);
+    const plan = await this.getPlanById(planId);
+    if (!plan) {
+      throw new Error(`Gói dịch vụ '${planId}' không tồn tại. Không thể kích hoạt.`);
+    }
+
+    // Idempotency: one payment can only ever produce one subscription
+    if (paymentInfo?.paymentId) {
+      const already = await prisma.subscription.findFirst({ where: { paymentId: paymentInfo.paymentId } });
+      if (already) return already;
+    }
+
+    const durationDays = paymentInfo?.customDurationDays ?? plan.durationDays;
+    if (!Number.isFinite(durationDays) || durationDays <= 0 || durationDays > 3660) {
+      throw new Error(`Thời hạn gói không hợp lệ: ${durationDays}`);
+    }
     const snapshotAmount = paymentInfo?.amount !== undefined ? paymentInfo.amount : plan.price;
 
     // Check if user currently has an active subscription to STACK / EXTEND
@@ -956,7 +969,8 @@ export const subscriptionService = {
   async grantSubscription(userId: string, planId: string, durationDays: number, adminEmail: string, reason?: string) {
     const subscription = await this.activateSubscription(userId, planId, {
       txReference: `MANUAL_GRANT_${Date.now()}`,
-      customDurationDays: durationDays
+      customDurationDays: durationDays,
+      amount: 0 // No money received — must not count as revenue
     });
 
     const prisma = getPrisma();

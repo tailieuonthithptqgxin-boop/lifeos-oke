@@ -128,7 +128,14 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
 
   const handleRejectPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rejectModalTarget || !rejectReason.trim()) return;
+    if (!rejectModalTarget) return;
+    if (!rejectReason.trim()) {
+      onShowMessage?.({
+        text: 'Vui lòng nhập lý do từ chối yêu cầu thanh toán!',
+        type: 'error'
+      });
+      return;
+    }
 
     try {
       setIsRejecting(true);

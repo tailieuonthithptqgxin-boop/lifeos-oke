@@ -3,14 +3,19 @@ import {
   Users, Gift, Copy, Check, Share2, Sparkles, TrendingUp, DollarSign, 
   ArrowUpRight, ShieldCheck, Clock, CheckCircle2, XCircle, ChevronRight,
   HeartHandshake, AlertCircle, Award, Percent, Wallet, ArrowDownToLine,
-  Building2, CreditCard, UserCheck, FileText, Send, RefreshCw
+  Building2, CreditCard, UserCheck, FileText, Send, RefreshCw, QrCode
 } from 'lucide-react';
 import { apiCall } from '../lib/apiClient';
 import { formatCurrency, formatDate } from '../lib/utils';
 import { triggerConfetti } from '../lib/confetti';
 import { soundEngine } from '../lib/soundEngine';
+import { useAppStore } from '../lib/store';
+import { PaymentQrSection, PaymentQRData } from './referral/PaymentQrSection';
 
 export function ReferralView() {
+  const { language } = useAppStore();
+  const isVi = language === 'vi';
+
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<{
     referralCode: string;
@@ -22,6 +27,7 @@ export function ReferralView() {
     approvedReward: number;
     withdrawalPending: number;
     paidReward: number;
+    paymentQr?: PaymentQRData | null;
     history: Array<{
       id: string;
       referredUser: { name: string; email: string };
@@ -39,12 +45,13 @@ export function ReferralView() {
     }>;
   } | null>(null);
 
+  const [paymentQr, setPaymentQr] = useState<PaymentQRData | null>(null);
   const [withdrawals, setWithdrawals] = useState<Array<any>>([]);
   const [loadingWithdrawals, setLoadingWithdrawals] = useState(false);
 
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
-  const [activeTab, setActiveTab] = useState<'overview' | 'withdrawals' | 'history'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'qr' | 'withdrawals' | 'history'>('overview');
 
   // Withdrawal modal state with cached bank info
   const cachedBank = typeof window !== 'undefined' ? (() => {
@@ -73,6 +80,14 @@ export function ReferralView() {
       const res = await apiCall('/api/referrals/dashboard');
       if (res && res.success) {
         setData(res);
+        if (res.paymentQr) {
+          setPaymentQr(res.paymentQr);
+          if (res.paymentQr.bankName && !bankAccount) {
+            setBankName(res.paymentQr.bankName);
+            setBankAccount(res.paymentQr.bankAccount || '');
+            setAccountHolder(res.paymentQr.accountHolder || '');
+          }
+        }
       }
     } catch (err) {
       console.error('Error loading referral dashboard:', err);
@@ -418,6 +433,51 @@ export function ReferralView() {
         </div>
       </div>
 
+      {/* 4. Payment QR Status Quick Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-3xl bg-white dark:bg-slate-900 border border-purple-100 dark:border-purple-950/40 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-2xl bg-purple-50 dark:bg-purple-950/50 text-purple-600">
+            <QrCode className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs sm:text-sm font-bold text-slate-800 dark:text-white">
+                {isVi ? 'Mã QR Nhận Tiền Hoa Hồng:' : 'Commission Payout QR:'}
+              </span>
+              {paymentQr ? (
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black inline-flex items-center gap-1 ${
+                  paymentQr.status === 'VERIFIED'
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/80 dark:text-emerald-300'
+                    : paymentQr.status === 'REJECTED'
+                    ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/80 dark:text-rose-300'
+                    : 'bg-amber-100 text-amber-700 dark:bg-amber-950/80 dark:text-amber-300'
+                }`}>
+                  {paymentQr.status === 'VERIFIED' ? <CheckCircle2 className="w-3 h-3" /> : paymentQr.status === 'REJECTED' ? <XCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
+                  {paymentQr.status === 'VERIFIED' ? (isVi ? 'Đã xác minh' : 'Verified') : paymentQr.status === 'REJECTED' ? (isVi ? 'Cần cập nhật' : 'Needs Update') : (isVi ? 'Chờ Admin duyệt' : 'Pending')}
+                </span>
+              ) : (
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-slate-100 text-slate-500 dark:bg-slate-800">
+                  {isVi ? 'Chưa tải lên' : 'Not uploaded'}
+                </span>
+              )}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-0.5">
+              {paymentQr 
+                ? (isVi ? `Đã gắn mã QR ngân hàng: ${paymentQr.fileName}` : `Bank QR attached: ${paymentQr.fileName}`)
+                : (isVi ? 'Tải lên mã VietQR để Admin chuyển tiền hoa hồng nhanh nhất không cần gõ STK thủ công.' : 'Upload your VietQR so Admin can transfer payouts directly with zero hassle.')}
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setActiveTab('qr')}
+          className="px-4 py-2 rounded-xl bg-purple-50 dark:bg-purple-950/50 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-purple-700 dark:text-purple-300 font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+        >
+          <QrCode className="w-3.5 h-3.5" />
+          <span>{paymentQr ? (isVi ? 'Quản lý mã QR' : 'Manage QR') : (isVi ? 'Tải lên QR ngay' : 'Upload QR Now')}</span>
+        </button>
+      </div>
+
       {/* 5. Tab Navigation & Tables */}
       <div className="card-cute rounded-3xl p-5 sm:p-6 bg-white dark:bg-slate-900 border border-purple-100 dark:border-purple-950/40 shadow-xs space-y-5">
         <div className="flex flex-wrap items-center gap-2 border-b border-purple-50 dark:border-slate-800 pb-3">
@@ -429,8 +489,26 @@ export function ReferralView() {
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
             }`}
           >
-            Lịch sử hoa hồng ({data?.commissions?.length || 0})
+            {isVi ? `Lịch sử hoa hồng (${data?.commissions?.length || 0})` : `Commissions (${data?.commissions?.length || 0})`}
           </button>
+
+          <button
+            onClick={() => setActiveTab('qr')}
+            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'qr'
+                ? 'bg-purple-600 text-white shadow-xs'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
+            }`}
+          >
+            <QrCode className="w-3.5 h-3.5" />
+            <span>{isVi ? 'Mã QR Nhận Tiền' : 'Payment QR'}</span>
+            {paymentQr && (
+              <span className={`w-2 h-2 rounded-full ${
+                paymentQr.status === 'VERIFIED' ? 'bg-emerald-400' : paymentQr.status === 'REJECTED' ? 'bg-rose-400' : 'bg-amber-400'
+              }`} />
+            )}
+          </button>
+
           <button
             onClick={() => setActiveTab('withdrawals')}
             className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
@@ -439,8 +517,9 @@ export function ReferralView() {
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
             }`}
           >
-            Lịch sử rút tiền ({withdrawals.length})
+            {isVi ? `Lịch sử rút tiền (${withdrawals.length})` : `Withdrawals (${withdrawals.length})`}
           </button>
+
           <button
             onClick={() => setActiveTab('history')}
             className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
@@ -449,7 +528,7 @@ export function ReferralView() {
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
             }`}
           >
-            Danh sách bạn bè ({data?.history?.length || 0})
+            {isVi ? `Danh sách bạn bè (${data?.history?.length || 0})` : `Friends (${data?.history?.length || 0})`}
           </button>
         </div>
 
@@ -514,7 +593,20 @@ export function ReferralView() {
           </div>
         )}
 
-        {/* Tab 2: Withdrawals History */}
+        {/* Tab 2: Payment QR Management */}
+        {activeTab === 'qr' && (
+          <PaymentQrSection 
+            paymentQr={paymentQr} 
+            onQrUpdated={(qr) => {
+              setPaymentQr(qr);
+              if (qr?.bankName) setBankName(qr.bankName);
+              if (qr?.bankAccount) setBankAccount(qr.bankAccount);
+              if (qr?.accountHolder) setAccountHolder(qr.accountHolder);
+            }} 
+          />
+        )}
+
+        {/* Tab 3: Withdrawals History */}
         {activeTab === 'withdrawals' && (
           <div className="space-y-3">
             {withdrawals.length === 0 ? (
@@ -680,6 +772,40 @@ export function ReferralView() {
             )}
 
             <form onSubmit={handleWithdrawSubmit} className="space-y-4 text-xs sm:text-sm">
+              {/* Linked QR info badge */}
+              {paymentQr ? (
+                <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 p-1 border border-emerald-200 dark:border-slate-700 shrink-0 flex items-center justify-center overflow-hidden">
+                    <img src={paymentQr.qrUrl} alt="QR Thumbnail" className="max-h-full max-w-full object-contain" />
+                  </div>
+                  <div className="text-xs">
+                    <span className="font-bold text-emerald-800 dark:text-emerald-300 block">
+                      {isVi ? '✓ Đã liên kết với mã QR nhận tiền' : '✓ Bank QR attached to withdrawal request'}
+                    </span>
+                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400">
+                      {isVi ? 'Admin sẽ quét mã QR của bạn để giải ngân trực tiếp.' : 'Admin will scan your QR for instant transfer.'}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/50 flex items-center justify-between gap-2 text-xs">
+                  <div className="flex items-center gap-2 text-amber-800 dark:text-amber-300">
+                    <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
+                    <span>{isVi ? 'Bạn chưa tải lên mã QR ngân hàng.' : 'No Payment QR uploaded yet.'}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowWithdrawModal(false);
+                      setActiveTab('qr');
+                    }}
+                    className="text-[11px] font-bold text-amber-700 dark:text-amber-300 underline cursor-pointer"
+                  >
+                    {isVi ? 'Tải lên ngay' : 'Upload now'}
+                  </button>
+                </div>
+              )}
+
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                   Số tiền muốn rút (₫) *

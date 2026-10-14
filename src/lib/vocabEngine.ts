@@ -85,6 +85,8 @@ export interface UserWordProgress {
   lapses: number;
   personalNotes?: string;
   isFavorite?: boolean;
+  isDifficult?: boolean;
+  reviewLater?: boolean;
   bookmarkedCollectionIds?: string[];
   updatedAt: string;
 }
@@ -139,6 +141,8 @@ export interface VocabWord {
   imageUrl?: string;
   audioUrl?: string;
   isFavorite?: boolean;
+  isDifficult?: boolean;
+  reviewLater?: boolean;
   tags?: string[];
   verification?: import('./vocabVerificationEngine').WordVerificationReport;
   
@@ -158,6 +162,14 @@ export interface VocabWord {
   updatedAt: string;
 }
 
+export interface UserLearningPreferences {
+  preferredTopics: string[];
+  preferredDifficulty: 'all' | 'beginner' | 'intermediate' | 'advanced';
+  preferredModes: string[];
+  defaultCount: number;
+  defaultDurationMinutes: number; // 0 = unlimited
+}
+
 export interface VocabUserData {
   userId: string;
   activeLanguageId: string;
@@ -168,6 +180,8 @@ export interface VocabUserData {
   systemChineseHskProgress?: Record<string, UserWordProgress>; // key: zh_hsk_..._id -> user progress
   systemJapaneseJlptProgress?: Record<string, UserWordProgress>; // key: ja_jlpt_..._id -> user progress
   verificationOverrides?: Record<string, import('./vocabVerificationEngine').WordVerificationReport>;
+  learningPreferences?: UserLearningPreferences;
+  learningQueue?: string[]; // word IDs in custom learning queue
   lastStudyDate?: string;
   streakDays: number;
 }
@@ -1803,3 +1817,348 @@ export function saveSystemWordNotes(
 }
 
 export const save3000WordNotes = saveSystemWordNotes;
+
+// ------------------------------------------------------------------------------
+// PERSONALIZED VOCABULARY LEARNING ROOM HELPERS (REQUIREMENT 134)
+// ------------------------------------------------------------------------------
+
+export const DEFAULT_LEARNING_PREFERENCES: UserLearningPreferences = {
+  preferredTopics: ['all'],
+  preferredDifficulty: 'all',
+  preferredModes: ['flashcard', 'flashcard_reverse', 'quiz', 'spelling'],
+  defaultCount: 20,
+  defaultDurationMinutes: 15
+};
+
+/**
+ * Toggle difficult flag (💡) on any word (system or personal)
+ */
+export function toggleWordDifficult(
+  prevData: VocabUserData,
+  wordId: string
+): VocabUserData {
+  const isChineseHsk = wordId.startsWith('zh_hsk_');
+  const isJapaneseJlpt = wordId.startsWith('ja_jlpt_') || wordId.startsWith('ja_sach100_');
+  const isSystem3000 = wordId.startsWith('word_3000_');
+
+  if (isJapaneseJlpt || isChineseHsk || isSystem3000) {
+    const progressMap = isJapaneseJlpt
+      ? (prevData.systemJapaneseJlptProgress || {})
+      : isChineseHsk
+      ? (prevData.systemChineseHskProgress || {})
+      : (prevData.system3000Progress || {});
+
+    const currentProg = progressMap[wordId];
+    const isCurrentlyDifficult = currentProg?.isDifficult || false;
+    const updatedProg: UserWordProgress = {
+      wordId,
+      state: currentProg?.state || 'new',
+      repetitionCount: currentProg?.repetitionCount || 0,
+      easeFactor: currentProg?.easeFactor || 2.5,
+      intervalDays: currentProg?.intervalDays || 0,
+      lastReviewedAt: currentProg?.lastReviewedAt,
+      nextReviewAt: currentProg?.nextReviewAt || new Date().toISOString().split('T')[0],
+      reviewLogs: currentProg?.reviewLogs || [],
+      lapses: currentProg?.lapses || 0,
+      personalNotes: currentProg?.personalNotes,
+      isFavorite: currentProg?.isFavorite,
+      isDifficult: !isCurrentlyDifficult,
+      reviewLater: currentProg?.reviewLater,
+      bookmarkedCollectionIds: currentProg?.bookmarkedCollectionIds,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (isJapaneseJlpt) {
+      return {
+        ...prevData,
+        systemJapaneseJlptProgress: { ...(prevData.systemJapaneseJlptProgress || {}), [wordId]: updatedProg }
+      };
+    }
+    if (isChineseHsk) {
+      return {
+        ...prevData,
+        systemChineseHskProgress: { ...(prevData.systemChineseHskProgress || {}), [wordId]: updatedProg }
+      };
+    }
+    return {
+      ...prevData,
+      system3000Progress: { ...(prevData.system3000Progress || {}), [wordId]: updatedProg }
+    };
+  }
+
+  // Personal word
+  const words = prevData.words[prevData.activeLanguageId] || [];
+  return {
+    ...prevData,
+    words: {
+      ...prevData.words,
+      [prevData.activeLanguageId]: words.map(w =>
+        w.id === wordId ? { ...w, isDifficult: !w.isDifficult, updatedAt: new Date().toISOString() } : w
+      )
+    }
+  };
+}
+
+/**
+ * Toggle review later flag (📌) on any word
+ */
+export function toggleWordReviewLater(
+  prevData: VocabUserData,
+  wordId: string
+): VocabUserData {
+  const isChineseHsk = wordId.startsWith('zh_hsk_');
+  const isJapaneseJlpt = wordId.startsWith('ja_jlpt_') || wordId.startsWith('ja_sach100_');
+  const isSystem3000 = wordId.startsWith('word_3000_');
+
+  if (isJapaneseJlpt || isChineseHsk || isSystem3000) {
+    const progressMap = isJapaneseJlpt
+      ? (prevData.systemJapaneseJlptProgress || {})
+      : isChineseHsk
+      ? (prevData.systemChineseHskProgress || {})
+      : (prevData.system3000Progress || {});
+
+    const currentProg = progressMap[wordId];
+    const isCurrentlyMarked = currentProg?.reviewLater || false;
+    const updatedProg: UserWordProgress = {
+      wordId,
+      state: currentProg?.state || 'new',
+      repetitionCount: currentProg?.repetitionCount || 0,
+      easeFactor: currentProg?.easeFactor || 2.5,
+      intervalDays: currentProg?.intervalDays || 0,
+      lastReviewedAt: currentProg?.lastReviewedAt,
+      nextReviewAt: currentProg?.nextReviewAt || new Date().toISOString().split('T')[0],
+      reviewLogs: currentProg?.reviewLogs || [],
+      lapses: currentProg?.lapses || 0,
+      personalNotes: currentProg?.personalNotes,
+      isFavorite: currentProg?.isFavorite,
+      isDifficult: currentProg?.isDifficult,
+      reviewLater: !isCurrentlyMarked,
+      bookmarkedCollectionIds: currentProg?.bookmarkedCollectionIds,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (isJapaneseJlpt) {
+      return {
+        ...prevData,
+        systemJapaneseJlptProgress: { ...(prevData.systemJapaneseJlptProgress || {}), [wordId]: updatedProg }
+      };
+    }
+    if (isChineseHsk) {
+      return {
+        ...prevData,
+        systemChineseHskProgress: { ...(prevData.systemChineseHskProgress || {}), [wordId]: updatedProg }
+      };
+    }
+    return {
+      ...prevData,
+      system3000Progress: { ...(prevData.system3000Progress || {}), [wordId]: updatedProg }
+    };
+  }
+
+  // Personal word
+  const words = prevData.words[prevData.activeLanguageId] || [];
+  return {
+    ...prevData,
+    words: {
+      ...prevData.words,
+      [prevData.activeLanguageId]: words.map(w =>
+        w.id === wordId ? { ...w, reviewLater: !w.reviewLater, updatedAt: new Date().toISOString() } : w
+      )
+    }
+  };
+}
+
+/**
+ * Universal favorite toggle (⭐) for any word ID across all datasets
+ */
+export function toggleUniversalFavorite(
+  prevData: VocabUserData,
+  wordId: string
+): VocabUserData {
+  const isChineseHsk = wordId.startsWith('zh_hsk_');
+  const isJapaneseJlpt = wordId.startsWith('ja_jlpt_') || wordId.startsWith('ja_sach100_');
+  const isSystem3000 = wordId.startsWith('word_3000_');
+
+  if (isJapaneseJlpt || isChineseHsk || isSystem3000) {
+    const progressMap = isJapaneseJlpt
+      ? (prevData.systemJapaneseJlptProgress || {})
+      : isChineseHsk
+      ? (prevData.systemChineseHskProgress || {})
+      : (prevData.system3000Progress || {});
+
+    const currentProg = progressMap[wordId];
+    const isFav = currentProg?.isFavorite || false;
+    const updatedProg: UserWordProgress = {
+      wordId,
+      state: currentProg?.state || 'new',
+      repetitionCount: currentProg?.repetitionCount || 0,
+      easeFactor: currentProg?.easeFactor || 2.5,
+      intervalDays: currentProg?.intervalDays || 0,
+      lastReviewedAt: currentProg?.lastReviewedAt,
+      nextReviewAt: currentProg?.nextReviewAt || new Date().toISOString().split('T')[0],
+      reviewLogs: currentProg?.reviewLogs || [],
+      lapses: currentProg?.lapses || 0,
+      personalNotes: currentProg?.personalNotes,
+      isFavorite: !isFav,
+      isDifficult: currentProg?.isDifficult,
+      reviewLater: currentProg?.reviewLater,
+      bookmarkedCollectionIds: currentProg?.bookmarkedCollectionIds,
+      updatedAt: new Date().toISOString()
+    };
+
+    if (isJapaneseJlpt) {
+      return {
+        ...prevData,
+        systemJapaneseJlptProgress: { ...(prevData.systemJapaneseJlptProgress || {}), [wordId]: updatedProg }
+      };
+    }
+    if (isChineseHsk) {
+      return {
+        ...prevData,
+        systemChineseHskProgress: { ...(prevData.systemChineseHskProgress || {}), [wordId]: updatedProg }
+      };
+    }
+    return {
+      ...prevData,
+      system3000Progress: { ...(prevData.system3000Progress || {}), [wordId]: updatedProg }
+    };
+  }
+
+  // Personal word
+  const words = prevData.words[prevData.activeLanguageId] || [];
+  return {
+    ...prevData,
+    words: {
+      ...prevData.words,
+      [prevData.activeLanguageId]: words.map(w =>
+        w.id === wordId ? { ...w, isFavorite: !w.isFavorite, updatedAt: new Date().toISOString() } : w
+      )
+    }
+  };
+}
+
+/**
+ * Manage Learning Queue (Hàng đợi học tập cá nhân)
+ */
+export function addToLearningQueue(prevData: VocabUserData, wordIds: string[]): VocabUserData {
+  const currentQueue = prevData.learningQueue || [];
+  const set = new Set(currentQueue);
+  for (const id of wordIds) {
+    set.add(id);
+  }
+  return {
+    ...prevData,
+    learningQueue: Array.from(set)
+  };
+}
+
+export function removeFromLearningQueue(prevData: VocabUserData, wordId: string): VocabUserData {
+  const currentQueue = prevData.learningQueue || [];
+  return {
+    ...prevData,
+    learningQueue: currentQueue.filter(id => id !== wordId)
+  };
+}
+
+export function reorderLearningQueue(prevData: VocabUserData, newQueue: string[]): VocabUserData {
+  return {
+    ...prevData,
+    learningQueue: newQueue
+  };
+}
+
+export function saveUserLearningPreferences(
+  prevData: VocabUserData,
+  prefs: UserLearningPreferences
+): VocabUserData {
+  return {
+    ...prevData,
+    learningPreferences: prefs
+  };
+}
+
+/**
+ * Universal Search across all dictionaries (Oxford 3000, HSK, JLPT, and Personal Words)
+ */
+export function searchAllDictionaries(
+  query: string,
+  languageId: string,
+  limit: number = 25
+): { word: VocabWord; source: 'system' | 'personal' }[] {
+  if (!query || !query.trim()) return [];
+  const q = query.trim().toLowerCase();
+  const results: { word: VocabWord; source: 'system' | 'personal'; score: number }[] = [];
+
+  // 1. English Oxford 3000
+  if (languageId === 'en') {
+    for (const sys of OXFORD_3000_WORDS) {
+      const termLower = sys.term.toLowerCase();
+      const meaningLower = (sys.meaning || '').toLowerCase();
+      let score = 0;
+      if (termLower === q) score += 100;
+      else if (termLower.startsWith(q)) score += 50;
+      else if (termLower.includes(q)) score += 25;
+      else if (meaningLower.includes(q)) score += 10;
+
+      if (score > 0) {
+        results.push({
+          word: systemWordToVocabWord(sys),
+          source: 'system',
+          score
+        });
+      }
+    }
+  }
+
+  // 2. Chinese HSK
+  if (languageId === 'zh') {
+    for (const sys of CHINESE_HSK_WORDS) {
+      const termLower = sys.term.toLowerCase();
+      const pinyinLower = (sys.pinyin || '').toLowerCase();
+      const meaningLower = (sys.meaning || '').toLowerCase();
+      let score = 0;
+      if (termLower === q || pinyinLower === q) score += 100;
+      else if (termLower.includes(q)) score += 60;
+      else if (pinyinLower.includes(q)) score += 40;
+      else if (meaningLower.includes(q)) score += 10;
+
+      if (score > 0) {
+        results.push({
+          word: systemChineseWordToVocabWord(sys),
+          source: 'system',
+          score
+        });
+      }
+    }
+  }
+
+  // 3. Japanese JLPT
+  if (languageId === 'ja') {
+    for (const sys of JAPANESE_JLPT_WORDS) {
+      const termLower = sys.term.toLowerCase();
+      const furiLower = (sys.furigana || '').toLowerCase();
+      const romajiLower = (sys.romaji || '').toLowerCase();
+      const hanVietLower = (sys.hanViet || '').toLowerCase();
+      const meaningLower = (sys.meaning || '').toLowerCase();
+      let score = 0;
+      if (termLower === q || furiLower === q || romajiLower === q) score += 100;
+      else if (termLower.includes(q) || furiLower.includes(q)) score += 50;
+      else if (romajiLower.includes(q)) score += 30;
+      else if (hanVietLower.includes(q)) score += 20;
+      else if (meaningLower.includes(q)) score += 10;
+
+      if (score > 0) {
+        results.push({
+          word: systemJapaneseWordToVocabWord(sys),
+          source: 'system',
+          score
+        });
+      }
+    }
+  }
+
+  // Sort by relevance score descending
+  results.sort((a, b) => b.score - a.score);
+  return results.slice(0, limit).map(r => ({ word: r.word, source: r.source }));
+}
+

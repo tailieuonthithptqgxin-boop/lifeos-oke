@@ -84,6 +84,7 @@ model User {
   referredBy          ReferralRelationship?  @relation("ReferredUserRel")
   referralCommissions ReferralCommission[]   @relation("ReferrerCommission")
   withdrawalRequests  WithdrawalRequest[]
+  paymentQr           PaymentQR?
   feedbacks           Feedback[]
   vocabProgress       VocabWordProgress[]
   vocabReviewLogs     VocabReviewLog[]
@@ -366,6 +367,11 @@ model FocusSession {
   plannedDuration Float    @default(25)
   actualDuration  Float    @default(25)
   startTime       String?
+  endTime         String?
+  taskId          String?
+  notes           String?
+  reflection      String?
+  interruptions   String?
   createdAt       DateTime @default(now())
 
   @@index([userId])
@@ -1250,9 +1256,10 @@ model WithdrawalRequest {
   accountHolder  String
   transferNote   String?
   userNote       String?
-  status         String    @default("PENDING") // PENDING | APPROVED | PAID | REJECTED | CANCELLED
+  status         String    @default("PENDING") // PENDING | READY_FOR_PAYMENT | PROCESSING | PAID | REJECTED | CANCELLED
   txReference    String?   // Bank reference number on payout
   proofUrl       String?   // Payment proof attachment
+  paymentQrUrl   String?   // Frozen snapshot of user's payment QR at time of request
   rejectReason   String?   // Mandatory reason if rejected
   processedBy    String?   // Admin email
   processedAt    DateTime?
@@ -1266,6 +1273,30 @@ model WithdrawalRequest {
   @@index([status])
   @@index([createdAt])
   @@map("withdrawal_requests")
+}
+
+model PaymentQR {
+  id              String    @id @default(uuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  qrUrl           String    // Cloudflare R2 URL or secure data path
+  storageKey      String?
+  fileName        String
+  fileSize        Int
+  mimeType        String
+  bankName        String?
+  bankAccount     String?
+  accountHolder   String?
+  status          String    @default("PENDING_VERIFICATION") // PENDING_VERIFICATION | VERIFIED | REJECTED
+  rejectionReason String?
+  verifiedBy      String?   // Admin email
+  verifiedAt      DateTime?
+  uploadedAt      DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("payment_qrs")
 }
 
 model ReferralTransaction {

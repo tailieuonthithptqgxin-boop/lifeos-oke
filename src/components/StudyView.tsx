@@ -33,6 +33,7 @@ type Tab = 'overview' | 'my-grades' | 'vocabulary' | 'subjects' | 'assignments' 
 export function StudyView() {
   const { 
     currentUser,
+    language,
     subjects = [], 
     studyAssignments = [], 
     studyExams = [], 
@@ -48,6 +49,7 @@ export function StudyView() {
     addTask
   } = useAppStore();
 
+  const isVi = language === 'vi';
   const [activeTab, setActiveTab] = useState<Tab>('vocabulary');
 
   // Modal States
@@ -195,7 +197,7 @@ export function StudyView() {
                 </span>
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-                Quản lý môn học, lịch thi, bài tập và mô phỏng điểm số thông minh chill chill 🌸
+                {isVi ? 'Quản lý môn học, lịch thi, bài tập và mô phỏng điểm số thông minh chill chill 🌸' : 'Manage subjects, exams, assignments and smart GPA simulation chill chill 🌸'}
               </p>
             </div>
           </div>
@@ -203,13 +205,13 @@ export function StudyView() {
 
         {/* Tab Navigation */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
-          <TabButton active={activeTab === 'vocabulary'} onClick={() => setActiveTab('vocabulary')} icon={<BookOpen className="w-4 h-4 text-emerald-500" />} label="Từ vựng & Ngoại ngữ 📚" />
-          <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<Activity className="w-4 h-4" />} label="Tổng quan GPA" />
-          <TabButton active={activeTab === 'my-grades'} onClick={() => setActiveTab('my-grades')} icon={<Award className="w-4 h-4" />} label="Bảng điểm" count={subjects.length} />
-          <TabButton active={activeTab === 'subjects'} onClick={() => setActiveTab('subjects')} icon={<BookOpen className="w-4 h-4" />} label="Môn học" count={subjects.length} />
-          <TabButton active={activeTab === 'assignments'} onClick={() => setActiveTab('assignments')} icon={<FileCheck className="w-4 h-4" />} label="Bài tập" count={pendingAssignmentsCount} />
-          <TabButton active={activeTab === 'exams'} onClick={() => setActiveTab('exams')} icon={<Target className="w-4 h-4" />} label="Lịch thi" count={upcomingExamsCount} />
-          <TabButton active={activeTab === 'forecast'} onClick={() => setActiveTab('forecast')} icon={<Calculator className="w-4 h-4" />} label="Dự báo GPA 🔮" />
+          <TabButton active={activeTab === 'vocabulary'} onClick={() => setActiveTab('vocabulary')} icon={<BookOpen className="w-4 h-4 text-emerald-500" />} label={isVi ? 'Từ vựng & Ngoại ngữ 📚' : 'Vocabulary & Languages 📚'} />
+          <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<Activity className="w-4 h-4" />} label={isVi ? 'Tổng quan GPA' : 'GPA Overview'} />
+          <TabButton active={activeTab === 'my-grades'} onClick={() => setActiveTab('my-grades')} icon={<Award className="w-4 h-4" />} label={isVi ? 'Bảng điểm' : 'Report Card'} count={subjects.length} />
+          <TabButton active={activeTab === 'subjects'} onClick={() => setActiveTab('subjects')} icon={<BookOpen className="w-4 h-4" />} label={isVi ? 'Môn học' : 'Subjects'} count={subjects.length} />
+          <TabButton active={activeTab === 'assignments'} onClick={() => setActiveTab('assignments')} icon={<FileCheck className="w-4 h-4" />} label={isVi ? 'Bài tập' : 'Assignments'} count={pendingAssignmentsCount} />
+          <TabButton active={activeTab === 'exams'} onClick={() => setActiveTab('exams')} icon={<Target className="w-4 h-4" />} label={isVi ? 'Lịch thi' : 'Exams'} count={upcomingExamsCount} />
+          <TabButton active={activeTab === 'forecast'} onClick={() => setActiveTab('forecast')} icon={<Calculator className="w-4 h-4" />} label={isVi ? 'Dự báo GPA 🔮' : 'GPA Forecast 🔮'} />
         </div>
       </div>
 
@@ -248,7 +250,9 @@ export function StudyView() {
               fallback={
                 <div className="flex flex-col items-center justify-center p-16 min-h-[350px] text-slate-500 card-cute rounded-3xl bg-white/70 dark:bg-slate-900/70 border border-purple-100/60 dark:border-purple-900/40">
                   <div className="w-10 h-10 border-3 border-purple-500 border-t-pink-400 rounded-full animate-spin mb-3"></div>
-                  <span className="text-sm font-bold text-purple-600 dark:text-purple-300">Đang tải kho 10.000+ từ vựng... ✨</span>
+                  <span className="text-sm font-bold text-purple-600 dark:text-purple-300">
+                    {isVi ? 'Đang tải kho 10.000+ từ vựng... ✨' : 'Loading 10,000+ vocabulary database... ✨'}
+                  </span>
                 </div>
               }
             >

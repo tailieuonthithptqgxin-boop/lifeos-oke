@@ -84,6 +84,7 @@ export function isTaskHighRisk(t: any, localTodayStr: string, utcTodayStr: strin
 export function TasksView() {
   const { tasks, projects, goals, addTask, updateTask, deleteTask, language } = useAppStore();
   const t = useTranslation(language);
+  const isVi = language === 'vi';
   const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
   const [filterStatus, setFilterStatus] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -267,7 +268,7 @@ export function TasksView() {
           <div className="flex items-center gap-2">
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">{t('Quản lý Công việc')}</h2>
             <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              Tasks
+              {isVi ? 'Công việc' : 'Tasks'}
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">{t('Lập kế hoạch, theo dõi tiến độ và tối ưu thời gian thực hiện tác vụ')}</p>
@@ -587,8 +588,9 @@ export function TasksView() {
           task={editingTask} 
           onClose={() => setShowTaskModal(false)}
           onSave={async (t: any) => {
-            if (editingTask) {
-              await updateTask(t.id, t);
+            const targetId = editingTask?.id || t?.id;
+            if (editingTask && targetId) {
+              await updateTask(targetId, t);
             } else {
               await addTask(t);
             }
@@ -712,7 +714,7 @@ function TaskRow({ task, onEdit, onDelete, onToggleStatus, timerActive, timerSec
                 ? 'text-rose-600 font-extrabold bg-rose-50 dark:bg-rose-950/40 px-2.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-900/50' 
                 : 'text-slate-500 dark:text-slate-400 bg-purple-50/50 dark:bg-slate-800/80 px-2.5 py-0.5 rounded-full border border-purple-100/40 dark:border-purple-900/30'
             }`}>
-              <CalendarIcon className="w-3 h-3" /> {formatDate(task.dueDate)}
+              <CalendarIcon className="w-3 h-3" /> {formatDate(task.dueDate, language)}
             </span>
           )}
           <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black ${
@@ -866,7 +868,7 @@ function KanbanColumn({ title, status, tasks, onEdit, onDropTask, onTagClick, on
 
               {task.dueDate && (
                 <span className="text-[10px] font-bold flex items-center gap-1 text-slate-500 dark:text-slate-400 bg-purple-50/50 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-purple-100/40 dark:border-purple-900/30">
-                  <CalendarIcon className="w-3 h-3 text-purple-400" /> {formatDate(task.dueDate)}
+                  <CalendarIcon className="w-3 h-3 text-purple-400" /> {formatDate(task.dueDate, language)}
                 </span>
               )}
             </div>

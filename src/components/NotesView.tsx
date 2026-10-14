@@ -250,7 +250,10 @@ export function NotesView() {
   };
 
   const handleSaveNote = (noteToSave: Partial<Note>) => {
-    if (!noteToSave.title) return;
+    if (!noteToSave.title?.trim()) {
+      alert(t('Vui lòng nhập tiêu đề ghi chú!'));
+      return;
+    }
     const existing = (notes || []).find(n => n.id === noteToSave.id);
     if (existing) {
       updateNote(existing.id, noteToSave);
@@ -274,7 +277,7 @@ export function NotesView() {
               <div className="flex items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">{t('Notes & Knowledge Hub')}</h1>
                 <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50">
-                  Notes Hub
+                  {t('Notes Hub')}
                 </span>
               </div>
               <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1 font-medium">
@@ -1693,8 +1696,14 @@ function NoteEditorModal({
             Hủy
           </button>
           <button type="button" 
-            onClick={() => onSave(formData)}
-            className="px-5 py-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm"
+            onClick={() => {
+              if (!formData.title?.trim()) {
+                alert('Vui lòng nhập tiêu đề ghi chú!');
+                return;
+              }
+              onSave(formData);
+            }}
+            className="px-5 py-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm cursor-pointer"
           >
             Lưu Ghi chú
           </button>

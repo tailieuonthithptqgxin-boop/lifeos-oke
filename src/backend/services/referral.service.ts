@@ -1,4 +1,5 @@
 import { getPrisma } from '../db.js';
+import { r2Service } from './r2.service.js';
 
 export interface ReferralStats {
   referralCode: string;
@@ -10,6 +11,7 @@ export interface ReferralStats {
   approvedReward: number; // Available Balance
   withdrawalPending: number; // Locked in withdrawal
   paidReward: number; // Successfully paid
+  paymentQr?: any;
   history: Array<{
     id: string;
     referredUser: { name: string; email: string };
@@ -26,6 +28,45 @@ export interface ReferralStats {
     note?: string | null;
   }>;
   withdrawals?: Array<any>;
+}
+
+export function validateQrImageBuffer(buffer: Buffer, mimeType: string, extension: string): { valid: boolean; error?: string } {
+  const cleanMime = (mimeType || '').toLowerCase().trim();
+  const cleanExt = (extension || '').toLowerCase().trim();
+
+  const ALLOWED_MIME = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+  const ALLOWED_EXT = ['.png', '.jpg', '.jpeg', '.webp'];
+
+  if (!cleanMime || !ALLOWED_MIME.includes(cleanMime)) {
+    return { valid: false, error: 'Định dạng ảnh không hợp lệ. Chỉ chấp nhận PNG, JPG hoặc WEBP.' };
+  }
+  if (!cleanExt || !ALLOWED_EXT.some(ext => cleanExt.endsWith(ext))) {
+    return { valid: false, error: 'Đuôi tập tin không được phép (chỉ chấp nhận .png, .jpg, .jpeg, .webp).' };
+  }
+
+  // Size limit: 5MB
+  if (buffer.length > 5 * 1024 * 1024) {
+    return { valid: false, error: 'Kích thước tập tin vượt quá giới hạn tối đa 5MB.' };
+  }
+
+  // Magic bytes inspection
+  if (cleanMime === 'image/png') {
+    if (buffer.length < 8 || buffer[0] !== 0x89 || buffer[1] !== 0x50 || buffer[2] !== 0x4e || buffer[3] !== 0x47) {
+      return { valid: false, error: 'Tập tin PNG không hợp lệ hoặc bị lỗi cấu trúc.' };
+    }
+  } else if (cleanMime === 'image/jpeg' || cleanMime === 'image/jpg') {
+    if (buffer.length < 3 || buffer[0] !== 0xff || buffer[1] !== 0xd8 || buffer[2] !== 0xff) {
+      return { valid: false, error: 'Tập tin JPEG không hợp lệ hoặc bị lỗi cấu trúc.' };
+    }
+  } else if (cleanMime === 'image/webp') {
+    const riff = buffer.subarray(0, 4).toString('ascii');
+    const webp = buffer.subarray(8, 12).toString('ascii');
+    if (riff !== 'RIFF' || webp !== 'WEBP') {
+      return { valid: false, error: 'Tập tin WEBP không hợp lệ hoặc bị lỗi cấu trúc.' };
+    }
+  }
+
+  return { valid: true };
 }
 
 export interface WithdrawalInput {
@@ -317,7 +358,7 @@ export class ReferralService {
     const prisma = getPrisma();
     const profile = await this.getOrCreateProfile(userId);
 
-    const [relationships, commissions] = await Promise.all([
+    const [relationships, commissions, paymentQr] = await Promise.all([
       prisma.referralRelationship.findMany({
         where: { referrerId: userId },
         include: {
@@ -330,6 +371,9 @@ export class ReferralService {
       prisma.referralCommission.findMany({
         where: { referrerId: userId },
         orderBy: { createdAt: 'desc' }
+      }),
+      prisma.paymentQR.findUnique({
+        where: { userId }
       })
     ]);
 
@@ -346,6 +390,20 @@ export class ReferralService {
       approvedReward: profile.approvedReward,
       withdrawalPending: profile.withdrawalPending,
       paidReward: profile.paidReward,
+      paymentQr: paymentQr ? {
+        id: paymentQr.id,
+        qrUrl: paymentQr.qrUrl,
+        fileName: paymentQr.fileName,
+        fileSize: paymentQr.fileSize,
+        mimeType: paymentQr.mimeType,
+        bankName: paymentQr.bankName,
+        bankAccount: paymentQr.bankAccount,
+        accountHolder: paymentQr.accountHolder,
+        status: paymentQr.status,
+        rejectionReason: paymentQr.rejectionReason,
+        uploadedAt: paymentQr.uploadedAt,
+        updatedAt: paymentQr.updatedAt
+      } : null,
       history: relationships.map(r => ({
         id: r.id,
         referredUser: {
@@ -370,6 +428,7 @@ export class ReferralService {
   /**
    * User requests bank withdrawal from available balance.
    * Atomically locks funds: reduces approvedReward and increases withdrawalPending.
+   * Freezes snapshot of current active Payment QR.
    */
   async requestWithdrawal(userId: string, input: WithdrawalInput): Promise<any> {
     const prisma = getPrisma();
@@ -398,6 +457,11 @@ export class ReferralService {
         throw new Error(`Số dư khả dụng không đủ (${(currentProfile?.approvedReward || 0).toLocaleString('vi-VN')} ₫). Không thể rút ${amount.toLocaleString('vi-VN')} ₫.`);
       }
 
+      // Check user's active payment QR to freeze snapshot
+      const activeQr = await tx.paymentQR.findUnique({
+        where: { userId }
+      });
+
       const updated = await tx.referralProfile.update({
         where: { id: profile.id },
         data: {
@@ -416,6 +480,7 @@ export class ReferralService {
           transferNote: transferNote || `LifeOS Rut tien thuong - ${userId.substring(0, 8)}`,
           userNote,
           status: 'PENDING',
+          paymentQrUrl: activeQr?.qrUrl || null,
           balanceBefore: currentProfile.approvedReward
         }
       });
@@ -428,6 +493,18 @@ export class ReferralService {
           previousBal: currentProfile.approvedReward,
           newBal: updated.approvedReward,
           reason: `Yêu cầu rút ${amount.toLocaleString('vi-VN')} ₫ về ${bankName} (${bankAccount})`
+        }
+      });
+
+      await tx.auditLog.create({
+        data: {
+          adminId: userId,
+          targetUserId: userId,
+          action: 'REFERRAL_WITHDRAWAL_REQUEST',
+          beforeState: JSON.stringify({ approvedReward: currentProfile.approvedReward }),
+          afterState: JSON.stringify({ requestId: newReq.id, amount, bankName, bankAccount }),
+          result: 'Success',
+          reason: `Người dùng tạo yêu cầu rút ${amount.toLocaleString('vi-VN')} ₫`
         }
       });
 
@@ -458,7 +535,7 @@ export class ReferralService {
   }
 
   /**
-   * Admin: List all withdrawal requests with user info
+   * Admin: List all withdrawal requests with user info and PaymentQR preview
    */
   async getAdminWithdrawals(status?: string): Promise<any[]> {
     const prisma = getPrisma();
@@ -470,7 +547,23 @@ export class ReferralService {
     return prisma.withdrawalRequest.findMany({
       where,
       include: {
-        user: { select: { id: true, name: true, email: true } }
+        user: { 
+          select: { 
+            id: true, 
+            name: true, 
+            email: true,
+            paymentQr: {
+              select: {
+                id: true,
+                qrUrl: true,
+                fileName: true,
+                status: true,
+                rejectionReason: true,
+                updatedAt: true
+              }
+            }
+          } 
+        }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -478,25 +571,34 @@ export class ReferralService {
 
   /**
    * Admin Approves Withdrawal: marks PAID, deducts withdrawalPending, adds to paidReward, logs txReference
+   * Concurrency protected against race conditions, retries, and duplicate clicks (Idempotency).
    */
   async adminApproveWithdrawal(withdrawalId: string, adminEmail: string, txReference?: string, proofUrl?: string): Promise<any> {
     const prisma = getPrisma();
-    const request = await prisma.withdrawalRequest.findUnique({
-      where: { id: withdrawalId },
-      include: { user: true }
-    });
 
-    if (!request) {
-      throw new Error('Không tìm thấy yêu cầu rút tiền');
-    }
-    if (request.status !== 'PENDING') {
-      throw new Error(`Yêu cầu đang ở trạng thái "${request.status}", không thể duyệt`);
-    }
+    // Atomic transaction with status guard to strictly prevent double payout
+    const updatedRequest = await prisma.$transaction(async (tx) => {
+      const existing = await tx.withdrawalRequest.findUnique({
+        where: { id: withdrawalId },
+        include: { user: true }
+      });
 
-    const profile = await this.getOrCreateProfile(request.userId);
+      if (!existing) {
+        throw new Error('Không tìm thấy yêu cầu rút tiền');
+      }
+      if (existing.status !== 'PENDING') {
+        throw new Error(`Yêu cầu rút tiền này đã được xử lý (trạng thái: ${existing.status}). Không thể thực hiện chi trả trùng.`);
+      }
 
-    const [updatedRequest] = await prisma.$transaction([
-      prisma.withdrawalRequest.update({
+      const profile = await tx.referralProfile.findUnique({
+        where: { userId: existing.userId }
+      });
+
+      if (!profile) {
+        throw new Error('Không tìm thấy hồ sơ hoa hồng của người dùng.');
+      }
+
+      const updated = await tx.withdrawalRequest.update({
         where: { id: withdrawalId },
         data: {
           status: 'PAID',
@@ -505,40 +607,58 @@ export class ReferralService {
           processedBy: adminEmail,
           processedAt: new Date()
         }
-      }),
-      prisma.referralProfile.update({
+      });
+
+      await tx.referralProfile.update({
         where: { id: profile.id },
         data: {
-          withdrawalPending: { decrement: Math.min(profile.withdrawalPending, request.amount) },
-          paidReward: { increment: request.amount }
+          withdrawalPending: { decrement: Math.min(profile.withdrawalPending, existing.amount) },
+          paidReward: { increment: existing.amount }
         }
-      }),
-      prisma.referralTransaction.create({
+      });
+
+      await tx.referralTransaction.create({
         data: {
           withdrawalId,
-          userId: request.userId,
+          userId: existing.userId,
           type: 'WITHDRAWAL_PAID',
-          amount: request.amount,
+          amount: existing.amount,
           previousBal: profile.approvedReward,
           newBal: profile.approvedReward,
-          reason: `Đã giải ngân chuyển khoản ${request.amount.toLocaleString('vi-VN')} ₫ (Mã GD: ${txReference || 'Chuyển khoản thành công'})`
+          reason: `Đã giải ngân chuyển khoản ${existing.amount.toLocaleString('vi-VN')} ₫ (Mã GD: ${txReference || 'Chuyển khoản thành công'})`
         }
-      }),
-      prisma.notification.create({
+      });
+
+      await tx.auditLog.create({
         data: {
-          userId: request.userId,
+          adminId: adminEmail,
+          targetUserId: existing.userId,
+          action: 'REFERRAL_WITHDRAWAL_PAID',
+          beforeState: JSON.stringify({ status: existing.status, amount: existing.amount }),
+          afterState: JSON.stringify({ status: 'PAID', txReference: txReference || `TXN-${Date.now()}` }),
+          result: 'Success',
+          reason: `Admin ${adminEmail} xác nhận đã chuyển khoản thành công ${existing.amount.toLocaleString('vi-VN')} ₫`
+        }
+      });
+
+      await tx.notification.create({
+        data: {
+          userId: existing.userId,
           title: '🎉 Tiền thưởng đã được chuyển khoản!',
-          message: `Khoản rút ${request.amount.toLocaleString('vi-VN')} ₫ đã được chuyển tới ngân hàng ${request.bankName} (${request.bankAccount}). Mã GD: ${txReference || 'Thành công'}.`,
+          message: `Khoản rút ${existing.amount.toLocaleString('vi-VN')} ₫ đã được chuyển tới ngân hàng ${existing.bankName} (${existing.bankAccount}). Mã GD: ${txReference || 'Thành công'}.`,
           type: 'success'
         }
-      })
-    ]);
+      });
+
+      return updated;
+    });
 
     return updatedRequest;
   }
 
   /**
    * Admin Rejects Withdrawal: refunds locked money from withdrawalPending back to approvedReward
+   * Concurrency protected.
    */
   async adminRejectWithdrawal(withdrawalId: string, adminEmail: string, reason: string): Promise<any> {
     const prisma = getPrisma();
@@ -546,59 +666,363 @@ export class ReferralService {
       throw new Error('Vui lòng nhập lý do từ chối yêu cầu rút tiền');
     }
 
-    const request = await prisma.withdrawalRequest.findUnique({
-      where: { id: withdrawalId },
-      include: { user: true }
-    });
+    const updatedRequest = await prisma.$transaction(async (tx) => {
+      const existing = await tx.withdrawalRequest.findUnique({
+        where: { id: withdrawalId },
+        include: { user: true }
+      });
 
-    if (!request) {
-      throw new Error('Không tìm thấy yêu cầu rút tiền');
-    }
-    if (request.status !== 'PENDING') {
-      throw new Error(`Yêu cầu đang ở trạng thái "${request.status}", không thể từ chối`);
-    }
+      if (!existing) {
+        throw new Error('Không tìm thấy yêu cầu rút tiền');
+      }
+      if (existing.status !== 'PENDING') {
+        throw new Error(`Yêu cầu rút tiền này đã được xử lý (trạng thái: ${existing.status}), không thể từ chối.`);
+      }
 
-    const profile = await this.getOrCreateProfile(request.userId);
+      const profile = await tx.referralProfile.findUnique({
+        where: { userId: existing.userId }
+      });
 
-    const [updatedRequest] = await prisma.$transaction([
-      prisma.withdrawalRequest.update({
+      if (!profile) {
+        throw new Error('Không tìm thấy hồ sơ hoa hồng của người dùng.');
+      }
+
+      const updated = await tx.withdrawalRequest.update({
         where: { id: withdrawalId },
         data: {
           status: 'REJECTED',
-          rejectReason: reason,
+          rejectReason: reason.trim(),
           processedBy: adminEmail,
           processedAt: new Date()
         }
-      }),
-      prisma.referralProfile.update({
+      });
+
+      await tx.referralProfile.update({
         where: { id: profile.id },
         data: {
-          withdrawalPending: { decrement: Math.min(profile.withdrawalPending, request.amount) },
-          approvedReward: { increment: request.amount }
+          withdrawalPending: { decrement: Math.min(profile.withdrawalPending, existing.amount) },
+          approvedReward: { increment: existing.amount }
         }
-      }),
-      prisma.referralTransaction.create({
+      });
+
+      await tx.referralTransaction.create({
         data: {
           withdrawalId,
-          userId: request.userId,
+          userId: existing.userId,
           type: 'WITHDRAWAL_REJECTED',
-          amount: request.amount,
+          amount: existing.amount,
           previousBal: profile.approvedReward,
-          newBal: profile.approvedReward + request.amount,
-          reason: `Hoàn tiền yêu cầu rút bị từ chối: ${reason}`
+          newBal: profile.approvedReward + existing.amount,
+          reason: `Hoàn tiền yêu cầu rút bị từ chối: ${reason.trim()}`
         }
-      }),
-      prisma.notification.create({
+      });
+
+      await tx.auditLog.create({
         data: {
-          userId: request.userId,
+          adminId: adminEmail,
+          targetUserId: existing.userId,
+          action: 'REFERRAL_WITHDRAWAL_REJECTED',
+          beforeState: JSON.stringify({ status: existing.status, amount: existing.amount }),
+          afterState: JSON.stringify({ status: 'REJECTED', rejectReason: reason.trim() }),
+          result: 'Success',
+          reason: reason.trim()
+        }
+      });
+
+      await tx.notification.create({
+        data: {
+          userId: existing.userId,
           title: '⚠️ Yêu cầu rút tiền bị từ chối - Tiền đã hoàn lại ví',
-          message: `Yêu cầu rút ${request.amount.toLocaleString('vi-VN')} ₫ bị từ chối: "${reason}". Số tiền đã được hoàn lại đầy đủ vào Số dư khả dụng.`,
+          message: `Yêu cầu rút ${existing.amount.toLocaleString('vi-VN')} ₫ bị từ chối: "${reason.trim()}". Số tiền đã được hoàn lại đầy đủ vào Số dư khả dụng.`,
           type: 'warning'
         }
-      })
-    ]);
+      });
+
+      return updated;
+    });
 
     return updatedRequest;
+  }
+
+  // =========================================================================
+  // REQUIREMENT 133: PAYMENT QR (CUSTOMER & ADMIN MANAGEMENT)
+  // =========================================================================
+
+  /**
+   * Retrieves user's active payment QR metadata
+   */
+  async getUserPaymentQr(userId: string): Promise<any> {
+    const prisma = getPrisma();
+    const qr = await prisma.paymentQR.findUnique({
+      where: { userId }
+    });
+    return qr;
+  }
+
+  /**
+   * Customer uploads or replaces their bank/payment QR image
+   * Validates file format (PNG, JPG, WEBP), MIME type, extension, magic bytes, and max size (5MB).
+   * Stores securely in Cloudflare R2 or secure base64 fallback.
+   */
+  async saveUserPaymentQr(userId: string, input: {
+    base64Data: string;
+    fileName: string;
+    mimeType: string;
+    bankName?: string;
+    bankAccount?: string;
+    accountHolder?: string;
+  }): Promise<any> {
+    const prisma = getPrisma();
+    const { base64Data, fileName, mimeType, bankName, bankAccount, accountHolder } = input;
+
+    if (!base64Data) {
+      throw new Error('Dữ liệu ảnh QR không được để trống.');
+    }
+
+    const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, '');
+    const buffer = Buffer.from(cleanBase64, 'base64');
+    const ext = (fileName || '').substring((fileName || '').lastIndexOf('.'));
+
+    const validation = validateQrImageBuffer(buffer, mimeType || 'image/png', ext);
+    if (!validation.valid) {
+      throw new Error(validation.error || 'Tập tin ảnh không hợp lệ.');
+    }
+
+    let qrUrl = '';
+    let storageKey: string | null = null;
+
+    if (r2Service.isConfigured()) {
+      try {
+        const uploadResult = await r2Service.uploadFile(
+          buffer,
+          fileName || `qr-${Date.now()}.png`,
+          mimeType || 'image/png',
+          userId,
+          'payment-qrs'
+        );
+        qrUrl = uploadResult.url;
+        storageKey = uploadResult.key;
+      } catch (err) {
+        console.warn('[PaymentQR] R2 upload error, falling back to base64 data URI:', err);
+        qrUrl = `data:${mimeType};base64,${cleanBase64}`;
+      }
+    } else {
+      qrUrl = `data:${mimeType};base64,${cleanBase64}`;
+    }
+
+    const paymentQr = await prisma.paymentQR.upsert({
+      where: { userId },
+      create: {
+        userId,
+        qrUrl,
+        storageKey,
+        fileName: fileName || 'payment-qr.png',
+        fileSize: buffer.length,
+        mimeType: mimeType || 'image/png',
+        bankName: bankName?.trim() || null,
+        bankAccount: bankAccount?.trim() || null,
+        accountHolder: accountHolder?.trim()?.toUpperCase() || null,
+        status: 'PENDING_VERIFICATION'
+      },
+      update: {
+        qrUrl,
+        storageKey,
+        fileName: fileName || 'payment-qr.png',
+        fileSize: buffer.length,
+        mimeType: mimeType || 'image/png',
+        bankName: bankName?.trim() || null,
+        bankAccount: bankAccount?.trim() || null,
+        accountHolder: accountHolder?.trim()?.toUpperCase() || null,
+        status: 'PENDING_VERIFICATION',
+        rejectionReason: null,
+        verifiedBy: null,
+        verifiedAt: null
+      }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        adminId: userId,
+        targetUserId: userId,
+        action: 'PAYMENT_QR_UPLOAD',
+        afterState: JSON.stringify({ id: paymentQr.id, status: paymentQr.status, fileName }),
+        result: 'Success',
+        reason: 'Người dùng tải lên/cập nhật QR nhận hoa hồng'
+      }
+    });
+
+    return paymentQr;
+  }
+
+  /**
+   * Customer deletes their payment QR if not currently locked in an active processing payout
+   */
+  async deleteUserPaymentQr(userId: string): Promise<boolean> {
+    const prisma = getPrisma();
+    const qr = await prisma.paymentQR.findUnique({
+      where: { userId }
+    });
+    if (!qr) {
+      throw new Error('Không tìm thấy mã QR thanh toán để xóa.');
+    }
+
+    // Check if user has an active pending withdrawal request
+    const pendingWithdrawal = await prisma.withdrawalRequest.findFirst({
+      where: { userId, status: 'PENDING' }
+    });
+    if (pendingWithdrawal) {
+      throw new Error('Bạn đang có yêu cầu rút tiền đang chờ xử lý. Không thể xóa mã QR lúc này.');
+    }
+
+    if (qr.storageKey && r2Service.isConfigured()) {
+      try {
+        await r2Service.deleteFile(qr.storageKey, userId, false);
+      } catch (err) {
+        console.warn('[PaymentQR] Failed to delete file from R2:', err);
+      }
+    }
+
+    await prisma.paymentQR.delete({
+      where: { userId }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        adminId: userId,
+        targetUserId: userId,
+        action: 'PAYMENT_QR_DELETE',
+        beforeState: JSON.stringify({ id: qr.id, fileName: qr.fileName }),
+        result: 'Success',
+        reason: 'Người dùng xóa mã QR nhận hoa hồng'
+      }
+    });
+
+    return true;
+  }
+
+  /**
+   * Admin: List all customer payment QRs with filtering & search
+   */
+  async getAdminPaymentQrs(status?: string, search?: string): Promise<any[]> {
+    const prisma = getPrisma();
+    const where: any = {};
+    if (status && status !== 'ALL') {
+      where.status = status;
+    }
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      where.user = {
+        OR: [
+          { name: { contains: q, mode: 'insensitive' } },
+          { email: { contains: q, mode: 'insensitive' } }
+        ]
+      };
+    }
+
+    return prisma.paymentQR.findMany({
+      where,
+      include: {
+        user: { select: { id: true, name: true, email: true } }
+      },
+      orderBy: { updatedAt: 'desc' }
+    });
+  }
+
+  /**
+   * Admin approves/verifies customer QR as valid for payouts
+   */
+  async adminVerifyPaymentQr(qrId: string, adminEmail: string): Promise<any> {
+    const prisma = getPrisma();
+    const qr = await prisma.paymentQR.findUnique({
+      where: { id: qrId },
+      include: { user: true }
+    });
+    if (!qr) {
+      throw new Error('Không tìm thấy mã QR.');
+    }
+
+    const updated = await prisma.paymentQR.update({
+      where: { id: qrId },
+      data: {
+        status: 'VERIFIED',
+        verifiedBy: adminEmail,
+        verifiedAt: new Date(),
+        rejectionReason: null
+      }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        adminId: adminEmail,
+        targetUserId: qr.userId,
+        action: 'PAYMENT_QR_VERIFIED',
+        beforeState: JSON.stringify({ status: qr.status }),
+        afterState: JSON.stringify({ status: 'VERIFIED', verifiedBy: adminEmail }),
+        result: 'Success',
+        reason: 'Admin xác nhận mã QR hợp lệ'
+      }
+    });
+
+    await prisma.notification.create({
+      data: {
+        userId: qr.userId,
+        title: '✅ QR nhận hoa hồng đã được xác minh',
+        message: 'Mã QR tài khoản nhận tiền của bạn đã được Admin xác minh hợp lệ. Bạn có thể yên tâm nhận hoa hồng!',
+        type: 'success'
+      }
+    });
+
+    return updated;
+  }
+
+  /**
+   * Admin rejects customer QR with mandatory reason and requests update
+   */
+  async adminRejectPaymentQr(qrId: string, adminEmail: string, reason: string): Promise<any> {
+    const prisma = getPrisma();
+    if (!reason || !reason.trim()) {
+      throw new Error('Bắt buộc phải nhập lý do từ chối hoặc yêu cầu cập nhật QR.');
+    }
+    const qr = await prisma.paymentQR.findUnique({
+      where: { id: qrId },
+      include: { user: true }
+    });
+    if (!qr) {
+      throw new Error('Không tìm thấy mã QR.');
+    }
+
+    const updated = await prisma.paymentQR.update({
+      where: { id: qrId },
+      data: {
+        status: 'REJECTED',
+        rejectionReason: reason.trim(),
+        verifiedBy: adminEmail,
+        verifiedAt: new Date()
+      }
+    });
+
+    await prisma.auditLog.create({
+      data: {
+        adminId: adminEmail,
+        targetUserId: qr.userId,
+        action: 'PAYMENT_QR_REJECTED',
+        beforeState: JSON.stringify({ status: qr.status }),
+        afterState: JSON.stringify({ status: 'REJECTED', rejectionReason: reason.trim() }),
+        result: 'Success',
+        reason: reason.trim()
+      }
+    });
+
+    await prisma.notification.create({
+      data: {
+        userId: qr.userId,
+        title: '⚠️ Cần cập nhật lại QR nhận hoa hồng',
+        message: `Mã QR của bạn cần được cập nhật lại: "${reason.trim()}". Vui lòng tải lên ảnh QR rõ nét hơn.`,
+        type: 'warning'
+      }
+    });
+
+    return updated;
   }
 
   /**

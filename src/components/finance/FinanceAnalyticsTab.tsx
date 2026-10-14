@@ -13,6 +13,7 @@ import {
 import { formatCurrency, formatCompactCurrency, formatDate } from '../../lib/utils';
 import { Transaction, Budget, SavingGoal } from '../../lib/types';
 import { FinanceMonthlyComparisonTab } from './FinanceMonthlyComparisonTab';
+import { useAppStore } from '../../lib/store';
 
 interface FinanceAnalyticsTabProps {
   transactions: Transaction[];
@@ -36,6 +37,8 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
   savingGoals = [],
   onOpenTxModal
 }) => {
+  const { language } = useAppStore();
+  const isVi = language === 'vi';
   const [subView, setSubView] = useState<AnalyticsSubView>('period');
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('this_month');
   const [chartGranularity, setChartGranularity] = useState<GranularityType>('day');
@@ -67,16 +70,18 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
     let totalDays = 30;
     let subtitle = '';
     let projectable = false;
-    let prevLabel = 'previous period';
+    let prevLabel = isVi ? 'kỳ trước' : 'previous period';
 
     if (selectedPeriod === 'this_month') {
       startCur = new Date(currentYear, currentMonth, 1, 0, 0, 0, 0);
       endCur = new Date(currentYear, currentMonth, currentDate, 23, 59, 59, 999);
       daysCount = currentDate;
       totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
-      subtitle = `Current Month (Month ${currentMonth + 1}/${currentYear}) · as of today (${currentDate}/${currentMonth + 1})`;
+      subtitle = isVi
+        ? `Tháng hiện tại (Tháng ${currentMonth + 1}/${currentYear}) · tính đến hôm nay (${currentDate}/${currentMonth + 1})`
+        : `Current Month (Month ${currentMonth + 1}/${currentYear}) · as of today (${currentDate}/${currentMonth + 1})`;
       projectable = true;
-      prevLabel = 'same period last month';
+      prevLabel = isVi ? 'cùng kỳ tháng trước' : 'same period last month';
 
       // Previous period: Same days of previous month
       startPrv = new Date(currentYear, currentMonth - 1, 1, 0, 0, 0, 0);
@@ -91,9 +96,11 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
       totalDays = daysInLastMonth;
       const m = startCur.getMonth() + 1;
       const y = startCur.getFullYear();
-      subtitle = `Last Month (Month ${m}/${y}) · full period`;
+      subtitle = isVi 
+        ? `Tháng trước (Tháng ${m}/${y}) · trọn kỳ` 
+        : `Last Month (Month ${m}/${y}) · full period`;
       projectable = false;
-      prevLabel = 'two months ago';
+      prevLabel = isVi ? 'hai tháng trước' : 'two months ago';
 
       // Month before last
       startPrv = new Date(currentYear, currentMonth - 2, 1, 0, 0, 0, 0);
@@ -105,9 +112,11 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
       endCur = new Date(now.getTime());
       daysCount = 30;
       totalDays = 30;
-      subtitle = `Last 30 days · as of today (${currentDate}/${currentMonth + 1}/${currentYear})`;
+      subtitle = isVi
+        ? `30 ngày qua · tính đến hôm nay (${currentDate}/${currentMonth + 1}/${currentYear})`
+        : `Last 30 days · as of today (${currentDate}/${currentMonth + 1}/${currentYear})`;
       projectable = false;
-      prevLabel = 'previous 30 days';
+      prevLabel = isVi ? '30 ngày trước đó' : 'previous 30 days';
 
       endPrv = new Date(startCur.getTime() - 1);
       startPrv = new Date(endPrv.getTime() - 29 * 24 * 60 * 60 * 1000);
@@ -119,9 +128,11 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
       daysCount = Math.max(1, Math.ceil((endCur.getTime() - startCur.getTime()) / (24 * 60 * 60 * 1000)));
       const quarterEnd = new Date(currentYear, (q + 1) * 3, 0);
       totalDays = Math.ceil((quarterEnd.getTime() - startCur.getTime()) / (24 * 60 * 60 * 1000));
-      subtitle = `Q${q + 1}/${currentYear} · as of today (${currentDate}/${currentMonth + 1})`;
+      subtitle = isVi
+        ? `Quý ${q + 1}/${currentYear} · tính đến hôm nay (${currentDate}/${currentMonth + 1})`
+        : `Q${q + 1}/${currentYear} · as of today (${currentDate}/${currentMonth + 1})`;
       projectable = true;
-      prevLabel = 'same period last quarter';
+      prevLabel = isVi ? 'cùng kỳ quý trước' : 'same period last quarter';
 
       startPrv = new Date(currentYear, (q - 1) * 3, 1, 0, 0, 0, 0);
       endPrv = new Date(startPrv.getTime() + (daysCount * 24 * 60 * 60 * 1000) - 1);
@@ -130,9 +141,11 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
       endCur = new Date(now.getTime());
       daysCount = Math.max(1, Math.ceil((endCur.getTime() - startCur.getTime()) / (24 * 60 * 60 * 1000)));
       totalDays = (currentYear % 4 === 0 && currentYear % 100 !== 0) || currentYear % 400 === 0 ? 366 : 365;
-      subtitle = `Year ${currentYear} · as of today (${currentDate}/${currentMonth + 1})`;
+      subtitle = isVi
+        ? `Năm ${currentYear} · tính đến hôm nay (${currentDate}/${currentMonth + 1})`
+        : `Year ${currentYear} · as of today (${currentDate}/${currentMonth + 1})`;
       projectable = true;
-      prevLabel = 'same period last year';
+      prevLabel = isVi ? 'cùng kỳ năm trước' : 'same period last year';
 
       startPrv = new Date(currentYear - 1, 0, 1, 0, 0, 0, 0);
       endPrv = new Date(currentYear - 1, currentMonth, currentDate, 23, 59, 59, 999);
@@ -142,9 +155,9 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
       endCur = new Date(2099, 11, 31);
       daysCount = 1;
       totalDays = 1;
-      subtitle = `All recorded transaction history`;
+      subtitle = isVi ? 'Toàn bộ lịch sử giao dịch đã ghi nhận' : 'All recorded transaction history';
       projectable = false;
-      prevLabel = 'previous period';
+      prevLabel = isVi ? 'kỳ trước' : 'previous period';
 
       startPrv = new Date(1990, 0, 1);
       endPrv = new Date(1999, 11, 31);
@@ -161,7 +174,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
       canProject: projectable,
       prevPeriodLabel: prevLabel
     };
-  }, [selectedPeriod, now, currentYear, currentMonth, currentDate]);
+  }, [selectedPeriod, now, currentYear, currentMonth, currentDate, isVi]);
 
   // 2. FILTER TRANSACTIONS (CURRENT & PREVIOUS PERIOD)
   const currentPeriodTx = useMemo(() => {
@@ -384,22 +397,28 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
       if (expenseDiffPercent > 15) {
         insights.push({
           type: 'warning',
-          title: `Chi tiêu đang tăng +${expenseDiffPercent.toFixed(1)}%`,
-          desc: `Mức chi tiêu hiện tại (${formatCurrency(currentExpense)}) cao hơn ${formatCurrency(Math.abs(expenseDiff))} so với ${prevPeriodLabel}. Cần rà soát các khoản chi đột biến.`,
+          title: isVi ? `Chi tiêu đang tăng +${expenseDiffPercent.toFixed(1)}%` : `Spending trending up +${expenseDiffPercent.toFixed(1)}%`,
+          desc: isVi 
+            ? `Mức chi tiêu hiện tại (${formatCurrency(currentExpense)}) cao hơn ${formatCurrency(Math.abs(expenseDiff))} so với ${prevPeriodLabel}. Cần rà soát các khoản chi đột biến.`
+            : `Current spending (${formatCurrency(currentExpense)}) is ${formatCurrency(Math.abs(expenseDiff))} higher than ${prevPeriodLabel}. Review potential spike expenses.`,
           icon: TrendingUp
         });
       } else if (expenseDiffPercent < -10) {
         insights.push({
           type: 'positive',
-          title: `Tiết giảm chi tiêu tốt (${expenseDiffPercent.toFixed(1)}%)`,
-          desc: `Bạn đang chi ít hơn ${formatCurrency(Math.abs(expenseDiff))} so với ${prevPeriodLabel}, duy trì mức kiểm soát ngân sách rất hiệu quả.`,
+          title: isVi ? `Tiết giảm chi tiêu tốt (${expenseDiffPercent.toFixed(1)}%)` : `Effective spending reduction (${expenseDiffPercent.toFixed(1)}%)`,
+          desc: isVi
+            ? `Bạn đang chi ít hơn ${formatCurrency(Math.abs(expenseDiff))} so với ${prevPeriodLabel}, duy trì mức kiểm soát ngân sách rất hiệu quả.`
+            : `You spent ${formatCurrency(Math.abs(expenseDiff))} less than ${prevPeriodLabel}, maintaining great budget discipline.`,
           icon: TrendingDown
         });
       } else {
         insights.push({
           type: 'neutral',
-          title: 'Chi tiêu duy trì ổn định',
-          desc: `Tốc độ chi tiêu biến động không đáng kể (${expenseDiffPercent > 0 ? '+' : ''}${expenseDiffPercent.toFixed(1)}%) so với ${prevPeriodLabel}.`,
+          title: isVi ? 'Chi tiêu duy trì ổn định' : 'Spending remains stable',
+          desc: isVi
+            ? `Tốc độ chi tiêu biến động không đáng kể (${expenseDiffPercent > 0 ? '+' : ''}${expenseDiffPercent.toFixed(1)}%) so với ${prevPeriodLabel}.`
+            : `Spending pace fluctuation is minimal (${expenseDiffPercent > 0 ? '+' : ''}${expenseDiffPercent.toFixed(1)}%) compared to ${prevPeriodLabel}.`,
           icon: Activity
         });
       }
@@ -409,8 +428,12 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
     if (topCategory && topCategory.percentage > 35) {
       insights.push({
         type: topCategory.percentage > 50 ? 'warning' : 'neutral',
-        title: `Nhóm "${topCategory.category}" chiếm tỷ trọng lớn (${topCategory.percentage.toFixed(1)}%)`,
-        desc: `Với tổng chi ${formatCurrency(topCategory.total)}, nhóm này đang là động lực chi tiêu chính của bạn trong kỳ phân tích.`,
+        title: isVi 
+          ? `Nhóm "${topCategory.category}" chiếm tỷ trọng lớn (${topCategory.percentage.toFixed(1)}%)`
+          : `Category "${topCategory.category}" has a high share (${topCategory.percentage.toFixed(1)}%)`,
+        desc: isVi
+          ? `Với tổng chi ${formatCurrency(topCategory.total)}, nhóm này đang là động lực chi tiêu chính của bạn trong kỳ phân tích.`
+          : `With ${formatCurrency(topCategory.total)} total spent, this category is your primary spending driver in this period.`,
         icon: PieChartIcon
       });
     }
@@ -419,8 +442,10 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
     const txPerDay = (expenseTxCount / (daysAnalyzed || 1)).toFixed(1);
     insights.push({
       type: 'neutral',
-      title: `Tần suất giao dịch: ${txPerDay} lượt chi/ngày`,
-      desc: `Đã ghi nhận tổng cộng ${expenseTxCount} giao dịch chi tiêu trên ${daysAnalyzed} ngày phân tích, mức chi bình quân mỗi giao dịch đạt ${formatCurrency(Math.round(currentExpense / expenseTxCount))}.`,
+      title: isVi ? `Tần suất giao dịch: ${txPerDay} lượt chi/ngày` : `Spending frequency: ${txPerDay} expense/day`,
+      desc: isVi
+        ? `Đã ghi nhận tổng cộng ${expenseTxCount} giao dịch chi tiêu trên ${daysAnalyzed} ngày phân tích, mức chi bình quân mỗi giao dịch đạt ${formatCurrency(Math.round(currentExpense / expenseTxCount))}.`
+        : `Recorded ${expenseTxCount} expense transactions across ${daysAnalyzed} days, averaging ${formatCurrency(Math.round(currentExpense / expenseTxCount))} per transaction.`,
       icon: Clock
     });
 
@@ -430,15 +455,19 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
       if (singleTxShare > 30) {
         insights.push({
           type: 'warning',
-          title: `Khoản chi lớn đột biến: ${formatCurrency(maxExpenseTx.amount)} (${singleTxShare.toFixed(1)}% tổng chi)`,
-          desc: `Giao dịch "${maxExpenseTx.note || maxExpenseTx.category}" vào ngày ${formatDate(maxExpenseTx.date)} tạo ra bước nhảy vọt trong biểu đồ chi tiêu của kỳ.`,
+          title: isVi 
+            ? `Khoản chi lớn đột biến: ${formatCurrency(maxExpenseTx.amount)} (${singleTxShare.toFixed(1)}% tổng chi)`
+            : `Outlier expense: ${formatCurrency(maxExpenseTx.amount)} (${singleTxShare.toFixed(1)}% of total)`,
+          desc: isVi
+            ? `Giao dịch "${maxExpenseTx.note || maxExpenseTx.category}" vào ngày ${formatDate(maxExpenseTx.date, language)} tạo ra bước nhảy vọt trong biểu đồ chi tiêu của kỳ.`
+            : `Transaction "${maxExpenseTx.note || maxExpenseTx.category}" on ${formatDate(maxExpenseTx.date, language)} created a significant spike in your spending curve.`,
           icon: AlertTriangle
         });
       }
     }
 
     return insights;
-  }, [expenseTxCount, hasPrevExpenseData, expenseDiffPercent, currentExpense, expenseDiff, prevPeriodLabel, topCategory, daysAnalyzed, maxExpenseTx]);
+  }, [expenseTxCount, hasPrevExpenseData, expenseDiffPercent, currentExpense, expenseDiff, prevPeriodLabel, topCategory, daysAnalyzed, maxExpenseTx, isVi, language]);
 
   // 6. ACTIONABLE SMART RECOMMENDATIONS / GỢI Ý
   const smartRecommendations = useMemo(() => {
@@ -452,31 +481,39 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
     if (hasIncomeData && retentionRate !== null) {
       if (retentionRate < 0) {
         list.push({
-          tag: 'Cảnh báo thâm hụt',
-          title: 'Chi tiêu đang vượt quá thu nhập trong kỳ',
-          desc: `Bạn đang bị thâm hụt ${formatCurrency(Math.abs(retainedAmount))}. Hãy rà soát ngay các khoản chi chưa cấp thiết để cân bằng dòng tiền.`,
+          tag: isVi ? 'Cảnh báo thâm hụt' : 'Deficit Alert',
+          title: isVi ? 'Chi tiêu đang vượt quá thu nhập trong kỳ' : 'Expenses currently exceed income in this period',
+          desc: isVi 
+            ? `Bạn đang bị thâm hụt ${formatCurrency(Math.abs(retainedAmount))}. Hãy rà soát ngay các khoản chi chưa cấp thiết để cân bằng dòng tiền.`
+            : `You are in a deficit of ${formatCurrency(Math.abs(retainedAmount))}. Review non-essential expenses immediately to balance cash flow.`,
           type: 'warning'
         });
       } else if (retentionRate < 20) {
         list.push({
-          tag: 'Cần cải thiện',
-          title: 'Tỷ lệ tiền giữ lại ở mức thấp (< 20%)',
-          desc: `Chỉ giữ lại được ${retentionRate.toFixed(1)}% từ tổng thu (${formatCurrency(retainedAmount)}). Khuyến nghị thiết lập ngân sách trần cho các nhóm chi tiêu hàng ngày.`,
+          tag: isVi ? 'Cần cải thiện' : 'Needs Attention',
+          title: isVi ? 'Tỷ lệ tiền giữ lại ở mức thấp (< 20%)' : 'Net savings retention rate is low (< 20%)',
+          desc: isVi
+            ? `Chỉ giữ lại được ${retentionRate.toFixed(1)}% từ tổng thu (${formatCurrency(retainedAmount)}). Khuyến nghị thiết lập ngân sách trần cho các nhóm chi tiêu hàng ngày.`
+            : `Retaining only ${retentionRate.toFixed(1)}% of total income (${formatCurrency(retainedAmount)}). Consider capping discretionary expense categories.`,
           type: 'warning'
         });
       } else if (retentionRate >= 40) {
         list.push({
-          tag: 'Kỷ luật tài chính cao',
-          title: `Khả năng tích lũy xuất sắc (${retentionRate.toFixed(1)}%)`,
-          desc: `Bạn đang giữ lại ${formatCurrency(retainedAmount)} sau chi tiêu. Đây là thời điểm lý tưởng để trích quỹ chuyển vào Mục tiêu Tiết kiệm hoặc Đầu tư dài hạn.`,
+          tag: isVi ? 'Kỷ luật tài chính cao' : 'Strong Discipline',
+          title: isVi ? `Khả năng tích lũy xuất sắc (${retentionRate.toFixed(1)}%)` : `Excellent savings rate (${retentionRate.toFixed(1)}%)`,
+          desc: isVi
+            ? `Bạn đang giữ lại ${formatCurrency(retainedAmount)} sau chi tiêu. Đây là thời điểm lý tưởng để trích quỹ chuyển vào Mục tiêu Tiết kiệm hoặc Đầu tư dài hạn.`
+            : `You retained ${formatCurrency(retainedAmount)} after expenses. An ideal time to fund your Saving Goals or long-term investments.`,
           type: 'success'
         });
       }
     } else if (!hasIncomeData && currentExpense > 0) {
       list.push({
-        tag: 'Dữ liệu thu nhập',
-        title: 'Chưa có khoản thu nhập nào được ghi nhận',
-        desc: 'Hãy thêm các nguồn thu (lương, thưởng, thu nhập phụ) để hệ thống tự động đo lường tỷ lệ giữ lại dòng tiền chính xác.',
+        tag: isVi ? 'Dữ liệu thu nhập' : 'Income Data',
+        title: isVi ? 'Chưa có khoản thu nhập nào được ghi nhận' : 'No income transactions recorded yet',
+        desc: isVi 
+          ? 'Hãy thêm các nguồn thu (lương, thưởng, thu nhập phụ) để hệ thống tự động đo lường tỷ lệ giữ lại dòng tiền chính xác.'
+          : 'Add income sources (salary, bonus, freelance) so the system can compute your retention rate accurately.',
         type: 'info'
       });
     }
@@ -486,9 +523,11 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
       const hasBudgetForTop = budgets.some(b => b.category === topCategory.category);
       if (!hasBudgetForTop) {
         list.push({
-          tag: 'Tối ưu ngân sách',
-          title: `Thiết lập hạn mức ngân sách cho "${topCategory.category}"`,
-          desc: `Nhóm này đang chiếm ${topCategory.percentage.toFixed(1)}% tổng chi (${formatCurrency(topCategory.total)}). Đặt hạn mức chi tiêu sẽ giúp bạn tránh bị bội chi bất ngờ.`,
+          tag: isVi ? 'Tối ưu ngân sách' : 'Budget Optimization',
+          title: isVi ? `Thiết lập hạn mức ngân sách cho "${topCategory.category}"` : `Set a budget limit for "${topCategory.category}"`,
+          desc: isVi
+            ? `Nhóm này đang chiếm ${topCategory.percentage.toFixed(1)}% tổng chi (${formatCurrency(topCategory.total)}). Đặt hạn mức chi tiêu sẽ giúp bạn tránh bị bội chi bất ngờ.`
+            : `This category accounts for ${topCategory.percentage.toFixed(1)}% of total expenses (${formatCurrency(topCategory.total)}). A budget cap prevents unexpected overspending.`,
           type: 'info'
         });
       }
@@ -498,16 +537,18 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
     if (isProjectionPossible && projectedExpense && hasIncomeData) {
       if (projectedExpense > currentIncome) {
         list.push({
-          tag: 'Cảnh báo dự báo',
-          title: `Ước tính chi cuối kỳ (${formatCurrency(projectedExpense)}) có nguy cơ vượt tổng thu`,
-          desc: `Với tốc độ chi ${formatCurrency(avgExpensePerDay)}/ngày hiện tại, dự kiến cuối kỳ bạn sẽ chi vượt thu ${formatCurrency(projectedExpense - currentIncome)}. Nên cắt giảm tốc độ chi tiêu ngay từ bây giờ.`,
+          tag: isVi ? 'Cảnh báo dự báo' : 'Forecast Warning',
+          title: isVi ? `Ước tính chi cuối kỳ (${formatCurrency(projectedExpense)}) có nguy cơ vượt tổng thu` : `Projected period-end expense (${formatCurrency(projectedExpense)}) may exceed income`,
+          desc: isVi
+            ? `Với tốc độ chi ${formatCurrency(avgExpensePerDay)}/ngày hiện tại, dự kiến cuối kỳ bạn sẽ chi vượt thu ${formatCurrency(projectedExpense - currentIncome)}. Nên cắt giảm tốc độ chi tiêu ngay từ bây giờ.`
+            : `At the current pace of ${formatCurrency(avgExpensePerDay)}/day, you will exceed income by ${formatCurrency(projectedExpense - currentIncome)}. Consider curtailing discretionary spend.`,
           type: 'warning'
         });
       }
     }
 
     return list.length > 0 ? list : null;
-  }, [currentPeriodTx.length, hasIncomeData, retentionRate, retainedAmount, currentExpense, topCategory, budgets, isProjectionPossible, projectedExpense, currentIncome, avgExpensePerDay]);
+  }, [currentPeriodTx.length, hasIncomeData, retentionRate, retainedAmount, currentExpense, topCategory, budgets, isProjectionPossible, projectedExpense, currentIncome, avgExpensePerDay, isVi]);
 
   // RENDER CUSTOM TOOLTIP FOR TIMELINE CHART
   const CustomTimelineTooltip = ({ active, payload, label }: any) => {
@@ -521,18 +562,18 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
           </div>
           <div className="flex items-center justify-between gap-4">
             <span className="text-emerald-400 font-medium flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" /> Income:
+              <span className="w-2 h-2 rounded-full bg-emerald-400" /> {isVi ? 'Thu nhập:' : 'Income:'}
             </span>
             <span className="font-bold font-mono text-emerald-400">+{formatCurrency(data.income)}</span>
           </div>
           <div className="flex items-center justify-between gap-4">
             <span className="text-rose-400 font-medium flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-rose-400" /> Expense:
+              <span className="w-2 h-2 rounded-full bg-rose-400" /> {isVi ? 'Chi tiêu:' : 'Expense:'}
             </span>
             <span className="font-bold font-mono text-rose-400">-{formatCurrency(data.expense)}</span>
           </div>
           <div className="border-t border-slate-800 pt-1.5 flex items-center justify-between gap-4 font-semibold">
-            <span className="text-slate-400">Net Flow:</span>
+            <span className="text-slate-400">{isVi ? 'Dòng tiền ròng:' : 'Net Flow:'}</span>
             <span className={`font-mono ${data.net >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
               {data.net >= 0 ? '+' : ''}{formatCurrency(data.net)}
             </span>
@@ -557,7 +598,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
           }`}
         >
           <Activity className="w-4 h-4 text-emerald-500" />
-          <span>Period Analysis</span>
+          <span>{isVi ? 'Phân tích theo kỳ' : 'Period Analysis'}</span>
         </button>
         <button
           type="button"
@@ -569,7 +610,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
           }`}
         >
           <Layers className="w-4 h-4 text-blue-500" />
-          <span>Multi-Month Comparison</span>
+          <span>{isVi ? 'So sánh nhiều tháng' : 'Multi-Month Comparison'}</span>
         </button>
       </div>
 
@@ -589,7 +630,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
               <TrendingUp className="w-5 h-5 stroke-[2.5]" />
             </div>
             <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              Income & Expense Analytics
+              {isVi ? 'Phân tích Thu & Chi' : 'Income & Expense Analytics'}
             </h3>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 font-medium flex items-center gap-1.5">
@@ -601,12 +642,12 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         {/* Period Selector Tabs */}
         <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-2xl overflow-x-auto no-scrollbar shrink-0 self-start md:self-auto">
           {[
-            { id: 'this_month', label: 'This Month' },
-            { id: 'last_month', label: 'Last Month' },
-            { id: 'last_30_days', label: 'Last 30 Days' },
-            { id: 'this_quarter', label: 'This Quarter' },
-            { id: 'this_year', label: 'This Year' },
-            { id: 'all', label: 'All Time' },
+            { id: 'this_month', label: isVi ? 'Tháng này' : 'This Month' },
+            { id: 'last_month', label: isVi ? 'Tháng trước' : 'Last Month' },
+            { id: 'last_30_days', label: isVi ? '30 ngày qua' : 'Last 30 Days' },
+            { id: 'this_quarter', label: isVi ? 'Quý này' : 'This Quarter' },
+            { id: 'this_year', label: isVi ? 'Năm nay' : 'This Year' },
+            { id: 'all', label: isVi ? 'Tất cả' : 'All Time' },
           ].map(p => (
             <button
               key={p.id}
@@ -630,7 +671,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
           <div className="flex items-center justify-between gap-2 mb-3">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Expense vs Previous Period
+              {isVi ? 'Chi so với kỳ trước' : 'Expense vs Previous Period'}
             </span>
             <div className={`p-2 rounded-xl ${expenseDiff > 0 ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
               {expenseDiff > 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
@@ -646,13 +687,13 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
               {hasPrevExpenseData ? (
                 <>
                   <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-                    <span>Prior period ({prevPeriodLabel}):</span>
+                    <span>{isVi ? `Kỳ trước (${prevPeriodLabel}):` : `Prior period (${prevPeriodLabel}):`}</span>
                     <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
                       {formatCurrency(prevExpense)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">Difference:</span>
+                    <span className="text-slate-500 dark:text-slate-400">{isVi ? 'Chênh lệch:' : 'Difference:'}</span>
                     <span className={`font-mono font-black ${expenseDiff > 0 ? 'text-rose-500' : expenseDiff < 0 ? 'text-emerald-500' : 'text-slate-500'}`}>
                       {expenseDiff > 0 ? '+' : ''}{formatCurrency(expenseDiff)} ({expenseDiffPercent !== null ? `${expenseDiffPercent > 0 ? '+' : ''}${expenseDiffPercent.toFixed(1)}%` : '0%'})
                     </span>
@@ -661,10 +702,10 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
               ) : (
                 <div className="space-y-1">
                   <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[11px]">
-                    <AlertCircle className="w-3 h-3" /> No prior data
+                    <AlertCircle className="w-3 h-3" /> {isVi ? 'Chưa có dữ liệu kỳ trước' : 'No prior data'}
                   </div>
                   <p className="text-[11px] text-slate-400">
-                    No expense transactions found in the previous period for comparison.
+                    {isVi ? 'Không tìm thấy giao dịch chi tiêu trong kỳ trước để so sánh.' : 'No expense transactions found in the previous period for comparison.'}
                   </p>
                 </div>
               )}
@@ -676,7 +717,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
           <div className="flex items-center justify-between gap-2 mb-3">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Daily Average Expense
+              {isVi ? 'Chi trung bình mỗi ngày' : 'Daily Average Expense'}
             </span>
             <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
               <Calendar className="w-4 h-4" />
@@ -689,8 +730,8 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
             </div>
 
             <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs flex items-center justify-between text-slate-500 dark:text-slate-400">
-              <span>Expense transactions: <strong className="text-slate-800 dark:text-slate-200">{expenseTxCount}</strong></span>
-              <span>Days analyzed: <strong className="text-slate-800 dark:text-slate-200">{daysAnalyzed} days</strong></span>
+              <span>{isVi ? 'Số giao dịch chi:' : 'Expense txns:'} <strong className="text-slate-800 dark:text-slate-200">{expenseTxCount}</strong></span>
+              <span>{isVi ? 'Số ngày phân tích:' : 'Days analyzed:'} <strong className="text-slate-800 dark:text-slate-200">{daysAnalyzed} {isVi ? 'ngày' : 'days'}</strong></span>
             </div>
           </div>
         </div>
@@ -699,7 +740,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
           <div className="flex items-center justify-between gap-2 mb-3">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Net Retention Rate
+              {isVi ? 'Tỷ lệ giữ lại từ thu' : 'Net Retention Rate'}
             </span>
             <div className={`p-2 rounded-xl ${hasIncomeData && (retentionRate ?? 0) >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
               <Percent className="w-4 h-4" />
@@ -714,11 +755,11 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
                     {retentionRate.toFixed(1)}%
                   </span>
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${retentionRate >= 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-500'}`}>
-                    {retentionRate >= 0 ? 'Surplus' : 'Deficit'}
+                    {retentionRate >= 0 ? (isVi ? 'Thặng dư' : 'Surplus') : (isVi ? 'Thâm hụt' : 'Deficit')}
                   </span>
                 </div>
                 <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs flex items-center justify-between text-slate-500 dark:text-slate-400">
-                  <span>Net Retained:</span>
+                  <span>{isVi ? 'Tiền giữ lại ròng:' : 'Net Retained:'}</span>
                   <span className={`font-mono font-bold ${retainedAmount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
                     {retainedAmount >= 0 ? '+' : ''}{formatCurrency(retainedAmount)}
                   </span>
@@ -727,10 +768,10 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
             ) : (
               <div className="space-y-1">
                 <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[11px]">
-                  <AlertCircle className="w-3 h-3" /> No income to calculate
+                  <AlertCircle className="w-3 h-3" /> {isVi ? 'Chưa có thu nhập để tính' : 'No income to calculate'}
                 </div>
                 <p className="text-[11px] text-slate-400 mt-2">
-                  At least one income transaction is required to calculate retention rate.
+                  {isVi ? 'Cần ít nhất một khoản thu nhập để tính tỷ lệ giữ lại.' : 'At least one income transaction is required to calculate retention rate.'}
                 </p>
               </div>
             )}
@@ -741,10 +782,10 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
           <div className="flex items-center justify-between gap-2 mb-3">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Projected Period-End Expense
+              {isVi ? 'Dự kiến chi cuối kỳ' : 'Projected Period-End Expense'}
             </span>
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-              Estimated
+              {isVi ? 'Ước tính' : 'Estimated'}
             </span>
           </div>
 
@@ -755,16 +796,18 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
                   ~{formatCurrency(projectedExpense)}
                 </div>
                 <p className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400">
-                  Based on daily average spending of {formatCurrency(avgExpensePerDay)} over {totalDaysInPeriod} days.
+                  {isVi 
+                    ? `Dựa trên chi tiêu trung bình ${formatCurrency(avgExpensePerDay)}/ngày trong ${totalDaysInPeriod} ngày.`
+                    : `Based on daily average spending of ${formatCurrency(avgExpensePerDay)} over ${totalDaysInPeriod} days.`}
                 </p>
               </>
             ) : (
               <div className="space-y-1">
                 <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-[11px]">
-                  <Info className="w-3 h-3" /> Insufficient data to project
+                  <Info className="w-3 h-3" /> {isVi ? 'Chưa đủ dữ liệu để dự báo' : 'Insufficient data to project'}
                 </div>
                 <p className="text-[11px] text-slate-400 mt-2">
-                  Requires at least 1 day of expense data in this period to establish a trend.
+                  {isVi ? 'Cần ít nhất 1 ngày có dữ liệu chi tiêu trong kỳ để xác định xu hướng.' : 'Requires at least 1 day of expense data in this period to establish a trend.'}
                 </p>
               </div>
             )}
@@ -775,7 +818,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
           <div className="flex items-center justify-between gap-2 mb-3">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Top Expense Category
+              {isVi ? 'Nhóm chi lớn nhất' : 'Top Expense Category'}
             </span>
             <div className="p-2 rounded-xl bg-purple-500/10 text-purple-500">
               <PieChartIcon className="w-4 h-4" />
@@ -792,15 +835,15 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
                   {formatCurrency(topCategory.total)}
                 </div>
                 <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs flex items-center justify-between text-slate-500 dark:text-slate-400">
-                  <span>Share:</span>
+                  <span>{isVi ? 'Tỷ trọng:' : 'Share:'}</span>
                   <span className="font-mono font-black text-purple-600 dark:text-purple-400">
-                    {topCategory.percentage.toFixed(1)}% of total ({topCategory.count} txns)
+                    {topCategory.percentage.toFixed(1)}% {isVi ? 'tổng chi' : 'of total'} ({topCategory.count} {isVi ? 'GD' : 'txns'})
                   </span>
                 </div>
               </>
             ) : (
               <div className="text-sm font-bold text-slate-400 py-2">
-                No expense recorded
+                {isVi ? 'Chưa có chi tiêu' : 'No expense recorded'}
               </div>
             )}
           </div>
@@ -810,7 +853,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
           <div className="flex items-center justify-between gap-2 mb-3">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Largest Expense
+              {isVi ? 'Giao dịch chi lớn nhất' : 'Largest Expense'}
             </span>
             <div className="p-2 rounded-xl bg-rose-500/10 text-rose-500">
               <Receipt className="w-4 h-4" />
@@ -824,16 +867,16 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
                   -{formatCurrency(maxExpenseTx.amount)}
                 </div>
                 <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 truncate">
-                  {maxExpenseTx.note || maxExpenseTx.category || 'No description'}
+                  {maxExpenseTx.note || maxExpenseTx.category || (isVi ? 'Không có ghi chú' : 'No description')}
                 </div>
                 <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs flex items-center justify-between text-slate-500 dark:text-slate-400">
                   <span className="truncate max-w-[120px]">{maxExpenseTx.category}</span>
-                  <span className="font-mono">{formatDate(maxExpenseTx.date)}</span>
+                  <span className="font-mono">{formatDate(maxExpenseTx.date, language)}</span>
                 </div>
               </>
             ) : (
               <div className="text-sm font-bold text-slate-400 py-2">
-                No expense transactions
+                {isVi ? 'Chưa có giao dịch chi' : 'No expense transactions'}
               </div>
             )}
           </div>
@@ -846,10 +889,10 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
           <div>
             <h4 className="font-black text-slate-900 dark:text-white text-base flex items-center gap-2">
               <Activity className="w-4 h-4 text-emerald-500" />
-              <span>Income & Expense Flow Over Time</span>
+              <span>{isVi ? 'Biến động Thu chi theo Thời gian' : 'Income & Expense Flow Over Time'}</span>
             </h4>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Compare cash inflows (Income) and cash outflows (Expense)
+              {isVi ? 'Đối chiếu dòng tiền vào (Thu nhập) và dòng tiền ra (Chi tiêu)' : 'Compare cash inflows (Income) and cash outflows (Expense)'}
             </p>
           </div>
 
@@ -867,7 +910,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
                       : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
-                  {g === 'day' ? 'Day' : g === 'week' ? 'Week' : 'Month'}
+                  {isVi ? (g === 'day' ? 'Ngày' : g === 'week' ? 'Tuần' : 'Tháng') : (g === 'day' ? 'Day' : g === 'week' ? 'Week' : 'Month')}
                 </button>
               ))}
             </div>
@@ -881,7 +924,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
                     ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs'
                     : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                 }`}
-                title="Area Chart"
+                title={isVi ? 'Biểu đồ vùng' : 'Area Chart'}
               >
                 <Activity className="w-3.5 h-3.5" />
               </button>
@@ -893,7 +936,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
                     ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs'
                     : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                 }`}
-                title="Bar Chart"
+                title={isVi ? 'Biểu đồ cột' : 'Bar Chart'}
               >
                 <BarChart3 className="w-3.5 h-3.5" />
               </button>
@@ -934,7 +977,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
                   <Area 
                     type="monotone" 
                     dataKey="income" 
-                    name="Thu nhập" 
+                    name={isVi ? 'Thu nhập' : 'Income'} 
                     stroke="#10b981" 
                     strokeWidth={2.5} 
                     fillOpacity={1} 
@@ -943,7 +986,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
                   <Area 
                     type="monotone" 
                     dataKey="expense" 
-                    name="Chi tiêu" 
+                    name={isVi ? 'Chi tiêu' : 'Expense'} 
                     stroke="#f43f5e" 
                     strokeWidth={2.5} 
                     fillOpacity={1} 
@@ -966,8 +1009,8 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
                     tickLine={false} 
                   />
                   <RechartsTooltip content={<CustomTimelineTooltip />} />
-                  <Bar dataKey="income" name="Thu nhập" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="expense" name="Chi tiêu" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="income" name={isVi ? 'Thu nhập' : 'Income'} fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="expense" name={isVi ? 'Chi tiêu' : 'Expense'} fill="#f43f5e" radius={[4, 4, 0, 0]} />
                 </BarChart>
               )}
             </ResponsiveContainer>
@@ -975,9 +1018,11 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         ) : (
           <div className="h-64 flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
             <Receipt className="w-10 h-10 text-slate-300 dark:text-slate-600 mb-2" />
-            <h5 className="font-bold text-slate-700 dark:text-slate-300 text-sm">Chưa có dữ liệu biến động</h5>
+            <h5 className="font-bold text-slate-700 dark:text-slate-300 text-sm">
+              {isVi ? 'Chưa có dữ liệu biến động' : 'No trend data yet'}
+            </h5>
             <p className="text-xs text-slate-400 mt-1 max-w-sm">
-              Chưa ghi nhận giao dịch nào trong khoảng thời gian này để vẽ biểu đồ biến động thu chi.
+              {isVi ? 'Chưa ghi nhận giao dịch nào trong khoảng thời gian này để vẽ biểu đồ biến động thu chi.' : 'No transactions recorded in this timeframe to plot income & expense fluctuation.'}
             </p>
           </div>
         )}
@@ -986,11 +1031,11 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         <div className="flex items-center justify-center gap-6 pt-2 text-xs font-bold text-slate-600 dark:text-slate-400">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-emerald-500" />
-            <span>Thu nhập ({formatCurrency(currentIncome)})</span>
+            <span>{isVi ? 'Thu nhập' : 'Income'} ({formatCurrency(currentIncome)})</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-rose-500" />
-            <span>Chi tiêu ({formatCurrency(currentExpense)})</span>
+            <span>{isVi ? 'Chi tiêu' : 'Expense'} ({formatCurrency(currentExpense)})</span>
           </div>
         </div>
       </div>
@@ -1002,10 +1047,10 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
           <div>
             <h4 className="font-black text-slate-900 dark:text-white text-base flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
               <PieChartIcon className="w-4 h-4 text-purple-500" />
-              <span>Cơ cấu nhóm chi tiêu</span>
+              <span>{isVi ? 'Cơ cấu nhóm chi tiêu' : 'Expense Category Breakdown'}</span>
             </h4>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-              Phân bổ tỷ trọng các danh mục trong tổng chi
+              {isVi ? 'Phân bổ tỷ trọng các danh mục trong tổng chi' : 'Distribution of categories in total expenditure'}
             </p>
           </div>
 
@@ -1028,12 +1073,12 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
                     ))}
                   </Pie>
                   <RechartsTooltip 
-                    formatter={(value: any) => [formatCurrency(Number(value)), 'Tổng chi']}
+                    formatter={(value: any) => [formatCurrency(Number(value)), isVi ? 'Tổng chi' : 'Total spent']}
                   />
                 </RePieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <span className="text-[10px] text-slate-400 font-bold uppercase">Tổng chi</span>
+                <span className="text-[10px] text-slate-400 font-bold uppercase">{isVi ? 'Tổng chi' : 'Total'}</span>
                 <span className="text-xs sm:text-sm font-black font-mono text-slate-900 dark:text-white">
                   {formatCompactCurrency(currentExpense)}
                 </span>
@@ -1042,12 +1087,14 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
           ) : (
             <div className="h-56 flex flex-col items-center justify-center text-center text-slate-400 text-xs">
               <PieChartIcon className="w-8 h-8 text-slate-300 dark:text-slate-700 mb-2" />
-              Chưa có dữ liệu danh mục chi tiêu
+              {isVi ? 'Chưa có dữ liệu danh mục chi tiêu' : 'No expense category data'}
             </div>
           )}
 
           <div className="text-[11px] text-slate-400 text-center pt-2 border-t border-slate-100 dark:border-slate-800">
-            Tự động tổng hợp từ {expenseTxCount} giao dịch thực tế
+            {isVi 
+              ? `Tự động tổng hợp từ ${expenseTxCount} giao dịch thực tế` 
+              : `Aggregated automatically from ${expenseTxCount} real transactions`}
           </div>
         </div>
 
@@ -1056,10 +1103,10 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <h4 className="font-black text-slate-900 dark:text-white text-base">
-                Chi tiết danh mục chi tiêu
+                {isVi ? 'Chi tiết danh mục chi tiêu' : 'Expense Category Details'}
               </h4>
               <span className="text-xs font-bold text-slate-400">
-                {categoryList.length} danh mục
+                {categoryList.length} {isVi ? 'danh mục' : 'categories'}
               </span>
             </div>
 
@@ -1073,7 +1120,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
                         <div className="flex items-center gap-2.5 font-bold text-slate-800 dark:text-slate-200">
                           <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
                           <span className="truncate max-w-[160px] sm:max-w-[220px]">{cat.category}</span>
-                          <span className="text-[11px] font-normal text-slate-400">({cat.count} GD)</span>
+                          <span className="text-[11px] font-normal text-slate-400">({cat.count} {isVi ? 'GD' : 'txns'})</span>
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="font-mono font-black text-slate-900 dark:text-white">
@@ -1098,13 +1145,13 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
               </div>
             ) : (
               <div className="py-12 text-center text-slate-400 text-sm">
-                Chưa có dữ liệu giao dịch chi tiêu trong kỳ này.
+                {isVi ? 'Chưa có dữ liệu giao dịch chi tiêu trong kỳ này.' : 'No expense transactions recorded in this period.'}
               </div>
             )}
           </div>
 
           <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
-            <span>Tổng cộng:</span>
+            <span>{isVi ? 'Tổng cộng:' : 'Total:'}</span>
             <span className="font-mono font-black text-rose-500 text-sm">
               {formatCurrency(currentExpense)}
             </span>
@@ -1119,9 +1166,9 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
             <h4 className="font-black text-slate-900 dark:text-white text-base flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-blue-500" />
-              <span>Xu hướng chi tiêu</span>
+              <span>{isVi ? 'Xu hướng chi tiêu' : 'Spending Trends'}</span>
             </h4>
-            <span className="text-[11px] font-bold text-slate-400">Phân tích thực tế</span>
+            <span className="text-[11px] font-bold text-slate-400">{isVi ? 'Phân tích thực tế' : 'Live Analysis'}</span>
           </div>
 
           {spendingTrends ? (
@@ -1164,10 +1211,12 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
             <div className="p-8 text-center bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
               <Info className="w-8 h-8 text-slate-400 mx-auto mb-2" />
               <div className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                Chưa đủ dữ liệu để phân tích xu hướng
+                {isVi ? 'Chưa đủ dữ liệu để phân tích xu hướng' : 'Insufficient data to analyze trends'}
               </div>
               <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
-                Cần ghi nhận từ 2 giao dịch chi tiêu trở lên trong kỳ này để thuật toán tổng hợp các mẫu hình chi tiêu.
+                {isVi 
+                  ? 'Cần ghi nhận từ 2 giao dịch chi tiêu trở lên trong kỳ này để thuật toán tổng hợp các mẫu hình chi tiêu.'
+                  : 'Requires 2 or more expense transactions in this period to identify spending patterns.'}
               </p>
             </div>
           )}
@@ -1178,9 +1227,9 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
           <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
             <h4 className="font-black text-slate-900 dark:text-white text-base flex items-center gap-2">
               <Sparkles className="w-4 h-4 text-amber-500" />
-              <span>Gợi ý tài chính</span>
+              <span>{isVi ? 'Gợi ý tài chính' : 'Financial Recommendations'}</span>
             </h4>
-            <span className="text-[11px] font-bold text-slate-400">Khuyến nghị dựa trên số liệu</span>
+            <span className="text-[11px] font-bold text-slate-400">{isVi ? 'Khuyến nghị dựa trên số liệu' : 'Data-driven insights'}</span>
           </div>
 
           {smartRecommendations ? (
@@ -1218,10 +1267,12 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
             <div className="p-8 text-center bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
               <Sparkles className="w-8 h-8 text-slate-400 mx-auto mb-2" />
               <div className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                Chưa đủ dữ liệu để đưa ra nhận xét đáng tin cậy.
+                {isVi ? 'Chưa đủ dữ liệu để đưa ra nhận xét đáng tin cậy.' : 'Insufficient data to generate reliable recommendations.'}
               </div>
               <p className="text-xs text-slate-400 mt-1 max-w-xs mx-auto">
-                Hãy duy trì việc ghi chép các giao dịch thu chi phát sinh để hệ thống đề xuất các giải pháp tối ưu tài chính cá nhân.
+                {isVi 
+                  ? 'Hãy duy trì việc ghi chép các giao dịch thu chi phát sinh để hệ thống đề xuất các giải pháp tối ưu tài chính cá nhân.'
+                  : 'Keep recording your daily transactions so the system can suggest tailored financial advice.'}
               </p>
             </div>
           )}
@@ -1236,10 +1287,12 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
               </div>
               <div className="max-w-md space-y-1.5">
                 <h4 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
-                  Chưa có dữ liệu thu chi
+                  {isVi ? 'Chưa có dữ liệu thu chi' : 'No financial data recorded'}
                 </h4>
                 <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                  Hãy thêm giao dịch để bắt đầu phân tích tình hình tài chính theo thời gian thực.
+                  {isVi 
+                    ? 'Hãy thêm giao dịch để bắt đầu phân tích tình hình tài chính theo thời gian thực.' 
+                    : 'Add transactions to begin analyzing your cash flow and financial health in real time.'}
                 </p>
               </div>
               <button
@@ -1247,7 +1300,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
                 onClick={onOpenTxModal}
                 className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all shadow-md shadow-emerald-500/20 cursor-pointer"
               >
-                <Plus className="w-4 h-4 stroke-[3]" /> Thêm Giao dịch ngay
+                <Plus className="w-4 h-4 stroke-[3]" /> {isVi ? 'Thêm Giao dịch ngay' : 'Add Transaction Now'}
               </button>
             </div>
           )}

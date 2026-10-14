@@ -133,6 +133,7 @@ apiRouter.use(async (req: AuthRequest, res: Response, next: any) => {
     path.startsWith('/leaderboard') ||
     path.startsWith('/team/my-team') ||
     path.startsWith('/team/join') ||
+    path.startsWith('/referrals') ||
     (path.startsWith('/r2/upload-base64') && req.body?.folder === 'receipts');
 
   if (isAlwaysAllowed) {
@@ -1233,6 +1234,15 @@ apiRouter.put('/data/:collection/:id', async (req: AuthRequest, res: Response) =
   const { collection, id } = req.params;
   const userId = req.userId!;
 
+  if (!id || id === 'undefined' || id === 'null' || typeof id !== 'string' || !id.trim()) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_RECORD_ID', message: 'Mã bản ghi (ID) không hợp lệ hoặc bị thiếu.' },
+      message: 'Mã bản ghi (ID) không hợp lệ hoặc bị thiếu.'
+    });
+    return;
+  }
+
   if (!ALLOWED_COLLECTIONS.has(collection)) {
     res.status(400).json({
       success: false,
@@ -1319,6 +1329,15 @@ apiRouter.put('/data/:collection/:id', async (req: AuthRequest, res: Response) =
 apiRouter.delete('/data/:collection/:id', async (req: AuthRequest, res: Response) => {
   const { collection, id } = req.params;
   const userId = req.userId!;
+
+  if (!id || id === 'undefined' || id === 'null' || typeof id !== 'string' || !id.trim()) {
+    res.status(400).json({
+      success: false,
+      error: { code: 'INVALID_RECORD_ID', message: 'Mã bản ghi (ID) không hợp lệ hoặc bị thiếu.' },
+      message: 'Mã bản ghi (ID) không hợp lệ hoặc bị thiếu.'
+    });
+    return;
+  }
 
   if (!ALLOWED_COLLECTIONS.has(collection)) {
     res.status(400).json({
@@ -2338,7 +2357,9 @@ apiRouter.post('/payments/checkout-session', paymentRateLimiter, validateBody(Sa
         plan,
         planName: planConfig.name,
         cycle,
-        durationText: cycle === 'yearly' ? '1 năm (365 ngày)' : '1 tháng (30 ngày)',
+        durationText: (cycle === 'yearly' && planConfig.yearlyPrice && planConfig.yearlyPrice > 0)
+          ? '1 năm (365 ngày)'
+          : `${planConfig.durationDays} ngày`,
         subtotal,
         discount,
         discountPercent,
@@ -2398,12 +2419,31 @@ apiRouter.post('/payments/submit-request', paymentRateLimiter, validateBody(Subm
       return;
     }
 
-    // Update note and ensure PENDING status
+    if (payment.status !== 'PENDING') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_STATUS', message: 'Đơn hàng này đã bị hủy hoặc từ chối. Vui lòng tạo đơn thanh toán mới.' },
+        message: 'Đơn hàng này đã bị hủy hoặc từ chối. Vui lòng tạo đơn thanh toán mới.'
+      });
+      return;
+    }
+
+    // Update note and ensure PENDING status — keep the server-side price snapshot intact
+    let mergedNote = payment.note || 'Khách hàng đã báo hoàn tất chuyển khoản';
+    if (note) {
+      const customerNote = String(note).trim().slice(0, 500);
+      try {
+        const snap = JSON.parse(payment.note || '');
+        mergedNote = JSON.stringify({ ...snap, customerNote });
+      } catch {
+        mergedNote = customerNote;
+      }
+    }
     const updatedPayment = await prisma.payment.update({
       where: { id: payment.id },
       data: {
         status: 'PENDING',
-        note: note ? String(note).trim() : (payment.note || 'Khách hàng đã báo hoàn tất chuyển khoản')
+        note: mergedNote
       }
     });
 
@@ -2647,29 +2687,48 @@ apiRouter.post('/admin/payments/:id/approve', requireAdmin, async (req: AuthRequ
       return;
     }
 
-    // 2. Activate subscription via centralized service with price snapshot
+    // 2. ATOMIC CLAIM: only one concurrent request can transition PENDING -> APPROVED.
+    //    Prevents double-click / multi-tab / replay from creating 2 subscriptions or 2 commissions.
     const now = new Date();
-    const subscription = await subscriptionService.activateSubscription(payment.userId, payment.planRequested, {
-      txReference: payment.txReference || `TX_${payment.orderId}`,
-      paymentId: payment.id,
-      amount: payment.amount
+    const claim = await prisma.payment.updateMany({
+      where: { id: payment.id, status: 'PENDING' },
+      data: { status: 'APPROVED', approvedAt: now, approvedBy: adminEmail }
     });
+    if (claim.count !== 1) {
+      res.status(409).json({
+        success: false,
+        error: { code: 'ALREADY_PROCESSED', message: 'Yêu cầu này vừa được xử lý bởi một thao tác khác.' },
+        message: 'Yêu cầu này vừa được xử lý bởi một thao tác khác.'
+      });
+      return;
+    }
 
-    // 3. Update payment and order records
-    const [updatedPayment] = await prisma.$transaction([
-      prisma.payment.update({
+    // 3. Duration is derived server-side from the plan + billing cycle that determined the charged price.
+    const planCfg = await subscriptionService.getPlanById(payment.planRequested);
+    const isYearly = payment.billingCycle === 'yearly' && !!planCfg?.yearlyPrice && planCfg.yearlyPrice > 0;
+
+    let subscription: any;
+    try {
+      subscription = await subscriptionService.activateSubscription(payment.userId, payment.planRequested, {
+        txReference: payment.txReference || `TX_${payment.orderId}`,
+        paymentId: payment.id,
+        amount: payment.amount,
+        ...(isYearly ? { customDurationDays: 365 } : {})
+      });
+    } catch (activationErr) {
+      // Roll back claim so the payment can be retried — never leave APPROVED without a subscription.
+      await prisma.payment.update({
         where: { id: payment.id },
-        data: {
-          status: 'APPROVED',
-          approvedAt: now,
-          approvedBy: adminEmail
-        }
-      }),
-      prisma.order.updateMany({
-        where: { orderId: payment.orderId },
-        data: { status: 'APPROVED' }
-      })
-    ]);
+        data: { status: 'PENDING', approvedAt: null, approvedBy: null }
+      });
+      throw activationErr;
+    }
+
+    await prisma.order.updateMany({
+      where: { orderId: payment.orderId },
+      data: { status: 'APPROVED' }
+    });
+    const updatedPayment = await prisma.payment.findUnique({ where: { id: payment.id } });
 
     const updatedUser = await prisma.user.findUnique({
       where: { id: payment.userId },
@@ -3043,48 +3102,6 @@ apiRouter.post('/team/join', async (req: AuthRequest, res: Response) => {
   }
 });
 
-// --------------------------------------------------------------------------
-// ADMIN SUPPORT & TESTING ENDPOINTS
-// --------------------------------------------------------------------------
-apiRouter.post('/payments/simulate-instant-activation', requireAdmin, async (req: AuthRequest, res: Response) => {
-  const userId = req.body.userId || req.userId!;
-  const { planId } = req.body;
-  try {
-    const sub = await subscriptionService.activateSubscription(userId, planId || 'PERSONAL_1M', {
-      txReference: `ADMIN_ACT_${Date.now()}`
-    });
-    res.json({
-      success: true,
-      message: `Đã kích hoạt thành công gói ${sub.planName}!`,
-      subscription: sub
-    });
-  } catch (err: any) {
-    res.status(400).json({ success: false, message: err.message });
-  }
-});
-
-apiRouter.post('/payments/simulate-expire', requireAdmin, async (req: AuthRequest, res: Response) => {
-  const userId = req.body.userId || req.userId!;
-  const prisma = getPrisma();
-  try {
-    const pastDate = new Date(Date.now() - 24 * 60 * 60 * 1000); // 1 day in the past
-    await prisma.subscription.updateMany({
-      where: { userId, status: 'ACTIVE' },
-      data: { status: 'EXPIRED', endDate: pastDate }
-    });
-    await prisma.user.update({
-      where: { id: userId },
-      data: { plan: 'FREE', planExpiresAt: pastDate }
-    });
-    res.json({
-      success: true,
-      message: 'Đã thiết lập trạng thái gói dịch vụ sang hết hạn để kiểm tra.'
-    });
-  } catch (err: any) {
-    res.status(400).json({ success: false, message: err.message });
-  }
-});
-
 // 13. Cancel Auto-Renew (Does NOT immediately revoke pro privileges)
 apiRouter.post('/payments/subscription/cancel-auto-renew', async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
@@ -3352,60 +3369,6 @@ apiRouter.put('/admin/users/:id/admin-notes', requireAdmin, async (req: AuthRequ
     res.json({
       success: true,
       message: 'Đã lưu ghi chú vận hành nội bộ thành công!'
-    });
-  } catch (err: any) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-// 21. Automated Webhook / Instant Payment Simulation
-apiRouter.post('/payments/webhook-simulate', requireAdmin, async (req: AuthRequest, res: Response) => {
-  const { orderId, txReference } = req.body;
-  const prisma = getPrisma();
-
-  try {
-    const payment = await prisma.payment.findFirst({
-      where: {
-        OR: [
-          ...(orderId ? [{ orderId: String(orderId) }] : []),
-          ...(txReference ? [{ txReference: String(txReference) }] : [])
-        ]
-      }
-    });
-
-    if (!payment) {
-      return res.status(404).json({ success: false, message: 'Không tìm thấy giao dịch tương ứng.' });
-    }
-
-    if (payment.status === 'APPROVED' || payment.status === 'Paid') {
-      return res.json({ success: true, message: 'Giao dịch đã được duyệt trước đó (Idempotent).', payment });
-    }
-
-    // Activate subscription
-    const sub = await subscriptionService.activateSubscription(payment.userId, payment.planRequested, {
-      txReference: payment.txReference || `WH_${Date.now()}`,
-      paymentId: payment.id,
-      amount: payment.amount
-    });
-
-    await prisma.payment.update({
-      where: { id: payment.id },
-      data: {
-        status: 'APPROVED',
-        approvedAt: new Date(),
-        approvedBy: 'SYSTEM_WEBHOOK'
-      }
-    });
-
-    await prisma.order.updateMany({
-      where: { orderId: payment.orderId },
-      data: { status: 'APPROVED' }
-    });
-
-    res.json({
-      success: true,
-      message: `Xác nhận webhook tự động thành công! Đã kích hoạt gói ${sub.planName}.`,
-      subscription: sub
     });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
@@ -3766,16 +3729,6 @@ apiRouter.post('/clear-workspace', async (req: AuthRequest, res: Response) => {
   try {
     await dbService.clearUserWorkspace(userId);
     res.json({ success: true, message: 'Đã làm sạch không gian làm việc' });
-  } catch (err: any) {
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-apiRouter.post('/seed-sample', async (req: AuthRequest, res: Response) => {
-  const userId = req.userId!;
-  try {
-    await dbService.seedUserSampleData(userId);
-    res.json({ success: true, message: 'Đã nạp dữ liệu mẫu thành công' });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -4651,6 +4604,118 @@ apiRouter.post('/admin/referrals/withdrawals/:id/reject', requireAdmin, async (r
     });
   } catch (err: any) {
     console.error('POST /admin/referrals/withdrawals/:id/reject error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 8. User: Get Payment QR
+apiRouter.get('/referrals/payment-qr', async (req: AuthRequest, res: Response) => {
+  try {
+    const qr = await referralService.getUserPaymentQr(req.userId!);
+    res.json({
+      success: true,
+      paymentQr: qr
+    });
+  } catch (err: any) {
+    console.error('GET /referrals/payment-qr error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 9. User: Upload / Replace Payment QR (Bank QR code)
+apiRouter.post('/referrals/payment-qr', async (req: AuthRequest, res: Response) => {
+  try {
+    const { base64Data, fileName, mimeType, bankName, bankAccount, accountHolder } = req.body;
+    if (!base64Data) {
+      res.status(400).json({ success: false, message: 'Dữ liệu ảnh QR không được để trống.' });
+      return;
+    }
+
+    const qr = await referralService.saveUserPaymentQr(req.userId!, {
+      base64Data,
+      fileName: fileName || 'payment-qr.png',
+      mimeType: mimeType || 'image/png',
+      bankName,
+      bankAccount,
+      accountHolder
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Lưu mã QR nhận tiền thành công! Admin sẽ dùng mã này để thanh toán hoa hồng cho bạn.',
+      paymentQr: qr
+    });
+  } catch (err: any) {
+    console.error('POST /referrals/payment-qr error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 10. User: Delete Payment QR
+apiRouter.delete('/referrals/payment-qr', async (req: AuthRequest, res: Response) => {
+  try {
+    await referralService.deleteUserPaymentQr(req.userId!);
+    res.json({
+      success: true,
+      message: 'Đã xóa mã QR nhận tiền thành công.'
+    });
+  } catch (err: any) {
+    console.error('DELETE /referrals/payment-qr error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 11. Admin: List Customer Payment QRs
+apiRouter.get('/admin/referrals/payment-qrs', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { status, search } = req.query;
+    const list = await referralService.getAdminPaymentQrs(
+      status ? String(status) : undefined,
+      search ? String(search) : undefined
+    );
+    res.json({
+      success: true,
+      paymentQrs: list
+    });
+  } catch (err: any) {
+    console.error('GET /admin/referrals/payment-qrs error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 12. Admin: Verify Payment QR
+apiRouter.post('/admin/referrals/payment-qr/:id/verify', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const adminEmail = req.user.email;
+    const updated = await referralService.adminVerifyPaymentQr(req.params.id, adminEmail);
+    res.json({
+      success: true,
+      message: 'Đã xác minh mã QR hợp lệ!',
+      paymentQr: updated
+    });
+  } catch (err: any) {
+    console.error('POST /admin/referrals/payment-qr/:id/verify error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 13. Admin: Reject / Request Update for Payment QR
+apiRouter.post('/admin/referrals/payment-qr/:id/reject', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { reason } = req.body;
+    if (!reason || !String(reason).trim()) {
+      res.status(400).json({ success: false, message: 'Bắt buộc nhập lý do yêu cầu cập nhật lại QR.' });
+      return;
+    }
+    const adminEmail = req.user.email;
+    const updated = await referralService.adminRejectPaymentQr(req.params.id, adminEmail, String(reason).trim());
+    res.json({
+      success: true,
+      message: 'Đã yêu cầu người dùng cập nhật lại mã QR!',
+      paymentQr: updated
+    });
+  } catch (err: any) {
+    console.error('POST /admin/referrals/payment-qr/:id/reject error:', err);
     res.status(400).json({ success: false, message: err.message });
   }
 });

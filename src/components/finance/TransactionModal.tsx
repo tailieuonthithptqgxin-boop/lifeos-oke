@@ -10,7 +10,8 @@ interface TransactionModalProps {
 }
 
 export function TransactionModal({ onClose, onSave, accounts = [], initialData }: TransactionModalProps) {
-  const { projects = [] } = useAppStore();
+  const { projects = [], language } = useAppStore();
+  const isVi = language === 'vi';
   const safeAccounts = Array.isArray(accounts) ? accounts : [];
   const [formData, setFormData] = useState<any>(() => ({
     type: initialData?.type || 'Chi tiêu',
@@ -27,15 +28,15 @@ export function TransactionModal({ onClose, onSave, accounts = [], initialData }
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 animate-modal-enter">
         <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center shrink-0">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-            {initialData ? 'Edit Transaction' : 'New Transaction'}
+            {isVi ? (initialData ? 'Chỉnh sửa giao dịch' : 'Giao dịch mới') : (initialData ? 'Edit Transaction' : 'New Transaction')}
           </h3>
         </div>
         <div className="p-5 overflow-y-auto space-y-4">
           <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
             {[
-              { id: 'Chi tiêu', label: 'Expense' },
-              { id: 'Thu nhập', label: 'Income' },
-              { id: 'Chuyển tiền', label: 'Transfer' }
+              { id: 'Chi tiêu', label: isVi ? 'Chi tiêu' : 'Expense' },
+              { id: 'Thu nhập', label: isVi ? 'Thu nhập' : 'Income' },
+              { id: 'Chuyển tiền', label: isVi ? 'Chuyển tiền' : 'Transfer' }
             ].map(item => (
               <button 
                 type="button"
@@ -53,7 +54,9 @@ export function TransactionModal({ onClose, onSave, accounts = [], initialData }
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Amount</label>
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+              {isVi ? 'Số tiền' : 'Amount'}
+            </label>
             <input 
               type="number" 
               value={formData.amount} 
@@ -64,39 +67,45 @@ export function TransactionModal({ onClose, onSave, accounts = [], initialData }
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Category</label>
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+              {isVi ? 'Danh mục' : 'Category'}
+            </label>
             <input 
               type="text" 
               value={formData.category} 
               onChange={e=>setFormData({...formData, category: e.target.value})} 
               className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white" 
-              placeholder="e.g. Dining, Salary, Groceries..." 
+              placeholder={isVi ? 'Ví dụ: Ăn uống, Tiền lương, Mua sắm...' : 'e.g. Dining, Salary, Groceries...'} 
             />
           </div>
 
           <div>
             <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
-              {formData.type === 'Chuyển tiền' ? 'From Account' : 'Account'}
+              {formData.type === 'Chuyển tiền' 
+                ? (isVi ? 'Từ tài khoản' : 'From Account') 
+                : (isVi ? 'Tài khoản' : 'Account')}
             </label>
             <select 
               value={formData.accountId} 
               onChange={e=>setFormData({...formData, accountId: e.target.value})} 
               className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white"
             >
-              <option value="">-- Select Account --</option>
+              <option value="">{isVi ? '-- Chọn tài khoản --' : '-- Select Account --'}</option>
               {accounts.map((a:any) => <option key={a.id} value={a.id}>{a.name} ({formatCurrency(a.balance)})</option>)}
             </select>
           </div>
 
           {formData.type === 'Chuyển tiền' && (
             <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">To Account</label>
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+                {isVi ? 'Đến tài khoản' : 'To Account'}
+              </label>
               <select 
                 value={formData.toAccountId} 
                 onChange={e=>setFormData({...formData, toAccountId: e.target.value})} 
                 className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white"
               >
-                <option value="">-- Select Account --</option>
+                <option value="">{isVi ? '-- Chọn tài khoản --' : '-- Select Account --'}</option>
                 {accounts.filter((a:any) => a.id !== formData.accountId).map((a:any) => <option key={a.id} value={a.id}>{a.name} ({formatCurrency(a.balance)})</option>)}
               </select>
             </div>
@@ -104,7 +113,9 @@ export function TransactionModal({ onClose, onSave, accounts = [], initialData }
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Date</label>
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+                {isVi ? 'Ngày' : 'Date'}
+              </label>
               <input 
                 type="date" 
                 value={formData.date} 
@@ -115,37 +126,45 @@ export function TransactionModal({ onClose, onSave, accounts = [], initialData }
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Linked Project (Optional)</label>
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+              {isVi ? 'Liên kết dự án (Không bắt buộc)' : 'Linked Project (Optional)'}
+            </label>
             <select 
               value={formData.projectId || ''} 
               onChange={e=>setFormData({...formData, projectId: e.target.value})} 
               className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white"
             >
-              <option value="">-- None --</option>
+              <option value="">{isVi ? '-- Không liên kết --' : '-- None --'}</option>
               {projects?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
-            <p className="text-[10px] text-slate-400 mt-1">Expenses will be automatically tracked towards project budget.</p>
+            <p className="text-[10px] text-slate-400 mt-1">
+              {isVi ? 'Chi phí sẽ tự động được ghi nhận vào ngân sách dự án.' : 'Expenses will be automatically tracked towards project budget.'}
+            </p>
           </div>
 
           <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Note</label>
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+              {isVi ? 'Ghi chú' : 'Note'}
+            </label>
             <input 
               type="text" 
               value={formData.note} 
               onChange={e=>setFormData({...formData, note: e.target.value})} 
               className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white" 
-              placeholder="e.g. Lunch with team"
+              placeholder={isVi ? 'Ví dụ: Ăn trưa cùng nhóm, Tiền thưởng...' : 'e.g. Lunch with team'}
             />
           </div>
         </div>
         <div className="p-5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 shrink-0">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl btn-squishy cursor-pointer">Cancel</button>
+          <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl btn-squishy cursor-pointer">
+            {isVi ? 'Hủy bỏ' : 'Cancel'}
+          </button>
           <button 
             type="button" 
             onClick={() => {
               const amt = Number(formData.amount) || 0;
               if (amt <= 0) {
-                alert('Please enter an amount greater than 0');
+                alert(isVi ? 'Vui lòng nhập số tiền lớn hơn 0' : 'Please enter an amount greater than 0');
                 return;
               }
 
@@ -163,7 +182,7 @@ export function TransactionModal({ onClose, onSave, accounts = [], initialData }
                 ...(initialData?.id ? { id: initialData.id } : {}),
                 type: formData.type || 'Chi tiêu',
                 amount: amt,
-                category: (formData.category || '').trim() || 'General',
+                category: (formData.category || '').trim() || (isVi ? 'Chung' : 'General'),
                 accountId: formData.accountId || (safeAccounts[0]?.id || ''),
                 toAccountId: formData.type === 'Chuyển tiền' ? (formData.toAccountId || null) : null,
                 date: formData.date || new Date().toISOString().split('T')[0],
@@ -174,7 +193,7 @@ export function TransactionModal({ onClose, onSave, accounts = [], initialData }
             }} 
             className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl btn-squishy cursor-pointer shadow-md shadow-emerald-500/20"
           >
-            Save Transaction
+            {isVi ? 'Lưu giao dịch' : 'Save Transaction'}
           </button>
         </div>
       </div>

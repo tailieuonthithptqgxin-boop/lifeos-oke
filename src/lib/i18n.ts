@@ -10,21 +10,39 @@ export const translations: Record<string, TranslationDictionary> = {
   vi: {
     // Navigation & Common App Bar
     Dashboard: 'Bảng điều khiển',
+    Today: 'Hôm nay',
+    today: 'hôm nay',
+    'Daily Rhythm': 'Nhịp sống hàng ngày',
     Tasks: 'Công việc',
     Calendar: 'Lịch biểu',
     Finance: 'Tài chính',
     Focus: 'Tập trung',
+    Journey: 'Hành trình',
     Projects: 'Dự án',
+    'Projects (P.A.R.A)': 'Dự án (P.A.R.A)',
     Study: 'Học tập',
+    'Study & Vocab': 'Học tập & Từ vựng',
     Goals: 'Mục tiêu',
     Notes: 'Ghi chú',
+    'Journal & Notes': 'Sổ tay & Ghi chú',
     Habits: 'Thói quen',
-    DecisionEngine: 'Bộ máy ra quyết định',
-    Automation: 'Quy tắc tự động',
-    MyAccount: 'Tài khoản của tôi',
+    Spaces: 'Không gian',
+    'Custom Modules': 'Mô-đun tùy chỉnh',
+    'System & Tools': 'Hệ sinh thái & Công cụ',
+    'Ecosystem & Tools': 'Hệ sinh thái & Công cụ',
+    'Templates Marketplace': 'Thư viện mẫu',
     Marketplace: 'Thư viện mẫu',
-    Cart: 'Giỏ hàng',
+    'Automation Rules': 'Quy tắc tự động',
+    Automation: 'Quy tắc tự động',
+    'Decision Engine': 'Bộ máy ra quyết định',
+    DecisionEngine: 'Bộ máy ra quyết định',
+    'Plans & Team': 'Gói & Nhóm',
+    'Referral 20%': 'Giới thiệu 20%',
+    'Feedback & Support': 'Góp ý & Hỗ trợ',
+    'System Admin': 'Quản trị hệ thống',
     Admin: 'Quản trị hệ thống',
+    MyAccount: 'Tài khoản của tôi',
+    Cart: 'Giỏ hàng',
     Daily: 'Hàng ngày',
     PlanningGoals: 'Kế hoạch & Mục tiêu',
     AdvancedTools: 'Công cụ nâng cao',
@@ -32,6 +50,18 @@ export const translations: Record<string, TranslationDictionary> = {
     Dark: 'Tối',
     Light: 'Sáng',
     Logout: 'Đăng xuất',
+    'Đăng xuất': 'Đăng xuất',
+    'Tài khoản của tôi': 'Tài khoản của tôi',
+    'Người dùng': 'Người dùng',
+    'Cá nhân hóa danh mục': 'Cá nhân hóa danh mục',
+    'Customize Sidebar': 'Cá nhân hóa danh mục',
+    'Đóng danh mục': 'Đóng danh mục',
+    'Close Navigation': 'Đóng danh mục',
+    'More': 'Thêm',
+    'Mobile Navigation': 'Điều hướng di động',
+    'ngày': 'ngày',
+    'Hết hạn': 'Hết hạn',
+    'Chưa mua': 'Chưa mua',
     SearchPlaceholder: 'Tìm kiếm nhanh hoặc mở Command Center (Ctrl+K)...',
     QuickCreate: 'Tạo nhanh',
     Notifications: 'Thông báo',
@@ -678,6 +708,55 @@ export const translations: Record<string, TranslationDictionary> = {
 
 // Common Curated Overrides (Always high precedence over fullTranslations generated map)
 Object.assign(translations.en, {
+  // Navigation & Core sections
+  'Bảng điều khiển': 'Dashboard',
+  'Hôm nay': 'Today',
+  'hôm nay': 'today',
+  'Nhịp sống hàng ngày': 'Daily Rhythm',
+  'Tập trung': 'Focus',
+  'Hành trình': 'Journey',
+  'Không gian': 'Spaces',
+  'Công việc': 'Tasks',
+  'Dự án': 'Projects',
+  'Dự án (P.A.R.A)': 'Projects (P.A.R.A)',
+  'Thói quen': 'Habits',
+  'Tài chính': 'Finance',
+  'Học tập': 'Study',
+  'Học tập & Từ vựng': 'Study & Vocab',
+  'Ghi chú': 'Notes',
+  'Sổ tay & Ghi chú': 'Journal & Notes',
+  'Nhật ký & Ghi chú': 'Journal & Notes',
+  'Mục tiêu': 'Goals',
+  'Lịch biểu': 'Calendar',
+  'Mô-đun tùy chỉnh': 'Custom Modules',
+  'Hệ sinh thái & Công cụ': 'Ecosystem & Tools',
+  'Hệ thống & Công cụ': 'System & Tools',
+  'Thư viện mẫu': 'Template Market',
+  'Lưu trữ đám mây R2': 'Cloud Storage (R2)',
+  'Quy tắc tự động': 'Automation Rules',
+  'Bộ máy ra quyết định': 'Decision Engine',
+  'Ra quyết định': 'Decision Engine',
+  'Gói & Nhóm': 'Plans & Team',
+  'Gói cước & Đội ngũ': 'Plans & Team',
+  'Giới thiệu 20%': 'Referral 20%',
+  'Giới thiệu nhận 20%': 'Referral 20%',
+  'Góp ý & Hỗ trợ': 'Feedback & Support',
+  'Quản trị hệ thống': 'System Admin',
+  'Tài khoản của tôi': 'My Account',
+  'Người dùng': 'User',
+  'Cá nhân hóa danh mục': 'Customize Sidebar',
+  'Đóng danh mục': 'Close Navigation',
+  'Thêm': 'More',
+  'Điều hướng di động': 'Mobile Navigation',
+  'Tối': 'Dark',
+  'Sáng': 'Light',
+  'Đăng xuất': 'Sign Out',
+  'Đăng nhập': 'Sign In',
+  'ngày': 'days',
+  'Hết hạn': 'Expired',
+  'Chưa mua': 'No Subscription',
+
+  // Actions & Alerts
   'Xóa': 'Delete',
   'xóa': 'delete',
   'Từ chối': 'Rejected',
@@ -686,6 +765,8 @@ Object.assign(translations.en, {
   'hủy bỏ': 'cancel',
   'Lưu thay đổi': 'Save Changes',
   'Đang hoạt động': 'Active',
+  'Đang chờ': 'Pending',
+  'đang chờ': 'pending',
   'Chờ duyệt': 'Pending Review',
   'Đã duyệt': 'Approved',
   'Mật khẩu không khớp.': 'Passwords do not match.',
@@ -697,13 +778,273 @@ Object.assign(translations.en, {
   'Đã xảy ra lỗi. Vui lòng thử lại.': 'An error occurred. Please try again.'
 });
 
+// Explicit curated English -> Vietnamese map for navigation, spaces, tools and core phrases
+export const curatedEnToVi: Record<string, string> = {
+  // Navigation & Sections
+  'Dashboard': 'Bảng điều khiển',
+  'Today': 'Hôm nay',
+  'today': 'hôm nay',
+  'Daily Rhythm': 'Nhịp sống hàng ngày',
+  'Focus': 'Tập trung',
+  'Journey': 'Hành trình',
+  'Spaces': 'Không gian',
+  'Tasks': 'Công việc',
+  'Projects': 'Dự án',
+  'Projects (P.A.R.A)': 'Dự án (P.A.R.A)',
+  'Habits': 'Thói quen',
+  'Finance': 'Tài chính',
+  'Study': 'Học tập',
+  'Study & Vocab': 'Học tập & Từ vựng',
+  'Journal & Notes': 'Sổ tay & Ghi chú',
+  'Notes': 'Ghi chú',
+  'Goals': 'Mục tiêu',
+  'Calendar': 'Lịch biểu',
+  'Ecosystem & Tools': 'Hệ sinh thái & Công cụ',
+  'System & Tools': 'Hệ sinh thái & Công cụ',
+  'Templates Marketplace': 'Thư viện mẫu',
+  'Marketplace': 'Thư viện mẫu',
+  'Automation Rules': 'Quy tắc tự động',
+  'Automation': 'Quy tắc tự động',
+  'Decision Engine': 'Bộ máy ra quyết định',
+  'DecisionEngine': 'Bộ máy ra quyết định',
+  'Plans & Team': 'Gói & Nhóm',
+  'Referral 20%': 'Giới thiệu 20%',
+  'Feedback & Support': 'Góp ý & Hỗ trợ',
+  'System Admin': 'Quản trị hệ thống',
+  'Admin': 'Quản trị hệ thống',
+  'Custom Modules': 'Mô-đun tùy chỉnh',
+  'Customize Sidebar': 'Cá nhân hóa danh mục',
+  'Close Navigation': 'Đóng danh mục',
+  'More': 'Thêm',
+  'Mobile Navigation': 'Điều hướng di động',
+
+  // Statuses & Actions
+  'To Do': 'Chưa làm',
+  'In Progress': 'Đang làm',
+  'Completed': 'Hoàn thành',
+  'Pending': 'Chờ duyệt',
+  'Waiting': 'Đang chờ',
+  'Pending Review': 'Chờ duyệt',
+  'Approved': 'Đã duyệt',
+  'Rejected': 'Từ chối',
+  'Cancelled': 'Đã hủy',
+  'Overdue': 'Quá hạn',
+  'High Risk': 'Nguy cơ cao',
+  'All': 'Tất cả',
+  'Overview': 'Tổng quan',
+  'Analytics': 'Phân tích',
+  'Active': 'Đang hoạt động',
+  'Inactive': 'Tắt / Tạm ngưng',
+  'Expired': 'Hết hạn',
+  'No Subscription': 'Chưa mua',
+  'Save Changes': 'Lưu thay đổi',
+  'Cancel': 'Hủy bỏ',
+  'Delete': 'Xóa',
+  'Edit': 'Chỉnh sửa',
+  'Create': 'Tạo mới',
+  'Update': 'Cập nhật',
+  'Search': 'Tìm kiếm',
+  'Filter': 'Bộ lọc',
+  'days': 'ngày',
+  'day': 'ngày',
+  'hrs': 'giờ',
+  'mins': 'phút',
+
+  // Dashboard & Cockpit
+  'Deep Focus': 'Tập trung sâu',
+  'Share Story': 'Chia sẻ Story',
+  'Freezes': 'Băng bảo vệ',
+  'Freeze': 'Băng bảo vệ',
+  'Rest Day': 'Ngày nghỉ',
+  'Vibe Theme': 'Giao diện',
+  'Wrapped': 'Tổng kết',
+  'AI Buddy': 'Trợ lý AI',
+  'Persona': 'Hồ sơ cá nhân',
+  'Leaderboard': 'Bảng xếp hạng',
+  "Today's Big 3": 'Top 3 Cốt Lõi',
+  '1-Tap': '1 Chạm',
+  'Add': 'Thêm',
+  'All daily priorities done!': 'Đã hoàn thành toàn bộ việc trọng tâm hôm nay!',
+  'Safe-to-Spend': 'Hạn Mức An Toàn',
+  'days left': 'ngày còn lại',
+  'Safe': 'An toàn',
+  'Over Limit': 'Vượt hạn mức',
+  'No Budget Set': 'Chưa đặt ngân sách',
+  'Spent': 'Đã chi',
+  'Spent today': 'Chi tiêu hôm nay',
+  'Limit': 'Hạn mức',
+  'No monthly budget configured or no income yet': 'Chưa cấu hình ngân sách tháng hoặc chưa có thu nhập',
+  'Set up budget now': 'Cài đặt ngân sách ngay',
+  'Finance ledger & wallets': 'Sổ thu chi & Ví tài chính',
+  'Discipline Streak': 'Chuỗi Kỷ Luật',
+  'Focused for': 'Đã tập trung',
+  'mins of deep work today.': 'phút làm việc sâu hôm nay.',
+  'No focus sessions yet today. Start right now!': 'Hôm nay chưa có phiên tập trung nào. Bắt đầu ngay!',
+  'Start Focus 25m (Zen)': 'Bắt đầu Tập trung 25p (Zen)',
+  'Open Pomodoro': 'Mở Pomodoro',
+  'Log Expense': 'Ghi chép chi tiêu',
+  'Review Vocab': 'Ôn từ vựng',
+  'Study Vocab': 'Học từ vựng',
+  'Add Task': 'Thêm công việc',
+  'Weekly Ritual · Sunday Weekly Reset': 'Nghi thức tuần · Tái thiết lập Chủ nhật',
+  'WEEKLY RITUAL - SUNDAY WEEKLY RESET': 'NGHI THỨC TUẦN - TÁI THIẾT LẬP CHỦ NHẬT',
+  'Reflect on the past 7 days, clear your mental load & align top 3 weekly goals.': 'Nhìn lại 7 ngày qua, giải tỏa áp lực tinh thần và căn chỉnh top 3 mục tiêu tuần mới.',
+  'Start Reset': 'Bắt đầu Reset',
+  'Bonus': 'Thưởng',
+  'Zen Focus': 'Tập trung Zen',
+  'AI On': 'AI Bật',
+  'Open AI': 'Mở AI',
+  'Good morning': 'Chào buổi sáng',
+  'Good afternoon': 'Chào buổi chiều',
+  'Good evening': 'Chào buổi tối',
+  'Late night': 'Đêm muộn',
+  'Ready to kickstart an energetic new day!': 'Chúc bạn một ngày mới tràn đầy năng lượng!',
+  'Maintain momentum and conquer your goals today!': 'Giữ vững phong độ và chinh phục mục tiêu hôm nay nhé!',
+  'Review your progress and wind down smoothly.': 'Hãy điểm lại thành quả và thư giãn nhé.',
+  'Wrap up your focus and get some restful sleep.': 'Nghỉ ngơi sớm để hồi phục năng lượng cho ngày mai.',
+  'Choose Today\'s Vibe': 'Chọn tâm trạng hôm nay',
+  '24h Streak Rescue Challenge': 'Thử thách Cứu chuỗi 24h',
+  'Rescue Streak Now': 'Cứu chuỗi ngay',
+  'Counting down': 'Đang đếm ngược',
+  'Awesome!': 'Tuyệt vời!',
+  'Mark completed': 'Đánh dấu hoàn thành',
+  'View all': 'Xem tất cả',
+
+  // Projects Hub
+  'Projects Management': 'Quản lý Dự án',
+  'Projects Hub': 'Không gian Dự án',
+  'Track milestones, operational health, and progress across key initiatives': 'Theo dõi mốc quan trọng, sức khỏe vận hành và tiến độ dự án',
+  'Add Project': 'Thêm dự án',
+  'All Projects': 'Tất cả dự án',
+  'Healthy': 'Tốt',
+  'At Risk': 'Rủi ro',
+  'Critical': 'Nguy cấp',
+  'Health: Healthy': 'Sức khỏe: Tốt',
+  'Health: At Risk': 'Sức khỏe: Rủi ro',
+  'Health: Critical': 'Sức khỏe: Nguy cấp',
+  'Health': 'Sức khỏe',
+  'Progress': 'Tiến độ',
+  'Ledger': 'Sổ thu chi',
+  'No deadline': 'Không có hạn chót',
+  'No projects found': 'Chưa có dự án nào',
+  'Click "Add Project" to initialize your first project milestone!': 'Nhấp "Thêm dự án" để bắt đầu mốc dự án đầu tiên của bạn!',
+  'Edit project': 'Chỉnh sửa dự án',
+  'Delete project': 'Xóa dự án',
+
+  // Habits Tracker
+  'Habits Tracker': 'Theo dõi Thói quen',
+  'Habits Streak': 'Chuỗi Thói quen',
+  'Build lasting daily discipline through continuous habit streaks': 'Xây dựng kỷ luật mỗi ngày thông qua duy trì chuỗi thói quen liên tục',
+  'Add Habit': 'Thêm thói quen',
+  'No habits tracked yet': 'Chưa có thói quen nào được theo dõi',
+  'Click "Add Habit" to start building your streak today!': 'Nhấp "Thêm thói quen" để bắt đầu xây dựng chuỗi kỷ luật ngay hôm nay!',
+
+  // Focus
+  'Focus Mode & Ambient Sound': 'Chế độ Tập trung & Âm thanh Ambient',
+  'Deep work workspace with ambient soundscapes and real-time tracking': 'Không gian làm việc sâu kết hợp âm thanh ambient & theo dõi thời gian thực tế',
+  'peers in Deep Work': 'bạn đang Deep Work',
+  'Hide Music': 'Ẩn nhạc',
+  'Show Music': 'Hiện nhạc',
+
+  // Calendar
+  'Calendar & Schedule': 'Lịch biểu & Kế hoạch',
+  'Time-blocking schedule and daily event management.': 'Thời gian biểu time-blocking và quản lý sự kiện mỗi ngày.',
+  'Add Event': 'Thêm sự kiện',
+  'Timeline': 'Dòng thời gian',
+  'Agenda': 'Lịch trình',
+
+  // Notes
+  'Notes & Knowledge Hub': 'Sổ tay & Trung tâm Tri thức',
+  'Notes Hub': 'Kho Sổ tay',
+  'Organize thoughts, link concepts, manage meetings, and build your personal Knowledge Graph': 'Tổ chức suy nghĩ, liên kết khái niệm, quản lý cuộc họp và xây dựng Đồ thị tri thức',
+  'Create New Note': 'Tạo ghi chú mới',
+  'All Notes': 'Tất cả ghi chú',
+  'Daily Notes': 'Nhật ký mỗi ngày',
+  'Meetings & Decisions': 'Cuộc họp & Quyết định',
+  'Knowledge Graph': 'Đồ thị tri thức',
+  'Templates Library': 'Thư viện mẫu',
+  'Archive & Trash': 'Lưu trữ & Thùng rác',
+
+  // Finance
+  'Manage cash flow, budgets, and disciplined savings': 'Quản lý dòng tiền, ngân sách chi tiêu và tiết kiệm kỷ luật',
+  'Income & Expense Analytics': 'Phân tích Thu & Chi',
+  'Accounts': 'Tài khoản',
+  'Financial Simulator': 'Mô phỏng tài chính',
+  'Money': 'Tài chính',
+  'MONEY': 'TÀI CHÍNH',
+  'Add Transaction': 'Thêm giao dịch',
+  'New Transaction': 'Giao dịch mới',
+  'Edit Transaction': 'Chỉnh sửa giao dịch',
+  'New Account': 'Tài khoản mới',
+  'Edit Account': 'Chỉnh sửa tài khoản',
+  'New Budget': 'Ngân sách mới',
+  'Edit Budget': 'Chỉnh sửa ngân sách',
+  'New Debt / Loan': 'Khoản nợ / Cho vay mới',
+  'Edit Debt / Loan': 'Chỉnh sửa khoản nợ / cho vay',
+  'New Savings Goal': 'Mục tiêu tiết kiệm mới',
+  'Edit Savings Goal': 'Chỉnh sửa mục tiêu tiết kiệm',
+  'Expense Category': 'Danh mục chi tiêu',
+  'Budget Limit (VND)': 'Hạn mức ngân sách (VNĐ)',
+  'Period': 'Kỳ hạn',
+  'Monthly': 'Hàng tháng',
+  'Weekly': 'Hàng tuần',
+  'Quarterly': 'Hàng quý',
+  'Yearly': 'Hàng năm',
+  'Counterpart': 'Đối tác / Người liên quan',
+  'Due Date': 'Hạn thanh toán',
+  'Goal Name': 'Tên mục tiêu',
+  'Target Deadline': 'Hạn chót mục tiêu',
+  'Target (VND)': 'Mục tiêu (VNĐ)',
+  'Starting Amount (VND)': 'Số tiền ban đầu (VNĐ)',
+  'Account Name': 'Tên tài khoản',
+  'Bank Account': 'Tài khoản ngân hàng',
+  'E-Wallet': 'Ví điện tử',
+  'Cash': 'Tiền mặt',
+  'Savings': 'Tiết kiệm',
+  'Investment': 'Đầu tư',
+  'Save Account': 'Lưu tài khoản',
+  'Save Budget': 'Lưu ngân sách',
+  'Save Debt': 'Lưu khoản nợ',
+  'Save Goal': 'Lưu mục tiêu',
+  'Save Transaction': 'Lưu giao dịch',
+  'Expense': 'Chi tiêu',
+  'Income': 'Thu nhập',
+  'Transfer': 'Chuyển tiền',
+  'Amount': 'Số tiền',
+  'Category': 'Danh mục',
+  'From Account': 'Từ tài khoản',
+  'To Account': 'Đến tài khoản',
+  'Date': 'Ngày',
+  'Note': 'Ghi chú',
+  '-- Select Account --': '-- Chọn tài khoản --',
+  '-- None --': '-- Không chọn --',
+  'Expenses will be automatically tracked towards project budget.': 'Chi phí sẽ tự động được ghi nhận vào ngân sách dự án.'
+};
+
 // Build reverse dictionary for Vietnamese lookup of English keys/phrases
-const enToViMap: Record<string, string> = {};
+const enToViMap: Record<string, string> = { ...curatedEnToVi };
 for (const [vi, en] of Object.entries(translations.en)) {
   if (en && typeof en === 'string') {
-    enToViMap[en] = vi;
-    enToViMap[en.toLowerCase()] = vi;
+    const trimmedEn = en.trim();
+    if (
+      vi !== trimmedEn &&
+      /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ]/.test(vi) &&
+      !/[<>{}=>]|setFilter|setError|setSuccess|showToast|console\./i.test(vi)
+    ) {
+      if (!enToViMap[trimmedEn]) {
+        enToViMap[trimmedEn] = vi;
+      }
+      if (!enToViMap[trimmedEn.toLowerCase()]) {
+        enToViMap[trimmedEn.toLowerCase()] = vi;
+      }
+    }
   }
+}
+
+// Curated entries strictly win
+for (const [k, v] of Object.entries(curatedEnToVi)) {
+  enToViMap[k] = v;
+  enToViMap[k.toLowerCase()] = v;
 }
 
 // Pre-sorted phrases for substring replacement (longest first)
@@ -723,10 +1064,39 @@ export function t(key: string, language: LanguageCode = 'en'): string {
   if (lang === 'vi') {
     const viVal = translations.vi[key] || translations.vi[key.trim()];
     if (viVal) return viVal;
+    if (curatedEnToVi[key]) return curatedEnToVi[key];
+    if (curatedEnToVi[key.trim()]) return curatedEnToVi[key.trim()];
+    const lower = key.trim().toLowerCase();
+    if (curatedEnToVi[lower]) return curatedEnToVi[lower];
     if (enToViMap[key]) return enToViMap[key];
     if (enToViMap[key.trim()]) return enToViMap[key.trim()];
-    const lower = key.trim().toLowerCase();
     if (enToViMap[lower]) return enToViMap[lower];
+
+    // Dynamic numeric pattern: "Review Vocab (5)" -> "Ôn từ vựng (5)"
+    const parenMatch = key.trim().match(/^(.+?)\s*\((.+?)\)$/);
+    if (parenMatch) {
+      const base = parenMatch[1].trim();
+      const count = parenMatch[2].trim();
+      const transBase = curatedEnToVi[base] || enToViMap[base] || curatedEnToVi[base.toLowerCase()] || enToViMap[base.toLowerCase()];
+      if (transBase) {
+        return `${transBase} (${count})`;
+      }
+    }
+
+    // Dynamic colon pattern: "Health: Healthy" -> "Sức khỏe: Tốt"
+    if (key.includes(':')) {
+      const parts = key.split(':');
+      if (parts.length === 2) {
+        const left = parts[0].trim();
+        const right = parts[1].trim();
+        const transLeft = curatedEnToVi[left] || enToViMap[left] || left;
+        const transRight = curatedEnToVi[right] || enToViMap[right] || right;
+        if (transLeft !== left || transRight !== right) {
+          return `${transLeft}: ${transRight}`;
+        }
+      }
+    }
+
     return key;
   }
 

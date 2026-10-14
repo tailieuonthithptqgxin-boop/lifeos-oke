@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Trash2, X } from 'lucide-react';
+import { useAppStore } from '../../lib/store';
 
 interface SavingGoalModalProps {
   goal: any;
@@ -9,6 +10,8 @@ interface SavingGoalModalProps {
 }
 
 export function SavingGoalModal({ goal, onClose, onSave, onDelete }: SavingGoalModalProps) {
+  const { language } = useAppStore();
+  const isVi = language === 'vi';
   const [formData, setFormData] = useState<any>({
     title: goal?.title || goal?.name || '',
     targetAmount: goal?.targetAmount !== undefined ? goal.targetAmount : 10000000,
@@ -21,7 +24,7 @@ export function SavingGoalModal({ goal, onClose, onSave, onDelete }: SavingGoalM
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 animate-modal-enter">
         <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center shrink-0">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-            {goal ? 'Edit Savings Goal' : 'New Savings Goal'}
+            {isVi ? (goal ? 'Chỉnh sửa mục tiêu tiết kiệm' : 'Mục tiêu tiết kiệm mới') : (goal ? 'Edit Savings Goal' : 'New Savings Goal')}
           </h3>
           <div className="flex items-center gap-1">
             {goal && onDelete && (
@@ -29,7 +32,7 @@ export function SavingGoalModal({ goal, onClose, onSave, onDelete }: SavingGoalM
                 type="button"
                 onClick={() => onDelete(goal.id)}
                 className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg btn-squishy cursor-pointer"
-                title="Delete this goal"
+                title={isVi ? 'Xóa mục tiêu này' : 'Delete this goal'}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -45,18 +48,22 @@ export function SavingGoalModal({ goal, onClose, onSave, onDelete }: SavingGoalM
         </div>
         <div className="p-5 overflow-y-auto space-y-4">
           <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Goal Name</label>
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+              {isVi ? 'Tên mục tiêu' : 'Goal Name'}
+            </label>
             <input 
               type="text" 
               value={formData.title} 
               onChange={e=>setFormData({...formData, title: e.target.value})} 
               className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white" 
-              placeholder="e.g. Emergency Fund, New Laptop, Travel..."
+              placeholder={isVi ? 'Ví dụ: Quỹ khẩn cấp, Mua laptop, Du lịch...' : 'e.g. Emergency Fund, New Laptop, Travel...'}
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Target (VND)</label>
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+                {isVi ? 'Mục tiêu (VNĐ)' : 'Target (VND)'}
+              </label>
               <input 
                 type="number" 
                 value={formData.targetAmount} 
@@ -65,7 +72,9 @@ export function SavingGoalModal({ goal, onClose, onSave, onDelete }: SavingGoalM
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Current Saved (VND)</label>
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+                {isVi ? 'Đã tích lũy (VNĐ)' : 'Current Saved (VND)'}
+              </label>
               <input 
                 type="number" 
                 value={formData.currentAmount} 
@@ -75,7 +84,9 @@ export function SavingGoalModal({ goal, onClose, onSave, onDelete }: SavingGoalM
             </div>
           </div>
           <div>
-            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Target Deadline</label>
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">
+              {isVi ? 'Hạn chót mục tiêu' : 'Target Deadline'}
+            </label>
             <input 
               type="date" 
               value={formData.deadline} 
@@ -85,7 +96,9 @@ export function SavingGoalModal({ goal, onClose, onSave, onDelete }: SavingGoalM
           </div>
         </div>
         <div className="p-5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 shrink-0">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl btn-squishy cursor-pointer">Cancel</button>
+          <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl btn-squishy cursor-pointer">
+            {isVi ? 'Hủy bỏ' : 'Cancel'}
+          </button>
           <button 
             type="button" 
             onClick={() => {
@@ -94,7 +107,7 @@ export function SavingGoalModal({ goal, onClose, onSave, onDelete }: SavingGoalM
             }} 
             className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl btn-squishy cursor-pointer shadow-md shadow-emerald-500/20"
           >
-            Save Goal
+            {isVi ? 'Lưu mục tiêu' : 'Save Goal'}
           </button>
         </div>
       </div>

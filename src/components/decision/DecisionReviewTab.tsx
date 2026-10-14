@@ -93,6 +93,7 @@ export const DecisionReviewTab: React.FC<DecisionReviewTabProps> = ({
             <form 
               onSubmit={e => {
                 e.preventDefault();
+                if (!currentDecision || !currentDecision.id) return;
                 updateDecision(currentDecision.id, { 
                   review: { 
                     expectedCost: currentDecision.options[0]?.cost || 0,

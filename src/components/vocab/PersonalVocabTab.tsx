@@ -45,6 +45,7 @@ export function PersonalVocabTab({
   const [statusFilter, setStatusFilter] = useState('all');
   const [onlyFavorites, setOnlyFavorites] = useState(false);
   const [sortBy, setSortBy] = useState<'newest' | 'alphabet' | 'interval'>('newest');
+  const [isExportOpen, setIsExportOpen] = useState(false);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -141,29 +142,45 @@ export function PersonalVocabTab({
             <Upload className="w-4 h-4 text-blue-600" /> Nhập CSV
           </button>
 
-          <div className="relative group">
+          <div className="relative">
             <button
               type="button"
+              onClick={() => setIsExportOpen(prev => !prev)}
               className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
             >
               <Download className="w-4 h-4 text-emerald-600" /> Xuất dữ liệu
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExportOpen ? 'rotate-180' : ''}`} />
             </button>
-            <div className="absolute right-0 top-full mt-1.5 hidden group-hover:flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 py-1.5 min-w-[150px] z-20">
-              <button
-                type="button"
-                onClick={handleExportCsv}
-                className="px-4 py-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-              >
-                Tải tệp CSV
-              </button>
-              <button
-                type="button"
-                onClick={handleExportJson}
-                className="px-4 py-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
-              >
-                Tải tệp JSON
-              </button>
-            </div>
+            {isExportOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 z-10" 
+                  onClick={() => setIsExportOpen(false)} 
+                />
+                <div className="absolute right-0 top-full mt-1.5 flex flex-col bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 py-1.5 min-w-[150px] z-20">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleExportCsv();
+                      setIsExportOpen(false);
+                    }}
+                    className="px-4 py-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    Tải tệp CSV
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleExportJson();
+                      setIsExportOpen(false);
+                    }}
+                    className="px-4 py-2 text-left text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                  >
+                    Tải tệp JSON
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
           {filteredWords.length > 0 && (

@@ -6,10 +6,11 @@ import { soundEngine } from '../lib/soundEngine';
 import { triggerConfetti } from '../lib/confetti';
 
 export function HabitsView() {
-  const { habits, addHabit, toggleHabit, deleteHabit } = useAppStore();
+  const { habits, addHabit, toggleHabit, deleteHabit, language } = useAppStore();
+  const isVi = language === 'vi';
   const [showAddModal, setShowAddModal] = useState(false);
   const [newHabitName, setNewHabitName] = useState('');
-  const [newHabitCategory, setNewHabitCategory] = useState('Personal');
+  const [newHabitCategory, setNewHabitCategory] = useState(isVi ? 'Cá nhân' : 'Personal');
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -51,13 +52,17 @@ export function HabitsView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Habits Tracker</h2>
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              {isVi ? 'Theo dõi Thói quen' : 'Habits Tracker'}
+            </h2>
             <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              Habits Streak
+              {isVi ? 'Chuỗi Thói quen' : 'Habits Streak'}
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
-            Build lasting daily discipline through continuous habit streaks
+            {isVi 
+              ? 'Xây dựng kỷ luật mỗi ngày thông qua duy trì chuỗi thói quen liên tục' 
+              : 'Build lasting daily discipline through continuous habit streaks'}
           </p>
         </div>
         <button
@@ -65,7 +70,7 @@ export function HabitsView() {
           onClick={() => setShowAddModal(true)}
           className="btn-squishy px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-black rounded-2xl flex items-center gap-2 shadow-md shadow-emerald-500/20 transition-all self-start sm:self-auto cursor-pointer"
         >
-          <Plus className="w-4 h-4 stroke-[3]" /> Add Habit
+          <Plus className="w-4 h-4 stroke-[3]" /> <span>{isVi ? 'Thêm thói quen' : 'Add Habit'}</span>
         </button>
       </div>
 
@@ -73,8 +78,14 @@ export function HabitsView() {
       {(habits || []).length === 0 ? (
         <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center animate-page-enter">
           <Activity className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-          <h3 className="font-black text-slate-900 dark:text-white">No habits tracked yet</h3>
-          <p className="text-xs text-slate-500 mt-1 font-medium">Click "Add Habit" to start building your streak today!</p>
+          <h3 className="font-black text-slate-900 dark:text-white">
+            {isVi ? 'Chưa có thói quen nào được theo dõi' : 'No habits tracked yet'}
+          </h3>
+          <p className="text-xs text-slate-500 mt-1 font-medium">
+            {isVi 
+              ? 'Nhấp "Thêm thói quen" để bắt đầu xây dựng chuỗi kỷ luật ngay hôm nay!' 
+              : 'Click "Add Habit" to start building your streak today!'}
+          </p>
         </div>
       ) : (
         <div className="space-y-3 animate-page-enter">
@@ -131,12 +142,19 @@ export function HabitsView() {
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="flex items-center gap-1.5 text-xs font-black text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-950/60 px-3 py-1.5 rounded-full border border-amber-200/60 dark:border-amber-800/60 shadow-xs">
                     <Flame className="w-4 h-4 fill-amber-500 text-amber-500" />
-                    <span>{habit.streak || 0} days</span>
+                    <span>{habit.streak || 0} {isVi ? 'ngày' : 'days'}</span>
                   </div>
                   <button
-                    onClick={() => deleteHabit && deleteHabit(habit.id)}
+                    onClick={() => {
+                      const confirmMsg = isVi 
+                        ? `Bạn có chắc muốn xóa thói quen "${habit.name}" không?` 
+                        : `Are you sure you want to delete habit "${habit.name}"?`;
+                      if (window.confirm?.(confirmMsg)) {
+                        deleteHabit && deleteHabit(habit.id);
+                      }
+                    }}
                     className="p-2 text-slate-400 hover:text-rose-500 transition-colors rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer btn-squishy"
-                    title="Delete habit"
+                    title={isVi ? 'Xóa thói quen' : 'Delete habit'}
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
@@ -151,16 +169,18 @@ export function HabitsView() {
       {showAddModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 backdrop-blur-xs animate-backdrop-fade">
           <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 animate-modal-enter">
-            <h3 className="text-lg font-black text-slate-900 dark:text-white">New Habit</h3>
+            <h3 className="text-lg font-black text-slate-900 dark:text-white">
+              {isVi ? 'Thói Quen Mới' : 'New Habit'}
+            </h3>
             <form onSubmit={handleAdd} className="space-y-4">
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                  Habit Name *
+                  {isVi ? 'Tên thói quen *' : 'Habit Name *'}
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Read 20 pages, 30m Workout"
+                  placeholder={isVi ? 'VD: Đọc 20 trang sách, Tập thể dục 30p' : 'e.g. Read 20 pages, 30m Workout'}
                   value={newHabitName}
                   onChange={e => setNewHabitName(e.target.value)}
                   className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
@@ -168,17 +188,17 @@ export function HabitsView() {
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
-                  Category
+                  {isVi ? 'Danh mục' : 'Category'}
                 </label>
                 <select
                   value={newHabitCategory}
                   onChange={e => setNewHabitCategory(e.target.value)}
                   className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 cursor-pointer"
                 >
-                  <option value="Personal">Personal</option>
-                  <option value="Work">Work</option>
-                  <option value="Health">Health</option>
-                  <option value="Study">Study</option>
+                  <option value={isVi ? 'Cá nhân' : 'Personal'}>{isVi ? 'Cá nhân' : 'Personal'}</option>
+                  <option value={isVi ? 'Công việc' : 'Work'}>{isVi ? 'Công việc' : 'Work'}</option>
+                  <option value={isVi ? 'Sức khỏe' : 'Health'}>{isVi ? 'Sức khỏe' : 'Health'}</option>
+                  <option value={isVi ? 'Học tập' : 'Study'}>{isVi ? 'Học tập' : 'Study'}</option>
                 </select>
               </div>
               <div className="flex justify-end gap-3 pt-2">
@@ -187,13 +207,13 @@ export function HabitsView() {
                   onClick={() => setShowAddModal(false)}
                   className="btn-squishy px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl cursor-pointer"
                 >
-                  Cancel
+                  {isVi ? 'Hủy' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
                   className="btn-squishy px-5 py-2.5 text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-2xl shadow-md shadow-emerald-500/20 cursor-pointer"
                 >
-                  Create Habit
+                  {isVi ? 'Tạo Thói Quen' : 'Create Habit'}
                 </button>
               </div>
             </form>

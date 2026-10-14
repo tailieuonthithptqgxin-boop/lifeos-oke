@@ -371,20 +371,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const seedSampleData = async () => {
-    try {
-      setState(s => ({ ...s, syncState: 'syncing', syncMessage: 'Đang nạp dữ liệu hoạt động thực tế...' }));
-      await apiCall('/api/seed-sample', 'POST');
-      await loadAllData();
-      setState(s => ({ ...s, syncState: 'success', syncMessage: 'Đã nạp số liệu thực tế thành công!' }));
-      setTimeout(() => setState(s => ({ ...s, syncState: 'idle', syncMessage: '' })), 2500);
-    } catch (err: any) {
-      console.error("Failed to seed sample data:", err);
-      setState(s => ({ ...s, syncState: 'error', syncMessage: 'Không thể nạp dữ liệu mẫu' }));
-      setTimeout(() => setState(s => ({ ...s, syncState: 'idle', syncMessage: '' })), 3000);
-    }
-  };
-
   const login = async (user: User) => {
     // Authenticate user immediately and transition UI without delay
     setState(s => ({
@@ -509,18 +495,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Instant optimistic update
     setState(s => ({ ...s, [stateKey]: [...(s[stateKey] as any[]), tempItem] }));
 
+    let resultItem = tempItem;
     await withSync(async () => {
       const created = await apiCall(`/api/data/${collection}`, 'POST', item);
       if (created && created.id) {
+        resultItem = created;
         setState(s => ({
           ...s,
           [stateKey]: (s[stateKey] as any[]).map((i: any) => i.id === tempId ? created : i)
         }));
       }
     }, 'Thêm thành công');
+    return resultItem;
   };
   
   const _update = async (collection: string, id: string, updates: any, stateKey: keyof AppState) => {
+    if (!id || id === 'undefined' || id === 'null' || typeof id !== 'string' || !id.trim()) {
+      console.warn(`[LifeOS Store] Prevented invalid _update on '${collection}': id is invalid (${id})`);
+      return;
+    }
+
     // Instant optimistic update
     setState(s => ({
       ...s,
@@ -533,6 +527,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
   
   const _delete = async (collection: string, id: string, stateKey: keyof AppState) => {
+    if (!id || id === 'undefined' || id === 'null' || typeof id !== 'string' || !id.trim()) {
+      console.warn(`[LifeOS Store] Prevented invalid _delete on '${collection}': id is invalid (${id})`);
+      return;
+    }
+
     // Instant optimistic delete
     setState(s => ({
       ...s,
@@ -826,7 +825,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         login,
         logout,
         clearWorkspace,
-        seedSampleData,
         loadAllData,
         completeOnboarding,
         resetOnboarding,

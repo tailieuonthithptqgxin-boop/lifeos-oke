@@ -53,7 +53,9 @@ export function SubjectGradeDetailModal({
 
   const handleAddScore = (compId: string) => {
     const valStr = newScoreInput[compId]?.trim();
-    if (!valStr) return;
+    if (!valStr) {
+      return alert('Vui lòng nhập điểm số cần thêm!');
+    }
     const val = parseFloat(valStr);
     if (isNaN(val) || val < 0 || val > profile.scaleMax) {
       return alert(`Điểm phải nằm trong khoảng từ 0 đến ${profile.scaleMax}`);

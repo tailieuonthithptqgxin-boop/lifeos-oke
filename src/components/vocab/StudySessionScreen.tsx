@@ -13,7 +13,17 @@ import {
   HelpCircle,
   ChevronLeft,
   ChevronRight,
-  Music
+  Music,
+  Pause,
+  Play,
+  Star,
+  Lightbulb,
+  Trash2,
+  FastForward,
+  Clock,
+  StopCircle,
+  Award,
+  AlertCircle
 } from 'lucide-react';
 import { speakWord, computeMemoryLevel, VocabWord } from '../../lib/vocabEngine';
 import { isEquivalentAnswer } from '../../lib/vocabVerificationEngine';
@@ -22,6 +32,7 @@ import { companionEventBus } from '../../lib/companion/companionEventBus';
 import { StudyCompanionWidget } from '../companion/StudyCompanionWidget';
 import { soundEngine } from '../../lib/soundEngine';
 import { YouTubeFocusPlayer } from '../YouTubeFocusPlayer';
+import { useAppStore } from '../../lib/store';
 
 interface StudySessionScreenProps {
   activeLang: any;
@@ -35,6 +46,7 @@ interface StudySessionScreenProps {
   spellingInput: string;
   spellingChecked: boolean;
   distractorPool?: any[];
+  durationMinutes?: number;
   onReveal: () => void;
   onRate: (rating: 1 | 2 | 3 | 4) => void;
   onNextCard?: () => void;
@@ -44,6 +56,12 @@ interface StudySessionScreenProps {
   onCheckSpelling: () => void;
   onExitSession: () => void;
   onRestartSession: () => void;
+  onToggleFavorite?: (wordId: string) => void;
+  onToggleDifficult?: (wordId: string) => void;
+  onSkipWord?: () => void;
+  onRemoveWordFromSession?: (wordId: string) => void;
+  onReviewMistakes?: (mistakeWords: VocabWord[]) => void;
+  onEndSessionEarly?: () => void;
 }
 
 export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
@@ -58,6 +76,7 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
   spellingInput,
   spellingChecked,
   distractorPool = [],
+  durationMinutes = 0,
   onReveal,
   onRate,
   onNextCard,
@@ -66,14 +85,36 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
   onSpellingChange,
   onCheckSpelling,
   onExitSession,
-  onRestartSession
+  onRestartSession,
+  onToggleFavorite,
+  onToggleDifficult,
+  onSkipWord,
+  onRemoveWordFromSession,
+  onReviewMistakes,
+  onEndSessionEarly
 }) => {
+  const { language } = useAppStore();
+  const isVi = language === 'vi';
+
   const currentWord = words[currentIndex];
 
   const [companionMood, setCompanionMood] = useState<CompanionMood>(isCompleted ? 'achievement' : 'focus');
   const [companionDialogueKey, setCompanionDialogueKey] = useState<keyof CompanionDialoguePool | undefined>(
     isCompleted ? 'vocabRoundCompleted' : undefined
   );
+
+  // In-Session Timer & Pause States (Requirement 134.7 & 134.19)
+  const [isPaused, setIsPaused] = useState<boolean>(false);
+  const [secondsElapsed, setSecondsElapsed] = useState<number>(0);
+  const [mistakeWords, setMistakeWords] = useState<VocabWord[]>([]);
+
+  useEffect(() => {
+    if (isCompleted || isPaused) return;
+    const timer = setInterval(() => {
+      setSecondsElapsed(prev => prev + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isCompleted, isPaused]);
 
   // Swipe & Gesture State
   const [dragX, setDragX] = useState<number>(0);
@@ -290,6 +331,12 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
       setCompanionMood('encourage');
       setCompanionDialogueKey('vocabIncorrect');
       companionEventBus.emitVocabIncorrect();
+      if (currentWord) {
+        setMistakeWords(prev => {
+          if (prev.some(w => w.id === currentWord.id)) return prev;
+          return [...prev, currentWord];
+        });
+      }
     }
     onRate(rating);
   };
@@ -316,67 +363,122 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
 
   // Memory Level Badge
   const memoryLevelInfo = useMemo(() => {
-    if (!currentWord) return { level: 0, label: 'Level 0 — Chưa học', color: 'bg-slate-100 text-slate-700' };
+    if (!currentWord) return { level: 0, label: isVi ? 'Level 0 — Chưa học' : 'Level 0 — Unlearned', color: 'bg-slate-100 text-slate-700' };
     const lvl = currentWord.memoryLevel !== undefined
       ? currentWord.memoryLevel
       : computeMemoryLevel(currentWord.repetitionCount, currentWord.intervalDays, currentWord.lapses);
 
     switch (lvl) {
-      case 0: return { level: 0, label: 'Level 0 — Chưa học', color: 'bg-slate-100 text-slate-700 border-slate-200' };
-      case 1: return { level: 1, label: 'Level 1 — Mới học', color: 'bg-rose-100 text-rose-800 border-rose-200' };
-      case 2: return { level: 2, label: 'Level 2 — Đang ghi nhớ', color: 'bg-amber-100 text-amber-800 border-amber-200' };
-      case 3: return { level: 3, label: 'Level 3 — Nhớ khá', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' };
-      case 4: return { level: 4, label: 'Level 4 — Nhớ tốt', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
-      case 5: return { level: 5, label: 'Level 5 — Thành thạo', color: 'bg-blue-100 text-blue-800 border-blue-200' };
-      default: return { level: 0, label: 'Level 0 — Chưa học', color: 'bg-slate-100 text-slate-700 border-slate-200' };
+      case 0: return { level: 0, label: isVi ? 'Level 0 — Chưa học' : 'Level 0 — Unlearned', color: 'bg-slate-100 text-slate-700 border-slate-200' };
+      case 1: return { level: 1, label: isVi ? 'Level 1 — Mới học' : 'Level 1 — Learning', color: 'bg-rose-100 text-rose-800 border-rose-200' };
+      case 2: return { level: 2, label: isVi ? 'Level 2 — Đang ghi nhớ' : 'Level 2 — Memorizing', color: 'bg-amber-100 text-amber-800 border-amber-200' };
+      case 3: return { level: 3, label: isVi ? 'Level 3 — Nhớ khá' : 'Level 3 — Good', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' };
+      case 4: return { level: 4, label: isVi ? 'Level 4 — Nhớ tốt' : 'Level 4 — Strong', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' };
+      case 5: return { level: 5, label: isVi ? 'Level 5 — Thành thạo' : 'Level 5 — Mastered', color: 'bg-blue-100 text-blue-800 border-blue-200' };
+      default: return { level: 0, label: isVi ? 'Level 0 — Chưa học' : 'Level 0 — Unlearned', color: 'bg-slate-100 text-slate-700 border-slate-200' };
     }
-  }, [currentWord]);
+  }, [currentWord, isVi]);
 
+  // Format Elapsed Time MM:SS
+  const formatTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  // POST-SESSION RECAP SCREEN (REQUIREMENT 134.20)
   if (isCompleted || !currentWord) {
+    const accuracy = stats.reviewed > 0 ? Math.round((stats.passed / stats.reviewed) * 100) : 100;
+    const timeSpentFormatted = `${Math.floor(secondsElapsed / 60)} ${isVi ? 'phút' : 'min'} ${secondsElapsed % 60} ${isVi ? 'giây' : 'sec'}`;
+
     return (
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 text-center max-w-xl mx-auto space-y-6 shadow-xl my-6">
+      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 text-center max-w-xl mx-auto space-y-6 shadow-xl my-6">
         <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto text-3xl">
           🎉
         </div>
 
         <div className="space-y-1">
           <h3 className="text-2xl font-black text-slate-900 dark:text-white">
-            Hoàn thành Phiên học Xuất sắc!
+            {isVi ? 'Hoàn thành Phiên học Xuất sắc!' : 'Study Session Completed!'}
           </h3>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Hệ thống đã lưu tiến độ vào Tháp trí nhớ và đồng bộ lên cơ sở dữ liệu.
+            {isVi ? 'Hệ thống đã lưu tiến độ vào Tháp trí nhớ và đồng bộ dữ liệu.' : 'Progress recorded to Memory Pyramid and synchronized.'}
           </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl">
+        {/* 4 RECAP METRICS */}
+        <div className="grid grid-cols-4 gap-2 sm:gap-3 p-4 bg-slate-50 dark:bg-slate-800/40 rounded-2xl">
           <div className="text-center">
-            <span className="text-[10px] font-bold text-slate-400 block uppercase">Đã ôn</span>
-            <span className="text-2xl font-black text-slate-900 dark:text-white">{stats.reviewed}</span>
+            <span className="text-[10px] font-bold text-slate-400 block uppercase">{isVi ? 'Đã ôn' : 'Reviewed'}</span>
+            <span className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">{stats.reviewed}</span>
           </div>
           <div className="text-center">
-            <span className="text-[10px] font-bold text-emerald-500 block uppercase">Nhớ tốt</span>
-            <span className="text-2xl font-black text-emerald-600">{stats.passed}</span>
+            <span className="text-[10px] font-bold text-emerald-500 block uppercase">{isVi ? 'Nhớ tốt' : 'Passed'}</span>
+            <span className="text-xl sm:text-2xl font-black text-emerald-600">{stats.passed}</span>
           </div>
           <div className="text-center">
-            <span className="text-[10px] font-bold text-rose-500 block uppercase">Cần ôn thêm</span>
-            <span className="text-2xl font-black text-rose-600">{stats.again}</span>
+            <span className="text-[10px] font-bold text-rose-500 block uppercase">{isVi ? 'Cần ôn' : 'Again'}</span>
+            <span className="text-xl sm:text-2xl font-black text-rose-600">{stats.again}</span>
+          </div>
+          <div className="text-center">
+            <span className="text-[10px] font-bold text-violet-500 block uppercase">{isVi ? 'Độ chính xác' : 'Accuracy'}</span>
+            <span className="text-xl sm:text-2xl font-black text-violet-600">{accuracy}%</span>
           </div>
         </div>
 
-        <div className="flex items-center justify-center gap-3">
+        {/* Time spent banner */}
+        <div className="flex items-center justify-center gap-2 text-xs font-semibold text-slate-500 dark:text-slate-400">
+          <Clock className="w-3.5 h-3.5 text-slate-400" />
+          <span>{isVi ? 'Thời gian học:' : 'Time spent:'} <strong>{timeSpentFormatted}</strong></span>
+        </div>
+
+        {/* REVIEW MISTAKES SECTION IF ANY (REQUIREMENT 134.20) */}
+        {mistakeWords.length > 0 && (
+          <div className="p-4 bg-rose-50/70 dark:bg-rose-950/30 rounded-2xl border border-rose-200 dark:border-rose-900/60 text-left space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-rose-800 dark:text-rose-300 flex items-center gap-1.5">
+                <AlertCircle className="w-4 h-4 text-rose-600" />
+                <span>{isVi ? `Các từ cần củng cố (${mistakeWords.length} từ):` : `Words needing review (${mistakeWords.length}):`}</span>
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {mistakeWords.map(w => (
+                <span key={w.id} className="px-2.5 py-1 rounded-xl text-xs font-extrabold bg-white dark:bg-slate-800 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
+                  {w.term} <span className="font-normal opacity-70">({w.meaning})</span>
+                </span>
+              ))}
+            </div>
+
+            {onReviewMistakes && (
+              <button
+                type="button"
+                onClick={() => onReviewMistakes(mistakeWords)}
+                className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <RotateCcw className="w-4 h-4" />
+                <span>{isVi ? `Ôn lại ngay ${mistakeWords.length} từ đã sai` : `Review ${mistakeWords.length} Mistakes Now`}</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* Action Buttons */}
+        <div className="flex items-center justify-center gap-3 flex-wrap">
           <button
             type="button"
             onClick={onExitSession}
             className="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition cursor-pointer"
           >
-            Quay về Dashboard
+            {isVi ? 'Quay về Dashboard' : 'Back to Dashboard'}
           </button>
           <button
             type="button"
             onClick={onRestartSession}
             className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
           >
-            <RotateCcw className="w-4 h-4" /> Tiếp tục Ôn tập
+            <RotateCcw className="w-4 h-4" />
+            <span>{isVi ? 'Luyện tập lại phiên này' : 'Restart Session'}</span>
           </button>
         </div>
 
@@ -404,30 +506,101 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
   // Language short name
   const isChinese = activeLang?.id === 'zh';
   const isJapanese = activeLang?.id === 'ja' || currentWord?.languageId === 'ja';
-  const foreignLangShort = isJapanese ? 'Nhật' : isChinese ? 'Trung' : 'Anh';
+  const foreignLangShort = isJapanese ? (isVi ? 'Nhật' : 'JA') : isChinese ? (isVi ? 'Trung' : 'ZH') : (isVi ? 'Anh' : 'EN');
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
-      {/* Session Top Bar */}
-      <div className="flex items-center justify-between text-xs gap-2">
+
+      {/* PAUSE OVERLAY MODAL */}
+      {isPaused && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-8 text-center max-w-sm w-full space-y-4 shadow-2xl animate-in zoom-in-95">
+            <span className="text-4xl p-3 bg-amber-100 dark:bg-amber-950/60 text-amber-600 rounded-2xl inline-block">
+              ⏸️
+            </span>
+            <h4 className="text-xl font-black text-slate-900 dark:text-white">
+              {isVi ? 'Đang tạm dừng phiên học' : 'Session Paused'}
+            </h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              {isVi ? `Đã hoàn thành ${currentIndex} / ${words.length} từ. Hãy hít thở sâu và tiếp tục khi bạn sẵn sàng!` : `Completed ${currentIndex} of ${words.length} words. Take a breath and resume when ready!`}
+            </p>
+            <div className="pt-2 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => setIsPaused(false)}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition cursor-pointer flex items-center justify-center gap-2"
+              >
+                <Play className="w-4 h-4 fill-current" />
+                <span>{isVi ? 'Tiếp tục học ngay' : 'Resume Learning'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={onExitSession}
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                {isVi ? 'Thoát phiên học' : 'Exit Session'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SESSION TOP BAR & CONTROLS */}
+      <div className="flex items-center justify-between text-xs gap-2 flex-wrap">
         <button
           type="button"
           onClick={onExitSession}
           className="text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 font-bold inline-flex items-center gap-1 cursor-pointer shrink-0"
         >
-          <ArrowLeft className="w-4 h-4" /> Thoát
+          <ArrowLeft className="w-4 h-4" /> {isVi ? 'Thoát' : 'Exit'}
         </button>
 
-        <span className="font-bold text-slate-600 dark:text-slate-400 shrink-0">
-          Từ {currentIndex + 1} / {words.length} ({progressPercent}%)
-        </span>
+        {/* Counter & Timer */}
+        <div className="flex items-center gap-2 font-bold text-slate-600 dark:text-slate-400 shrink-0">
+          <span>
+            {isVi ? 'Từ' : 'Word'} {currentIndex + 1} / {words.length} ({progressPercent}%)
+          </span>
+          <span className="text-slate-300 dark:text-slate-700">•</span>
+          <span className="flex items-center gap-1 text-slate-700 dark:text-slate-300 font-mono font-bold bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg">
+            <Clock className="w-3 h-3 text-slate-400" />
+            <span>{formatTime(secondsElapsed)}</span>
+            {durationMinutes > 0 && (
+              <span className="text-slate-400 font-normal">/{durationMinutes}m</span>
+            )}
+          </span>
+        </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Pause Button */}
+          <button
+            type="button"
+            onClick={() => setIsPaused(true)}
+            className="p-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl transition cursor-pointer"
+            title={isVi ? 'Tạm dừng phiên học' : 'Pause session'}
+          >
+            <Pause className="w-3.5 h-3.5" />
+          </button>
+
+          {/* End Early Button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm(isVi ? 'Bạn có muốn kết thúc sớm phiên học và xem thống kê?' : 'End session early and view recap?')) {
+                if (onEndSessionEarly) onEndSessionEarly();
+                else onExitSession();
+              }
+            }}
+            className="p-1.5 bg-slate-100 hover:bg-rose-100 dark:bg-slate-800 dark:hover:bg-rose-950 text-slate-600 hover:text-rose-600 rounded-xl transition cursor-pointer"
+            title={isVi ? 'Kết thúc sớm phiên học' : 'End session early'}
+          >
+            <StopCircle className="w-3.5 h-3.5" />
+          </button>
+
           {/* YouTube Lo-Fi Music Button */}
           <button
             type="button"
             onClick={() => setShowMusicPlayer(prev => !prev)}
-            className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer border ${
+            className={`px-2 py-1 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1 cursor-pointer border ${
               showMusicPlayer
                 ? 'bg-red-500/15 border-red-500/40 text-red-500 shadow-xs'
                 : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
@@ -435,7 +608,7 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
             title="Nghe nhạc YouTube Lo-Fi tập trung"
           >
             <Music className="w-3 h-3 text-red-500" />
-            <span className="hidden sm:inline">{showMusicPlayer ? 'Ẩn nhạc' : 'Nhạc YouTube'}</span>
+            <span className="hidden sm:inline">{showMusicPlayer ? (isVi ? 'Ẩn nhạc' : 'Hide') : 'Lo-Fi'}</span>
           </button>
 
           <span className={`px-2 py-0.5 rounded-full text-[10px] font-black border hidden sm:inline-block ${memoryLevelInfo.color}`}>
@@ -451,11 +624,11 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
               : 'bg-emerald-600 text-white'
           }`}>
             {mode === 'flashcard_reverse' 
-              ? `🔄 Đảo chiều` 
+              ? (isVi ? `🔄 Đảo chiều` : '🔄 Reverse')
               : mode === 'quiz' 
               ? '📝 Quiz' 
               : mode === 'spelling' 
-              ? '✍️ Gõ từ' 
+              ? (isVi ? '✍️ Gõ từ' : '✍️ Typing')
               : `🎴 Flashcard`}
           </span>
         </div>
@@ -472,6 +645,74 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
           <YouTubeFocusPlayer defaultExpanded={true} />
         </div>
       )}
+
+      {/* IN-SESSION ACTIVE WORD CONTROL BAR (REQUIREMENT 134.19) */}
+      <div className="p-2 bg-slate-50 dark:bg-slate-800/60 rounded-2xl border border-slate-200/80 dark:border-slate-700 flex items-center justify-between text-xs gap-1.5 flex-wrap">
+        <div className="flex items-center gap-1">
+          {onToggleFavorite && (
+            <button
+              type="button"
+              onClick={() => onToggleFavorite(currentWord.id)}
+              className={`px-2.5 py-1 rounded-xl font-bold transition flex items-center gap-1 cursor-pointer ${
+                currentWord.isFavorite
+                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-amber-500'
+              }`}
+            >
+              <Star className={`w-3.5 h-3.5 ${currentWord.isFavorite ? 'fill-current text-amber-500' : ''}`} />
+              <span className="hidden sm:inline">{isVi ? 'Yêu thích' : 'Favorite'}</span>
+            </button>
+          )}
+
+          {onToggleDifficult && (
+            <button
+              type="button"
+              onClick={() => onToggleDifficult(currentWord.id)}
+              className={`px-2.5 py-1 rounded-xl font-bold transition flex items-center gap-1 cursor-pointer ${
+                currentWord.isDifficult
+                  ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300'
+                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-yellow-500'
+              }`}
+            >
+              <Lightbulb className="w-3.5 h-3.5 text-yellow-500" />
+              <span className="hidden sm:inline">{isVi ? 'Từ khó' : 'Difficult'}</span>
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1">
+          {/* Skip word button */}
+          <button
+            type="button"
+            onClick={() => {
+              if (onSkipWord) onSkipWord();
+              else triggerNavigateNext();
+            }}
+            className="px-2.5 py-1 bg-white hover:bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold rounded-xl transition flex items-center gap-1 cursor-pointer"
+            title={isVi ? 'Bỏ qua từ này (không trừ điểm)' : 'Skip this word'}
+          >
+            <FastForward className="w-3.5 h-3.5 text-slate-400" />
+            <span>{isVi ? 'Bỏ qua' : 'Skip'}</span>
+          </button>
+
+          {/* Remove from session button */}
+          {words.length > 1 && onRemoveWordFromSession && (
+            <button
+              type="button"
+              onClick={() => {
+                if (confirm(isVi ? 'Xóa từ này khỏi phiên học hiện tại?' : 'Remove this word from active session?')) {
+                  onRemoveWordFromSession(currentWord.id);
+                }
+              }}
+              className="px-2.5 py-1 bg-white hover:bg-rose-50 dark:bg-slate-800 text-slate-400 hover:text-rose-600 font-bold rounded-xl transition flex items-center gap-1 cursor-pointer"
+              title={isVi ? 'Xóa khỏi phiên học này' : 'Remove from session'}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{isVi ? 'Xóa khỏi phiên' : 'Remove'}</span>
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* FLASHCARD / EXERCISE CARD CONTAINER */}
       <div className="relative w-full">
@@ -733,7 +974,7 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
                   disabled={!spellingInput.trim()}
                   className="px-5 py-3 bg-slate-900 hover:bg-black dark:bg-emerald-600 dark:hover:bg-emerald-700 text-white font-bold text-xs rounded-2xl cursor-pointer shadow-xs disabled:opacity-50"
                 >
-                  Kiểm tra
+                  {isVi ? 'Kiểm tra' : 'Check'}
                 </button>
               </div>
             )}
@@ -785,15 +1026,16 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
                     : 'bg-rose-50 text-rose-700 border border-rose-200'
                 }`}>
                   {quizMatch?.isMatch
-                    ? '🎉 Xuất sắc! Bạn đã chọn chính xác.'
-                    : `✕ Chưa chính xác! Đáp án đúng là: "${currentWord.meaning}"`}
+                    ? (isVi ? '🎉 Xuất sắc! Bạn đã chọn chính xác.' : '🎉 Correct! Well done.')
+                    : (isVi ? `✕ Chưa chính xác! Đáp án đúng là: "${currentWord.meaning}"` : `✕ Incorrect! Correct answer is: "${currentWord.meaning}"`)}
                 </div>
                 <button
                   type="button"
                   onClick={() => handleRateWithCompanion(quizMatch?.isMatch ? 3 : 1)}
                   className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center gap-2"
                 >
-                  Tiếp tục câu tiếp theo <ArrowRight className="w-4 h-4" />
+                  <span>{isVi ? 'Tiếp tục câu tiếp theo' : 'Continue to Next Question'}</span>
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             )}
@@ -809,11 +1051,11 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
                   {spellingMatch?.isMatch ? (
                     <div className="flex items-center justify-center gap-1.5">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                      <span>🎉 Gõ chính tả hoàn toàn chính xác!</span>
+                      <span>{isVi ? '🎉 Gõ chính tả hoàn toàn chính xác!' : '🎉 Spelling is completely correct!'}</span>
                     </div>
                   ) : (
                     <div>
-                      <span>✕ Chưa chính xác! Từ đúng là: </span>
+                      <span>{isVi ? '✕ Chưa chính xác! Từ đúng là: ' : '✕ Incorrect! Correct word is: '}</span>
                       <strong className="text-rose-900 underline text-sm">{currentWord.term}</strong>
                     </div>
                   )}
@@ -831,7 +1073,8 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
                   onClick={() => handleRateWithCompanion(spellingMatch?.isMatch ? 3 : 1)}
                   className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center justify-center gap-2"
                 >
-                  Tiếp tục từ tiếp theo <ArrowRight className="w-4 h-4" />
+                  <span>{isVi ? 'Tiếp tục từ tiếp theo' : 'Continue to Next Word'}</span>
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             )}
@@ -855,7 +1098,7 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
               <div className="p-3 bg-amber-50/70 dark:bg-amber-950/30 rounded-2xl border border-amber-100 dark:border-amber-900/40 text-xs flex items-start gap-2 text-amber-900 dark:text-amber-200">
                 <Sparkles className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
                 <span>
-                  <strong>Ghi chú / Mẹo nhớ:</strong> {currentWord.mnemonic || currentWord.notes}
+                  <strong>{isVi ? 'Ghi chú / Mẹo nhớ:' : 'Notes / Mnemonic:'}</strong> {currentWord.mnemonic || currentWord.notes}
                 </span>
               </div>
             )}
@@ -872,7 +1115,7 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
               onClick={onReveal}
               className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs sm:text-sm rounded-2xl shadow-md transition cursor-pointer flex items-center gap-2 mx-auto"
             >
-              <Eye className="w-4 h-4" /> Hiện đáp án & Chi tiết
+              <Eye className="w-4 h-4" /> {isVi ? 'Hiện đáp án & Chi tiết' : 'Show Answer & Details'}
             </button>
           </div>
         )}
@@ -883,7 +1126,7 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
         {isRevealed && (mode === 'flashcard' || mode === 'flashcard_reverse') && (
           <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
             <span className="text-[11px] font-bold text-slate-400 block text-center uppercase tracking-wider">
-              Đánh giá mức độ ghi nhớ (Tháp trí nhớ & Thuật toán SM-2)
+              {isVi ? 'Đánh giá mức độ ghi nhớ (Tháp trí nhớ & Thuật toán SM-2)' : 'Memory Rating (SM-2 Algorithm)'}
             </span>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -893,8 +1136,8 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
                 className="p-3 rounded-2xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/60 dark:bg-rose-950/30 hover:bg-rose-100 text-rose-800 dark:text-rose-300 font-bold text-xs transition cursor-pointer text-center"
               >
                 <span className="block text-base">🔴</span>
-                <span className="block font-black">1. Quên (Again)</span>
-                <span className="text-[10px] text-rose-500">Giảm tầng / Ôn mai</span>
+                <span className="block font-black">{isVi ? '1. Quên (Again)' : '1. Again'}</span>
+                <span className="text-[10px] text-rose-500">{isVi ? 'Giảm tầng / Ôn mai' : 'Reset / Review tomorrow'}</span>
               </button>
 
               <button
@@ -903,8 +1146,8 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
                 className="p-3 rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50/60 dark:bg-amber-950/30 hover:bg-amber-100 text-amber-800 dark:text-amber-300 font-bold text-xs transition cursor-pointer text-center"
               >
                 <span className="block text-base">🟠</span>
-                <span className="block font-black">2. Khó (Hard)</span>
-                <span className="text-[10px] text-amber-500">Ôn sau 1-2 ngày</span>
+                <span className="block font-black">{isVi ? '2. Khó (Hard)' : '2. Hard'}</span>
+                <span className="text-[10px] text-amber-500">{isVi ? 'Ôn sau 1-2 ngày' : 'Review in 1-2 days'}</span>
               </button>
 
               <button
@@ -913,8 +1156,8 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
                 className="p-3 rounded-2xl border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50/60 dark:bg-emerald-950/30 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-300 font-bold text-xs transition cursor-pointer text-center"
               >
                 <span className="block text-base">🟢</span>
-                <span className="block font-black">3. Nhớ tốt (Good)</span>
-                <span className="text-[10px] text-emerald-600">Lên tầng tháp</span>
+                <span className="block font-black">{isVi ? '3. Nhớ tốt (Good)' : '3. Good'}</span>
+                <span className="text-[10px] text-emerald-600">{isVi ? 'Lên tầng tháp' : 'Advance memory level'}</span>
               </button>
 
               <button
@@ -923,8 +1166,8 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
                 className="p-3 rounded-2xl border border-blue-200 dark:border-blue-900/50 bg-blue-50/60 dark:bg-blue-950/30 hover:bg-blue-100 text-blue-800 dark:text-blue-300 font-bold text-xs transition cursor-pointer text-center"
               >
                 <span className="block text-base">🔵</span>
-                <span className="block font-black">4. Dễ dàng (Easy)</span>
-                <span className="text-[10px] text-blue-600">Thăng tiến nhanh</span>
+                <span className="block font-black">{isVi ? '4. Dễ dàng (Easy)' : '4. Easy'}</span>
+                <span className="text-[10px] text-blue-600">{isVi ? 'Thăng tiến nhanh' : 'Fast interval jump'}</span>
               </button>
             </div>
           </div>
@@ -943,14 +1186,14 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
             className="flex items-center gap-1 font-semibold hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer disabled:opacity-25 disabled:pointer-events-none"
           >
             <ChevronLeft className="w-4 h-4" />
-            <span>Từ trước</span>
+            <span>{isVi ? 'Từ trước' : 'Previous'}</span>
           </button>
 
           <div className="flex items-center gap-1.5 text-[11px] font-medium text-slate-400/80">
-            <span className="hidden sm:inline">Phím ← / →</span>
-            <span className="inline sm:hidden">👈 Vuốt qua lại 👉</span>
+            <span className="hidden sm:inline">{isVi ? 'Phím ← / →' : 'Keys ← / →'}</span>
+            <span className="inline sm:hidden">{isVi ? '👈 Vuốt qua lại 👉' : '👈 Swipe 👉'}</span>
             <span>•</span>
-            <span>Chạm để lật thẻ</span>
+            <span>{isVi ? 'Chạm để lật thẻ' : 'Tap to flip'}</span>
           </div>
 
           <button
@@ -958,7 +1201,7 @@ export const StudySessionScreen: React.FC<StudySessionScreenProps> = ({
             onClick={triggerNavigateNext}
             className="flex items-center gap-1 font-semibold hover:text-slate-700 dark:hover:text-slate-200 transition cursor-pointer text-emerald-600 dark:text-emerald-400"
           >
-            <span>{currentIndex + 1 >= words.length ? 'Xong lượt' : 'Từ tiếp'}</span>
+            <span>{currentIndex + 1 >= words.length ? (isVi ? 'Xong lượt' : 'Complete') : (isVi ? 'Từ tiếp' : 'Next')}</span>
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>

@@ -182,7 +182,7 @@ export function FinanceView() {
           <div className="flex items-center gap-2">
             <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">{t('Finance')}</h2>
             <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-              Money
+              {t('Money')}
             </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">{t('Manage cash flow, budgets, and disciplined savings')}</p>
@@ -377,7 +377,7 @@ export function FinanceView() {
             setEditingAccount(null);
           }}
           onSave={(acc: any) => {
-            if (editingAccount) {
+            if (editingAccount?.id) {
               updateFinanceAccount(editingAccount.id, acc);
             } else {
               addFinanceAccount(acc);
@@ -386,7 +386,7 @@ export function FinanceView() {
             setEditingAccount(null);
           }}
           onDelete={(id: string) => {
-            deleteFinanceAccount(id);
+            if (id) deleteFinanceAccount(id);
             setShowAccountModal(false);
             setEditingAccount(null);
           }}
@@ -425,7 +425,7 @@ export function FinanceView() {
             setEditingBudget(null);
           }}
           onSave={(b: any) => {
-            if (editingBudget) {
+            if (editingBudget?.id) {
               updateBudget(editingBudget.id, b);
             } else {
               addBudget(b);
@@ -434,7 +434,7 @@ export function FinanceView() {
             setEditingBudget(null);
           }}
           onDelete={(id: string) => {
-            deleteBudget(id);
+            if (id) deleteBudget(id);
             setShowBudgetModal(false);
             setEditingBudget(null);
           }}
@@ -449,7 +449,7 @@ export function FinanceView() {
             setEditingSavingGoal(null);
           }}
           onSave={(g: any) => {
-            if (editingSavingGoal) {
+            if (editingSavingGoal?.id) {
               updateSavingGoal(editingSavingGoal.id, g);
             } else {
               addSavingGoal(g);
@@ -458,7 +458,7 @@ export function FinanceView() {
             setEditingSavingGoal(null);
           }}
           onDelete={(id: string) => {
-            deleteSavingGoal(id);
+            if (id) deleteSavingGoal(id);
             setShowSavingGoalModal(false);
             setEditingSavingGoal(null);
           }}
@@ -473,7 +473,7 @@ export function FinanceView() {
             setEditingDebt(null);
           }}
           onSave={(d: any) => {
-            if (editingDebt) {
+            if (editingDebt?.id) {
               updateDebt(editingDebt.id, d);
             } else {
               addDebt(d);
@@ -482,7 +482,7 @@ export function FinanceView() {
             setEditingDebt(null);
           }}
           onDelete={(id: string) => {
-            deleteDebt(id);
+            if (id) deleteDebt(id);
             setShowDebtModal(false);
             setEditingDebt(null);
           }}

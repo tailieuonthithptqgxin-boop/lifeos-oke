@@ -66,7 +66,6 @@ export function MyAccountView() {
     upgradePlan,
     logout,
     clearWorkspace,
-    seedSampleData,
     resetOnboarding,
     setCurrentView,
     subscriptionStatus

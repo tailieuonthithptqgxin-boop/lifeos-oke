@@ -5,6 +5,8 @@ import crypto from 'crypto';
 import { dbService, getPrisma } from '../db.js';
 import { requireAuth, AuthRequest, getJwtSecret } from '../auth.middleware.js';
 import { referralService } from '../services/referral.service.js';
+import { gmailService } from '../services/gmailNotification.service.js';
+import { sendEmail } from '../mailer.js';
 import {
   LoginSchema,
   RegisterSchema,
@@ -505,15 +507,41 @@ authRouter.post('/forgot-password', passwordResetRateLimiter, validateBody(Forgo
         { email: cleanEmail }
       );
 
-      // Send email with reset link via SMTP
-      // SEC-007 FIX: Do not leak resetToken in HTTP response in production. In test mode, expose for test verification.
-      if (process.env.NODE_ENV === 'test' || req.headers['x-bypass-csrf-for-test'] === 'true') {
+      // Deliver reset link by email ONLY. Token must never be returned over HTTP in non-test envs.
+      if (process.env.NODE_ENV === 'test') {
         res.json({
           success: true,
           message: 'Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi.',
           resetToken
         });
         return;
+      }
+
+      const appUrl = (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+      const resetUrl = `${appUrl}/?resetToken=${resetToken}`;
+      const mailResult = await gmailService.sendNotification({
+        to: user.email,
+        recipientName: user.name || 'Quý khách',
+        subject: '[Life OS] Yêu cầu đặt lại mật khẩu',
+        category: 'SECURITY',
+        headline: 'Đặt lại mật khẩu tài khoản của bạn',
+        content: `Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản <strong>${user.email}</strong>.<br/><br/>Liên kết có hiệu lực trong <strong>60 phút</strong> và chỉ dùng được một lần.<br/><br/>Mã đặt lại (nếu cần nhập thủ công):<br/><code style="word-break:break-all">${resetToken}</code><br/><br/>Nếu bạn không yêu cầu, hãy bỏ qua email này.`,
+        actionLabel: 'Đặt lại mật khẩu',
+        actionUrl: resetUrl,
+        badgeText: 'Bảo mật',
+        badgeColor: '#ef4444'
+      }).catch((e: any) => ({ sent: false, message: e?.message || 'send failed' }));
+
+      if (!mailResult?.sent) {
+        // Fallback to direct SMTP transport
+        const fallback = await sendEmail(
+          user.email,
+          '[Life OS] Yêu cầu đặt lại mật khẩu',
+          `<p>Liên kết đặt lại mật khẩu (hiệu lực 60 phút): <a href="${resetUrl}">${resetUrl}</a></p><p>Mã: <code>${resetToken}</code></p>`
+        );
+        if (!fallback.sent) {
+          console.error(`[ForgotPassword] Could not deliver reset email to user ${user.id}: ${mailResult?.message} / ${fallback.message}`);
+        }
       }
 
       if (process.env.NODE_ENV !== 'production') {

@@ -6,6 +6,7 @@ import {
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart as RePieChart, Pie, Cell, Legend } from 'recharts';
 import { formatCurrency, formatCompactCurrency } from '../../lib/utils';
 import { FinanceStatCard } from './FinanceStatCard';
+import { useAppStore } from '../../lib/store';
 
 interface FinanceOverviewTabProps {
   totalBalance: number;
@@ -50,10 +51,13 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
   onOpenTxModal,
   onOpenAccountModal
 }) => {
+  const { language } = useAppStore();
+  const isVi = language === 'vi';
+
   const getAccountIcon = (type: string) => {
-    if (type === 'Ngân hàng') return <Landmark className="w-5 h-5" />;
-    if (type === 'Ví điện tử') return <CreditCard className="w-5 h-5" />;
-    if (type === 'Tiết kiệm') return <PiggyBank className="w-5 h-5" />;
+    if (type === 'Ngân hàng' || type === 'Bank') return <Landmark className="w-5 h-5" />;
+    if (type === 'Ví điện tử' || type === 'E-wallet') return <CreditCard className="w-5 h-5" />;
+    if (type === 'Tiết kiệm' || type === 'Savings') return <PiggyBank className="w-5 h-5" />;
     return <Wallet className="w-5 h-5" />;
   };
 
@@ -62,25 +66,25 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
       {/* 4 Core Stat Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <FinanceStatCard 
-          title="Total Net Worth" 
+          title={isVi ? 'Tổng tài sản ròng' : 'Total Net Worth'} 
           value={formatCurrency(totalBalance)} 
           icon={<DollarSign className="w-5 h-5 text-blue-600" />} 
           bg="bg-blue-50 dark:bg-blue-950/40"
         />
         <FinanceStatCard 
-          title="Monthly Income" 
+          title={isVi ? 'Thu nhập tháng' : 'Monthly Income'} 
           value={formatCurrency(monthlyIncome)} 
           icon={<TrendingUp className="w-5 h-5 text-emerald-600" />} 
           bg="bg-emerald-50 dark:bg-emerald-950/40"
         />
         <FinanceStatCard 
-          title="Monthly Expenses" 
+          title={isVi ? 'Chi tiêu tháng' : 'Monthly Expenses'} 
           value={formatCurrency(monthlyExpense)} 
           icon={<TrendingDown className="w-5 h-5 text-rose-600" />} 
           bg="bg-rose-50 dark:bg-rose-950/40"
         />
         <FinanceStatCard 
-          title="Net Income" 
+          title={isVi ? 'Dòng tiền ròng' : 'Net Income'} 
           value={formatCurrency(netIncome)} 
           icon={<Activity className="w-5 h-5 text-purple-600" />} 
           bg="bg-purple-50 dark:bg-purple-950/40"
@@ -96,15 +100,17 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100 dark:border-slate-800">
               <div>
                 <h3 className="font-black text-slate-900 dark:text-white text-base flex items-center gap-2">
-                  <span>Expense & Budget Tracking</span>
+                  <span>{isVi ? 'Theo dõi Chi tiêu & Ngân sách' : 'Expense & Budget Tracking'}</span>
                   {periodFilteredTx.length > 0 && (
                     <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
-                      {periodFilteredTx.length} transactions
+                      {periodFilteredTx.length} {isVi ? 'giao dịch' : 'transactions'}
                     </span>
                   )}
                 </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Visual comparison of actual spending against budget limits and total income.
+                  {isVi 
+                    ? 'Đối sánh trực quan chi tiêu thực tế với định mức ngân sách và tổng thu nhập.' 
+                    : 'Visual comparison of actual spending against budget limits and total income.'}
                 </p>
               </div>
 
@@ -112,11 +118,11 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
               <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl self-start sm:self-auto shrink-0">
                 {(['today', 'week', 'month', 'year', 'all'] as const).map(period => {
                   const labels = {
-                    today: 'Today',
-                    week: 'This Week',
-                    month: 'This Month',
-                    year: 'This Year',
-                    all: 'All Time'
+                    today: isVi ? 'Hôm nay' : 'Today',
+                    week: isVi ? 'Tuần này' : 'This Week',
+                    month: isVi ? 'Tháng này' : 'This Month',
+                    year: isVi ? 'Năm nay' : 'This Year',
+                    all: isVi ? 'Tất cả' : 'All Time'
                   };
                   return (
                     <button
@@ -139,28 +145,36 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
             {/* 4 Essential KPI Badges: Total Spent, Budget, Remaining, Utilization */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Total Spent</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  {isVi ? 'Tổng chi tiêu' : 'Total Spent'}
+                </span>
                 <div className="text-base sm:text-lg font-black text-rose-600 dark:text-rose-400 font-mono">
                   {formatCurrency(periodExpense)}
                 </div>
               </div>
 
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Budget Limit</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  {isVi ? 'Định mức ngân sách' : 'Budget Limit'}
+                </span>
                 <div className="text-base sm:text-lg font-black text-slate-800 dark:text-slate-200 font-mono">
-                  {totalBudgetLimit > 0 ? formatCurrency(totalBudgetLimit) : 'Not set'}
+                  {totalBudgetLimit > 0 ? formatCurrency(totalBudgetLimit) : (isVi ? 'Chưa đặt' : 'Not set')}
                 </div>
               </div>
 
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Remaining Budget</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  {isVi ? 'Ngân sách còn lại' : 'Remaining Budget'}
+                </span>
                 <div className={`text-base sm:text-lg font-black font-mono ${totalBudgetLimit > 0 ? (budgetRemaining > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600') : 'text-slate-400'}`}>
                   {totalBudgetLimit > 0 ? formatCurrency(budgetRemaining) : '---'}
                 </div>
               </div>
 
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800 space-y-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Utilization Rate</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  {isVi ? 'Tỷ lệ sử dụng' : 'Utilization Rate'}
+                </span>
                 <div className="text-base sm:text-lg font-black font-mono flex items-center gap-1.5">
                   {budgetUtilizationPercent !== null ? (
                     <>
@@ -168,11 +182,13 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
                         {budgetUtilizationPercent}%
                       </span>
                       {budgetUtilizationPercent > 100 && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 font-bold">Over Budget</span>
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 font-bold">
+                          {isVi ? 'Vượt trần' : 'Over Budget'}
+                        </span>
                       )}
                     </>
                   ) : (
-                    <span className="text-xs text-slate-400 font-normal">No budget</span>
+                    <span className="text-xs text-slate-400 font-normal">{isVi ? 'Chưa có ngân sách' : 'No budget'}</span>
                   )}
                 </div>
               </div>
@@ -183,13 +199,13 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
               {periodExpense === 0 && (incomeExpenseData.find(d => d.name === 'Income' || d.name === 'Thu nhập')?.amount || 0) === 0 && totalBudgetLimit === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-slate-400 space-y-2">
                   <PieChart className="w-8 h-8 opacity-40" />
-                  <p className="text-xs">No income or expense transactions in this period.</p>
+                  <p className="text-xs">{isVi ? 'Không có giao dịch thu/chi nào trong kỳ này.' : 'No income or expense transactions in this period.'}</p>
                   <button
                     type="button"
                     onClick={onOpenTxModal}
                     className="px-3.5 py-1.5 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 text-xs font-bold hover:bg-blue-100 btn-squishy cursor-pointer"
                   >
-                    + Record First Transaction
+                    {isVi ? '+ Ghi nhận giao dịch đầu tiên' : '+ Record First Transaction'}
                   </button>
                 </div>
               ) : (
@@ -236,13 +252,15 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
           <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 p-5 sm:p-6 space-y-4 interactive-card">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
               <div>
-                <h3 className="font-black text-slate-900 dark:text-white text-base">Expense Breakdown by Category</h3>
+                <h3 className="font-black text-slate-900 dark:text-white text-base">
+                  {isVi ? 'Cơ cấu Chi tiêu theo Danh mục' : 'Expense Breakdown by Category'}
+                </h3>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Distribution of funds spent across categories in the selected period.
+                  {isVi ? 'Phân bổ các khoản chi theo từng nhóm trong kỳ đã chọn.' : 'Distribution of funds spent across categories in the selected period.'}
                 </p>
               </div>
               <span className="text-xs font-bold text-slate-500 font-mono">
-                Total: {formatCurrency(periodExpense)}
+                {isVi ? 'Tổng chi:' : 'Total:'} {formatCurrency(periodExpense)}
               </span>
             </div>
 
@@ -259,7 +277,7 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
                       innerRadius={65} 
                       outerRadius={95} 
                       paddingAngle={3}
-                      label={({ name, percent }: any) => `${name || 'Category'} (${Math.round((Number(percent) || 0) * 100)}%)`}
+                      label={({ name, percent }: any) => `${name || (isVi ? 'Danh mục' : 'Category')} (${Math.round((Number(percent) || 0) * 100)}%)`}
                     >
                       {categoryData.map((_entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -272,7 +290,7 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
               ) : (
                 <div className="flex flex-col h-full items-center justify-center text-slate-400 space-y-1">
                   <PieChart className="w-8 h-8 opacity-40" />
-                  <span className="text-xs">No expense transactions recorded in this period.</span>
+                  <span className="text-xs">{isVi ? 'Chưa ghi nhận khoản chi nào trong kỳ này.' : 'No expense transactions recorded in this period.'}</span>
                 </div>
               )}
             </div>
@@ -282,13 +300,15 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
         {/* Accounts Summary */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 interactive-card">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-slate-900 dark:text-white">Accounts & Wallets</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white">
+              {isVi ? 'Tài khoản & Ví tiền' : 'Accounts & Wallets'}
+            </h3>
             <button
               type="button"
               onClick={() => onOpenAccountModal()}
               className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer btn-squishy"
             >
-              <Plus className="w-3.5 h-3.5" /> Add
+              <Plus className="w-3.5 h-3.5" /> {isVi ? 'Thêm' : 'Add'}
             </button>
           </div>
           <div className="space-y-4">
@@ -309,7 +329,7 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
                     type="button"
                     onClick={() => onOpenAccountModal(acc)}
                     className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-emerald-600 transition-opacity cursor-pointer"
-                    title="Edit account"
+                    title={isVi ? 'Chỉnh sửa tài khoản' : 'Edit account'}
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                   </button>
@@ -321,7 +341,9 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
 
         {/* Budgets Summary */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 lg:col-span-2 interactive-card">
-          <h3 className="font-bold text-slate-900 dark:text-white mb-4">Monthly Budgets</h3>
+          <h3 className="font-bold text-slate-900 dark:text-white mb-4">
+            {isVi ? 'Ngân sách định mức tháng' : 'Monthly Budgets'}
+          </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {budgets.map((budget: any) => {
               const spent = monthlyTx.filter(t => (t.type === 'Chi tiêu' || t.type === 'Expense') && t.category === budget.category).reduce((sum, t) => sum + t.amount, 0);
@@ -334,11 +356,11 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <div className="font-bold text-slate-900 dark:text-white text-sm">{budget.category}</div>
-                      <div className="text-xs font-medium text-slate-500 mt-0.5">Spent {formatCurrency(spent)}</div>
+                      <div className="text-xs font-medium text-slate-500 mt-0.5">{isVi ? 'Đã chi' : 'Spent'} {formatCurrency(spent)}</div>
                     </div>
                     <div className="text-right">
                       <div className="font-bold text-slate-900 dark:text-white text-sm">{formatCurrency(budget.limit)}</div>
-                      <div className="text-xs font-medium text-slate-500 mt-0.5">Remaining {formatCurrency(Math.max(0, budget.limit - spent))}</div>
+                      <div className="text-xs font-medium text-slate-500 mt-0.5">{isVi ? 'Còn lại' : 'Remaining'} {formatCurrency(Math.max(0, budget.limit - spent))}</div>
                     </div>
                   </div>
                   <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 mt-3 overflow-hidden">

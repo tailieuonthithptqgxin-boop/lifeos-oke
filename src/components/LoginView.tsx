@@ -9,7 +9,22 @@ interface LoginViewProps {
 
 export function LoginView({ onBack }: LoginViewProps) {
   const { login } = useAppStore();
-  const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'reset'>('login');
+  const [resetToken, setResetToken] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('resetToken') || params.get('token') || '';
+    }
+    return '';
+  });
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'reset'>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('resetToken') || params.get('token')) {
+        return 'reset';
+      }
+    }
+    return 'login';
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   // Login fields
@@ -33,7 +48,6 @@ export function LoginView({ onBack }: LoginViewProps) {
 
   // Forgot & Reset fields
   const [forgotEmail, setForgotEmail] = useState('');
-  const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
 

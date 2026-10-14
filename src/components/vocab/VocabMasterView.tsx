@@ -32,7 +32,8 @@ import {
   toggleBookmark3000Word,
   set3000WordState,
   save3000WordNotes,
-  buildTodayStudyPlan
+  buildTodayStudyPlan,
+  toggleWordDifficult
 } from '../../lib/vocabEngine';
 
 import { Oxford3000Tab } from './Oxford3000Tab';
@@ -57,6 +58,9 @@ import { LanguageOnboardingModal } from './LanguageOnboardingModal';
 import { VocabSettingsTab } from './VocabSettingsTab';
 import { VocabDashboardTab } from './VocabDashboardTab';
 import { VocabStudyTab, StudyMode } from './VocabStudyTab';
+import { PersonalizedLessonBuilder } from './PersonalizedLessonBuilder';
+import { UniversalSearchModal } from './UniversalSearchModal';
+import { useAppStore } from '../../lib/store';
 
 interface VocabMasterViewProps {
   currentUser?: any;
@@ -66,6 +70,8 @@ type VocabTab = 'dashboard' | 'today' | 'focus' | 'memory' | 'oxford3000' | 'chi
 
 export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
   const userId = currentUser?.id || 'current_user';
+  const { language } = useAppStore();
+  const isVi = language === 'vi';
 
   // Persistence State
   const [vocabData, setVocabData] = useState<VocabUserData>(() => loadVocabData(userId));
@@ -92,6 +98,8 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
   const [selectedCollectionId, setSelectedCollectionId] = useState<string>('all');
   const [showNewCollectionModal, setShowNewCollectionModal] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showUniversalSearchModal, setShowUniversalSearchModal] = useState(false);
+  const [studyDurationMinutes, setStudyDurationMinutes] = useState(15);
 
   // Detail Modal & Bookmark Modal
   const [detailWord, setDetailWord] = useState<VocabWord | null>(null);
@@ -312,10 +320,13 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
     setStudySessionActive(true);
   };
 
-  const handleStartStudyExplicit = (wordsToStudy: VocabWord[], mode: StudyMode = 'flashcard') => {
+  const handleStartStudyExplicit = (wordsToStudy: VocabWord[], mode: StudyMode = 'flashcard', durationMinutes?: number) => {
     if (!wordsToStudy || wordsToStudy.length === 0) {
-      alert('Danh sách từ trống.');
+      alert(isVi ? 'Danh sách từ trống.' : 'Word list is empty.');
       return;
+    }
+    if (durationMinutes !== undefined) {
+      setStudyDurationMinutes(durationMinutes);
     }
     setStudyQueue(wordsToStudy);
     setStudyMode(mode);
@@ -564,13 +575,26 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
               </span>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
-              Hệ thống học từ vựng thông minh, đa nguồn & Spaced Repetition (SM-2) cá nhân hóa chill chill 🌸
+              {isVi 
+                ? 'Hệ thống học từ vựng thông minh, đa nguồn & Spaced Repetition (SM-2) cá nhân hóa chill chill 🌸' 
+                : 'Intelligent, multi-source vocabulary engine & personalized Spaced Repetition (SM-2) 🌸'}
             </p>
           </div>
         </div>
 
         {/* Language selector & quick actions */}
         <div className="flex items-center gap-2 flex-wrap self-start md:self-auto">
+          {/* Universal Search Quick Button */}
+          <button
+            type="button"
+            onClick={() => setShowUniversalSearchModal(true)}
+            className="btn-squishy px-3 py-2 rounded-2xl bg-white/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all cursor-pointer border border-purple-100/60 dark:border-slate-700 flex items-center gap-1.5"
+            title={isVi ? 'Tìm kiếm từ vựng toàn năng' : 'Universal Vocabulary Search'}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+            <span className="hidden sm:inline">{isVi ? 'Tra từ' : 'Search'}</span>
+          </button>
+
           {(vocabData?.languages || []).map(lang => (
             <button
               key={lang.id}
@@ -591,29 +615,55 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
             type="button"
             onClick={() => setShowLanguageOnboarding(true)}
             className="btn-squishy p-2.5 rounded-2xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 text-xs font-bold transition-all cursor-pointer border border-purple-200/50"
-            title="Thêm ngôn ngữ học mới"
+            title={isVi ? 'Thêm ngôn ngữ học mới' : 'Add new learning language'}
           >
             <Plus className="w-4 h-4 stroke-[3]" />
           </button>
         </div>
       </div>
 
-      {/* 2. SUB-NAVIGATION TABS */}
-      <div className="flex items-center gap-1.5 pb-2 overflow-x-auto no-scrollbar">
+      {/* 2. SUB-NAVIGATION TABS (SCIENTIFIC & CLEAN SEGMENTED CONTROL) */}
+      <div className="bg-slate-100/90 dark:bg-slate-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 flex items-center gap-1 overflow-x-auto no-scrollbar shadow-2xs">
+        
+        {/* GROUP 1: HỌC TẬP & LUYỆN TẬP (STUDY & PRACTICE) */}
+        
+        {/* Personalized Learning Room Tab (Featured Requirement 134) */}
+        <button
+          type="button"
+          onClick={() => { setActiveTab('study'); setStudySessionActive(false); }}
+          className={`h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-all cursor-pointer ${
+            activeTab === 'study' && !studySessionActive
+              ? 'bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300 shadow-xs border border-purple-200/80 dark:border-purple-800/60 font-black'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/50'
+          }`}
+        >
+          <Brain className="w-4 h-4 text-emerald-500 shrink-0" />
+          <span>{isVi ? 'Tự chọn bài học' : 'Custom Lesson'}</span>
+          {combinedAnalytics.dueTodayCount > 0 ? (
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-rose-500 text-white font-black">
+              {combinedAnalytics.dueTodayCount}
+            </span>
+          ) : (
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400">
+              🎯
+            </span>
+          )}
+        </button>
+
         {/* Today's Study Plan Tab */}
         <button
           type="button"
           onClick={() => { setActiveTab('today'); setStudySessionActive(false); }}
-          className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === 'today' && !studySessionActive
-              ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700'
+              ? 'bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300 shadow-xs border border-purple-200/80 dark:border-purple-800/60 font-black'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/50'
           }`}
         >
-          <Calendar className="w-4 h-4" />
-          <span>Học hôm nay</span>
+          <Calendar className="w-4 h-4 text-purple-500 shrink-0" />
+          <span>{isVi ? 'Học hôm nay' : "Today's Study"}</span>
           {todayStudyPlan.totalToStudy > 0 && (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white animate-pulse">
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
               {todayStudyPlan.totalToStudy}
             </span>
           )}
@@ -623,16 +673,16 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         <button
           type="button"
           onClick={() => { setActiveTab('focus'); setStudySessionActive(false); }}
-          className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === 'focus' && !studySessionActive
-              ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white shadow-md shadow-indigo-500/25 ring-2 ring-indigo-400/30'
-              : 'text-indigo-600 dark:text-indigo-400 bg-indigo-50/70 hover:bg-indigo-100/80 dark:bg-indigo-950/40 dark:hover:bg-indigo-900/50 border border-indigo-200/60 dark:border-indigo-800/40'
+              ? 'bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 shadow-xs border border-indigo-200/80 dark:border-indigo-800/60 font-black'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/50'
           }`}
         >
-          <Headphones className="w-4 h-4 text-indigo-500 animate-bounce" />
-          <span>Phòng Học Focus + Nhạc 🎧</span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-red-500 text-white flex items-center gap-0.5">
-            <Music className="w-2.5 h-2.5" /> YouTube
+          <Headphones className="w-4 h-4 text-indigo-500 shrink-0" />
+          <span>{isVi ? 'Phòng Focus + Nhạc' : 'Focus + Music'}</span>
+          <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-red-500 text-white flex items-center gap-0.5">
+            <Music className="w-2.5 h-2.5" /> YT
           </span>
         </button>
 
@@ -640,81 +690,72 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         <button
           type="button"
           onClick={() => { setActiveTab('memory'); setStudySessionActive(false); }}
-          className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === 'memory' && !studySessionActive
-              ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700'
+              ? 'bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300 shadow-xs border border-purple-200/80 dark:border-purple-800/60 font-black'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/50'
           }`}
         >
-          <Activity className="w-4 h-4" />
-          <span>Trí nhớ & SM-2 🧠</span>
+          <Activity className="w-4 h-4 text-amber-500 shrink-0" />
+          <span>{isVi ? 'Đường cong trí nhớ' : 'Memory Curve'}</span>
         </button>
 
-        {/* Dashboard Tab */}
-        <button
-          type="button"
-          onClick={() => { setActiveTab('dashboard'); setStudySessionActive(false); }}
-          className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === 'dashboard' && !studySessionActive
-              ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700'
-          }`}
-        >
-          <BarChart2 className="w-4 h-4" /> Tổng quan
-        </button>
+        {/* DIVIDER 1 */}
+        <div className="h-5 w-px bg-slate-300 dark:bg-slate-700 mx-1 shrink-0" />
 
-        {/* 3000 Oxford Words Tab (Featured for English) */}
+        {/* GROUP 2: KHO TỪ VỰNG & BỘ SƯU TẬP (DICTIONARIES & SETS) */}
+
+        {/* Standard Language Dictionary (Oxford 3000 / HSK 1-6 / JLPT N5-N1) */}
         {activeLang.id === 'en' && (
           <button
             type="button"
             onClick={() => { setActiveTab('oxford3000'); setStudySessionActive(false); }}
-            className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-all cursor-pointer ${
               activeTab === 'oxford3000' && !studySessionActive
-                ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700'
+                ? 'bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300 shadow-xs border border-purple-200/80 dark:border-purple-800/60 font-black'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/50'
             }`}
           >
-            <BookOpen className="w-4 h-4" /> 3000 Từ Oxford
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
-              3,522 từ ✨
+            <BookOpen className="w-4 h-4 text-blue-500 shrink-0" />
+            <span>Oxford 3000</span>
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+              3,522
             </span>
           </button>
         )}
 
-        {/* Chinese HSK Vocabulary Tab (Featured for Chinese) */}
         {activeLang.id === 'zh' && (
           <button
             type="button"
             onClick={() => { setActiveTab('chineseHsk'); setStudySessionActive(false); }}
-            className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-all cursor-pointer ${
               activeTab === 'chineseHsk' && !studySessionActive
-                ? 'bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 text-white shadow-md shadow-rose-500/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700'
+                ? 'bg-white dark:bg-slate-800 text-rose-700 dark:text-rose-300 shadow-xs border border-rose-200/80 dark:border-rose-800/60 font-black'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/50'
             }`}
           >
-            <BookOpen className="w-4 h-4 text-rose-500" />
-            <span>Kho từ HSK 1-6</span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
-              10,240 từ 🌸
+            <BookOpen className="w-4 h-4 text-rose-500 shrink-0" />
+            <span>HSK 1-6</span>
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+              10,240
             </span>
           </button>
         )}
 
-        {/* Japanese JLPT Vocabulary Tab (Featured for Japanese) */}
         {activeLang.id === 'ja' && (
           <button
             type="button"
             onClick={() => { setActiveTab('japaneseJlpt'); setStudySessionActive(false); }}
-            className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-all cursor-pointer ${
               activeTab === 'japaneseJlpt' && !studySessionActive
-                ? 'bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-600 text-slate-950 font-black shadow-md shadow-emerald-500/20'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-emerald-50/70 dark:hover:bg-slate-800 hover:text-emerald-700'
+                ? 'bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 shadow-xs border border-emerald-200/80 dark:border-emerald-800/60 font-black'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/50'
             }`}
           >
-            <BookOpen className="w-4 h-4 text-emerald-500" />
-            <span>Kho từ JLPT N5-N1</span>
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-              7,847 từ 🇯🇵
+            <BookOpen className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span>JLPT N5-N1</span>
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+              7,847
             </span>
           </button>
         )}
@@ -723,14 +764,15 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         <button
           type="button"
           onClick={() => { setActiveTab('personal'); setStudySessionActive(false); }}
-          className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === 'personal' && !studySessionActive
-              ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700'
+              ? 'bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300 shadow-xs border border-purple-200/80 dark:border-purple-800/60 font-black'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/50'
           }`}
         >
-          <Bookmark className="w-4 h-4" /> Từ vựng của tôi
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-100 dark:bg-slate-800 text-purple-700 dark:text-purple-300">
+          <Bookmark className="w-4 h-4 text-pink-500 shrink-0" />
+          <span>{isVi ? 'Từ của tôi' : 'My Words'}</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 dark:bg-slate-700 text-purple-700 dark:text-purple-300">
             {langWords.length}
           </span>
         </button>
@@ -739,69 +781,64 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         <button
           type="button"
           onClick={() => { setActiveTab('collections'); setStudySessionActive(false); }}
-          className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
+          className={`h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === 'collections' && !studySessionActive
-              ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700'
+              ? 'bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300 shadow-xs border border-purple-200/80 dark:border-purple-800/60 font-black'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/50'
           }`}
         >
-          <Layers className="w-4 h-4" /> Bộ sưu tập
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-purple-100 dark:bg-slate-800 text-purple-700 dark:text-purple-300">
+          <Layers className="w-4 h-4 text-violet-500 shrink-0" />
+          <span>{isVi ? 'Bộ sưu tập' : 'Collections'}</span>
+          <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 dark:bg-slate-700 text-purple-700 dark:text-purple-300">
             {langCollections.length}
           </span>
         </button>
 
-        {/* Study Center Tab */}
+        {/* DIVIDER 2 */}
+        <div className="h-5 w-px bg-slate-300 dark:bg-slate-700 mx-1 shrink-0" />
+
+        {/* GROUP 3: TỔNG QUAN & HỆ THỐNG (INSIGHTS & SYSTEM) */}
+
+        {/* Dashboard Tab */}
         <button
           type="button"
-          onClick={() => { setActiveTab('study'); setStudySessionActive(false); }}
-          className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-extrabold transition-all flex items-center gap-2 cursor-pointer ${
-            activeTab === 'study' && !studySessionActive
-              ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700'
+          onClick={() => { setActiveTab('dashboard'); setStudySessionActive(false); }}
+          className={`h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-all cursor-pointer ${
+            activeTab === 'dashboard' && !studySessionActive
+              ? 'bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300 shadow-xs border border-purple-200/80 dark:border-purple-800/60 font-black'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/50'
           }`}
         >
-          <Brain className="w-4 h-4 text-emerald-400" />
-          <span>4 Phương pháp Luyện tập 🎯</span>
-          {combinedAnalytics.dueTodayCount > 0 ? (
-            <span className="px-2 py-0.5 rounded-full text-[10px] bg-rose-500 text-white font-black animate-pulse">
-              {combinedAnalytics.dueTodayCount} đến hạn
-            </span>
-          ) : (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 hidden sm:inline">
-              Quiz • Gõ từ
-            </span>
-          )}
+          <BarChart2 className="w-4 h-4 text-teal-500 shrink-0" />
+          <span>{isVi ? 'Tổng quan' : 'Overview'}</span>
         </button>
 
         {/* Quality Audit & Verification Tab */}
         <button
           type="button"
           onClick={() => { setActiveTab('audit'); setStudySessionActive(false); }}
-          className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
+          className={`h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === 'audit' && !studySessionActive
-              ? 'bg-emerald-600 text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              ? 'bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 shadow-xs border border-emerald-200/80 dark:border-emerald-800/60 font-black'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/50'
           }`}
         >
-          <ShieldCheck className="w-4 h-4 text-emerald-500" />
-          <span>Kiểm định chất lượng</span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-            {activeLang.id === 'ja' ? 'JLPT 🇯🇵' : activeLang.id === 'zh' ? 'HSK 🇨🇳' : 'Oxford 🇬🇧'}
-          </span>
+          <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+          <span>{isVi ? 'Kiểm định' : 'Audit'}</span>
         </button>
 
         {/* Settings Tab */}
         <button
           type="button"
           onClick={() => { setActiveTab('settings'); setStudySessionActive(false); }}
-          className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition flex items-center gap-2 cursor-pointer ${
+          className={`h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-all cursor-pointer ${
             activeTab === 'settings' && !studySessionActive
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+              ? 'bg-white dark:bg-slate-800 text-blue-700 dark:text-blue-300 shadow-xs border border-blue-200/80 dark:border-blue-800/60 font-black'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/50'
           }`}
         >
-          <Settings className="w-4 h-4" /> Cài đặt
+          <Settings className="w-4 h-4 text-slate-500 shrink-0" />
+          <span>{isVi ? 'Cài đặt' : 'Settings'}</span>
         </button>
       </div>
 
@@ -833,6 +870,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
             spellingInput={spellingInput}
             spellingChecked={spellingChecked}
             distractorPool={allCombinedWords}
+            durationMinutes={studyDurationMinutes}
             onReveal={() => setIsAnswerRevealed(true)}
             onRate={handleRateReview}
             onNextCard={handleNextCard}
@@ -842,6 +880,12 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
             onCheckSpelling={handleCheckSpelling}
             onExitSession={() => setStudySessionActive(false)}
             onRestartSession={() => handleStartStudy(studyMode, studySource, studyTargetQueue)}
+            onToggleFavorite={handleToggleFavorite}
+            onToggleDifficult={(wordId) => updateVocabData(prev => toggleWordDifficult(prev, wordId))}
+            onSkipWord={handleNextCard}
+            onRemoveWordFromSession={(wordId) => setStudyQueue(prev => prev.filter(w => w.id !== wordId))}
+            onReviewMistakes={(mistakeWords) => handleStartStudyExplicit(mistakeWords, studyMode)}
+            onEndSessionEarly={() => setSessionCompleted(true)}
           />
         )
       )}
@@ -1000,7 +1044,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         />
       )}
 
-      {/* TAB D: COLLECTIONS */}
+      {/* TAB D: COLLECTIONS (MY VOCABULARY SETS) */}
       {!studySessionActive && activeTab === 'collections' && (
         <MyCollectionsTab
           collections={langCollections}
@@ -1014,23 +1058,40 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
           }}
           onStartStudyCollection={(words) => handleStartStudyExplicit(words, 'flashcard')}
           onDeleteCollection={handleDeleteCollection}
+          onDuplicateCollection={(colId) => {
+            const targetCol = langCollections.find(c => c.id === colId);
+            if (!targetCol) return;
+            const newCol: VocabCollection = {
+              ...targetCol,
+              id: 'col_' + Date.now(),
+              title: `${targetCol.title} (Copy)`,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
+            };
+            updateVocabData(prev => ({
+              ...prev,
+              collections: {
+                ...prev.collections,
+                [activeLang.id]: [...(prev.collections[activeLang.id] || []), newCol]
+              }
+            }));
+          }}
         />
       )}
 
-      {/* TAB E: STUDY SESSION CONFIGURATION */}
+      {/* TAB E: PERSONALIZED LESSON BUILDER (REQUIREMENT 134) */}
       {!studySessionActive && activeTab === 'study' && (
-        <VocabStudyTab
-          studySource={studySource}
-          setStudySource={setStudySource}
-          studyTargetQueue={studyTargetQueue}
-          setStudyTargetQueue={setStudyTargetQueue}
-          studyMode={studyMode}
-          setStudyMode={setStudyMode}
-          langWords={langWords}
-          useDedicatedFocusMode={useDedicatedFocusMode}
-          setUseDedicatedFocusMode={setUseDedicatedFocusMode}
-          onStartStudy={handleStartStudy}
+        <PersonalizedLessonBuilder
           activeLang={activeLang}
+          allWords={allCombinedWords}
+          collections={langCollections}
+          userData={vocabData}
+          onUpdateUserData={updateVocabData}
+          onStartStudyExplicit={(words, mode, duration) => {
+            handleStartStudyExplicit(words, mode, duration);
+          }}
+          onOpenUniversalSearch={() => setShowUniversalSearchModal(true)}
+          onOpenWordDetail={(word) => setDetailWord(word)}
         />
       )}
 
@@ -1224,6 +1285,18 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
           onOpenNewCollection={() => setShowNewCollectionModal(true)}
         />
       )}
+
+      {/* 7. Universal Vocabulary Search Modal (Requirement 134.3) */}
+      <UniversalSearchModal
+        isOpen={showUniversalSearchModal}
+        onClose={() => setShowUniversalSearchModal(false)}
+        activeLang={activeLang}
+        collections={langCollections}
+        userData={vocabData}
+        onUpdateUserData={updateVocabData}
+        onStartStudySingle={(word) => handleStartStudyExplicit([word], 'flashcard')}
+        onOpenWordDetail={(word) => setDetailWord(word)}
+      />
 
     </div>
   );

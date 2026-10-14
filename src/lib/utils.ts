@@ -25,12 +25,13 @@ export function formatCompactCurrency(amount: number): string {
   return `${amount} ₫`;
 }
 
-export function formatDate(date: Date | string | number | null | undefined): string {
+export function formatDate(date: Date | string | number | null | undefined, locale?: string): string {
   if (!date) return '';
   try {
     const d = typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
     if (isNaN(d.getTime())) return String(date);
-    return new Intl.DateTimeFormat('en-US', { 
+    const loc = locale === 'vi' ? 'vi-VN' : 'en-US';
+    return new Intl.DateTimeFormat(loc, { 
       year: 'numeric', 
       month: 'short', 
       day: 'numeric' 

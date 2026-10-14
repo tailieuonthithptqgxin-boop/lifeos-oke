@@ -1,61 +1,65 @@
 import React, { useState } from 'react';
-import { X, Check, Sliders, Sparkles, GraduationCap, Briefcase, Zap, Eye, RotateCcw } from 'lucide-react';
+import { X, Check, Sliders, Sparkles, GraduationCap, Briefcase, Zap, RotateCcw } from 'lucide-react';
 import { soundEngine } from '../lib/soundEngine';
 import { ViewState } from '../lib/types';
+import { useAppStore } from '../lib/store';
+import { useTranslation } from '../lib/i18n';
 
-export const NAV_MODULE_METADATA: { id: ViewState; label: string; iconEmoji: string; description: string; group: 'core' | 'space' | 'system' }[] = [
-  { id: 'dashboard', label: 'Hôm nay', iconEmoji: '⚡', description: 'Trạm chỉ huy 3 giây, Daily Trifecta & Streak', group: 'core' },
-  { id: 'focus', label: 'Tập trung (Focus)', iconEmoji: '🧘', description: 'Đồng hồ Pomodoro & Zen Mode', group: 'core' },
-  { id: 'tasks', label: 'Công việc (Tasks)', iconEmoji: '✅', description: 'Quản lý nhiệm vụ, deadline & ma trận ưu tiên', group: 'space' },
-  { id: 'projects', label: 'Dự án (Projects)', iconEmoji: '📁', description: 'Phương pháp P.A.R.A, tiến độ dự án', group: 'space' },
-  { id: 'habits', label: 'Thói quen (Habits)', iconEmoji: '🔥', description: 'Theo dõi chuỗi streak kỉ luật mỗi ngày', group: 'space' },
-  { id: 'finance', label: 'Tài chính (Finance)', iconEmoji: '💳', description: 'Thu chi, Safe-to-Spend & quy tắc 50/30/20', group: 'space' },
-  { id: 'study', label: 'Học tập & Từ vựng', iconEmoji: '📚', description: 'Flashcards Spaced Repetition (JLPT, IELTS, HSK)', group: 'space' },
-  { id: 'notes', label: 'Nhật ký & Ghi chú', iconEmoji: '📝', description: 'Second Brain, ghi chép nhanh & ý tưởng', group: 'space' },
-  { id: 'goals', label: 'Mục tiêu (Goals)', iconEmoji: '🎯', description: 'Mục tiêu năm, quý & OKRs', group: 'space' },
-  { id: 'calendar', label: 'Lịch biểu (Calendar)', iconEmoji: '📅', description: 'Lịch sự kiện & thời gian biểu', group: 'space' },
-  { id: 'marketplace', label: 'Thư viện mẫu', iconEmoji: '🛍️', description: '12 templates cuộc sống thực chiến', group: 'system' },
-  { id: 'automation', label: 'Quy tắc tự động', iconEmoji: '⚙️', description: '16 luật tự động hóa dữ liệu', group: 'system' },
-  { id: 'decision', label: 'Ra quyết định', iconEmoji: '⚖️', description: 'Động cơ cân nhắc quyết định 10/10/10', group: 'system' },
-  { id: 'subscription', label: 'Gói cước & Đội ngũ', iconEmoji: '💎', description: 'Nâng cấp và quản lý thành viên', group: 'system' },
-  { id: 'referral', label: 'Giới thiệu nhận 20%', iconEmoji: '🎁', description: 'Chương trình Affiliate hoa hồng', group: 'system' },
-  { id: 'feedback', label: 'Góp ý & Hỗ trợ', iconEmoji: '💬', description: 'Gửi phản hồi trực tiếp cho đội ngũ', group: 'system' },
+export const NAV_MODULE_METADATA = [
+  { id: 'dashboard' as ViewState, labelVi: 'Hôm nay', labelEn: 'Today', iconEmoji: '⚡', descVi: 'Trạm chỉ huy 3 giây, Daily Trifecta & Streak', descEn: '3-second command center, Daily Trifecta & Streak', group: 'core' },
+  { id: 'focus' as ViewState, labelVi: 'Tập trung', labelEn: 'Focus', iconEmoji: '🧘', descVi: 'Đồng hồ Pomodoro & Zen Mode', descEn: 'Pomodoro timer & Zen Mode', group: 'core' },
+  { id: 'tasks' as ViewState, labelVi: 'Công việc', labelEn: 'Tasks', iconEmoji: '✅', descVi: 'Quản lý nhiệm vụ, deadline & ma trận ưu tiên', descEn: 'Manage tasks, deadlines & priority matrix', group: 'space' },
+  { id: 'projects' as ViewState, labelVi: 'Dự án (P.A.R.A)', labelEn: 'Projects (P.A.R.A)', iconEmoji: '📁', descVi: 'Phương pháp P.A.R.A, tiến độ dự án', descEn: 'P.A.R.A methodology & project milestones', group: 'space' },
+  { id: 'habits' as ViewState, labelVi: 'Thói quen', labelEn: 'Habits', iconEmoji: '🔥', descVi: 'Theo dõi chuỗi streak kỉ luật mỗi ngày', descEn: 'Track daily discipline habit streaks', group: 'space' },
+  { id: 'finance' as ViewState, labelVi: 'Tài chính', labelEn: 'Finance', iconEmoji: '💳', descVi: 'Thu chi, Safe-to-Spend & quy tắc 50/30/20', descEn: 'Cash flow, Safe-to-Spend & 50/30/20 rule', group: 'space' },
+  { id: 'study' as ViewState, labelVi: 'Học tập & Từ vựng', labelEn: 'Study & Vocab', iconEmoji: '📚', descVi: 'Flashcards Spaced Repetition (JLPT, IELTS, HSK)', descEn: 'Spaced Repetition flashcards (JLPT, IELTS, HSK)', group: 'space' },
+  { id: 'notes' as ViewState, labelVi: 'Sổ tay & Ghi chú', labelEn: 'Journal & Notes', iconEmoji: '📝', descVi: 'Second Brain, ghi chép nhanh & ý tưởng', descEn: 'Second Brain, quick notes & ideation', group: 'space' },
+  { id: 'goals' as ViewState, labelVi: 'Mục tiêu', labelEn: 'Goals', iconEmoji: '🎯', descVi: 'Mục tiêu năm, quý & OKRs', descEn: 'Annual, quarterly goals & OKRs', group: 'space' },
+  { id: 'calendar' as ViewState, labelVi: 'Lịch biểu', labelEn: 'Calendar', iconEmoji: '📅', descVi: 'Lịch sự kiện & thời gian biểu', descEn: 'Event schedule & time blocking', group: 'space' },
+  { id: 'marketplace' as ViewState, labelVi: 'Thư viện mẫu', labelEn: 'Templates Marketplace', iconEmoji: '🛍️', descVi: '12 templates cuộc sống thực chiến', descEn: '12 practical life templates', group: 'system' },
+  { id: 'automation' as ViewState, labelVi: 'Quy tắc tự động', labelEn: 'Automation Rules', iconEmoji: '⚙️', descVi: '16 luật tự động hóa dữ liệu', descEn: '16 data automation rules', group: 'system' },
+  { id: 'decision' as ViewState, labelVi: 'Bộ máy ra quyết định', labelEn: 'Decision Engine', iconEmoji: '⚖️', descVi: 'Động cơ cân nhắc quyết định 10/10/10', descEn: '10/10/10 Decision framework engine', group: 'system' },
+  { id: 'subscription' as ViewState, labelVi: 'Gói & Nhóm', labelEn: 'Plans & Team', iconEmoji: '💎', descVi: 'Nâng cấp và quản lý thành viên', descEn: 'Upgrade & manage team members', group: 'system' },
+  { id: 'referral' as ViewState, labelVi: 'Giới thiệu 20%', labelEn: 'Referral 20%', iconEmoji: '🎁', descVi: 'Chương trình Affiliate hoa hồng', descEn: 'Affiliate commission program', group: 'system' },
+  { id: 'feedback' as ViewState, labelVi: 'Góp ý & Hỗ trợ', labelEn: 'Feedback & Support', iconEmoji: '💬', descVi: 'Gửi phản hồi trực tiếp cho đội ngũ', descEn: 'Send direct feedback to our team', group: 'system' },
 ];
 
-export const PRESET_MODES: {
-  id: string;
-  name: string;
-  icon: any;
-  desc: string;
-  allowed: ViewState[];
-}[] = [
+export const PRESET_MODES = [
   {
     id: 'minimalist',
-    name: 'Minimalist (ADHD Focus)',
+    nameVi: 'Minimalist (Tập trung ADHD)',
+    nameEn: 'Minimalist (ADHD Focus)',
     icon: Zap,
-    desc: 'Tối giản nhất, chống quá tải nhận thức · Chỉ 4 mục cốt lõi',
-    allowed: ['dashboard', 'focus', 'tasks', 'notes']
+    descVi: 'Tối giản nhất, chống quá tải nhận thức · Chỉ 4 mục cốt lõi',
+    descEn: 'Maximum minimalism, zero cognitive overload · Core 4 items only',
+    allowed: ['dashboard', 'focus', 'tasks', 'notes'] as ViewState[]
   },
   {
     id: 'student',
-    name: 'Sinh viên & Học bá',
+    nameVi: 'Sinh viên & Học bá',
+    nameEn: 'Student & Academic',
     icon: GraduationCap,
-    desc: 'Tối ưu học thi, từ vựng JLPT/IELTS, thói quen & ví tiền',
-    allowed: ['dashboard', 'focus', 'tasks', 'study', 'habits', 'finance', 'notes']
+    descVi: 'Tối ưu học thi, từ vựng JLPT/IELTS, thói quen & ví tiền',
+    descEn: 'Optimized for exams, vocab flashcards, habits & budget',
+    allowed: ['dashboard', 'focus', 'tasks', 'study', 'habits', 'finance', 'notes'] as ViewState[]
   },
   {
     id: 'builder',
-    name: 'Builder & Freelancer',
+    nameVi: 'Builder & Freelancer',
+    nameEn: 'Builder & Freelancer',
     icon: Briefcase,
-    desc: 'Quản lý dự án khách hàng, tài chính thu cọc, task & tự động hóa',
-    allowed: ['dashboard', 'focus', 'tasks', 'projects', 'finance', 'notes', 'automation']
+    descVi: 'Quản lý dự án khách hàng, tài chính thu cọc, task & tự động hóa',
+    descEn: 'Client projects, cash flow, tasks & automation rules',
+    allowed: ['dashboard', 'focus', 'tasks', 'projects', 'finance', 'notes', 'automation'] as ViewState[]
   },
   {
     id: 'all',
-    name: 'All-In-One (Đầy đủ)',
+    nameVi: 'All-In-One (Đầy đủ)',
+    nameEn: 'All-In-One (Full Suite)',
     icon: Sparkles,
-    desc: 'Mở trọn vẹn toàn bộ 16 mô-đun của hệ điều hành',
-    allowed: NAV_MODULE_METADATA.map(m => m.id)
+    descVi: 'Mở trọn vẹn toàn bộ 16 mô-đun của hệ điều hành',
+    descEn: 'Unlock all 16 operating system modules',
+    allowed: NAV_MODULE_METADATA.map(m => m.id) as ViewState[]
   }
 ];
 
@@ -78,6 +82,8 @@ interface SidebarCustomizerModalProps {
 }
 
 export function SidebarCustomizerModal({ isOpen, onClose, onSaved }: SidebarCustomizerModalProps) {
+  const { language } = useAppStore();
+  const isVi = language === 'vi';
   const [selectedModules, setSelectedModules] = useState<string[]>(() => getVisibleNavModules());
 
   if (!isOpen) return null;
@@ -128,19 +134,24 @@ export function SidebarCustomizerModal({ isOpen, onClose, onSaved }: SidebarCust
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-black text-lg text-white">Cá Nhân Hóa Thanh Sidebar</h3>
+                <h3 className="font-black text-lg text-white">
+                  {isVi ? 'Cá nhân hóa danh mục' : 'Customize Navigation'}
+                </h3>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold">
-                  {selectedModules.length} mục đang bật
+                  {selectedModules.length} {isVi ? 'mục đang bật' : 'items enabled'}
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Ẩn bớt các mục bạn không dùng để giữ không gian làm việc sạch sẽ, chống quá tải nhận thức.
+                {isVi 
+                  ? 'Ẩn bớt các mục bạn không dùng để giữ không gian làm việc sạch sẽ, chống quá tải nhận thức.'
+                  : 'Hide modules you do not use to keep your workspace clean and prevent cognitive overload.'}
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
+            aria-label={isVi ? 'Đóng' : 'Close'}
             className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -152,7 +163,7 @@ export function SidebarCustomizerModal({ isOpen, onClose, onSaved }: SidebarCust
           {/* Quick Presets */}
           <div>
             <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 block mb-2.5">
-              1. Chọn nhanh theo phong cách (Presets)
+              {isVi ? '1. Chọn nhanh theo phong cách (Presets)' : '1. Quick Styles (Presets)'}
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {PRESET_MODES.map(p => {
@@ -175,10 +186,12 @@ export function SidebarCustomizerModal({ isOpen, onClose, onSaved }: SidebarCust
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-xs text-white truncate">{p.name}</span>
+                        <span className="font-bold text-xs text-white truncate">{isVi ? p.nameVi : p.nameEn}</span>
                         {isSelected && <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-2 leading-relaxed">{p.desc}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5 line-clamp-2 leading-relaxed">
+                        {isVi ? p.descVi : p.descEn}
+                      </p>
                     </div>
                   </button>
                 );
@@ -190,14 +203,14 @@ export function SidebarCustomizerModal({ isOpen, onClose, onSaved }: SidebarCust
           <div>
             <div className="flex items-center justify-between mb-2.5">
               <span className="text-[11px] font-black uppercase tracking-wider text-slate-400">
-                2. Bật / Tắt chi tiết từng mô-đun
+                {isVi ? '2. Bật / Tắt chi tiết từng mô-đun' : '2. Toggle Individual Modules'}
               </span>
               <button
                 type="button"
                 onClick={handleReset}
                 className="text-[11px] font-bold text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer"
               >
-                <RotateCcw className="w-3 h-3" /> Mặc định tất cả
+                <RotateCcw className="w-3 h-3" /> {isVi ? 'Mặc định tất cả' : 'Reset to All'}
               </button>
             </div>
 
@@ -219,12 +232,16 @@ export function SidebarCustomizerModal({ isOpen, onClose, onSaved }: SidebarCust
                       <span className="text-base shrink-0">{mod.iconEmoji}</span>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold text-white truncate">{mod.label}</span>
+                          <span className="text-xs font-bold text-white truncate">{isVi ? mod.labelVi : mod.labelEn}</span>
                           {isPermanent && (
-                            <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-slate-700 text-slate-300 font-bold">Cốt lõi</span>
+                            <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-slate-700 text-slate-300 font-bold">
+                              {isVi ? 'Cốt lõi' : 'Core'}
+                            </span>
                           )}
                         </div>
-                        <span className="text-[10px] text-slate-400 block truncate">{mod.description}</span>
+                        <span className="text-[10px] text-slate-400 block truncate">
+                          {isVi ? mod.descVi : mod.descEn}
+                        </span>
                       </div>
                     </div>
 
@@ -243,7 +260,9 @@ export function SidebarCustomizerModal({ isOpen, onClose, onSaved }: SidebarCust
         {/* Footer */}
         <div className="p-4 sm:p-5 border-t border-slate-800 bg-slate-900/80 flex items-center justify-between shrink-0">
           <span className="text-xs text-slate-400">
-            Thay đổi được áp dụng ngay lập tức cho tài khoản của bạn.
+            {isVi 
+              ? 'Thay đổi được áp dụng ngay lập tức cho tài khoản của bạn.'
+              : 'Changes apply immediately to your active workspace.'}
           </span>
           <div className="flex items-center gap-2.5">
             <button
@@ -251,14 +270,14 @@ export function SidebarCustomizerModal({ isOpen, onClose, onSaved }: SidebarCust
               onClick={onClose}
               className="px-4 py-2 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              Hủy
+              {isVi ? 'Hủy bỏ' : 'Cancel'}
             </button>
             <button
               type="button"
               onClick={handleSave}
               className="px-5 py-2 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
             >
-              Áp dụng ngay
+              {isVi ? 'Áp dụng ngay' : 'Apply Now'}
             </button>
           </div>
         </div>

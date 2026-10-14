@@ -11,6 +11,7 @@ import {
 } from 'recharts';
 import { formatCurrency, formatCompactCurrency, formatDate } from '../../lib/utils';
 import { Transaction, Budget } from '../../lib/types';
+import { useAppStore } from '../../lib/store';
 
 interface FinanceMonthlyComparisonTabProps {
   transactions: Transaction[];
@@ -48,6 +49,9 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
   budgets = [],
   onOpenTxModal
 }) => {
+  const { language } = useAppStore();
+  const isVi = language === 'vi';
+
   const [rangeOption, setRangeOption] = useState<MonthRangeOption>('last_3');
   const [customStartMonth, setCustomStartMonth] = useState<string>('');
   const [customEndMonth, setCustomEndMonth] = useState<string>('');
@@ -67,10 +71,10 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
       const y = d.getFullYear();
       const m = d.getMonth() + 1;
       const k = `${y}-${String(m).padStart(2, '0')}`;
-      list.push({ key: k, label: `Month ${m}/${y}`, year: y, month: m });
+      list.push({ key: k, label: isVi ? `Tháng ${m}/${y}` : `Month ${m}/${y}`, year: y, month: m });
     }
     return list;
-  }, [currentYear, currentMonth]);
+  }, [currentYear, currentMonth, isVi]);
 
   // Default custom months if empty
   const defaultStartKey = allAvailableMonthKeys[Math.min(5, allAvailableMonthKeys.length - 1)].key;
@@ -151,8 +155,8 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
         year: y,
         month: m,
         key: k,
-        label: `Month ${m}/${y}`,
-        shortLabel: `M${m}`,
+        label: isVi ? `Tháng ${m}/${y}` : `Month ${m}/${y}`,
+        shortLabel: isVi ? `T.${m}` : `M${m}`,
         startDate,
         endDate,
         daysInMonth,
@@ -169,7 +173,7 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
         totalTxCount: monthTx.length
       };
     });
-  }, [targetMonthKeys, transactions, currentYear, currentMonth, now]);
+  }, [targetMonthKeys, transactions, currentYear, currentMonth, now, isVi]);
 
   // Total transactions in evaluated period
   const totalEvaluatedTxCount = useMemo(() => {
@@ -220,10 +224,10 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
       const pCatMap: Record<string, number> = {};
       pTx.forEach(t => {
         const amt = Number(t.amount) || 0;
-        if (t.type === 'Thu nhập') pInc += amt;
-        else if (t.type === 'Chi tiêu') {
+        if (t.type === 'Thu nhập' || t.type === 'Income') pInc += amt;
+        else if (t.type === 'Chi tiêu' || t.type === 'Expense') {
           pExp += amt;
-          const c = t.category || 'Chưa phân loại';
+          const c = t.category || (isVi ? 'Chưa phân loại' : 'Uncategorized');
           pCatMap[c] = (pCatMap[c] || 0) + amt;
         }
       });
@@ -232,17 +236,17 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
         year: py,
         month: pm,
         key: prevKey,
-        label: `Tháng ${pm}/${py}`,
-        shortLabel: `T.${pm}`,
+        label: isVi ? `Tháng ${pm}/${py}` : `Month ${pm}/${py}`,
+        shortLabel: isVi ? `T.${pm}` : `M${pm}`,
         startDate: pStart,
         endDate: pEnd,
         daysInMonth: pDays,
         daysAnalyzed: pDays,
         isCurrentMonth: false,
         income: pInc,
-        incomeCount: pTx.filter(t => t.type === 'Thu nhập').length,
+        incomeCount: pTx.filter(t => t.type === 'Thu nhập' || t.type === 'Income').length,
         expense: pExp,
-        expenseCount: pTx.filter(t => t.type === 'Chi tiêu').length,
+        expenseCount: pTx.filter(t => t.type === 'Chi tiêu' || t.type === 'Expense').length,
         retained: pInc - pExp,
         retentionRate: pInc > 0 ? ((pInc - pExp) / pInc) * 100 : null,
         avgExpensePerDay: pDays > 0 ? Math.round(pExp / pDays) : 0,
@@ -286,29 +290,29 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
       avgDiff,
       biggestCatChange
     };
-  }, [monthlyMetrics, transactions]);
+  }, [monthlyMetrics, transactions, isVi]);
 
   // 6. RANKINGS ACROSS SELECTED MONTHS (XẾP HẠNG CÁC THÁNG)
   const rankings = useMemo(() => {
     const activeMonths = monthlyMetrics.filter(m => m.totalTxCount > 0);
     if (activeMonths.length === 0) return null;
 
-    // Tháng chi nhiều nhất
+    // Highest expense month
     const highestExpense = [...activeMonths].sort((a, b) => b.expense - a.expense)[0];
     
-    // Tháng chi ít nhất (trong các tháng có chi > 0 hoặc active)
+    // Lowest expense month
     const expenseMonths = activeMonths.filter(m => m.expense > 0);
     const lowestExpense = expenseMonths.length > 0
       ? [...expenseMonths].sort((a, b) => a.expense - b.expense)[0]
       : activeMonths[0];
 
-    // Tháng thu nhiều nhất
+    // Highest income month
     const highestIncome = [...activeMonths].sort((a, b) => b.income - a.income)[0];
 
-    // Tháng giữ lại nhiều nhất (Thu - Chi cao nhất)
+    // Highest retained month
     const highestRetained = [...activeMonths].sort((a, b) => b.retained - a.retained)[0];
 
-    // Tháng có tỷ lệ giữ lại tốt nhất (có thu > 0)
+    // Best retention rate month
     const validRateMonths = activeMonths.filter(m => m.retentionRate !== null);
     const bestRetentionRate = validRateMonths.length > 0 
       ? [...validRateMonths].sort((a, b) => (b.retentionRate ?? -999) - (a.retentionRate ?? -999))[0]
@@ -337,16 +341,16 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
     const avgRet = Math.round(totalRet / count);
 
     // General trend determination
-    let generalTrend = 'Ổn định';
+    let generalTrend = isVi ? 'Ổn định' : 'Stable';
     if (monthlyMetrics.length >= 2) {
       const first = monthlyMetrics[0];
       const last = monthlyMetrics[monthlyMetrics.length - 1];
       if (last.expense > first.expense * 1.15) {
-        generalTrend = 'Chi tiêu có xu hướng gia tăng';
+        generalTrend = isVi ? 'Chi tiêu có xu hướng gia tăng' : 'Spending trending upward';
       } else if (last.expense < first.expense * 0.85) {
-        generalTrend = 'Chi tiêu đang thắt chặt';
+        generalTrend = isVi ? 'Chi tiêu đang thắt chặt' : 'Spending tightening';
       } else if (last.retained > first.retained && last.retained > 0) {
-        generalTrend = 'Tích lũy tài chính cải thiện';
+        generalTrend = isVi ? 'Tích lũy tài chính cải thiện' : 'Savings improving';
       }
     }
 
@@ -360,7 +364,7 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
       avgRet,
       generalTrend
     };
-  }, [monthlyMetrics]);
+  }, [monthlyMetrics, isVi]);
 
   // 8. CATEGORY MATRIX DATA ACROSS MONTHS
   const categoryMatrix = useMemo(() => {
@@ -373,22 +377,22 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
       const first = monthValues[0] || 0;
       const last = monthValues[monthValues.length - 1] || 0;
       let trendType: 'surge' | 'drop' | 'stable' | 'new' | 'inactive' = 'stable';
-      let trendLabel = 'Ổn định';
+      let trendLabel = isVi ? 'Ổn định' : 'Stable';
 
       if (first === 0 && last > 0) {
         trendType = 'new';
-        trendLabel = 'Mới phát sinh';
+        trendLabel = isVi ? 'Mới phát sinh' : 'New';
       } else if (first > 0 && last === 0) {
         trendType = 'inactive';
-        trendLabel = 'Đã dừng chi';
+        trendLabel = isVi ? 'Đã dừng chi' : 'Stopped';
       } else if (first > 0) {
         const pct = ((last - first) / first) * 100;
         if (pct > 25) {
           trendType = 'surge';
-          trendLabel = `Tăng +${pct.toFixed(0)}%`;
+          trendLabel = isVi ? `Tăng +${pct.toFixed(0)}%` : `+${pct.toFixed(0)}% Up`;
         } else if (pct < -25) {
           trendType = 'drop';
-          trendLabel = `Giảm ${pct.toFixed(0)}%`;
+          trendLabel = isVi ? `Giảm ${pct.toFixed(0)}%` : `${pct.toFixed(0)}% Down`;
         }
       }
 
@@ -401,7 +405,7 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
         trendLabel
       };
     }).sort((a, b) => b.total - a.total);
-  }, [allCategories, monthlyMetrics]);
+  }, [allCategories, monthlyMetrics, isVi]);
 
   // 9. DRILL-DOWN DATA FOR SELECTED CATEGORY
   const categoryDrillDownData = useMemo(() => {
@@ -429,14 +433,22 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
         const excess = latest.expense - overallSummary.avgExp;
         list.push({
           type: 'warning',
-          title: `${latest.label} chi cao hơn mức bình quân +${formatCurrency(excess)}`,
-          desc: `Mức chi tiêu ${formatCurrency(latest.expense)} vượt ${(((latest.expense - overallSummary.avgExp) / overallSummary.avgExp) * 100).toFixed(0)}% so với mức trung bình ${formatCurrency(overallSummary.avgExp)} của các tháng được chọn.`,
+          title: isVi
+            ? `${latest.label} chi cao hơn mức bình quân +${formatCurrency(excess)}`
+            : `${latest.label} spending above average +${formatCurrency(excess)}`,
+          desc: isVi
+            ? `Mức chi tiêu ${formatCurrency(latest.expense)} vượt ${(((latest.expense - overallSummary.avgExp) / overallSummary.avgExp) * 100).toFixed(0)}% so với mức trung bình ${formatCurrency(overallSummary.avgExp)} của các tháng được chọn.`
+            : `Spending of ${formatCurrency(latest.expense)} is ${(((latest.expense - overallSummary.avgExp) / overallSummary.avgExp) * 100).toFixed(0)}% above the selected months average of ${formatCurrency(overallSummary.avgExp)}.`,
         });
       } else if (latest.expense < overallSummary.avgExp * 0.8 && latest.expense > 0) {
         list.push({
           type: 'success',
-          title: `${latest.label} tiết giảm chi tiêu ấn tượng`,
-          desc: `Chi tiêu chỉ ở mức ${formatCurrency(latest.expense)}, thấp hơn mức bình quân ${formatCurrency(overallSummary.avgExp)} của cả giai đoạn.`,
+          title: isVi
+            ? `${latest.label} tiết giảm chi tiêu ấn tượng`
+            : `${latest.label} spending noticeably lower`,
+          desc: isVi
+            ? `Chi tiêu chỉ ở mức ${formatCurrency(latest.expense)}, thấp hơn mức bình quân ${formatCurrency(overallSummary.avgExp)} của cả giai đoạn.`
+            : `Spending was ${formatCurrency(latest.expense)}, below the period average of ${formatCurrency(overallSummary.avgExp)}.`,
         });
       }
     }
@@ -446,8 +458,12 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
     if (surgingCat) {
       list.push({
         type: 'warning',
-        title: `Nhóm "${surgingCat.category}" có xu hướng tăng chi mạnh`,
-        desc: `Từ mức ${formatCurrency(surgingCat.monthValues[0])} ở đầu kỳ lên ${formatCurrency(surgingCat.monthValues[surgingCat.monthValues.length - 1])} ở cuối kỳ (${surgingCat.trendLabel}). Nên cân nhắc thiết lập ngân sách trần.`,
+        title: isVi
+          ? `Nhóm "${surgingCat.category}" có xu hướng tăng chi mạnh`
+          : `Category "${surgingCat.category}" trending higher`,
+        desc: isVi
+          ? `Từ mức ${formatCurrency(surgingCat.monthValues[0])} ở đầu kỳ lên ${formatCurrency(surgingCat.monthValues[surgingCat.monthValues.length - 1])} ở cuối kỳ (${surgingCat.trendLabel}). Nên cân nhắc thiết lập ngân sách trần.`
+          : `Rose from ${formatCurrency(surgingCat.monthValues[0])} to ${formatCurrency(surgingCat.monthValues[surgingCat.monthValues.length - 1])} (${surgingCat.trendLabel}). Consider setting a budget limit.`,
       });
     }
 
@@ -458,25 +474,29 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
       if (latestRate > prevRate + 10) {
         list.push({
           type: 'success',
-          title: `Tỷ lệ giữ lại dòng tiền đang cải thiện (+${(latestRate - prevRate).toFixed(1)}%)`,
-          desc: `Tỷ lệ tiền tích lũy tăng từ ${prevRate.toFixed(1)}% lên ${latestRate.toFixed(1)}%, thể hiện kỷ luật chi tiêu đang được nâng cao rõ rệt.`,
+          title: isVi
+            ? `Tỷ lệ giữ lại dòng tiền đang cải thiện (+${(latestRate - prevRate).toFixed(1)}%)`
+            : `Cash retention rate improving (+${(latestRate - prevRate).toFixed(1)}%)`,
+          desc: isVi
+            ? `Tỷ lệ tiền tích lũy tăng từ ${prevRate.toFixed(1)}% lên ${latestRate.toFixed(1)}%, thể hiện kỷ luật chi tiêu đang được nâng cao rõ rệt.`
+            : `Savings rate increased from ${prevRate.toFixed(1)}% to ${latestRate.toFixed(1)}%, demonstrating disciplined cash management.`,
         });
       }
     }
 
     return list.length > 0 ? list : null;
-  }, [totalEvaluatedTxCount, monthlyMetrics, overallSummary, categoryMatrix]);
+  }, [totalEvaluatedTxCount, monthlyMetrics, overallSummary, categoryMatrix, isVi]);
 
   // CHART DATA FOR OVERALL INCOME / EXPENSE / RETAINED
   const chartData = useMemo(() => {
     return monthlyMetrics.map(m => ({
       name: m.shortLabel,
       fullName: m.label,
-      'Thu nhập': m.income,
-      'Chi tiêu': m.expense,
-      'Tiền giữ lại': m.retained
+      [isVi ? 'Thu nhập' : 'Income']: m.income,
+      [isVi ? 'Chi tiêu' : 'Expense']: m.expense,
+      [isVi ? 'Tiền giữ lại' : 'Net Retained']: m.retained
     }));
-  }, [monthlyMetrics]);
+  }, [monthlyMetrics, isVi]);
 
   return (
     <div className="space-y-6">
@@ -488,11 +508,13 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
               <Layers className="w-5 h-5 stroke-[2.5]" />
             </div>
             <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              Phân tích & So sánh các tháng
+              {isVi ? 'Phân tích & So sánh các tháng' : 'Multi-Month Analysis & Comparison'}
             </h3>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 font-medium">
-            Theo dõi xu hướng đa kỳ, đối soát thu chi và biến động từng nhóm danh mục theo thời gian
+            {isVi 
+              ? 'Theo dõi xu hướng đa kỳ, đối soát thu chi và biến động từng nhóm danh mục theo thời gian'
+              : 'Track multi-period trends, reconcile income/expense, and monitor category fluctuations over time'}
           </p>
         </div>
 
@@ -500,10 +522,10 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-2xl text-xs">
             {[
-              { id: 'last_3', label: '3 tháng gần nhất' },
-              { id: 'last_6', label: '6 tháng' },
-              { id: 'last_12', label: '12 tháng' },
-              { id: 'custom', label: 'Tùy chọn' },
+              { id: 'last_3', label: isVi ? '3 tháng gần nhất' : 'Last 3 Months' },
+              { id: 'last_6', label: isVi ? '6 tháng' : 'Last 6 Months' },
+              { id: 'last_12', label: isVi ? '12 tháng' : 'Last 12 Months' },
+              { id: 'custom', label: isVi ? 'Tùy chọn' : 'Custom Range' },
             ].map(r => (
               <button
                 key={r.id}
@@ -557,15 +579,15 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
             <div>
               <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                Đối soát MoM
+                {isVi ? 'Đối soát MoM' : 'MoM Reconciliation'}
               </span>
               <h4 className="text-lg sm:text-xl font-black mt-1.5 flex items-center gap-2">
-                <span>So sánh {momSpotlight.curMetric.label} với {momSpotlight.prevMetric.label}</span>
+                <span>{isVi ? `So sánh ${momSpotlight.curMetric.label} với ${momSpotlight.prevMetric.label}` : `Compare ${momSpotlight.curMetric.label} with ${momSpotlight.prevMetric.label}`}</span>
               </h4>
             </div>
             {!momSpotlight.hasPrevData && (
               <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-3 py-1 rounded-xl border border-amber-500/20 flex items-center gap-1.5 self-start sm:self-auto">
-                <AlertCircle className="w-3.5 h-3.5" /> Chưa có dữ liệu {momSpotlight.prevMetric.label} để so sánh
+                <AlertCircle className="w-3.5 h-3.5" /> {isVi ? `Chưa có dữ liệu ${momSpotlight.prevMetric.label} để so sánh` : `No data for ${momSpotlight.prevMetric.label} to compare`}
               </span>
             )}
           </div>
@@ -573,7 +595,7 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
             {/* Thu MoM */}
             <div className="bg-slate-800/50 p-3.5 rounded-2xl border border-slate-700/50">
-              <span className="text-[11px] font-bold text-slate-400">Tổng thu</span>
+              <span className="text-[11px] font-bold text-slate-400">{isVi ? 'Tổng thu' : 'Total Income'}</span>
               <div className="text-lg font-black font-mono text-emerald-400 mt-0.5">
                 {formatCurrency(momSpotlight.curMetric.income)}
               </div>
@@ -587,13 +609,13 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
                   )}
                 </div>
               ) : (
-                <span className="text-[10px] text-slate-500">Chưa có kỳ đối chiếu</span>
+                <span className="text-[10px] text-slate-500">{isVi ? 'Chưa có kỳ đối chiếu' : 'No prior baseline'}</span>
               )}
             </div>
 
             {/* Chi MoM */}
             <div className="bg-slate-800/50 p-3.5 rounded-2xl border border-slate-700/50">
-              <span className="text-[11px] font-bold text-slate-400">Tổng chi</span>
+              <span className="text-[11px] font-bold text-slate-400">{isVi ? 'Tổng chi' : 'Total Expense'}</span>
               <div className="text-lg font-black font-mono text-rose-400 mt-0.5">
                 {formatCurrency(momSpotlight.curMetric.expense)}
               </div>
@@ -607,13 +629,13 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
                   )}
                 </div>
               ) : (
-                <span className="text-[10px] text-slate-500">Chưa có kỳ đối chiếu</span>
+                <span className="text-[10px] text-slate-500">{isVi ? 'Chưa có kỳ đối chiếu' : 'No prior baseline'}</span>
               )}
             </div>
 
             {/* Giữ lại MoM */}
             <div className="bg-slate-800/50 p-3.5 rounded-2xl border border-slate-700/50">
-              <span className="text-[11px] font-bold text-slate-400">Tiền giữ lại</span>
+              <span className="text-[11px] font-bold text-slate-400">{isVi ? 'Tiền giữ lại' : 'Net Retained'}</span>
               <div className={`text-lg font-black font-mono mt-0.5 ${momSpotlight.curMetric.retained >= 0 ? 'text-blue-400' : 'text-rose-400'}`}>
                 {momSpotlight.curMetric.retained >= 0 ? '+' : ''}{formatCurrency(momSpotlight.curMetric.retained)}
               </div>
@@ -624,13 +646,13 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
                   </span>
                 </div>
               ) : (
-                <span className="text-[10px] text-slate-500">Chưa có kỳ đối chiếu</span>
+                <span className="text-[10px] text-slate-500">{isVi ? 'Chưa có kỳ đối chiếu' : 'No prior baseline'}</span>
               )}
             </div>
 
             {/* Chi TB/ngày MoM */}
             <div className="bg-slate-800/50 p-3.5 rounded-2xl border border-slate-700/50">
-              <span className="text-[11px] font-bold text-slate-400">Chi TB mỗi ngày</span>
+              <span className="text-[11px] font-bold text-slate-400">{isVi ? 'Chi TB mỗi ngày' : 'Daily Avg Spend'}</span>
               <div className="text-lg font-black font-mono text-slate-200 mt-0.5">
                 {formatCurrency(momSpotlight.curMetric.avgExpensePerDay)}
               </div>
@@ -641,7 +663,7 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
                   </span>
                 </div>
               ) : (
-                <span className="text-[10px] text-slate-500">Chưa có kỳ đối chiếu</span>
+                <span className="text-[10px] text-slate-500">{isVi ? 'Chưa có kỳ đối chiếu' : 'No prior baseline'}</span>
               )}
             </div>
           </div>
@@ -650,10 +672,10 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
           {momSpotlight.biggestCatChange && Math.abs(momSpotlight.biggestCatChange.diff) > 0 && (
             <div className="mt-3 pt-3 border-t border-slate-800 text-xs text-slate-300 flex items-center justify-between flex-wrap gap-2">
               <span>
-                Nhóm chi thay đổi nhiều nhất: <strong className="text-white">{momSpotlight.biggestCatChange.category}</strong>
+                {isVi ? 'Nhóm chi thay đổi nhiều nhất:' : 'Category with largest shift:'} <strong className="text-white">{momSpotlight.biggestCatChange.category}</strong>
               </span>
               <span className={`font-mono font-bold ${momSpotlight.biggestCatChange.diff > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
-                {momSpotlight.biggestCatChange.diff > 0 ? 'Tăng +' : 'Giảm -'}{formatCurrency(Math.abs(momSpotlight.biggestCatChange.diff))} so với {momSpotlight.prevMetric.label}
+                {momSpotlight.biggestCatChange.diff > 0 ? (isVi ? 'Tăng +' : 'Increased +') : (isVi ? 'Giảm -' : 'Decreased -')}{formatCurrency(Math.abs(momSpotlight.biggestCatChange.diff))} {isVi ? 'so với' : 'vs'} {momSpotlight.prevMetric.label}
               </span>
             </div>
           )}
@@ -665,42 +687,42 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
         <div className="space-y-4">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Thu bình quân/tháng</span>
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{isVi ? 'Thu bình quân/tháng' : 'Monthly Avg Income'}</span>
               <div className="text-xl font-black font-mono text-emerald-600 dark:text-emerald-400 mt-1">
                 {formatCurrency(overallSummary.avgInc)}
               </div>
               <span className="text-[11px] text-slate-400 mt-1 block">
-                Tổng thu: {formatCompactCurrency(overallSummary.totalInc)} ({overallSummary.count} tháng)
+                {isVi ? 'Tổng thu:' : 'Total Income:'} {formatCompactCurrency(overallSummary.totalInc)} ({overallSummary.count} {isVi ? 'tháng' : 'months'})
               </span>
             </div>
 
             <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Chi bình quân/tháng</span>
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{isVi ? 'Chi bình quân/tháng' : 'Monthly Avg Expense'}</span>
               <div className="text-xl font-black font-mono text-rose-600 dark:text-rose-400 mt-1">
                 {formatCurrency(overallSummary.avgExp)}
               </div>
               <span className="text-[11px] text-slate-400 mt-1 block">
-                Tổng chi: {formatCompactCurrency(overallSummary.totalExp)}
+                {isVi ? 'Tổng chi:' : 'Total Expense:'} {formatCompactCurrency(overallSummary.totalExp)}
               </span>
             </div>
 
             <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Giữ lại bình quân/tháng</span>
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{isVi ? 'Giữ lại bình quân/tháng' : 'Monthly Avg Retained'}</span>
               <div className={`text-xl font-black font-mono mt-1 ${overallSummary.avgRet >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-rose-600'}`}>
                 {overallSummary.avgRet >= 0 ? '+' : ''}{formatCurrency(overallSummary.avgRet)}
               </div>
               <span className="text-[11px] text-slate-400 mt-1 block">
-                Ròng: {formatCompactCurrency(overallSummary.totalRet)}
+                {isVi ? 'Ròng:' : 'Net:'} {formatCompactCurrency(overallSummary.totalRet)}
               </span>
             </div>
 
             <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800">
-              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Xu hướng chung</span>
+              <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{isVi ? 'Xu hướng chung' : 'Overall Trend'}</span>
               <div className="text-sm font-black text-slate-800 dark:text-slate-200 mt-2 truncate">
                 {overallSummary.generalTrend}
               </div>
               <span className="text-[11px] text-slate-400 mt-1 block">
-                Tổng hợp {overallSummary.count} tháng
+                {isVi ? `Tổng hợp ${overallSummary.count} tháng` : `Aggregated over ${overallSummary.count} months`}
               </span>
             </div>
           </div>
@@ -709,14 +731,14 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
           <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800">
             <h4 className="font-black text-slate-900 dark:text-white text-sm flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
               <Award className="w-4 h-4 text-amber-500" />
-              <span>Xếp hạng các tháng trong giai đoạn</span>
+              <span>{isVi ? 'Xếp hạng các tháng trong giai đoạn' : 'Monthly Rankings in Selected Period'}</span>
             </h4>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 pt-3">
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Chi nhiều nhất</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">{isVi ? 'Chi nhiều nhất' : 'Highest Expense'}</span>
                 <div className="font-black text-xs text-rose-600 dark:text-rose-400 mt-1 truncate">
-                  {rankings.highestExpense ? rankings.highestExpense.label : 'Chưa có'}
+                  {rankings.highestExpense ? rankings.highestExpense.label : (isVi ? 'Chưa có' : 'None')}
                 </div>
                 <div className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
                   {rankings.highestExpense ? formatCurrency(rankings.highestExpense.expense) : '0 ₫'}
@@ -724,9 +746,9 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
               </div>
 
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Chi ít nhất</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">{isVi ? 'Chi ít nhất' : 'Lowest Expense'}</span>
                 <div className="font-black text-xs text-emerald-600 dark:text-emerald-400 mt-1 truncate">
-                  {rankings.lowestExpense ? rankings.lowestExpense.label : 'Chưa có'}
+                  {rankings.lowestExpense ? rankings.lowestExpense.label : (isVi ? 'Chưa có' : 'None')}
                 </div>
                 <div className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
                   {rankings.lowestExpense ? formatCurrency(rankings.lowestExpense.expense) : '0 ₫'}
@@ -734,9 +756,9 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
               </div>
 
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Thu nhiều nhất</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">{isVi ? 'Thu nhiều nhất' : 'Highest Income'}</span>
                 <div className="font-black text-xs text-emerald-600 dark:text-emerald-400 mt-1 truncate">
-                  {rankings.highestIncome ? rankings.highestIncome.label : 'Chưa có'}
+                  {rankings.highestIncome ? rankings.highestIncome.label : (isVi ? 'Chưa có' : 'None')}
                 </div>
                 <div className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
                   {rankings.highestIncome ? formatCurrency(rankings.highestIncome.income) : '0 ₫'}
@@ -744,9 +766,9 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
               </div>
 
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Giữ lại nhiều nhất</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">{isVi ? 'Giữ lại nhiều nhất' : 'Highest Retained'}</span>
                 <div className="font-black text-xs text-blue-600 dark:text-blue-400 mt-1 truncate">
-                  {rankings.highestRetained ? rankings.highestRetained.label : 'Chưa có'}
+                  {rankings.highestRetained ? rankings.highestRetained.label : (isVi ? 'Chưa có' : 'None')}
                 </div>
                 <div className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
                   {rankings.highestRetained ? `${rankings.highestRetained.retained >= 0 ? '+' : ''}${formatCurrency(rankings.highestRetained.retained)}` : '0 ₫'}
@@ -754,12 +776,12 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
               </div>
 
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 col-span-2 sm:col-span-1">
-                <span className="text-[10px] font-bold text-slate-400 uppercase">Tỷ lệ giữ lại tốt nhất</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase">{isVi ? 'Tỷ lệ giữ lại tốt nhất' : 'Best Retention Rate'}</span>
                 <div className="font-black text-xs text-purple-600 dark:text-purple-400 mt-1 truncate">
-                  {rankings.bestRetentionRate ? rankings.bestRetentionRate.label : 'Chưa có'}
+                  {rankings.bestRetentionRate ? rankings.bestRetentionRate.label : (isVi ? 'Chưa có' : 'None')}
                 </div>
                 <div className="font-mono text-xs font-bold text-slate-700 dark:text-slate-300">
-                  {rankings.bestRetentionRate && rankings.bestRetentionRate.retentionRate !== null ? `${rankings.bestRetentionRate.retentionRate.toFixed(1)}%` : 'Chưa có'}
+                  {rankings.bestRetentionRate && rankings.bestRetentionRate.retentionRate !== null ? `${rankings.bestRetentionRate.retentionRate.toFixed(1)}%` : (isVi ? 'Chưa có' : 'None')}
                 </div>
               </div>
             </div>
@@ -773,10 +795,10 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
           <div>
             <h4 className="font-black text-slate-900 dark:text-white text-base flex items-center gap-2">
               <BarChart3 className="w-4 h-4 text-emerald-500" />
-              <span>Biểu đồ so sánh Thu - Chi - Tiền giữ lại theo tháng</span>
+              <span>{isVi ? 'Biểu đồ so sánh Thu - Chi - Tiền giữ lại theo tháng' : 'Monthly Income, Expense & Retained Comparison Chart'}</span>
             </h4>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              So sánh đối soát trực quan giữa các tháng trong giai đoạn đã chọn
+              {isVi ? 'So sánh đối soát trực quan giữa các tháng trong giai đoạn đã chọn' : 'Visual reconciliation across months in the selected period'}
             </p>
           </div>
 
@@ -790,7 +812,7 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
                   : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              Cột (Bar)
+              {isVi ? 'Cột (Bar)' : 'Bar Chart'}
             </button>
             <button
               type="button"
@@ -801,7 +823,7 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
                   : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
-              Đường xu hướng (Line)
+              {isVi ? 'Đường xu hướng (Line)' : 'Trend Line'}
             </button>
           </div>
         </div>
@@ -819,9 +841,9 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
                     formatter={(val: any) => [formatCurrency(Number(val)), '']}
                     labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label}
                   />
-                  <Bar dataKey="Thu nhập" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Chi tiêu" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Tiền giữ lại" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey={isVi ? 'Thu nhập' : 'Income'} fill="#10b981" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey={isVi ? 'Chi tiêu' : 'Expense'} fill="#f43f5e" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey={isVi ? 'Tiền giữ lại' : 'Net Retained'} fill="#3b82f6" radius={[4, 4, 0, 0]} />
                 </BarChart>
               ) : (
                 <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
@@ -832,9 +854,9 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
                     formatter={(val: any) => [formatCurrency(Number(val)), '']}
                     labelFormatter={(label, payload) => payload?.[0]?.payload?.fullName || label}
                   />
-                  <Line type="monotone" dataKey="Thu nhập" stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="Chi tiêu" stroke="#f43f5e" strokeWidth={3} dot={{ r: 4 }} />
-                  <Line type="monotone" dataKey="Tiền giữ lại" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} strokeDasharray="4 4" />
+                  <Line type="monotone" dataKey={isVi ? 'Thu nhập' : 'Income'} stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey={isVi ? 'Chi tiêu' : 'Expense'} stroke="#f43f5e" strokeWidth={3} dot={{ r: 4 }} />
+                  <Line type="monotone" dataKey={isVi ? 'Tiền giữ lại' : 'Net Retained'} stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} strokeDasharray="4 4" />
                 </LineChart>
               )}
             </ResponsiveContainer>
@@ -844,15 +866,15 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
         <div className="flex items-center justify-center gap-6 pt-2 text-xs font-bold text-slate-600 dark:text-slate-400">
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-emerald-500" />
-            <span>Thu nhập</span>
+            <span>{isVi ? 'Thu nhập' : 'Income'}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-rose-500" />
-            <span>Chi tiêu</span>
+            <span>{isVi ? 'Chi tiêu' : 'Expense'}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="w-3 h-3 rounded-full bg-blue-500" />
-            <span>Tiền giữ lại (Thu - Chi)</span>
+            <span>{isVi ? 'Tiền giữ lại (Thu - Chi)' : 'Net Retained (Income - Expense)'}</span>
           </div>
         </div>
       </div>
@@ -861,23 +883,23 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
       <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <h4 className="font-black text-slate-900 dark:text-white text-base">
-            Multi-Month Cash Flow Reconciliation Table
+            {isVi ? 'Bảng đối soát dòng tiền đa tháng' : 'Multi-Month Cash Flow Reconciliation Table'}
           </h4>
-          <span className="text-xs font-bold text-slate-400">{monthlyMetrics.length} months</span>
+          <span className="text-xs font-bold text-slate-400">{monthlyMetrics.length} {isVi ? 'tháng' : 'months'}</span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
             <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-wider border-b border-slate-100 dark:border-slate-800">
               <tr>
-                <th className="py-3 px-4">Month</th>
-                <th className="py-3 px-4 text-right">Total Income</th>
-                <th className="py-3 px-4 text-right">Income Diff</th>
-                <th className="py-3 px-4 text-right">Total Expenses</th>
-                <th className="py-3 px-4 text-right">Expense Diff</th>
-                <th className="py-3 px-4 text-right">Avg Daily Spending</th>
-                <th className="py-3 px-4 text-right">Net Retained</th>
-                <th className="py-3 px-4 text-right">Retention Rate</th>
+                <th className="py-3 px-4">{isVi ? 'Tháng' : 'Month'}</th>
+                <th className="py-3 px-4 text-right">{isVi ? 'Tổng thu' : 'Total Income'}</th>
+                <th className="py-3 px-4 text-right">{isVi ? 'Biến động thu' : 'Income Diff'}</th>
+                <th className="py-3 px-4 text-right">{isVi ? 'Tổng chi' : 'Total Expenses'}</th>
+                <th className="py-3 px-4 text-right">{isVi ? 'Biến động chi' : 'Expense Diff'}</th>
+                <th className="py-3 px-4 text-right">{isVi ? 'Chi TB/ngày' : 'Avg Daily Spending'}</th>
+                <th className="py-3 px-4 text-right">{isVi ? 'Tiền giữ lại' : 'Net Retained'}</th>
+                <th className="py-3 px-4 text-right">{isVi ? 'Tỷ lệ giữ lại' : 'Retention Rate'}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -893,7 +915,7 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
                 return (
                   <tr key={m.key} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white whitespace-nowrap">
-                      {m.label} {m.isCurrentMonth && <span className="text-[10px] text-blue-500 font-normal">(Current)</span>}
+                      {m.label} {m.isCurrentMonth && <span className="text-[10px] text-blue-500 font-normal">{isVi ? '(Hiện tại)' : '(Current)'}</span>}
                     </td>
 
                     {/* Thu */}
@@ -945,7 +967,7 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
                           {m.retentionRate.toFixed(1)}%
                         </span>
                       ) : (
-                        <span className="text-slate-400 text-[11px]">No income</span>
+                        <span className="text-slate-400 text-[11px]">{isVi ? 'Không có thu' : 'No income'}</span>
                       )}
                     </td>
                   </tr>
@@ -962,22 +984,22 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
           <div>
             <h4 className="font-black text-slate-900 dark:text-white text-base flex items-center gap-2">
               <PieChartIcon className="w-4 h-4 text-purple-500" />
-              <span>So sánh nhóm chi tiêu giữa các tháng</span>
+              <span>{isVi ? 'So sánh nhóm chi tiêu giữa các tháng' : 'Category Spending Comparison across Months'}</span>
             </h4>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Phát hiện danh mục tăng mạnh, giảm mạnh hoặc mới phát sinh
+              {isVi ? 'Phát hiện danh mục tăng mạnh, giảm mạnh hoặc mới phát sinh' : 'Detect surging, dropping, or newly emerging categories'}
             </p>
           </div>
 
           {/* Category Filter for Drill-down (Section 11) */}
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-400">Xem danh mục:</span>
+            <span className="text-xs font-bold text-slate-400">{isVi ? 'Xem danh mục:' : 'Filter category:'}</span>
             <select
               value={selectedCategory}
               onChange={e => setSelectedCategory(e.target.value)}
               className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold px-3 py-1.5 rounded-xl border-none focus:outline-hidden cursor-pointer"
             >
-              <option value="all">Tất cả danh mục (Ma trận tổng hợp)</option>
+              <option value="all">{isVi ? 'Tất cả danh mục (Ma trận tổng hợp)' : 'All Categories (Summary Matrix)'}</option>
               {allCategories.map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
@@ -990,14 +1012,14 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
           <div className="bg-purple-500/5 p-4 rounded-2xl border border-purple-500/20 space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-purple-600 dark:text-purple-400">
-                Xu hướng chi tiêu nhóm: <strong className="text-purple-950 dark:text-purple-200">{selectedCategory}</strong>
+                {isVi ? 'Xu hướng chi tiêu nhóm:' : 'Spending trend for category:'} <strong className="text-purple-950 dark:text-purple-200">{selectedCategory}</strong>
               </span>
               <button 
                 type="button" 
                 onClick={() => setSelectedCategory('all')}
                 className="text-[11px] font-bold text-purple-600 dark:text-purple-400 hover:underline cursor-pointer"
               >
-                Quay lại xem tất cả
+                {isVi ? 'Quay lại xem tất cả' : 'Back to all categories'}
               </button>
             </div>
             <div className="h-48 w-full">
@@ -1026,14 +1048,14 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
             <table className="w-full text-xs text-left">
               <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-wider border-b border-slate-100 dark:border-slate-800">
                 <tr>
-                  <th className="py-3 px-4">Category</th>
+                  <th className="py-3 px-4">{isVi ? 'Danh mục' : 'Category'}</th>
                   {monthlyMetrics.map(m => (
                     <th key={m.key} className="py-3 px-4 text-right whitespace-nowrap">
                       {m.shortLabel}
                     </th>
                   ))}
-                  <th className="py-3 px-4 text-right">Total Period</th>
-                  <th className="py-3 px-4 text-center">Trend</th>
+                  <th className="py-3 px-4 text-right">{isVi ? 'Tổng kỳ' : 'Period Total'}</th>
+                  <th className="py-3 px-4 text-center">{isVi ? 'Xu hướng' : 'Trend'}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -1082,7 +1104,7 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
           </div>
         ) : (
           <div className="py-8 text-center text-slate-400 text-xs">
-            Chưa có dữ liệu danh mục chi tiêu trong các tháng đã chọn.
+            {isVi ? 'Chưa có dữ liệu danh mục chi tiêu trong các tháng đã chọn.' : 'No category expense data in selected months.'}
           </div>
         )}
       </div>
@@ -1092,9 +1114,9 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
           <h4 className="font-black text-slate-900 dark:text-white text-base flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>Phát hiện biến động & Gợi ý tài chính dài hạn</span>
+            <span>{isVi ? 'Phát hiện biến động & Gợi ý tài chính dài hạn' : 'Fluctuation Detection & Long-term Financial Insights'}</span>
           </h4>
-          <span className="text-[11px] font-bold text-slate-400">Dựa trên dữ liệu thực tế</span>
+          <span className="text-[11px] font-bold text-slate-400">{isVi ? 'Dựa trên dữ liệu thực tế' : 'Based on real data'}</span>
         </div>
 
         {multiMonthInsights ? (
@@ -1123,10 +1145,12 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
           <div className="p-8 text-center bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800">
             <Sparkles className="w-8 h-8 text-slate-400 mx-auto mb-2" />
             <div className="text-sm font-bold text-slate-700 dark:text-slate-300">
-              Chưa đủ dữ liệu để phân tích xu hướng dài hạn.
+              {isVi ? 'Chưa đủ dữ liệu để phân tích xu hướng dài hạn.' : 'Not enough data for long-term trend analysis.'}
             </div>
             <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">
-              Cần ít nhất 2 tháng có ghi nhận giao dịch để hệ thống phân tích đối soát biến động và tạo nhận định dài hạn.
+              {isVi 
+                ? 'Cần ít nhất 2 tháng có ghi nhận giao dịch để hệ thống phân tích đối soát biến động và tạo nhận định dài hạn.'
+                : 'At least 2 months with recorded transactions are required to analyze variance and generate insights.'}
             </p>
           </div>
         )}
@@ -1140,10 +1164,12 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
           </div>
           <div className="max-w-md space-y-1.5">
             <h4 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
-              Chưa có dữ liệu giao dịch trong giai đoạn này
+              {isVi ? 'Chưa có dữ liệu giao dịch trong giai đoạn này' : 'No transaction data in this period'}
             </h4>
             <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-              Các tháng được chọn hiện chưa ghi nhận giao dịch nào. Hãy thêm giao dịch để bắt đầu theo dõi xu hướng đa tháng.
+              {isVi 
+                ? 'Các tháng được chọn hiện chưa ghi nhận giao dịch nào. Hãy thêm giao dịch để bắt đầu theo dõi xu hướng đa tháng.'
+                : 'Selected months currently have no recorded transactions. Add transactions to start tracking multi-month trends.'}
             </p>
           </div>
           <button
@@ -1151,7 +1177,7 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
             onClick={onOpenTxModal}
             className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all shadow-md shadow-emerald-500/20 cursor-pointer"
           >
-            <Plus className="w-4 h-4 stroke-[3]" /> Thêm Giao dịch ngay
+            <Plus className="w-4 h-4 stroke-[3]" /> {isVi ? 'Thêm Giao dịch ngay' : 'Add Transaction Now'}
           </button>
         </div>
       )}

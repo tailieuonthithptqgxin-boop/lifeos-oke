@@ -1,5 +1,6 @@
 import React from 'react';
 import { Plus, Edit3, Trash2 } from 'lucide-react';
+import { useAppStore } from '../../lib/store';
 
 interface FinanceAccountsTabProps {
   financeAccounts: any[];
@@ -18,6 +19,9 @@ export const FinanceAccountsTab: React.FC<FinanceAccountsTabProps> = ({
   onDeleteAccount,
   onAddAccount
 }) => {
+  const { language } = useAppStore();
+  const isVi = language === 'vi';
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {financeAccounts.map((acc: any) => (
@@ -31,19 +35,22 @@ export const FinanceAccountsTab: React.FC<FinanceAccountsTabProps> = ({
                 type="button"
                 onClick={() => onEditAccount(acc)}
                 className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-lg transition-colors cursor-pointer"
-                title="Chỉnh sửa tài khoản"
+                title={isVi ? 'Chỉnh sửa tài khoản' : 'Edit account'}
               >
                 <Edit3 className="w-4 h-4" />
               </button>
               <button
                 type="button"
                 onClick={() => {
-                  if (window.confirm?.(`Bạn có chắc muốn xóa tài khoản "${acc.name}" không?`)) {
+                  const confirmMsg = isVi 
+                    ? `Bạn có chắc muốn xóa tài khoản "${acc.name}" không?` 
+                    : `Are you sure you want to delete account "${acc.name}"?`;
+                  if (window.confirm?.(confirmMsg)) {
                     onDeleteAccount(acc.id);
                   }
                 }}
                 className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors cursor-pointer"
-                title="Xóa tài khoản"
+                title={isVi ? 'Xóa tài khoản' : 'Delete account'}
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -53,7 +60,9 @@ export const FinanceAccountsTab: React.FC<FinanceAccountsTabProps> = ({
           <h3 className="font-bold text-slate-900 dark:text-white text-lg">{acc.name}</h3>
           <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
             <div>
-              <span className="text-[11px] text-slate-400 block">Số dư hiện tại</span>
+              <span className="text-[11px] text-slate-400 block">
+                {isVi ? 'Số dư hiện tại' : 'Current Balance'}
+              </span>
               <div className="text-2xl font-black text-slate-900 dark:text-white font-mono">{formatCurrency(acc.balance)}</div>
             </div>
           </div>
@@ -66,8 +75,12 @@ export const FinanceAccountsTab: React.FC<FinanceAccountsTabProps> = ({
         <div className="w-10 h-10 bg-white dark:bg-slate-700 rounded-full flex items-center justify-center shadow-sm text-slate-600 dark:text-slate-300 mb-3">
           <Plus className="w-5 h-5" />
         </div>
-        <div className="font-bold text-slate-900 dark:text-white">Thêm tài khoản</div>
-        <div className="text-sm text-slate-500 mt-1">Ngân hàng, ví, tiết kiệm...</div>
+        <div className="font-bold text-slate-900 dark:text-white">
+          {isVi ? 'Thêm tài khoản' : 'Add Account'}
+        </div>
+        <div className="text-sm text-slate-500 mt-1">
+          {isVi ? 'Ngân hàng, ví, tiết kiệm...' : 'Bank, wallet, savings...'}
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useAppStore } from '../lib/store';
 import { 
   Play, Square, Pause, RotateCcw, 
@@ -22,8 +23,9 @@ export function FocusView() {
   const { 
     focusSessions, focusGoals, tasks, projects, 
     addFocusSession, updateFocusSession, updateTask,
-    dailyCapacity, currentUser
+    dailyCapacity, currentUser, language, theme
   } = useAppStore();
+  const isVi = language === 'vi';
 
   const [activeSession, setActiveSession] = useState<FocusSession | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -36,6 +38,57 @@ export function FocusView() {
   const [showMusicPanel, setShowMusicPanel] = useState(true);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showShareStory, setShowShareStory] = useState(false);
+
+  // True Fullscreen & Zen Mode API handlers
+  const toggleZenMode = async () => {
+    const nextZen = !isZenMode;
+    setIsZenMode(nextZen);
+    try {
+      if (nextZen) {
+        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+        }
+      } else {
+        if (document.fullscreenElement && document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
+      }
+    } catch {
+      // Ignore user gesture limitations if triggered without direct interaction
+    }
+  };
+
+  // Synchronize Zen Mode with dark class so all UI elements, tooltips and child players render high-contrast dark theme
+  useEffect(() => {
+    if (isZenMode) {
+      document.documentElement.classList.add('dark');
+      return () => {
+        if (theme !== 'dark') {
+          document.documentElement.classList.remove('dark');
+        }
+      };
+    }
+  }, [isZenMode, theme]);
+
+  // Handle escape key and browser fullscreen change events
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement && isZenMode) {
+        setIsZenMode(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isZenMode) {
+        toggleZenMode();
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isZenMode]);
 
   // Companion Dynamic Mood & Dialogue State
   const [companionMood, setCompanionMood] = useState<CompanionMood>('idle');
@@ -131,9 +184,26 @@ export function FocusView() {
     }
   };
 
+  // Restore active running/paused session on mount if one is already recorded
+  useEffect(() => {
+    if (!activeSession && focusSessions && focusSessions.length > 0) {
+      const ongoing = focusSessions.find(s => s.status === 'Running' || s.status === 'Paused');
+      if (ongoing) {
+        setActiveSession(ongoing);
+        if (ongoing.status === 'Running') {
+          sessionStartTsRef.current = Date.now();
+        }
+        accumulatedSecsRef.current = (ongoing.actualDuration || 0) * 60;
+        setElapsedSeconds(accumulatedSecsRef.current);
+      }
+    }
+  }, [focusSessions]);
+
   const startFocus = () => {
     const duration = getDurationForMode(selectedMode);
-    const newSession: any = {
+    const sessionId = `foc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const newSession: FocusSession = {
+      id: sessionId,
       title: selectedTaskId ? (tasks || []).find(t => t.id === selectedTaskId)?.title || 'Không tên' : 'Phiên tự do',
       mode: selectedMode,
       status: 'Running',
@@ -149,6 +219,7 @@ export function FocusView() {
     setElapsedSeconds(0);
     accumulatedSecsRef.current = 0;
     sessionStartTsRef.current = Date.now();
+    try { soundEngine.playPop(); } catch {}
     analytics.track('first_meaningful_action', { action: 'focus_session_started', mode: selectedMode, plannedMinutes: duration });
 
     // Companion reaction
@@ -158,14 +229,23 @@ export function FocusView() {
 
   const pauseFocus = () => {
     if (!activeSession) return;
+    const currentId = activeSession.id || (focusSessions[focusSessions.length - 1]?.id) || `foc_${Date.now()}`;
+    
+    // Stop drift timestamp
     if (sessionStartTsRef.current) {
       accumulatedSecsRef.current += Math.floor((Date.now() - sessionStartTsRef.current) / 1000);
       sessionStartTsRef.current = null;
     }
-    updateFocusSession(activeSession.id, { status: 'Paused' });
-    setActiveSession(prev => prev ? { ...prev, status: 'Paused' } : null);
+    
+    try {
+      updateFocusSession(currentId, { status: 'Paused' });
+    } catch (e) {
+      console.warn('Failed to update focus session to Paused:', e);
+    }
+    
+    setActiveSession(prev => prev ? { ...prev, id: currentId, status: 'Paused' } : null);
     setInterruptionStart(Date.now());
-    setShowInterruptionModal(true);
+    try { soundEngine.playPop(); } catch {}
 
     // Companion reaction
     setCompanionMood('resting');
@@ -174,30 +254,39 @@ export function FocusView() {
 
   const resumeFocus = () => {
     if (!activeSession) return;
-    const durationSecs = Math.floor((Date.now() - interruptionStart) / 1000);
+    const currentId = activeSession.id || (focusSessions[focusSessions.length - 1]?.id) || `foc_${Date.now()}`;
+    const durationSecs = interruptionStart ? Math.floor((Date.now() - interruptionStart) / 1000) : 0;
     
-    const newInterruption = {
+    const newInterruption = interruptionReason ? {
       timestamp: new Date().toISOString(),
-      reason: interruptionReason || 'Không rõ',
+      reason: interruptionReason,
       duration: durationSecs
-    };
+    } : null;
     
-    const updatedInterruptions = [...(activeSession.interruptions || []), newInterruption];
+    const updatedInterruptions = newInterruption 
+      ? [...(activeSession.interruptions || []), newInterruption]
+      : (activeSession.interruptions || []);
     
-    updateFocusSession(activeSession.id, { 
-      status: 'Running',
-      interruptions: updatedInterruptions
-    });
+    try {
+      updateFocusSession(currentId, { 
+        status: 'Running',
+        interruptions: updatedInterruptions
+      });
+    } catch (e) {
+      console.warn('Failed to resume focus session:', e);
+    }
     
     sessionStartTsRef.current = Date.now();
     setActiveSession(prev => prev ? { 
       ...prev, 
+      id: currentId,
       status: 'Running',
       interruptions: updatedInterruptions
     } : null);
     
     setShowInterruptionModal(false);
     setInterruptionReason('');
+    try { soundEngine.playPop(); } catch {}
 
     // Companion reaction
     setCompanionMood('focus');
@@ -206,8 +295,17 @@ export function FocusView() {
 
   const finishFocus = () => {
     if (!activeSession) return;
-    updateFocusSession(activeSession.id, { status: 'Paused' }); // Pause background counter
+    const currentId = activeSession.id || (focusSessions[focusSessions.length - 1]?.id) || `foc_${Date.now()}`;
+    if (sessionStartTsRef.current) {
+      accumulatedSecsRef.current += Math.floor((Date.now() - sessionStartTsRef.current) / 1000);
+      sessionStartTsRef.current = null;
+    }
+    try {
+      updateFocusSession(currentId, { status: 'Paused' });
+    } catch {}
+    setActiveSession(prev => prev ? { ...prev, id: currentId, status: 'Paused' } : null);
     setShowFinishModal(true);
+    try { soundEngine.playPop(); } catch {}
 
     // Companion reaction
     setCompanionMood('celebrate');
@@ -216,15 +314,19 @@ export function FocusView() {
 
   const saveFinishedSession = () => {
     if (!activeSession) return;
+    const currentId = activeSession.id || (focusSessions[focusSessions.length - 1]?.id) || `foc_${Date.now()}`;
+    const actualMinutes = Math.max(1, Math.floor(elapsedSeconds / 60));
     
-    const actualMinutes = Math.floor(elapsedSeconds / 60);
-    
-    updateFocusSession(activeSession.id, {
-      status: 'Completed',
-      actualDuration: actualMinutes,
-      endTime: new Date().toISOString(),
-      reflection: reflection
-    });
+    try {
+      updateFocusSession(currentId, {
+        status: 'Completed',
+        actualDuration: actualMinutes,
+        endTime: new Date().toISOString(),
+        reflection: reflection
+      });
+    } catch (e) {
+      console.warn('Failed to save finished session:', e);
+    }
 
     if (activeSession.taskId) {
       const task = (tasks || []).find(t => t.id === activeSession.taskId);
@@ -236,19 +338,21 @@ export function FocusView() {
     }
 
     // Award XP & Complete Retention Quest
-    soundEngine.playBell();
-    triggerConfetti();
-    webNotification.send('🎉 Hoàn thành phiên Tập trung!', {
-      body: `Bạn vừa hoàn thành xuất sắc ${actualMinutes} phút ${activeSession.mode}. Hãy nghỉ ngơi một chút nhé!`
-    });
-    retentionEngine.addXp(35, `Hoàn thành phiên ${activeSession.mode} Focus (${actualMinutes} phút)`);
-    retentionEngine.completeQuest('focus');
-    analytics.track('focus_session_completed', {
-      mode: activeSession.mode,
-      actualMinutes,
-      plannedMinutes: activeSession.plannedDuration,
-      hasTask: Boolean(activeSession.taskId)
-    });
+    try {
+      soundEngine.playBell();
+      triggerConfetti();
+      webNotification.send('🎉 Hoàn thành phiên Tập trung!', {
+        body: `Bạn vừa hoàn thành xuất sắc ${actualMinutes} phút ${activeSession.mode}. Hãy nghỉ ngơi một chút nhé!`
+      });
+      retentionEngine.addXp(35, `Hoàn thành phiên ${activeSession.mode} Focus (${actualMinutes} phút)`);
+      retentionEngine.completeQuest('focus');
+      analytics.track('focus_session_completed', {
+        mode: activeSession.mode,
+        actualMinutes,
+        plannedMinutes: activeSession.plannedDuration,
+        hasTask: Boolean(activeSession.taskId)
+      });
+    } catch {}
 
     setActiveSession(null);
     setCompanionMood('achievement');
@@ -261,13 +365,31 @@ export function FocusView() {
 
   const cancelFocus = () => {
     if (!activeSession) return;
-    updateFocusSession(activeSession.id, {
-      status: 'Cancelled',
-      actualDuration: Math.floor(elapsedSeconds / 60),
-      endTime: new Date().toISOString()
-    });
+    const currentId = activeSession.id || (focusSessions[focusSessions.length - 1]?.id) || `foc_${Date.now()}`;
+    const confirmed = window.confirm(
+      isVi 
+        ? 'Bạn có chắc chắn muốn hủy phiên tập trung này không?' 
+        : 'Are you sure you want to cancel this focus session?'
+    );
+    if (!confirmed) return;
+
+    try {
+      updateFocusSession(currentId, {
+        status: 'Cancelled',
+        actualDuration: Math.floor(elapsedSeconds / 60),
+        endTime: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Failed to cancel focus session:', e);
+    }
+
     setActiveSession(null);
     setElapsedSeconds(0);
+    accumulatedSecsRef.current = 0;
+    sessionStartTsRef.current = null;
+    setShowInterruptionModal(false);
+    setShowFinishModal(false);
+    try { soundEngine.playPop(); } catch {}
   };
 
   // Stats
@@ -289,9 +411,9 @@ export function FocusView() {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  return (
+  const focusContent = (
     <div className={`p-4 sm:p-6 max-w-6xl mx-auto h-full flex flex-col space-y-6 ${
-      isZenMode ? 'fixed inset-0 z-[999] bg-slate-950 text-white max-w-none p-6 sm:p-12 overflow-y-auto' : ''
+      isZenMode ? 'dark fixed inset-0 z-[99999] w-screen h-screen bg-slate-950 text-slate-100 max-w-none p-6 sm:p-12 overflow-y-auto' : ''
     }`}>
       
       {/* Zen Mode Header Bar */}
@@ -302,24 +424,32 @@ export function FocusView() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                Focus Mode & Ambient Sound
+              <h1 className={`text-xl sm:text-2xl font-black tracking-tight ${
+                isZenMode ? 'text-white' : 'text-slate-900 dark:text-white'
+              }`}>
+                {isVi ? 'Chế độ Tập trung & Âm thanh Ambient' : 'Focus Mode & Ambient Sound'}
               </h1>
               <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                 <Sparkles className="w-3 h-3 text-emerald-500" /> Pomodoro
               </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-              Không gian làm việc sâu kết hợp âm thanh ambient & theo dõi thời gian thực tế
+            <p className={`text-xs font-medium ${
+              isZenMode ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400'
+            }`}>
+              {isVi ? 'Không gian làm việc sâu kết hợp âm thanh ambient & theo dõi thời gian thực tế' : 'Deep work workspace with ambient soundscapes and real-time tracking'}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           {/* Live Co-working Presence */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-bold">
+          <div className={`hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold ${
+            isZenMode
+              ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
+              : 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+          }`}>
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-            <span>🟢 {135 + (new Date().getHours() % 12) * 5} bạn đang Deep Work</span>
+            <span>🟢 {135 + (new Date().getHours() % 12) * 5} {isVi ? 'bạn đang Deep Work' : 'peers in Deep Work'}</span>
           </div>
 
           {/* Weekly Hall of Fame Leaderboard Trigger */}
@@ -330,10 +460,10 @@ export function FocusView() {
               setShowLeaderboard(true);
             }}
             className="px-3 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500/20 to-yellow-500/15 border border-amber-400/40 text-amber-700 dark:text-amber-300 hover:border-amber-400 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs hover:scale-105 active:scale-95"
-            title="Bảng Phong Thần Kỷ Luật Tuần"
+            title={isVi ? "Bảng Phong Thần Kỷ Luật Tuần" : "Weekly Discipline Hall of Fame"}
           >
             <span>🏆</span>
-            <span className="hidden sm:inline">Bảng Phong Thần</span>
+            <span className="hidden sm:inline">{isVi ? 'Bảng Phong Thần' : 'Leaderboard'}</span>
           </button>
 
           <button
@@ -342,20 +472,22 @@ export function FocusView() {
             className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border shadow-2xs ${
               showMusicPanel 
                 ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-600 dark:text-emerald-400' 
-                : 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-emerald-500/40'
+                : isZenMode
+                  ? 'bg-slate-900 border-slate-700 text-slate-300 hover:text-white'
+                  : 'bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:border-emerald-500/40'
             }`}
           >
             <Music className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{showMusicPanel ? 'Ẩn nhạc' : 'Hiện nhạc'}</span>
+            <span className="hidden sm:inline">{showMusicPanel ? (isVi ? 'Ẩn nhạc' : 'Hide Music') : (isVi ? 'Hiện nhạc' : 'Show Music')}</span>
           </button>
 
           <button
             type="button"
-            onClick={() => setIsZenMode(!isZenMode)}
+            onClick={toggleZenMode}
             className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-900 dark:bg-slate-800 text-white hover:bg-slate-800 dark:hover:bg-slate-700 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs border border-slate-700"
           >
             {isZenMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-            <span>{isZenMode ? 'Thoát toàn màn hình' : 'Zen Mode'}</span>
+            <span>{isZenMode ? (isVi ? 'Thoát toàn màn hình (Esc)' : 'Exit Fullscreen (Esc)') : (isVi ? 'Toàn màn hình Zen' : 'Zen Fullscreen')}</span>
           </button>
         </div>
       </div>
@@ -365,34 +497,34 @@ export function FocusView() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 shrink-0">
           <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl shadow-2xs border border-slate-200/80 dark:border-slate-800/80 p-4 flex flex-col justify-center">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Thời gian Focus</span>
+              <span className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">{isVi ? 'Thời gian Focus' : 'Focus Time'}</span>
               <span className="text-xs">⏱️</span>
             </div>
             <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">{Math.floor(totalMinutesToday / 60)}h {totalMinutesToday % 60}m</div>
             <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 mt-2.5 overflow-hidden p-0.5 border border-slate-200 dark:border-slate-700">
               <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }}></div>
             </div>
-            <div className="text-[11px] font-semibold text-slate-400 mt-1">{progressPercent}% mục tiêu {targetMinutes / 60}h</div>
+            <div className="text-[11px] font-semibold text-slate-400 mt-1">{progressPercent}% {isVi ? 'mục tiêu' : 'target'} {targetMinutes / 60}h</div>
           </div>
 
           <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl shadow-2xs border border-slate-200/80 dark:border-slate-800/80 p-4 flex flex-col justify-center">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-wider">Phiên hoàn thành</span>
+              <span className="text-[11px] font-black text-teal-600 dark:text-teal-400 uppercase tracking-wider">{isVi ? 'Phiên hoàn thành' : 'Completed Sessions'}</span>
               <span className="text-xs">🎯</span>
             </div>
             <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">{completedToday.length}</div>
-            <div className="text-[11px] font-semibold text-slate-400 mt-1">/{todaySessions.length} phiên đã bắt đầu</div>
+            <div className="text-[11px] font-semibold text-slate-400 mt-1">/{todaySessions.length} {isVi ? 'phiên đã bắt đầu' : 'started sessions'}</div>
           </div>
 
           <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl shadow-2xs border border-slate-200/80 dark:border-slate-800/80 p-4 flex flex-col justify-center">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider">Gián đoạn</span>
+              <span className="text-[11px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-wider">{isVi ? 'Gián đoạn' : 'Interruptions'}</span>
               <span className="text-xs">🛡️</span>
             </div>
             <div className="text-2xl sm:text-3xl font-black text-amber-500">
               {todaySessions.reduce((acc, curr) => acc + (curr.interruptions?.length || 0), 0)}
             </div>
-            <div className="text-[11px] font-semibold text-slate-400 mt-1">Lần mất tập trung</div>
+            <div className="text-[11px] font-semibold text-slate-400 mt-1">{isVi ? 'Lần mất tập trung' : 'Distractions'}</div>
           </div>
 
           <div className="bg-slate-900 dark:bg-slate-950 border border-emerald-500/30 rounded-2xl shadow-md p-4 flex flex-col justify-center text-white">
@@ -401,9 +533,9 @@ export function FocusView() {
               <span className="text-sm">🔥</span>
             </div>
             <div className="text-2xl sm:text-3xl font-black flex items-center gap-2">
-              {focusStreak} <span className="text-base font-semibold text-emerald-300">ngày</span>
+              {focusStreak} <span className="text-base font-semibold text-emerald-300">{isVi ? 'ngày' : 'days'}</span>
             </div>
-            <div className="text-[11px] font-medium text-slate-400 mt-1">Chuỗi duy trì thực tế</div>
+            <div className="text-[11px] font-medium text-slate-400 mt-1">{isVi ? 'Chuỗi duy trì thực tế' : 'Current active streak'}</div>
           </div>
         </div>
       )}
@@ -413,7 +545,7 @@ export function FocusView() {
         {/* Main Focus Area */}
         <div className={`flex-1 rounded-3xl shadow-sm border p-6 sm:p-10 flex flex-col items-center justify-center relative overflow-hidden transition-all ${
           isZenMode 
-            ? 'bg-slate-950 border-slate-800' 
+            ? 'bg-slate-900/90 border-slate-800 text-slate-100 shadow-2xl' 
             : 'bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-slate-200/80 dark:border-slate-800/80'
         }`}>
           
@@ -423,13 +555,19 @@ export function FocusView() {
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-xs font-bold border border-emerald-500/20 mb-1">
                   <Sparkles className="w-3.5 h-3.5 text-emerald-500" /> Focus Command Center
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Thiết Lập Phiên Tập Trung</h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Chọn chế độ và công việc để tập trung cao độ</p>
+                <h2 className={`text-2xl sm:text-3xl font-black tracking-tight ${
+                  isZenMode ? 'text-white' : 'text-slate-900 dark:text-white'
+                }`}>{isVi ? 'Thiết Lập Phiên Tập Trung' : 'Setup Focus Session'}</h2>
+                <p className={`text-sm font-medium ${
+                  isZenMode ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400'
+                }`}>{isVi ? 'Chọn chế độ và công việc để tập trung cao độ' : 'Select mode and task for deep focus'}</p>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Chế độ Focus</label>
+                  <label className={`text-[11px] font-black uppercase tracking-wider mb-2 block ${
+                    isZenMode ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400'
+                  }`}>{isVi ? 'Chế độ Focus' : 'Focus Mode'}</label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {['Pomodoro', 'Quick', 'Standard', 'Deep'].map((m) => (
                       <button type="button"
@@ -437,8 +575,10 @@ export function FocusView() {
                         onClick={() => setSelectedMode(m as FocusMode)}
                         className={`py-2.5 px-2 rounded-2xl text-sm font-bold border-2 transition-all cursor-pointer text-center
                           ${selectedMode === m 
-                            ? 'border-emerald-500 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-2xs' 
-                            : 'border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-850 text-slate-600 dark:text-slate-400 hover:border-emerald-500/30'}`}
+                            ? 'border-emerald-500 bg-emerald-500/20 text-emerald-400 shadow-2xs' 
+                            : isZenMode
+                              ? 'border-slate-700 bg-slate-800/90 text-slate-200 hover:border-emerald-500/40 hover:text-white'
+                              : 'border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-850 text-slate-600 dark:text-slate-400 hover:border-emerald-500/30'}`}
                       >
                         <div className="text-base font-black">
                           {m === 'Pomodoro' && '25m'}
@@ -453,14 +593,20 @@ export function FocusView() {
                 </div>
 
                 <div>
-                  <label className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2 block">Liên kết Công việc (Tùy chọn)</label>
+                  <label className={`text-[11px] font-black uppercase tracking-wider mb-2 block ${
+                    isZenMode ? 'text-slate-300' : 'text-slate-500 dark:text-slate-400'
+                  }`}>{isVi ? 'Liên kết Công việc (Tùy chọn)' : 'Link Task (Optional)'}</label>
                   <div className="relative">
                     <ListTodo className="w-5 h-5 text-emerald-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <select 
                       value={selectedTaskId} onChange={e => setSelectedTaskId(e.target.value)}
-                      className="w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-semibold text-slate-800 dark:text-slate-200 focus:outline-hidden focus:ring-2 focus:ring-emerald-400 transition-shadow appearance-none cursor-pointer shadow-2xs"
+                      className={`w-full pl-11 pr-4 py-3 rounded-2xl text-sm font-semibold focus:outline-hidden focus:ring-2 focus:ring-emerald-400 transition-shadow appearance-none cursor-pointer shadow-2xs ${
+                        isZenMode
+                          ? 'bg-slate-800 border border-slate-700 text-slate-100'
+                          : 'bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200'
+                      }`}
                     >
-                      <option value="">Phiên tự do (Không liên kết task)</option>
+                      <option value="">{isVi ? 'Phiên tự do (Không liên kết task)' : 'Free session (No linked task)'}</option>
                       {tasks.filter(t => t.status !== 'Hoàn thành' && t.status !== 'Hủy').map(t => (
                         <option key={t.id} value={t.id}>{t.title}</option>
                       ))}
@@ -473,7 +619,7 @@ export function FocusView() {
                 onClick={startFocus}
                 className="w-full py-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-2xl font-black text-base sm:text-lg transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 group cursor-pointer"
               >
-                <Zap className="w-5 h-5 fill-current" /> Bắt đầu Focus ngay
+                <Zap className="w-5 h-5 fill-current" /> {isVi ? 'Bắt đầu Focus ngay' : 'Start Focus Now'}
               </button>
             </div>
           ) : (
@@ -483,7 +629,9 @@ export function FocusView() {
                 <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full text-xs font-black uppercase tracking-wider border border-emerald-500/20 shadow-2xs">
                   <Target className="w-3.5 h-3.5 text-emerald-500" /> {activeSession.mode} Focus Mode
                 </div>
-                <h3 className="text-xl font-black text-slate-900 dark:text-white truncate px-4">{activeSession.title}</h3>
+                <h3 className={`text-xl font-black truncate px-4 ${
+                  isZenMode ? 'text-white' : 'text-slate-900 dark:text-white'
+                }`}>{activeSession.title}</h3>
               </div>
 
               {/* Timer Circle */}
@@ -506,11 +654,20 @@ export function FocusView() {
                   />
                 </svg>
                 <div className="flex flex-col items-center">
+                  {activeSession.status === 'Paused' && (
+                    <span className="text-[11px] font-black uppercase tracking-wider px-3 py-1 rounded-full bg-amber-500/20 text-amber-500 border border-amber-500/30 mb-1 animate-pulse">
+                      ⏸️ {isVi ? 'Đang tạm dừng' : 'Session Paused'}
+                    </span>
+                  )}
                   <div className={`text-5xl font-black tabular-nums tracking-tighter ${activeSession.status === 'Paused' ? 'text-amber-500' : 'text-emerald-500 dark:text-emerald-400'}`}>
                     {formatTime(Math.max(0, activeSession.plannedDuration * 60 - elapsedSeconds))}
                   </div>
-                  <div className="text-xs font-bold text-slate-400 mt-2 px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-700">
-                    ⏱️ {formatTime(elapsedSeconds)} đã trôi qua
+                  <div className={`text-xs font-bold mt-2 px-2.5 py-1 rounded-full border ${
+                    isZenMode
+                      ? 'text-slate-300 bg-slate-800 border-slate-700'
+                      : 'text-slate-400 bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700'
+                  }`}>
+                    ⏱️ {formatTime(elapsedSeconds)} {isVi ? 'đã trôi qua' : 'elapsed'}
                   </div>
                 </div>
               </div>
@@ -521,7 +678,7 @@ export function FocusView() {
                   <button type="button" 
                     onClick={pauseFocus}
                     className="w-16 h-16 rounded-full bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400 flex items-center justify-center hover:bg-amber-200 transition-colors shadow-md cursor-pointer border border-amber-300 dark:border-amber-800"
-                    title="Tạm dừng phiên"
+                    title={isVi ? "Tạm dừng phiên" : "Pause session"}
                   >
                     <Pause className="w-6 h-6 fill-current" />
                   </button>
@@ -529,7 +686,7 @@ export function FocusView() {
                   <button type="button" 
                     onClick={resumeFocus}
                     className="w-16 h-16 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shadow-lg shadow-emerald-500/25 transition-all cursor-pointer font-black"
-                    title="Tiếp tục phiên"
+                    title={isVi ? "Tiếp tục phiên" : "Resume session"}
                   >
                     <Play className="w-6 h-6 fill-current ml-1" />
                   </button>
@@ -538,7 +695,7 @@ export function FocusView() {
                 <button type="button" 
                   onClick={finishFocus}
                   className="w-16 h-16 rounded-full bg-slate-900 text-white dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 flex items-center justify-center shadow-lg border border-slate-700 transition-all cursor-pointer"
-                  title="Hoàn thành phiên"
+                  title={isVi ? "Hoàn thành phiên" : "Finish session"}
                 >
                   <CheckCircle2 className="w-7 h-7 text-emerald-400" />
                 </button>
@@ -546,11 +703,23 @@ export function FocusView() {
                 <button type="button" 
                   onClick={cancelFocus}
                   className="btn-squishy w-12 h-12 rounded-full bg-rose-50 dark:bg-rose-950/40 text-rose-500 border border-rose-200 dark:border-rose-900 flex items-center justify-center hover:bg-rose-100 transition-colors cursor-pointer"
-                  title="Hủy phiên"
+                  title={isVi ? "Hủy phiên" : "Cancel session"}
                 >
                   <Square className="w-4 h-4 fill-current" />
                 </button>
               </div>
+
+              {activeSession.status === 'Paused' && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowInterruptionModal(true)}
+                    className="text-xs font-bold text-purple-600 dark:text-purple-400 hover:text-purple-500 underline decoration-dotted transition cursor-pointer"
+                  >
+                    💭 {isVi ? 'Ghi nhận lý do gián đoạn / ghi chú' : 'Log interruption reason'}
+                  </button>
+                </div>
+              )}
 
             </div>
           )}
@@ -568,12 +737,12 @@ export function FocusView() {
             <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-3xl shadow-sm border border-purple-100/80 dark:border-purple-900/40 overflow-hidden flex flex-col flex-1">
               <div className="p-4 border-b border-purple-100/60 dark:border-slate-800 bg-purple-50/40 dark:bg-purple-950/20">
                 <h3 className="font-extrabold text-slate-900 dark:text-white flex items-center gap-2 text-xs uppercase tracking-wider">
-                  <Clock className="w-4 h-4 text-purple-500" /> Lịch sử hôm nay 📅
+                  <Clock className="w-4 h-4 text-purple-500" /> {isVi ? 'Lịch sử hôm nay 📅' : "Today's History 📅"}
                 </h3>
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-72">
                 {todaySessions.length === 0 ? (
-                  <div className="text-center text-xs text-slate-400 py-8">Chưa có phiên nào hôm nay. Hãy bắt đầu ngay! 🌸</div>
+                  <div className="text-center text-xs text-slate-400 py-8">{isVi ? 'Chưa có phiên nào hôm nay. Hãy bắt đầu ngay! 🌸' : 'No focus sessions yet today. Start right now! 🌸'}</div>
                 ) : (
                   todaySessions.map(session => (
                     <div key={session.id} className="p-3 bg-purple-50/30 dark:bg-slate-800/40 rounded-2xl border border-purple-100/50 dark:border-purple-900/30 text-xs transition-all hover:border-purple-200">
@@ -583,14 +752,14 @@ export function FocusView() {
                           ${session.status === 'Completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200' : 
                             session.status === 'Cancelled' ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' :
                             'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-400'}`}>
-                          {session.status}
+                          {isVi ? (session.status === 'Completed' ? 'Hoàn thành' : session.status === 'Cancelled' ? 'Đã hủy' : session.status) : (session.status === 'Completed' ? 'Completed' : session.status === 'Cancelled' ? 'Cancelled' : session.status)}
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-2 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                         <span className="flex items-center gap-1"><Target className="w-3 h-3 text-purple-400" /> {session.mode} ({session.plannedDuration}m)</span>
-                        <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-pink-400" /> Thực: {session.actualDuration}m</span>
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-pink-400" /> {isVi ? 'Thực:' : 'Actual:'} {session.actualDuration}m</span>
                         {session.interruptions && session.interruptions.length > 0 && (
-                          <span className="flex items-center gap-1 text-amber-600"><ShieldAlert className="w-3 h-3" /> {session.interruptions.length} gián đoạn</span>
+                          <span className="flex items-center gap-1 text-amber-600"><ShieldAlert className="w-3 h-3" /> {session.interruptions.length} {isVi ? 'gián đoạn' : 'interruptions'}</span>
                         )}
                       </div>
                     </div>
@@ -609,11 +778,11 @@ export function FocusView() {
       {showInterruptionModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-purple-100 dark:border-purple-900 w-full max-w-sm overflow-hidden p-6 animate-in fade-in zoom-in-95">
-            <h3 className="text-lg font-black text-slate-900 dark:text-white mb-1">Ghi nhận Gián đoạn 💭</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 font-medium">Lý do bạn tạm dừng phiên này là gì?</p>
+            <h3 className="text-lg font-black text-slate-900 dark:text-white mb-1">{isVi ? 'Ghi nhận Gián đoạn 💭' : 'Log Interruption 💭'}</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 font-medium">{isVi ? 'Lý do bạn tạm dừng phiên này là gì?' : 'What caused you to pause this session?'}</p>
             
             <div className="space-y-2 mb-6">
-              {['Điện thoại/Mạng xã hội', 'Có người gọi/Họp đột xuất', 'Nhu cầu cá nhân', 'Nghỉ giải lao', 'Khác'].map(reason => (
+              {(isVi ? ['Điện thoại/Mạng xã hội', 'Có người gọi/Họp đột xuất', 'Nhu cầu cá nhân', 'Nghỉ giải lao', 'Khác'] : ['Phone/Social media', 'Incoming call/Urgent meeting', 'Personal needs', 'Break', 'Other']).map(reason => (
                 <button type="button"
                   key={reason}
                   onClick={() => setInterruptionReason(reason)}
@@ -625,12 +794,20 @@ export function FocusView() {
               ))}
             </div>
             
-            <button type="button" 
-              onClick={resumeFocus}
-              className="btn-squishy w-full py-3.5 bg-gradient-to-r from-violet-600 to-pink-500 text-white rounded-2xl font-extrabold hover:opacity-95 transition-all shadow-md cursor-pointer"
-            >
-              Tiếp tục Focus ✨
-            </button>
+            <div className="flex items-center gap-2">
+              <button type="button" 
+                onClick={() => setShowInterruptionModal(false)}
+                className="btn-squishy flex-1 py-3 text-slate-600 dark:text-slate-300 font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl hover:bg-slate-50 cursor-pointer text-xs"
+              >
+                {isVi ? 'Để sau (Giữ tạm dừng)' : 'Dismiss (Keep Paused)'}
+              </button>
+              <button type="button" 
+                onClick={resumeFocus}
+                className="btn-squishy flex-1 py-3 bg-gradient-to-r from-violet-600 to-pink-500 text-white rounded-2xl font-extrabold hover:opacity-95 transition-all shadow-md cursor-pointer text-xs"
+              >
+                {isVi ? 'Tiếp tục Focus ✨' : 'Resume Focus ✨'}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -643,16 +820,16 @@ export function FocusView() {
               <div className="w-16 h-16 bg-gradient-to-tr from-emerald-400 to-teal-400 text-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald-500/25 animate-wiggle">
                 <CheckCircle2 className="w-8 h-8" />
               </div>
-              <h3 className="text-xl font-black text-slate-900 dark:text-white">Hoàn thành xuất sắc! 🎉</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Bạn đã focus chăm chỉ được <strong className="text-purple-600 dark:text-purple-400 font-extrabold">{Math.floor(elapsedSeconds / 60)} phút</strong>.</p>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white">{isVi ? 'Hoàn thành xuất sắc! 🎉' : 'Awesome Completion! 🎉'}</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{isVi ? <>Bạn đã focus chăm chỉ được <strong className="text-purple-600 dark:text-purple-400 font-extrabold">{Math.floor(elapsedSeconds / 60)} phút</strong>.</> : <>You focused diligently for <strong className="text-purple-600 dark:text-purple-400 font-extrabold">{Math.floor(elapsedSeconds / 60)} minutes</strong>.</>}</p>
             </div>
             
             <div className="p-6">
-              <label className="block text-xs font-extrabold text-purple-600 dark:text-purple-400 mb-2 uppercase tracking-wider">Ghi chú / Kết quả đạt được (Tùy chọn) 📝</label>
+              <label className="block text-xs font-extrabold text-purple-600 dark:text-purple-400 mb-2 uppercase tracking-wider">{isVi ? 'Ghi chú / Kết quả đạt được (Tùy chọn) 📝' : 'Reflection / Key Outcomes (Optional) 📝'}</label>
               <textarea 
                 value={reflection} onChange={e => setReflection(e.target.value)}
                 className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-purple-100 dark:border-purple-900/50 rounded-2xl text-sm font-medium focus:outline-hidden focus:ring-2 focus:ring-purple-400 min-h-[100px] text-slate-800 dark:text-slate-100"
-                placeholder="Tôi đã hoàn thành phần 1, phát hiện thêm lỗi ở module user..."
+                placeholder={isVi ? "Tôi đã hoàn thành phần 1, phát hiện thêm lỗi ở module user..." : "Completed section 1, discovered edge case in user module..."}
               ></textarea>
             </div>
 
@@ -661,13 +838,13 @@ export function FocusView() {
                 onClick={() => setShowFinishModal(false)}
                 className="btn-squishy flex-1 py-3 text-slate-600 dark:text-slate-300 font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl hover:bg-slate-50 cursor-pointer text-xs"
               >
-                Hủy
+                {isVi ? 'Hủy' : 'Cancel'}
               </button>
               <button type="button" 
                 onClick={saveFinishedSession}
                 className="btn-squishy flex-1 py-3 bg-gradient-to-r from-violet-600 to-pink-500 text-white font-extrabold rounded-2xl hover:opacity-95 transition-all shadow-md cursor-pointer text-xs"
               >
-                Lưu kết quả ✨
+                {isVi ? 'Lưu kết quả ✨' : 'Save Results ✨'}
               </button>
             </div>
           </div>
@@ -692,4 +869,10 @@ export function FocusView() {
 
     </div>
   );
+
+  if (isZenMode && typeof document !== 'undefined') {
+    return createPortal(focusContent, document.body);
+  }
+
+  return focusContent;
 }

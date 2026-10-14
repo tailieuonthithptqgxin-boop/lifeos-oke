@@ -252,14 +252,26 @@ export function RPGWorldMapView({
                   {/* Action CTA Button */}
                   <button
                     type="button"
-                    className={`w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center justify-center gap-1.5 ${
+                    onClick={() => {
+                      if (canChallenge || isDefeated) {
+                        try {
+                          soundEngine.playSword();
+                        } catch (e) {
+                          // Ignore audio playback error
+                        }
+                        onSelectMonster(monster);
+                      } else if (monster.requiredRealAction?.module) {
+                        onGoToTrain(monster.requiredRealAction.module);
+                      }
+                    }}
+                    className={`w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 ${
                       isDefeated
-                        ? 'bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-700 dark:text-slate-300'
+                        ? 'bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
                         : canChallenge
                         ? isBoss
                           ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/30'
                           : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20'
-                        : 'bg-slate-200 dark:bg-slate-800 text-slate-400 cursor-not-allowed opacity-60'
+                        : 'bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 hover:border-amber-500/50'
                     }`}
                   >
                     {isDefeated ? (
@@ -274,8 +286,8 @@ export function RPGWorldMapView({
                       </>
                     ) : (
                       <>
-                        <Lock className="w-3.5 h-3.5" />
-                        <span>Chưa Mở Khóa</span>
+                        <Zap className="w-3.5 h-3.5" />
+                        <span>Rèn Luyện Để Mở</span>
                       </>
                     )}
                   </button>

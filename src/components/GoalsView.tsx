@@ -13,8 +13,10 @@ import { formatCurrency } from '../lib/utils';
 export function GoalsView() {
   const { 
     goals, projects, tasks, habits, addGoal, updateGoal, deleteGoal, 
-    addGoalReview, toggleGoalAction, addGoalMilestone 
+    addGoalReview, toggleGoalAction, addGoalMilestone, language 
   } = useAppStore();
+
+  const isVi = language === 'vi';
 
   const [activeTab, setActiveTab] = useState<
     'dashboard' | 'my_goals' | 'execution' | 'timeline' | 'action_plan' | 
@@ -78,10 +80,12 @@ export function GoalsView() {
             </div>
             <div>
               <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
-                Hệ thống Quản trị Mục tiêu ✨
+                {isVi ? 'Hệ thống Quản trị Mục tiêu ✨' : 'Goals Management System ✨'}
               </h2>
               <p className="text-purple-600/80 dark:text-purple-300/80 text-xs mt-0.5 font-bold">
-                Mục tiêu 🎯 → Lộ trình 🗺️ → Hành động ⚡ → Đo lường 📊 → Chinh phục 🏆
+                {isVi 
+                  ? 'Mục tiêu 🎯 → Lộ trình 🗺️ → Hành động ⚡ → Đo lường 📊 → Chinh phục 🏆'
+                  : 'Goals 🎯 → Roadmap 🗺️ → Action ⚡ → Metrics 📊 → Achievement 🏆'}
               </p>
             </div>
           </div>
@@ -92,25 +96,25 @@ export function GoalsView() {
             onClick={openNewGoal}
             className="btn-squishy flex-1 md:flex-none flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 via-pink-500 to-rose-400 hover:from-violet-500 hover:to-pink-500 text-white px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all shadow-md shadow-pink-500/25 cursor-pointer"
           >
-            <Plus className="w-4 h-4 stroke-[2.5]" /> + Tạo Mục tiêu mới ✨
+            <Plus className="w-4 h-4 stroke-[2.5]" /> {isVi ? '+ Tạo Mục tiêu mới ✨' : '+ Create New Goal ✨'}
           </button>
         </div>
       </div>
 
       {/* Navigation Sub-Tabs */}
       <div className="flex items-center gap-1 overflow-x-auto pb-2 scrollbar-none border-b border-slate-200 shrink-0">
-        <TabButton id="dashboard" active={activeTab} onClick={setActiveTab} icon={<Activity className="w-4 h-4" />} label="Tổng quan" />
-        <TabButton id="my_goals" active={activeTab} onClick={setActiveTab} icon={<Target className="w-4 h-4" />} label="Mục tiêu của tôi" badge={goals.length} />
-        <TabButton id="execution" active={activeTab} onClick={setActiveTab} icon={<Zap className="w-4 h-4" />} label="Thực thi hôm nay" />
-        <TabButton id="timeline" active={activeTab} onClick={setActiveTab} icon={<Calendar className="w-4 h-4" />} label="Lịch trình & Milestone" />
-        <TabButton id="action_plan" active={activeTab} onClick={setActiveTab} icon={<FolderGit2 className="w-4 h-4" />} label="Kế hoạch hành động" />
-        <TabButton id="pace_kpis" active={activeTab} onClick={setActiveTab} icon={<Clock className="w-4 h-4" />} label="Tốc độ & KPIs" />
-        <TabButton id="scenarios" active={activeTab} onClick={setActiveTab} icon={<SlidersHorizontal className="w-4 h-4" />} label="Dự báo Tiến độ" />
-        <TabButton id="risks" active={activeTab} onClick={setActiveTab} icon={<ShieldAlert className="w-4 h-4" />} label="Rủi ro & Xung đột" badge={atRiskGoals.length + criticalGoals.length} />
-        <TabButton id="reviews" active={activeTab} onClick={setActiveTab} icon={<FileText className="w-4 h-4" />} label="Đánh giá & Nhật ký" />
+        <TabButton id="dashboard" active={activeTab} onClick={setActiveTab} icon={<Activity className="w-4 h-4" />} label={isVi ? 'Tổng quan' : 'Overview'} />
+        <TabButton id="my_goals" active={activeTab} onClick={setActiveTab} icon={<Target className="w-4 h-4" />} label={isVi ? 'Mục tiêu của tôi' : 'My Goals'} badge={goals.length} />
+        <TabButton id="execution" active={activeTab} onClick={setActiveTab} icon={<Zap className="w-4 h-4" />} label={isVi ? 'Thực thi hôm nay' : 'Today Execution'} />
+        <TabButton id="timeline" active={activeTab} onClick={setActiveTab} icon={<Calendar className="w-4 h-4" />} label={isVi ? 'Lịch trình & Milestone' : 'Timeline & Milestones'} />
+        <TabButton id="action_plan" active={activeTab} onClick={setActiveTab} icon={<FolderGit2 className="w-4 h-4" />} label={isVi ? 'Kế hoạch hành động' : 'Action Plan'} />
+        <TabButton id="pace_kpis" active={activeTab} onClick={setActiveTab} icon={<Clock className="w-4 h-4" />} label={isVi ? 'Tốc độ & KPIs' : 'Pace & KPIs'} />
+        <TabButton id="scenarios" active={activeTab} onClick={setActiveTab} icon={<SlidersHorizontal className="w-4 h-4" />} label={isVi ? 'Dự báo Tiến độ' : 'Progress Forecast'} />
+        <TabButton id="risks" active={activeTab} onClick={setActiveTab} icon={<ShieldAlert className="w-4 h-4" />} label={isVi ? 'Rủi ro & Xung đột' : 'Risks & Conflicts'} badge={atRiskGoals.length + criticalGoals.length} />
+        <TabButton id="reviews" active={activeTab} onClick={setActiveTab} icon={<FileText className="w-4 h-4" />} label={isVi ? 'Đánh giá & Nhật ký' : 'Reviews & Logs'} />
         <TabButton id="analytics" active={activeTab} onClick={setActiveTab} icon={<BarChart3 className="w-4 h-4" />} label="Goal Score" />
-        <TabButton id="templates" active={activeTab} onClick={setActiveTab} icon={<Sparkles className="w-4 h-4" />} label="Thư viện Mẫu" />
-        <TabButton id="archive" active={activeTab} onClick={setActiveTab} icon={<History className="w-4 h-4" />} label="Lưu trữ" />
+        <TabButton id="templates" active={activeTab} onClick={setActiveTab} icon={<Sparkles className="w-4 h-4" />} label={isVi ? 'Thư viện Mẫu' : 'Templates Library'} />
+        <TabButton id="archive" active={activeTab} onClick={setActiveTab} icon={<History className="w-4 h-4" />} label={isVi ? 'Lưu trữ' : 'Archive'} />
       </div>
 
       {/* Content Area according to activeTab */}
@@ -200,7 +204,8 @@ export function GoalsView() {
           goal={editingGoal} 
           onClose={() => setShowGoalModal(false)}
           onSave={(g) => {
-            if (editingGoal) updateGoal(g.id, g);
+            const targetId = editingGoal?.id || g?.id;
+            if (editingGoal && targetId) updateGoal(targetId, g);
             else addGoal(g);
             setShowGoalModal(false);
           }}

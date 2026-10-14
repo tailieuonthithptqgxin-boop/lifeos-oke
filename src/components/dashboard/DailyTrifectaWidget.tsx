@@ -14,7 +14,8 @@ interface DailyTrifectaWidgetProps {
 }
 
 export function DailyTrifectaWidget({ onStartZenFocus, onOpenQuickTask }: DailyTrifectaWidgetProps) {
-  const { tasks = [], updateTask, addTask } = useAppStore();
+  const { tasks = [], updateTask, addTask, language } = useAppStore();
+  const isVi = language === 'vi';
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -156,18 +157,18 @@ export function DailyTrifectaWidget({ onStartZenFocus, onOpenQuickTask }: DailyT
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-wider">
-              THE RULE OF 3 · QUY TẮC TAM HỢP
+              {isVi ? 'QUY TẮC TAM HỢP · THE RULE OF 3' : 'THE RULE OF 3 · DAILY TRIFECTA'}
             </span>
             <span className="text-xs text-slate-400 font-bold">
-              {completedCount} / 3 Hoàn thành
+              {completedCount} / 3 {isVi ? 'Hoàn thành' : 'Completed'}
             </span>
           </div>
           <h3 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
-            <span>Top 3 Việc Cốt Lõi Hôm Nay</span>
+            <span>{isVi ? 'Top 3 Việc Cốt Lõi Hôm Nay' : "Today's Top 3 Priorities"}</span>
             {isAllComplete && <span>🏆</span>}
           </h3>
           <p className="text-xs text-slate-400">
-            Chỉ cần hoàn thành 3 việc này, bạn đã chiến thắng 90% áp lực trong ngày.
+            {isVi ? 'Chỉ cần hoàn thành 3 việc này, bạn đã chiến thắng 90% áp lực trong ngày.' : 'Conquer these 3 tasks to eliminate 90% of your daily overwhelm.'}
           </p>
         </div>
 
@@ -184,12 +185,12 @@ export function DailyTrifectaWidget({ onStartZenFocus, onOpenQuickTask }: DailyT
               }`}
             >
               <Gift className="w-4 h-4" />
-              <span>{hasClaimedBonus ? '✓ Đã nhận rương Tam Hợp' : 'MỞ RƯƠNG THƯỞNG TAM HỢP (+50 XP, +25 🪙)'}</span>
+              <span>{hasClaimedBonus ? (isVi ? '✓ Đã nhận rương Tam Hợp' : '✓ Trifecta Chest Claimed') : (isVi ? 'MỞ RƯƠNG THƯỞNG TAM HỢP (+50 XP, +25 🪙)' : 'CLAIM TRIFECTA CHEST (+50 XP, +25 🪙)')}</span>
             </button>
           ) : (
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-slate-800/80 border border-slate-700 text-xs font-bold text-slate-300">
               <Flame className="w-4 h-4 text-amber-400" />
-              <span>Còn {3 - completedCount} việc</span>
+              <span>{isVi ? `Còn ${3 - completedCount} việc` : `${3 - completedCount} tasks remaining`}</span>
             </div>
           )}
         </div>
@@ -202,10 +203,14 @@ export function DailyTrifectaWidget({ onStartZenFocus, onOpenQuickTask }: DailyT
           const isDone = task?.status === 'Hoàn thành';
           const isWriting = inlineInputSlot === slotIdx;
 
-          const slotLabels = [
+          const slotLabels = isVi ? [
             { rank: 'VIỆC #1 QUAN TRỌNG NHẤT', color: 'text-amber-400', stars: '⭐⭐⭐' },
             { rank: 'VIỆC #2 ĐÒI HỎI TẬP TRUNG', color: 'text-emerald-400', stars: '⭐⭐' },
             { rank: 'VIỆC #3 GIẢI QUYẾT DỨT ĐIỂM', color: 'text-teal-400', stars: '⭐' }
+          ] : [
+            { rank: '#1 CRITICAL PRIORITY', color: 'text-amber-400', stars: '⭐⭐⭐' },
+            { rank: '#2 DEEP FOCUS EFFORT', color: 'text-emerald-400', stars: '⭐⭐' },
+            { rank: '#3 DECISIVE COMPLETION', color: 'text-teal-400', stars: '⭐' }
           ];
 
           return (
@@ -249,7 +254,7 @@ export function DailyTrifectaWidget({ onStartZenFocus, onOpenQuickTask }: DailyT
                         </h4>
                         {task.priority && (
                           <span className="inline-block mt-1 text-[10px] font-bold text-slate-400">
-                            Độ ưu tiên: {task.priority}
+                            {isVi ? 'Độ ưu tiên:' : 'Priority:'} {isVi ? task.priority : (task.priority === 'Cao' ? 'High' : task.priority === 'Nghiêm trọng' ? 'Urgent' : task.priority === 'Thấp' ? 'Low' : 'Medium')}
                           </span>
                         )}
                       </div>
@@ -266,7 +271,7 @@ export function DailyTrifectaWidget({ onStartZenFocus, onOpenQuickTask }: DailyT
                         if (e.key === 'Enter') handleCreateInlineTask(slotIdx);
                         if (e.key === 'Escape') setInlineInputSlot(null);
                       }}
-                      placeholder="Nhập tên việc cần làm hôm nay..."
+                      placeholder={isVi ? "Nhập tên việc cần làm hôm nay..." : "Enter today's task..."}
                       className="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-emerald-500 text-white focus:outline-none"
                     />
                     <div className="flex items-center justify-end gap-1.5">
@@ -274,25 +279,25 @@ export function DailyTrifectaWidget({ onStartZenFocus, onOpenQuickTask }: DailyT
                         onClick={() => setInlineInputSlot(null)}
                         className="px-2.5 py-1 text-[10px] text-slate-400 hover:text-white"
                       >
-                        Hủy
+                        {isVi ? 'Hủy' : 'Cancel'}
                       </button>
                       <button
                         onClick={() => handleCreateInlineTask(slotIdx)}
                         className="px-3 py-1 rounded-lg bg-emerald-500 text-slate-950 font-black text-[10px]"
                       >
-                        Lưu Slot
+                        {isVi ? 'Lưu Slot' : 'Save Slot'}
                       </button>
                     </div>
                   </div>
                 ) : (
                   <div className="text-center py-3 space-y-2">
-                    <p className="text-xs text-slate-500 font-medium">Slot trống cho hôm nay</p>
+                    <p className="text-xs text-slate-500 font-medium">{isVi ? 'Slot trống cho hôm nay' : 'Empty slot for today'}</p>
                     <button
                       onClick={() => setInlineInputSlot(slotIdx)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>+ Thêm việc</span>
+                      <span>{isVi ? '+ Thêm việc' : '+ Add task'}</span>
                     </button>
                   </div>
                 )}
@@ -306,7 +311,7 @@ export function DailyTrifectaWidget({ onStartZenFocus, onOpenQuickTask }: DailyT
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 hover:text-emerald-300 cursor-pointer"
                   >
                     <Play className="w-3 h-3 fill-current" />
-                    <span>Zen Focus ngay</span>
+                    <span>{isVi ? 'Zen Focus ngay' : 'Zen Focus Now'}</span>
                   </button>
 
                   <select
@@ -314,7 +319,7 @@ export function DailyTrifectaWidget({ onStartZenFocus, onOpenQuickTask }: DailyT
                     onChange={(e) => updateSlot(slotIdx, e.target.value)}
                     className="text-[10px] bg-transparent text-slate-500 hover:text-slate-400 cursor-pointer focus:outline-none"
                   >
-                    <option value={task.id} className="bg-slate-900 text-white">Đổi việc khác</option>
+                    <option value={task.id} className="bg-slate-900 text-white">{isVi ? 'Đổi việc khác' : 'Switch task'}</option>
                     {tasks
                       .filter(t => t.id !== task.id && t.status !== 'Hoàn thành')
                       .map(t => (

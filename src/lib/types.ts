@@ -431,12 +431,24 @@ export interface StudyExam {
 
 export interface FocusSession {
   id: string;
-  durationMinutes: number;
-  type: string;
-  completed: boolean;
-  score: number;
-  notes?: string;
+  userId?: string;
+  title: string;
+  mode: FocusMode;
+  status: FocusStatus;
+  plannedDuration: number;
+  actualDuration: number;
+  startTime?: string | null;
+  endTime?: string | null;
+  taskId?: string | null;
+  notes?: string | null;
+  reflection?: string | null;
+  interruptions?: any[];
   createdAt?: string;
+  // Backward compatibility fields for legacy views
+  durationMinutes?: number;
+  type?: string;
+  completed?: boolean;
+  score?: number;
 }
 
 export interface FocusGoal {

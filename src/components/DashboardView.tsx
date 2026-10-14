@@ -43,6 +43,7 @@ export function DashboardView() {
   } = useAppStore();
 
   const t = useTranslation(language);
+  const isVi = language === 'vi';
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -344,10 +345,28 @@ export function DashboardView() {
 
   const getGreeting = () => {
     const hour = currentTime.getHours();
-    if (hour >= 5 && hour < 12) return { text: t('Good morning'), sub: t('Ready to kickstart an energetic new day!') };
-    if (hour >= 12 && hour < 18) return { text: t('Good afternoon'), sub: t('Maintain momentum and conquer your goals today!') };
-    if (hour >= 18 && hour < 22) return { text: t('Good evening'), sub: t('Review your progress and wind down smoothly.') };
-    return { text: t('Late night'), sub: t('Wrap up your focus and get some restful sleep.') };
+    if (hour >= 5 && hour < 12) {
+      return { 
+        text: isVi ? 'Chào buổi sáng' : 'Good morning', 
+        sub: isVi ? 'Chúc bạn một ngày mới tràn đầy năng lượng!' : 'Ready to kickstart an energetic new day!' 
+      };
+    }
+    if (hour >= 12 && hour < 18) {
+      return { 
+        text: isVi ? 'Chào buổi chiều' : 'Good afternoon', 
+        sub: isVi ? 'Giữ vững phong độ và chinh phục mục tiêu hôm nay nhé!' : 'Maintain momentum and conquer your goals today!' 
+      };
+    }
+    if (hour >= 18 && hour < 22) {
+      return { 
+        text: isVi ? 'Chào buổi tối' : 'Good evening', 
+        sub: isVi ? 'Hãy điểm lại thành quả và thư giãn nhé.' : 'Review your progress and wind down smoothly.' 
+      };
+    }
+    return { 
+      text: isVi ? 'Đêm muộn' : 'Late night', 
+      sub: isVi ? 'Nghỉ ngơi sớm để hồi phục năng lượng cho ngày mai.' : 'Wrap up your focus and get some restful sleep.' 
+    };
   };
   const greeting = getGreeting();
 
@@ -417,7 +436,7 @@ export function DashboardView() {
             <div className="flex flex-wrap items-center gap-2">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-emerald-400 text-xs font-semibold">
                 <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>{formatDate(selectedDate)} · {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
+                <span>{formatDate(selectedDate, language)} · {currentTime.toLocaleTimeString(isVi ? 'vi-VN' : 'en-US', { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
 
               {/* Gen Z Mood of the Day Picker */}
@@ -435,7 +454,7 @@ export function DashboardView() {
                   <>
                     <div className="fixed inset-0 z-30" onClick={() => setShowMoodPicker(false)} />
                     <div className="absolute left-0 top-full mt-2 w-64 bg-slate-900 border border-slate-800 rounded-2xl p-2 shadow-2xl z-40 space-y-1 text-xs animate-in fade-in zoom-in-95">
-                      <span className="text-[10px] uppercase font-black text-slate-400 px-2 tracking-wider block">{t("Choose Today's Vibe")}</span>
+                      <span className="text-[10px] uppercase font-black text-slate-400 px-2 tracking-wider block">{isVi ? "Chọn tâm trạng hôm nay" : "Choose Today's Vibe"}</span>
                       {(Object.keys(MOOD_PRESETS) as GenZMood[]).map(key => {
                         const m = MOOD_PRESETS[key];
                         return (
@@ -473,7 +492,7 @@ export function DashboardView() {
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-slate-300 hover:text-white hover:border-emerald-500/40 text-xs font-bold transition-all cursor-pointer"
               >
                 <span>📸</span>
-                <span>{t("Share Story")}</span>
+                <span>{isVi ? 'Chia sẻ Story' : 'Share Story'}</span>
               </button>
 
               {/* Rest Day / Streak Freeze Shield Button */}
@@ -485,8 +504,8 @@ export function DashboardView() {
                   setStreakShield(streakFreezeEngine.getStatus(currentUser?.id));
                 }}
                 title={streakShield.isRestDayActive 
-                  ? t("Rest Day active · Your streak is 100% protected") 
-                  : t(`You have ${streakShield.freezeCount} Streak Freezes ❄️. Click to activate Rest Day mode`)}
+                  ? (isVi ? 'Ngày nghỉ đang bật · Chuỗi của bạn được bảo vệ 100%' : 'Rest Day active · Your streak is 100% protected') 
+                  : (isVi ? `Bạn có ${streakShield.freezeCount} Băng bảo vệ ❄️. Nhấn để kích hoạt Ngày nghỉ` : `You have ${streakShield.freezeCount} Streak Freezes ❄️. Click to activate Rest Day mode`)}
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold transition-all cursor-pointer ${
                   streakShield.isRestDayActive
                     ? 'bg-lime-500/20 text-lime-300 border-lime-500/50 shadow-xs'
@@ -494,7 +513,7 @@ export function DashboardView() {
                 }`}
               >
                 <span>{streakShield.isRestDayActive ? '🍵' : '❄️'}</span>
-                <span>{streakShield.isRestDayActive ? t('Rest Day') : `${streakShield.freezeCount} ${t('Freezes')}`}</span>
+                <span>{streakShield.isRestDayActive ? (isVi ? 'Ngày nghỉ' : 'Rest Day') : `${streakShield.freezeCount} ${isVi ? 'Băng bảo vệ' : 'Freezes'}`}</span>
               </button>
 
               {/* Vibe Theme Switcher */}
@@ -507,7 +526,7 @@ export function DashboardView() {
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-purple-300 hover:text-white hover:border-purple-400/50 text-xs font-bold transition-all cursor-pointer"
               >
                 <span>🎨</span>
-                <span className="hidden sm:inline">{t("Vibe Theme")}</span>
+                <span className="hidden sm:inline">{isVi ? 'Giao diện' : 'Vibe Theme'}</span>
               </button>
 
               {/* Monthly Wrapped Trigger */}
@@ -520,7 +539,7 @@ export function DashboardView() {
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-amber-300 hover:text-white hover:border-amber-400/50 text-xs font-bold transition-all cursor-pointer"
               >
                 <span>🎉</span>
-                <span>{t("Wrapped")}</span>
+                <span>{isVi ? 'Tổng kết' : 'Wrapped'}</span>
               </button>
 
               {/* AI Life Buddy Copilot Trigger */}
@@ -533,7 +552,7 @@ export function DashboardView() {
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:text-white hover:bg-emerald-500/30 text-xs font-bold transition-all cursor-pointer shadow-xs shadow-emerald-500/10"
               >
                 <span>🤖</span>
-                <span>{t("AI Buddy")}</span>
+                <span>{isVi ? 'Trợ lý AI' : 'AI Buddy'}</span>
               </button>
 
               {/* Persona Quiz Trigger */}
@@ -546,7 +565,7 @@ export function DashboardView() {
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-teal-300 hover:text-white hover:border-teal-400/50 text-xs font-bold transition-all cursor-pointer"
               >
                 <span>🎯</span>
-                <span>{t("Persona")}</span>
+                <span>{isVi ? 'Hồ sơ cá nhân' : 'Persona'}</span>
               </button>
 
               {/* Weekly Hall of Fame Leaderboard Trigger */}
@@ -559,14 +578,14 @@ export function DashboardView() {
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/25 to-yellow-500/20 border border-amber-400/40 text-amber-300 hover:text-white hover:border-amber-300 text-xs font-black transition-all cursor-pointer shadow-xs shadow-amber-500/10 hover:scale-105 active:scale-95"
               >
                 <span>🏆</span>
-                <span>{t("Leaderboard")}</span>
+                <span>{isVi ? 'Bảng xếp hạng' : 'Leaderboard'}</span>
               </button>
             </div>
 
             {/* Greeting */}
             <div>
               <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-2 flex-wrap">
-                <span>{greeting.text}, {currentUser?.name || 'Friend'}!</span>
+                <span>{greeting.text}, {currentUser?.name || (isVi ? 'Bạn' : 'Friend')}!</span>
                 <span className="inline-block animate-wave text-2xl">{MOOD_PRESETS[todayMood].emoji}</span>
               </h1>
               <p className="text-xs text-slate-400 italic mt-0.5">
@@ -574,8 +593,8 @@ export function DashboardView() {
               </p>
               <p className="text-xs sm:text-sm text-slate-300 mt-1 leading-relaxed">
                 {pendingTasks.length > 0 
-                  ? t(`You have ${pendingTasks.length} tasks remaining today. ${greeting.sub}`)
-                  : t(`All tasks for today are completed! ${greeting.sub}`)}
+                  ? (isVi ? `Bạn còn ${pendingTasks.length} công việc chưa hoàn thành hôm nay. ${greeting.sub}` : `You have ${pendingTasks.length} tasks remaining today. ${greeting.sub}`)
+                  : (isVi ? `Tất cả công việc hôm nay đã hoàn thành! ${greeting.sub}` : `All tasks for today are completed! ${greeting.sub}`)}
               </p>
             </div>
 
@@ -585,15 +604,15 @@ export function DashboardView() {
               <div className="p-4 rounded-2xl bg-slate-800/90 border border-slate-700/80 flex flex-col justify-between shadow-xs min-h-[160px]">
                 <div className="flex items-center justify-between pb-2.5 border-b border-slate-700/50 gap-2">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-xs font-black text-emerald-400 uppercase tracking-wider truncate">🎯 {t("Today's Big 3")}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-bold shrink-0">{t("1-Tap")}</span>
+                    <span className="text-xs font-black text-emerald-400 uppercase tracking-wider truncate">🎯 {isVi ? "Top 3 Cốt Lõi" : "Today's Big 3"}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-bold shrink-0">{isVi ? "1-Chạm" : "1-Tap"}</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowQuickTaskModal(true)}
                     className="text-xs font-bold text-slate-300 hover:text-white px-2 py-0.5 rounded-lg hover:bg-slate-700 transition-colors cursor-pointer shrink-0"
                   >
-                    + {t("Add")}
+                    + {isVi ? "Thêm" : "Add"}
                   </button>
                 </div>
 
@@ -611,12 +630,12 @@ export function DashboardView() {
                               soundEngine.playSuccess();
                               updateTask(task.id, { status: 'Completed' });
                               setCelebration({
-                                title: t('Awesome!'),
-                                subtitle: `${t('Completed')}: "${task.title}"`,
+                                title: isVi ? 'Tuyệt vời!' : 'Awesome!',
+                                subtitle: `${isVi ? 'Đã hoàn thành' : 'Completed'}: "${task.title}"`,
                                 xpAwarded: 30
                               });
                             }}
-                            title={t("Mark completed")}
+                            title={isVi ? "Đánh dấu hoàn thành" : "Mark completed"}
                             className="w-4 h-4 rounded-full border-2 border-emerald-500/60 hover:bg-emerald-500 hover:border-emerald-500 transition-all shrink-0 cursor-pointer flex items-center justify-center text-slate-950 font-black text-[9px]"
                           />
                           <span className="text-xs font-bold text-slate-200 truncate group-hover:text-white">
@@ -635,7 +654,7 @@ export function DashboardView() {
                   ) : (
                     <div className="py-2.5 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
                       <span className="text-base">🏆</span>
-                      <span className="font-bold text-emerald-400">{t("All daily priorities done!")}</span>
+                      <span className="font-bold text-emerald-400">{isVi ? "Đã hoàn thành toàn bộ việc trọng tâm hôm nay!" : "All daily priorities done!"}</span>
                     </div>
                   )}
                 </div>
@@ -645,7 +664,7 @@ export function DashboardView() {
                   onClick={() => setCurrentView('tasks')}
                   className="text-xs font-bold text-slate-400 hover:text-emerald-400 flex items-center gap-1 transition-colors cursor-pointer self-start pt-1"
                 >
-                  {t("View all")} ({pendingTasks.length} {t("tasks")}) <ChevronRight className="w-3.5 h-3.5" />
+                  {isVi ? "Xem tất cả" : "View all"} ({pendingTasks.length} {isVi ? "công việc" : "tasks"}) <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
 
@@ -653,10 +672,10 @@ export function DashboardView() {
               <div className="p-4 rounded-2xl bg-slate-800/90 border border-slate-700/80 flex flex-col justify-between shadow-xs min-h-[160px]">
                 <div className="flex items-center justify-between pb-2.5 border-b border-slate-700/50 gap-2">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-xs font-black text-teal-400 uppercase tracking-wider truncate">💳 {t("Safe-to-Spend")}</span>
+                    <span className="text-xs font-black text-teal-400 uppercase tracking-wider truncate">💳 {isVi ? "Hạn Mức An Toàn" : "Safe-to-Spend"}</span>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-300 font-bold shrink-0">Auto</span>
                   </div>
-                  <span className="text-xs text-slate-400 shrink-0">{daysRemainingInMonth} {t("days left")}</span>
+                  <span className="text-xs text-slate-400 shrink-0">{daysRemainingInMonth} {isVi ? "ngày còn lại" : "days left"}</span>
                 </div>
 
                 <div className="my-2.5 flex-1 flex flex-col justify-center">
@@ -675,11 +694,11 @@ export function DashboardView() {
                             ? 'bg-emerald-500/20 text-emerald-300'
                             : 'bg-rose-500/20 text-rose-300 animate-pulse'
                         }`}>
-                          {safeToSpendTodayRemaining >= 0 ? t('Safe') : t('Over Limit')}
+                          {safeToSpendTodayRemaining >= 0 ? (isVi ? 'An toàn' : 'Safe') : (isVi ? 'Vượt hạn mức' : 'Over Limit')}
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-400 mt-1 leading-snug">
-                        {t("Limit")}: {formatCurrency(dailySafeToSpendBudget)}/{t("day")} · {t("Spent")}: {formatCurrency(todayExpenses)}
+                        {isVi ? "Hạn mức" : "Limit"}: {formatCurrency(dailySafeToSpendBudget)}/{isVi ? "ngày" : "day"} · {isVi ? "Đã chi" : "Spent"}: {formatCurrency(todayExpenses)}
                       </p>
                     </>
                   ) : (
@@ -689,11 +708,11 @@ export function DashboardView() {
                           {todayExpenses > 0 ? `-${formatCurrency(todayExpenses)}` : '0 ₫'}
                         </span>
                         <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300">
-                          {t("No Budget Set")}
+                          {isVi ? "Chưa đặt ngân sách" : "No Budget Set"}
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-400 mt-1 leading-snug">
-                        {todayExpenses > 0 ? `${t("Spent today")}: ${formatCurrency(todayExpenses)}` : t("No monthly budget configured or no income yet")}
+                        {todayExpenses > 0 ? `${isVi ? "Chi tiêu hôm nay" : "Spent today"}: ${formatCurrency(todayExpenses)}` : (isVi ? "Chưa cấu hình ngân sách tháng hoặc chưa có thu nhập" : "No monthly budget configured or no income yet")}
                       </p>
                     </>
                   )}
@@ -704,7 +723,7 @@ export function DashboardView() {
                   onClick={() => setCurrentView('finance')}
                   className="text-xs font-bold text-teal-400 hover:text-teal-300 flex items-center gap-1 transition-colors cursor-pointer self-start pt-1"
                 >
-                  {hasBudgetBaseline ? t('Finance ledger & wallets') : `+ ${t('Set up budget now')}`} <ChevronRight className="w-3.5 h-3.5" />
+                  {hasBudgetBaseline ? (isVi ? "Sổ thu chi & Ví tài chính" : "Finance ledger & wallets") : `+ ${isVi ? "Cài đặt ngân sách ngay" : "Set up budget now"}`} <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
 
@@ -712,21 +731,21 @@ export function DashboardView() {
               <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/60 to-slate-900 border border-emerald-500/30 flex flex-col justify-between shadow-xs min-h-[160px]">
                 <div className="flex items-center justify-between pb-2.5 border-b border-emerald-500/20 gap-2">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-xs font-black text-amber-400 uppercase tracking-wider truncate">🔥 {t("Discipline Streak")}</span>
+                    <span className="text-xs font-black text-amber-400 uppercase tracking-wider truncate">🔥 {isVi ? "Chuỗi Kỷ Luật" : "Discipline Streak"}</span>
                     <span className="text-[11px] font-black text-amber-300 px-1.5 py-0.2 rounded-md bg-amber-500/20 shrink-0">
-                      {maxHabitStreak} {t("days")}
+                      {maxHabitStreak} {isVi ? "ngày" : "days"}
                     </span>
                   </div>
                   <span className="text-xs font-bold text-emerald-400 shrink-0">
-                    {streakShield.isRestDayActive ? t('Rest Day') : `${streakShield.freezeCount} ${t('Freeze')} ❄️`}
+                    {streakShield.isRestDayActive ? (isVi ? "Ngày nghỉ" : "Rest Day") : `${streakShield.freezeCount} ${isVi ? "Băng bảo vệ" : "Freeze"} ❄️`}
                   </span>
                 </div>
 
                 <div className="my-2 flex-1 flex flex-col justify-center">
                   <p className="text-xs text-slate-300 leading-snug">
                     {todayFocusMinutes > 0 
-                      ? `${t("Focused for")} ${todayFocusMinutes} ${t("mins of deep work today.")}`
-                      : t("No focus sessions yet today. Start right now!")}
+                      ? `${isVi ? "Đã tập trung" : "Focused for"} ${todayFocusMinutes} ${isVi ? "phút làm việc sâu hôm nay." : "mins of deep work today."}`
+                      : (isVi ? "Hôm nay chưa có phiên tập trung nào. Bắt đầu ngay!" : "No focus sessions yet today. Start right now!")}
                   </p>
                   <button
                     type="button"
@@ -738,7 +757,7 @@ export function DashboardView() {
                     className="w-full mt-2.5 py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <Zap className="w-3.5 h-3.5 fill-slate-950" />
-                    <span>{t("Start Focus 25m (Zen)")}</span>
+                    <span>{isVi ? "Bắt đầu Tập trung 25p (Zen)" : "Start Focus 25m (Zen)"}</span>
                   </button>
                 </div>
 
@@ -747,7 +766,7 @@ export function DashboardView() {
                   onClick={() => setCurrentView('focus')}
                   className="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer self-start pt-1"
                 >
-                  {t("Open Pomodoro")} <ChevronRight className="w-3.5 h-3.5" />
+                  {isVi ? "Mở Pomodoro" : "Open Pomodoro"} <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
@@ -763,7 +782,7 @@ export function DashboardView() {
                 className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>+ {t("Add Task")}</span>
+                <span>+ {isVi ? "Thêm công việc" : "Add Task"}</span>
               </button>
               <button
                 type="button"
@@ -771,7 +790,7 @@ export function DashboardView() {
                 className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs border border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
               >
                 <Wallet className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{t("Log Expense")}</span>
+                <span>{isVi ? "Ghi chép chi tiêu" : "Log Expense"}</span>
               </button>
               <button
                 type="button"
@@ -779,7 +798,7 @@ export function DashboardView() {
                 className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs border border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
               >
                 <Clock className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{t("Focus")}</span>
+                <span>{isVi ? "Tập trung" : "Focus"}</span>
               </button>
               <button
                 type="button"
@@ -787,7 +806,7 @@ export function DashboardView() {
                 className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs border border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
               >
                 <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{dueVocabCount > 0 ? `${t("Review Vocab")} (${dueVocabCount})` : t("Study Vocab")}</span>
+                <span>{dueVocabCount > 0 ? (isVi ? `Ôn từ vựng (${dueVocabCount})` : `Review Vocab (${dueVocabCount})`) : (isVi ? "Học từ vựng" : "Study Vocab")}</span>
               </button>
             </div>
           </div>
@@ -845,14 +864,14 @@ export function DashboardView() {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">
-                {t("Weekly Ritual · Sunday Weekly Reset")} 🌿
+                {isVi ? 'Nghi thức tuần · Tái thiết lập Chủ nhật' : 'Weekly Ritual · Sunday Weekly Reset'} 🌿
               </span>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-black flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-400" /> +100 XP {t("Bonus")}
+                <Sparkles className="w-3 h-3 text-amber-400" /> +100 XP {isVi ? 'Thưởng' : 'Bonus'}
               </span>
             </div>
             <h3 className="font-bold text-sm text-white mt-0.5">
-              {t("Reflect on the past 7 days, clear your mental load & align top 3 weekly goals.")}
+              {isVi ? 'Nhìn lại 7 ngày qua, giải tỏa áp lực tinh thần và căn chỉnh top 3 mục tiêu tuần mới.' : 'Reflect on the past 7 days, clear your mental load & align top 3 weekly goals.'}
             </h3>
           </div>
         </div>
@@ -866,7 +885,7 @@ export function DashboardView() {
           className="relative z-10 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs flex items-center gap-1.5 transition-all shadow-md shadow-emerald-500/20 cursor-pointer shrink-0 self-end sm:self-center hover:scale-105 active:scale-95"
         >
           <Sparkles className="w-3.5 h-3.5 fill-slate-950" />
-          <span>{t("Start Reset")}</span>
+          <span>{isVi ? 'Bắt đầu Reset' : 'Start Reset'}</span>
         </button>
       </div>
 
@@ -896,14 +915,14 @@ export function DashboardView() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                  {t("Due for Review · Spaced Repetition (Ebbinghaus)")}
+                  {isVi ? 'Đến hạn ôn tập · Lặp lại ngắt quãng (Ebbinghaus)' : 'Due for Review · Spaced Repetition (Ebbinghaus)'}
                 </span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 animate-pulse">
-                  {dueVocabCount} {t("cards due")}
+                  {dueVocabCount} {isVi ? 'từ cần ôn' : 'cards due'}
                 </span>
               </div>
               <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white mt-0.5">
-                {t("Vocabulary words reached memory decay point. Reinforce now for long-term retention.")}
+                {isVi ? 'Từ vựng đã chạm ngưỡng suy giảm trí nhớ. Hãy củng cố ngay để ghi nhớ lâu dài.' : 'Vocabulary words reached memory decay point. Reinforce now for long-term retention.'}
               </h3>
             </div>
           </div>
@@ -914,7 +933,7 @@ export function DashboardView() {
               onClick={() => setCurrentView('study')}
               className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs transition-all shadow-md shadow-emerald-600/20 flex items-center gap-1.5 cursor-pointer"
             >
-              <span>{t("Review Now")} ({dueVocabCount}) 🚀</span>
+              <span>{isVi ? 'Ôn tập ngay' : 'Review Now'} ({dueVocabCount}) 🚀</span>
             </button>
           </div>
         </div>
@@ -930,14 +949,14 @@ export function DashboardView() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-                  Tiếp tục việc quan trọng nhất (Next Focus)
+                  {isVi ? 'Tiếp tục việc quan trọng nhất (Next Focus)' : 'Continue Most Important Task (Next Focus)'}
                 </span>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                   pendingTasks[0].priority === 'Cao' || pendingTasks[0].priority === 'Nghiêm trọng'
                     ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400'
                     : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400'
                 }`}>
-                  {pendingTasks[0].priority || 'Trung bình'}
+                  {isVi ? (pendingTasks[0].priority || 'Trung bình') : t(pendingTasks[0].priority || 'Trung bình')}
                 </span>
               </div>
               <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white mt-0.5">
@@ -959,12 +978,12 @@ export function DashboardView() {
               {activeTimerTask === pendingTasks[0].id ? (
                 <>
                   <Square className="w-3.5 h-3.5 fill-current" />
-                  <span>Dừng ({formatTimer(timerSeconds)})</span>
+                  <span>{isVi ? `Dừng (${formatTimer(timerSeconds)})` : `Stop (${formatTimer(timerSeconds)})`}</span>
                 </>
               ) : (
                 <>
                   <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>Bắt đầu Deep Work</span>
+                  <span>{isVi ? 'Bắt đầu Deep Work' : 'Start Deep Work'}</span>
                 </>
               )}
             </button>
@@ -976,14 +995,14 @@ export function DashboardView() {
                 retentionEngine.completeQuest('task', currentUser?.id);
                 if (pendingTasks.length <= 1) {
                   setCelebration({
-                    title: 'Đỉnh cao kỷ luật! Bạn đã hoàn thành hết mục tiêu!',
-                    subtitle: 'Tất cả công việc đã xong xuôi. Giờ hãy nghỉ ngơi hoặc ôn một chút từ vựng nhé.',
+                    title: isVi ? 'Đỉnh cao kỷ luật! Bạn đã hoàn thành hết mục tiêu!' : 'Peak Discipline! All goals completed!',
+                    subtitle: isVi ? 'Tất cả công việc đã xong xuôi. Giờ hãy nghỉ ngơi hoặc ôn một chút từ vựng nhé.' : 'All tasks are completed. Rest or review some vocabulary.',
                     xpAwarded: 50
                   });
                 }
               }}
               className="p-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-emerald-600 border border-slate-200 dark:border-slate-700 rounded-xl transition-colors cursor-pointer"
-              title="Đánh dấu hoàn thành"
+              title={isVi ? "Đánh dấu hoàn thành" : "Mark completed"}
             >
               <Check className="w-4 h-4" />
             </button>
@@ -1035,7 +1054,7 @@ export function DashboardView() {
             onClick={() => setShowExtendedMetrics(!showExtendedMetrics)}
             className="text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1 transition-colors"
           >
-            <span>{showExtendedMetrics ? 'Thu gọn chỉ số phụ' : 'Xem thêm chỉ số (Sự kiện, Mục tiêu, Kế hoạch giờ)'}</span>
+            <span>{showExtendedMetrics ? (isVi ? 'Thu gọn chỉ số phụ' : 'Collapse extra metrics') : (isVi ? 'Xem thêm chỉ số (Sự kiện, Mục tiêu, Kế hoạch giờ)' : 'View more metrics (Events, Goals, Time Plan)')}</span>
             {showExtendedMetrics ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
         </div>
@@ -1044,15 +1063,15 @@ export function DashboardView() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 animate-in fade-in duration-150">
             <SummaryCard 
               icon={Calendar} 
-              title="Sự kiện lịch" 
+              title={isVi ? "Sự kiện lịch" : "Calendar Events"} 
               value={`${todayEvents.length}`} 
-              subtext={todayEvents.length > 0 ? `${todayEvents.filter(e => e.status === 'Hoàn thành').length} đã hoàn tất` : 'Không có sự kiện'}
+              subtext={todayEvents.length > 0 ? (isVi ? `${todayEvents.filter(e => e.status === 'Hoàn thành').length} đã hoàn tất` : `${todayEvents.filter(e => e.status === 'Hoàn thành').length} completed`) : (isVi ? 'Không có sự kiện' : 'No events')}
               color="text-indigo-600" 
               bg="bg-indigo-50" 
             />
             <SummaryCard 
               icon={Target} 
-              title="Tiến độ mục tiêu" 
+              title={isVi ? "Tiến độ mục tiêu" : "Goals Progress"} 
               value={goalsDisplayValue} 
               subtext={goalsSubtext} 
               color="text-rose-600" 
@@ -1060,9 +1079,9 @@ export function DashboardView() {
             />
             <SummaryCard 
               icon={Activity} 
-              title="Kế hoạch thời gian" 
+              title={isVi ? "Kế hoạch thời gian" : "Time Plan"} 
               value={`${actualTaskHours.toFixed(1)}h`} 
-              subtext={`/ ${plannedTaskHours.toFixed(1)}h dự kiến`} 
+              subtext={isVi ? `/ ${plannedTaskHours.toFixed(1)}h dự kiến` : `/ ${plannedTaskHours.toFixed(1)}h planned`} 
               color="text-cyan-600" 
               bg="bg-cyan-50" 
             />
@@ -1088,30 +1107,30 @@ export function DashboardView() {
                   <Wallet className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 dark:text-white text-base">Tóm tắt Tài chính</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Thu nhập, chi tiêu & số dư tổng quan</p>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base">{isVi ? 'Tóm tắt Tài chính' : 'Financial Summary'}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{isVi ? 'Thu nhập, chi tiêu & số dư tổng quan' : 'Income, expenses & overall balance'}</p>
                 </div>
               </div>
               <button 
                 onClick={() => setCurrentView('finance')}
                 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 flex items-center gap-1 transition-colors shrink-0"
               >
-                Chi tiết <ArrowUpRight className="w-3.5 h-3.5" />
+                {isVi ? 'Chi tiết' : 'Details'} <ArrowUpRight className="w-3.5 h-3.5" />
               </button>
             </div>
 
             {/* Total Balance Card */}
             <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white shadow-sm flex items-center justify-between gap-3">
               <div>
-                <span className="text-xs font-medium text-slate-300">Tổng số dư khả dụng</span>
+                <span className="text-xs font-medium text-slate-300">{isVi ? 'Tổng số dư khả dụng' : 'Total Available Balance'}</span>
                 <div className="text-xl sm:text-2xl font-black tracking-tight mt-0.5 font-mono tabular-nums">
                   {formatCurrency(totalBalance)}
                 </div>
               </div>
               <div className="text-right shrink-0">
-                <span className="text-[11px] text-slate-400 block">Tài khoản</span>
+                <span className="text-[11px] text-slate-400 block">{isVi ? 'Tài khoản' : 'Accounts'}</span>
                 <span className="text-xs font-bold text-emerald-400">
-                  {(financeAccounts || []).length} tài khoản
+                  {(financeAccounts || []).length} {isVi ? 'tài khoản' : 'accounts'}
                 </span>
               </div>
             </div>
@@ -1121,7 +1140,7 @@ export function DashboardView() {
               <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-1">
                   <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>Thu tháng này</span>
+                  <span>{isVi ? 'Thu tháng này' : 'Income this month'}</span>
                 </div>
                 <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">
                   +{formatCurrency(monthlyIncome)}
@@ -1130,7 +1149,7 @@ export function DashboardView() {
               <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
                 <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-1">
                   <TrendingDown className="w-3.5 h-3.5 text-rose-500" />
-                  <span>Chi tháng này</span>
+                  <span>{isVi ? 'Chi tháng này' : 'Expense this month'}</span>
                 </div>
                 <div className="text-sm font-bold text-rose-600 dark:text-rose-400 font-mono tabular-nums">
                   -{formatCurrency(monthlyExpense)}
@@ -1141,7 +1160,7 @@ export function DashboardView() {
             {/* Net Cashflow Progress Bar */}
             <div className="mt-3 space-y-1.5">
               <div className="flex justify-between text-xs">
-                <span className="text-slate-500">Dòng tiền ròng (Net Cashflow)</span>
+                <span className="text-slate-500">{isVi ? 'Dòng tiền ròng' : 'Net Cashflow'}</span>
                 <span className={`font-bold font-mono tabular-nums ${netMonthly >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                   {netMonthly >= 0 ? '+' : ''}{formatCurrency(netMonthly)}
                 </span>
@@ -1160,9 +1179,9 @@ export function DashboardView() {
 
             {/* Recent Transactions preview */}
             <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">Giao dịch gần đây</span>
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">{isVi ? 'Giao dịch gần đây' : 'Recent Transactions'}</span>
               {recentTransactions.length === 0 ? (
-                <p className="text-xs text-slate-400 italic py-1">Chưa có giao dịch nào được ghi nhận tháng này.</p>
+                <p className="text-xs text-slate-400 italic py-1">{isVi ? 'Chưa có giao dịch nào được ghi nhận tháng này.' : 'No transactions recorded this month.'}</p>
               ) : (
                 <div className="space-y-2">
                   {recentTransactions.map((tx) => (
@@ -1170,7 +1189,7 @@ export function DashboardView() {
                       <div className="flex items-center gap-2 min-w-0">
                         <span className={`w-2 h-2 rounded-full shrink-0 ${tx.type === 'Thu nhập' ? 'bg-emerald-500' : tx.type === 'Chi tiêu' ? 'bg-rose-500' : 'bg-blue-500'}`}></span>
                         <div className="truncate">
-                          <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate">{tx.category || 'Khác'}</span>
+                          <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate">{t(tx.category || 'Khác')}</span>
                           <span className="text-[10px] text-slate-400">{tx.date}</span>
                         </div>
                       </div>
@@ -1188,7 +1207,7 @@ export function DashboardView() {
             onClick={() => setCurrentView('finance')}
             className="w-full mt-2 py-2 px-3 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-700 dark:bg-slate-800/60 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 transition-colors flex items-center justify-center gap-1.5"
           >
-            Quản lý Tài chính & Ví <ArrowRight className="w-3.5 h-3.5" />
+            {isVi ? 'Quản lý Tài chính & Ví' : 'Manage Finance & Wallets'} <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
@@ -1201,15 +1220,15 @@ export function DashboardView() {
                   <FolderKanban className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-slate-900 dark:text-white text-base">Tiến độ Dự án Mới nhất</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Các mục tiêu & dự án trọng điểm đang thực hiện</p>
+                  <h3 className="font-bold text-slate-900 dark:text-white text-base">{isVi ? 'Tiến độ Dự án Mới nhất' : 'Latest Projects Progress'}</h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{isVi ? 'Các mục tiêu & dự án trọng điểm đang thực hiện' : 'Key goals and active priority projects'}</p>
                 </div>
               </div>
               <button 
                 onClick={() => setCurrentView('projects')}
                 className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 transition-colors shrink-0"
               >
-                Xem tất cả ({totalProjectsCount}) <ArrowUpRight className="w-3.5 h-3.5" />
+                {isVi ? `Xem tất cả (${totalProjectsCount})` : `View All (${totalProjectsCount})`} <ArrowUpRight className="w-3.5 h-3.5" />
               </button>
             </div>
 
@@ -1217,12 +1236,12 @@ export function DashboardView() {
             <div className="mt-4 space-y-3">
               {recentProjects.length === 0 ? (
                 <div className="text-center py-8 space-y-3">
-                  <p className="text-xs text-slate-500">Chưa có dự án nào được tạo.</p>
+                  <p className="text-xs text-slate-500">{isVi ? 'Chưa có dự án nào được tạo.' : 'No projects created yet.'}</p>
                   <button 
                     onClick={() => setCurrentView('projects')}
                     className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1.5 shadow-xs"
                   >
-                    <Plus className="w-3.5 h-3.5" /> Tạo dự án đầu tiên
+                    <Plus className="w-3.5 h-3.5" /> {isVi ? 'Tạo dự án đầu tiên' : 'Create First Project'}
                   </button>
                 </div>
               ) : (
@@ -1250,14 +1269,14 @@ export function DashboardView() {
                           )}
                         </div>
                         <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${healthColor}`}>
-                          {p.health || 'Tốt'}
+                          {isVi ? (p.health || 'Tốt') : (p.health === 'Tốt' ? 'Healthy' : p.health === 'Cảnh báo' ? 'At Risk' : 'Critical')}
                         </span>
                       </div>
 
                       {/* Progress Bar */}
                       <div className="space-y-1">
                         <div className="flex justify-between text-xs">
-                          <span className="text-slate-500 text-[11px]">Tiến độ thực hiện</span>
+                          <span className="text-slate-500 text-[11px]">{isVi ? 'Tiến độ thực hiện' : 'Progress'}</span>
                           <span className="font-bold text-slate-900 dark:text-white font-mono tabular-nums">{p.progress || 0}%</span>
                         </div>
                         <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
@@ -1270,9 +1289,9 @@ export function DashboardView() {
 
                       {/* Footer metadata */}
                       <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200/50 dark:border-slate-700/50">
-                        <span>Hạn chót: {p.deadline ? p.deadline : 'Không hạn'}</span>
+                        <span>{isVi ? `Hạn chót: ${p.deadline ? p.deadline : 'Không hạn'}` : `Deadline: ${p.deadline ? p.deadline : 'No deadline'}`}</span>
                         {p.budget > 0 && (
-                          <span className="font-mono font-medium">Ngân sách: {formatCurrency(p.budget)}</span>
+                          <span className="font-mono font-medium">{isVi ? 'Ngân sách:' : 'Budget:'} {formatCurrency(p.budget)}</span>
                         )}
                       </div>
                     </div>
@@ -1286,7 +1305,7 @@ export function DashboardView() {
             onClick={() => setCurrentView('projects')}
             className="w-full mt-2 py-2 px-3 bg-slate-50 hover:bg-blue-50 hover:text-blue-700 dark:bg-slate-800/60 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 transition-colors flex items-center justify-center gap-1.5"
           >
-            Quản trị & Lên kế hoạch Dự án <ArrowRight className="w-3.5 h-3.5" />
+            {isVi ? 'Quản trị & Lên kế hoạch Dự án' : 'Project Management & Planning'} <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
 
@@ -1302,10 +1321,10 @@ export function DashboardView() {
             <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
               <div>
-                <h4 className="font-bold text-red-800 text-sm mb-1">Daily Risks Detected ({risks.length})</h4>
+                <h4 className="font-bold text-red-800 text-sm mb-1">{isVi ? `Phát hiện rủi ro trong ngày (${risks.length})` : `Daily Risks Detected (${risks.length})`}</h4>
                 <ul className="text-sm text-red-700 space-y-1 list-disc list-inside">
                   {risks.map((r, i) => (
-                    <li key={i}><span className="font-medium">{r.type}:</span> {r.message}</li>
+                    <li key={i}><span className="font-medium">{t(r.type)}:</span> {t(r.message)}</li>
                   ))}
                 </ul>
               </div>
@@ -1328,11 +1347,11 @@ export function DashboardView() {
               <div className="p-6">
                 <EmptyState
                   icon={CheckSquare}
-                  title="Chưa có công việc nào hôm nay"
-                  description="Hãy lên kế hoạch cho 3 nhiệm vụ quan trọng nhất (Top 3 Priority) để giữ vững hiệu suất làm việc đỉnh cao."
-                  actionLabel="Thêm việc mới"
+                  title={isVi ? "Chưa có công việc nào hôm nay" : "No tasks scheduled for today"}
+                  description={isVi ? "Hãy lên kế hoạch cho 3 nhiệm vụ quan trọng nhất (Top 3 Priority) để giữ vững hiệu suất làm việc đỉnh cao." : "Plan your top 3 priority tasks to maintain peak performance and focus."}
+                  actionLabel={isVi ? "Thêm việc mới" : "Add New Task"}
                   onAction={() => setShowQuickTaskModal(true)}
-                  secondaryActionLabel="Mở To-do List"
+                  secondaryActionLabel={isVi ? "Mở To-do List" : "Open Task List"}
                   onSecondaryAction={() => setCurrentView('tasks')}
                 />
               </div>
@@ -1356,8 +1375,8 @@ export function DashboardView() {
                             if (pendingTasks.length <= 1) {
                               soundEngine.playSuccess();
                               setCelebration({
-                                title: 'Tuyệt vời! Hoàn thành toàn bộ mục tiêu hôm nay!',
-                                subtitle: 'Bạn đã hoàn tất tất cả các công việc dự kiến trong ngày. Đỉnh cao của sự kỷ luật!',
+                                title: isVi ? 'Tuyệt vời! Hoàn thành toàn bộ mục tiêu hôm nay!' : 'Awesome! All daily goals completed!',
+                                subtitle: isVi ? 'Bạn đã hoàn tất tất cả các công việc dự kiến trong ngày. Đỉnh cao của sự kỷ luật!' : 'You have completed all scheduled tasks for today. Peak discipline!',
                                 xpAwarded: 50,
                                 streakCount: retentionEngine.getProfile(currentUser?.id)?.streak ?? 0
                               });
@@ -1417,10 +1436,10 @@ export function DashboardView() {
 
           {/* Timeline View */}
           <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
-            <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-4">{t('Daily Timeline')}</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-4">{isVi ? 'Dòng thời gian trong ngày' : 'Daily Timeline'}</h3>
             <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
               {todayEvents.length === 0 && (
-                <p className="text-sm text-slate-500 text-center py-4">{t('Không có sự kiện lịch nào hôm nay.')}</p>
+                <p className="text-sm text-slate-500 text-center py-4">{isVi ? 'Không có sự kiện lịch nào hôm nay.' : 'No calendar events scheduled for today.'}</p>
               )}
               {todayEvents.map(event => (
                 <div key={event.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
@@ -1432,7 +1451,7 @@ export function DashboardView() {
                       <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm">{event.title}</h4>
                       <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">{event.startTime} - {event.endTime}</span>
                     </div>
-                    <p className="text-xs text-slate-500">{event.type}</p>
+                    <p className="text-xs text-slate-500">{t(event.type)}</p>
                   </div>
                 </div>
               ))}
@@ -1446,7 +1465,7 @@ export function DashboardView() {
           {/* Daily Score */}
           <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 flex flex-col items-center relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 -z-10"></div>
-            <h3 className="font-bold text-slate-900 dark:text-white mb-2">Daily Score</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white mb-2">{isVi ? 'Điểm Hiệu Suất' : 'Daily Score'}</h3>
             <div className="relative w-40 h-40">
               <ResponsiveContainer width="100%" height="100%">
                 <RadialBarChart 
@@ -1463,14 +1482,14 @@ export function DashboardView() {
               <div className="absolute inset-0 flex flex-col items-center justify-center">
                 <span className="text-4xl font-black text-slate-900 dark:text-white">{dailyScore}</span>
                 <span className="text-xs font-medium text-slate-500">
-                  {dailyScore >= 90 ? 'Xuất sắc' : dailyScore >= 75 ? 'Tốt' : dailyScore >= 40 ? 'Bình thường' : dailyScore > 0 ? 'Cần cố gắng' : 'Chưa có hoạt động'}
+                  {dailyScore >= 90 ? (isVi ? 'Xuất sắc' : 'Excellent') : dailyScore >= 75 ? (isVi ? 'Tốt' : 'Good') : dailyScore >= 40 ? (isVi ? 'Bình thường' : 'Normal') : dailyScore > 0 ? (isVi ? 'Cần cố gắng' : 'Needs Effort') : (isVi ? 'Chưa có hoạt động' : 'No Activity')}
                 </span>
               </div>
             </div>
             
             <div className="w-full mt-6 space-y-2">
               <div className="flex justify-between text-xs font-medium">
-                <span className="text-slate-600 dark:text-slate-400">Capacity Utilization</span>
+                <span className="text-slate-600 dark:text-slate-400">{isVi ? 'Hiệu suất công suất' : 'Capacity Utilization'}</span>
                 <span className={isOverload ? 'text-red-600' : 'text-slate-900 dark:text-white'}>{utilization.toFixed(0)}%</span>
               </div>
               <div className="w-full bg-slate-100 rounded-full h-1.5">
@@ -1484,7 +1503,7 @@ export function DashboardView() {
 
           {/* Today's Habits */}
           <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
-            <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-4">Today's Habits</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-4">{isVi ? 'Thói quen hôm nay' : "Today's Habits"}</h3>
             <div className="space-y-3">
               {(habits || []).map(habit => {
                 const isCompleted = habit.completedDates?.includes(dateStr) || 
@@ -1533,9 +1552,12 @@ export function DashboardView() {
 
           {/* Daily Checklist (Quick) */}
           <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
-            <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-4">Evening Routine</h3>
+            <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-4">{isVi ? 'Thói quen buổi tối' : 'Evening Routine'}</h3>
             <div className="space-y-2">
-              {['Review goals', 'Plan tomorrow', 'Record expenses', 'Read 10 pages'].map((item, i) => (
+              {(isVi 
+                ? ['Đánh giá mục tiêu', 'Lên kế hoạch ngày mai', 'Ghi chép chi tiêu', 'Đọc 10 trang sách'] 
+                : ['Review goals', 'Plan tomorrow', 'Record expenses', 'Read 10 pages']
+              ).map((item, i) => (
                 <label key={i} className="flex items-center gap-3 p-2 hover:bg-slate-50 dark:bg-slate-800/50 rounded cursor-pointer">
                   <input 
                     type="checkbox" 
@@ -1563,12 +1585,14 @@ export function DashboardView() {
                 <AlertTriangle className="w-6 h-6" />
               </div>
               <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Làm sạch dữ liệu</h3>
-                <p className="text-xs text-slate-500">Khởi tạo trang trắng cho số liệu thực tế</p>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{isVi ? 'Làm sạch dữ liệu' : 'Clear Workspace Data'}</h3>
+                <p className="text-xs text-slate-500">{isVi ? 'Khởi tạo trang trắng cho số liệu thực tế' : 'Initialize clean slate for real data'}</p>
               </div>
             </div>
             <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-              Thao tác này sẽ làm sạch các bản ghi trong không gian làm việc của bạn để bắt đầu chu kỳ ghi nhận mới từ đầu. Các cấu hình tài khoản và phân quyền sẽ được giữ nguyên. Bạn có chắc chắn muốn tiếp tục không?
+              {isVi 
+                ? 'Thao tác này sẽ làm sạch các bản ghi trong không gian làm việc của bạn để bắt đầu chu kỳ ghi nhận mới từ đầu. Các cấu hình tài khoản và phân quyền sẽ được giữ nguyên. Bạn có chắc chắn muốn tiếp tục không?' 
+                : 'This action will clear records in your workspace to begin a new tracking cycle. Account configurations and permissions will remain intact. Are you sure you want to proceed?'}
             </p>
             <div className="flex justify-end gap-3">
               <button
@@ -1576,7 +1600,7 @@ export function DashboardView() {
                 onClick={() => setShowClearConfirm(false)}
                 className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
-                Hủy bỏ
+                {isVi ? 'Hủy bỏ' : 'Cancel'}
               </button>
               <button
                 type="button"
@@ -1586,7 +1610,7 @@ export function DashboardView() {
                 }}
                 className="px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-700 text-white transition-colors shadow-sm"
               >
-                Xác nhận làm sạch
+                {isVi ? 'Xác nhận làm sạch' : 'Confirm Clear'}
               </button>
             </div>
           </div>
@@ -1600,7 +1624,7 @@ export function DashboardView() {
             <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Plus className="w-5 h-5 text-blue-600" />
-                {t('Thêm Công việc Thực tế')}
+                {isVi ? 'Thêm Công việc Thực tế' : 'Add Real Task'}
               </h3>
               <button 
                 type="button" 
@@ -1630,7 +1654,7 @@ export function DashboardView() {
             >
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  {t('Tên công việc')} <span className="text-red-500">*</span>
+                  {isVi ? 'Tên công việc' : 'Task title'} <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1638,7 +1662,7 @@ export function DashboardView() {
                   autoFocus
                   value={quickTaskTitle}
                   onChange={(e) => setQuickTaskTitle(e.target.value)}
-                  placeholder={t('VD: Soạn tài liệu tuần, gọi điện đối tác...')}
+                  placeholder={isVi ? 'VD: Soạn tài liệu tuần, gọi điện đối tác...' : 'E.g., Prepare weekly doc, call partner...'}
                   className="w-full px-3.5 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
                 />
               </div>
@@ -1646,22 +1670,22 @@ export function DashboardView() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    {t('Mức độ ưu tiên')}
+                    {isVi ? 'Mức độ ưu tiên' : 'Priority'}
                   </label>
                   <select
                     value={quickTaskPriority}
                     onChange={(e) => setQuickTaskPriority(e.target.value as any)}
                     className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
                   >
-                    <option value="Thấp">{t('Thấp')}</option>
-                    <option value="Trung bình">{t('Trung bình')}</option>
-                    <option value="Cao">{t('Cao')}</option>
-                    <option value="Nghiêm trọng">{t('Khẩn cấp')}</option>
+                    <option value="Thấp">{isVi ? 'Thấp' : 'Low'}</option>
+                    <option value="Trung bình">{isVi ? 'Trung bình' : 'Medium'}</option>
+                    <option value="Cao">{isVi ? 'Cao' : 'High'}</option>
+                    <option value="Nghiêm trọng">{isVi ? 'Khẩn cấp' : 'Urgent'}</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    {t('Thời lượng dự kiến (Giờ)')}
+                    {isVi ? 'Thời lượng dự kiến (Giờ)' : 'Estimated Duration (Hours)'}
                   </label>
                   <input
                     type="number"
@@ -1680,13 +1704,13 @@ export function DashboardView() {
                   onClick={() => setShowQuickTaskModal(false)}
                   className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
-                  {t('Hủy')}
+                  {isVi ? 'Hủy' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-sm"
                 >
-                  {t('Tạo công việc ngay')}
+                  {isVi ? 'Tạo công việc ngay' : 'Create Task Now'}
                 </button>
               </div>
             </form>
@@ -1765,8 +1789,8 @@ export function DashboardView() {
           setStreakShield(streakFreezeEngine.getStatus(currentUser?.id));
           setResurrectionStatus(streakFreezeEngine.getResurrectionStatus(currentUser?.id));
           setCelebration({
-            title: 'Hồi Sinh Thành Công!',
-            subtitle: `Chuỗi kỉ luật của bạn đã được nối tiếp ${restored} ngày! 🔥`,
+            title: isVi ? 'Hồi Sinh Thành Công!' : 'Resurrection Successful!',
+            subtitle: isVi ? `Chuỗi kỉ luật của bạn đã được nối tiếp ${restored} ngày! 🔥` : `Your discipline streak has been restored for ${restored} days! 🔥`,
             xpAwarded: 50
           });
         }}

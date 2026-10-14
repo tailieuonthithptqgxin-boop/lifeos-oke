@@ -28,6 +28,7 @@ export function TopBar() {
   } = useAppStore();
   
   const t = useTranslation(language);
+  const isVi = language === 'vi';
 
   // Global Shift + F shortcut for Zen Focus Mode
   useEffect(() => {
@@ -169,11 +170,11 @@ export function TopBar() {
         <button
           type="button"
           onClick={() => setShowZenFocus(true)}
-          title="Chế độ Zen Focus (Shift + F)"
+          title={isVi ? "Chế độ Tập trung Zen (Shift + F)" : "Zen Focus Mode (Shift + F)"}
           className="p-2 sm:px-3 sm:py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 shadow-xs"
         >
           <Sparkles className="w-3.5 h-3.5 text-emerald-500 fill-emerald-500 animate-pulse" />
-          <span className="hidden md:inline text-xs font-black">Zen Focus</span>
+          <span className="hidden md:inline text-xs font-black">{isVi ? 'Tập trung Zen' : 'Zen Focus'}</span>
           <kbd className="hidden lg:inline text-[9px] font-mono font-bold opacity-75 bg-emerald-500/15 px-1 rounded">⇧F</kbd>
         </button>
 
@@ -313,7 +314,7 @@ export function TopBar() {
             {MASCOT_PROFILES[companionSettings.mascotId]?.avatar || '🌟'}
           </span>
           <span className="hidden xl:inline text-xs font-bold">
-            {companionSettings.enabled && companionSettings.focusCompanionMode !== 'off' ? t('AI On') : t('Open AI')}
+            {companionSettings.enabled && companionSettings.focusCompanionMode !== 'off' ? (isVi ? 'AI Bật' : 'AI On') : (isVi ? 'Mở AI' : 'Open AI')}
           </span>
         </button>
 

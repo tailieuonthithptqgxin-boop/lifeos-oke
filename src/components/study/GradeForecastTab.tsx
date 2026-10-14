@@ -156,9 +156,15 @@ export function GradeForecastTab({
 
   const handleAddScoreToComponent = (compId: string) => {
     const valStr = newScoreInput[compId]?.trim();
-    if (!valStr) return;
+    if (!valStr) {
+      alert(isVi ? 'Vui lòng nhập điểm số cần thêm!' : 'Please enter a score to add!');
+      return;
+    }
     const val = parseFloat(valStr);
-    if (isNaN(val) || val < 0 || val > schema.scaleMax) return;
+    if (isNaN(val) || val < 0 || val > schema.scaleMax) {
+      alert(isVi ? `Điểm số phải từ 0 đến ${schema.scaleMax}!` : `Score must be between 0 and ${schema.scaleMax}!`);
+      return;
+    }
 
     updateSchema(prev => ({
       ...prev,
