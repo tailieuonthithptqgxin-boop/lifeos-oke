@@ -26,26 +26,26 @@ import { lazyWithRetry } from './lib/lazyWithRetry';
 import { Zap } from 'lucide-react';
 
 // Lazy-load heavier / secondary views with auto-retry on network/dev hiccups
-const CalendarView = lazyWithRetry(() => import('./components/CalendarView').then(m => ({ default: m.CalendarView })));
-const FinanceView = lazyWithRetry(() => import('./components/FinanceView').then(m => ({ default: m.FinanceView })));
-const FocusView = lazyWithRetry(() => import('./components/FocusView').then(m => ({ default: m.FocusView })));
-const ProjectsView = lazyWithRetry(() => import('./components/ProjectsView').then(m => ({ default: m.ProjectsView })));
-const GoalsView = lazyWithRetry(() => import('./components/GoalsView').then(m => ({ default: m.GoalsView })));
-const NotesView = lazyWithRetry(() => import('./components/NotesView').then(m => ({ default: m.NotesView })));
-const StudyView = lazyWithRetry(() => import('./components/StudyView').then(m => ({ default: m.StudyView })));
-const HabitsView = lazyWithRetry(() => import('./components/HabitsView').then(m => ({ default: m.HabitsView })));
-const MyAccountView = lazyWithRetry(() => import('./components/MyAccountView').then(m => ({ default: m.MyAccountView })));
-const MarketplaceView = lazyWithRetry(() => import('./components/MarketplaceView').then(m => ({ default: m.MarketplaceView })));
-const CartView = lazyWithRetry(() => import('./components/CartView').then(m => ({ default: m.CartView })));
-const CheckoutView = lazyWithRetry(() => import('./components/CheckoutView').then(m => ({ default: m.CheckoutView })));
-const AdminView = lazyWithRetry(() => import('./components/AdminView').then(m => ({ default: m.AdminView })));
-const DecisionEngineView = lazyWithRetry(() => import('./components/DecisionEngineView').then(m => ({ default: m.DecisionEngineView })));
-const AutomationEngineView = lazyWithRetry(() => import('./components/AutomationEngineView').then(m => ({ default: m.AutomationEngineView })));
-const SubscriptionManagementView = lazyWithRetry(() => import('./components/SubscriptionManagementView').then(m => ({ default: m.SubscriptionManagementView })));
-const ReferralView = lazyWithRetry(() => import('./components/ReferralView').then(m => ({ default: m.ReferralView })));
-const FeedbackView = lazyWithRetry(() => import('./components/FeedbackView').then(m => ({ default: m.FeedbackView })));
-const DynamicModuleView = lazyWithRetry(() => import('./components/DynamicModuleView').then(m => ({ default: m.DynamicModuleView })));
-const JourneyView = lazyWithRetry(() => import('./components/JourneyView').then(m => ({ default: m.JourneyView })));
+const CalendarView = lazyWithRetry(() => import('./components/CalendarView'), 'CalendarView');
+const FinanceView = lazyWithRetry(() => import('./components/FinanceView'), 'FinanceView');
+const FocusView = lazyWithRetry(() => import('./components/FocusView'), 'FocusView');
+const ProjectsView = lazyWithRetry(() => import('./components/ProjectsView'), 'ProjectsView');
+const GoalsView = lazyWithRetry(() => import('./components/GoalsView'), 'GoalsView');
+const NotesView = lazyWithRetry(() => import('./components/NotesView'), 'NotesView');
+const StudyView = lazyWithRetry(() => import('./components/StudyView'), 'StudyView');
+const HabitsView = lazyWithRetry(() => import('./components/HabitsView'), 'HabitsView');
+const MyAccountView = lazyWithRetry(() => import('./components/MyAccountView'), 'MyAccountView');
+const MarketplaceView = lazyWithRetry(() => import('./components/MarketplaceView'), 'MarketplaceView');
+const CartView = lazyWithRetry(() => import('./components/CartView'), 'CartView');
+const CheckoutView = lazyWithRetry(() => import('./components/CheckoutView'), 'CheckoutView');
+const AdminView = lazyWithRetry(() => import('./components/AdminView'), 'AdminView');
+const DecisionEngineView = lazyWithRetry(() => import('./components/DecisionEngineView'), 'DecisionEngineView');
+const AutomationEngineView = lazyWithRetry(() => import('./components/AutomationEngineView'), 'AutomationEngineView');
+const SubscriptionManagementView = lazyWithRetry(() => import('./components/SubscriptionManagementView'), 'SubscriptionManagementView');
+const ReferralView = lazyWithRetry(() => import('./components/ReferralView'), 'ReferralView');
+const FeedbackView = lazyWithRetry(() => import('./components/FeedbackView'), 'FeedbackView');
+const DynamicModuleView = lazyWithRetry(() => import('./components/DynamicModuleView'), 'DynamicModuleView');
+const JourneyView = lazyWithRetry(() => import('./components/JourneyView'), 'JourneyView');
 
 
 

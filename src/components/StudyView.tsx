@@ -11,8 +11,11 @@ import {
   AcademicProfile,
   createDefaultAcademicProfile
 } from '../lib/gradeEngine';
-const VocabMasterView = React.lazy(() =>
-  import('./vocab/VocabMasterView').then(m => ({ default: m.VocabMasterView }))
+import { lazyWithRetry } from '../lib/lazyWithRetry';
+
+const VocabMasterView = lazyWithRetry(
+  () => import('./vocab/VocabMasterView'),
+  'VocabMasterView'
 );
 import { TabButton } from './study/TabButton';
 import { StudyOverviewTab } from './study/StudyOverviewTab';
