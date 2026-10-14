@@ -99,13 +99,13 @@ const defaultState: AppState = {
   theme: (typeof window !== 'undefined' && (localStorage.getItem('lifeos_theme') as 'light' | 'dark')) || "light",
   toggleMobileMenu: () => {},
   setTheme: () => {},
-  language: (typeof window !== 'undefined' && localStorage.getItem('lifeos_lang')) || "vi",
+  language: (typeof window !== 'undefined' && localStorage.getItem('lifeos_lang')) || "en",
   setLanguage: () => {},
   activeLanguages: [
-    { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳', status: 'ACTIVE', isDefault: true },
-    { code: 'en', name: 'English', flag: '🇬🇧', status: 'ACTIVE', isDefault: false }
+    { code: 'en', name: 'English', flag: '🇬🇧', status: 'ACTIVE', isDefault: true },
+    { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳', status: 'ACTIVE', isDefault: false }
   ],
-  defaultLanguage: 'vi',
+  defaultLanguage: 'en',
   refreshLanguages: async () => {},
   dailyCapacity: 8,
   inbox: [],
@@ -218,8 +218,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return {
               ...s,
               activeLanguages: res.languages,
-              defaultLanguage: res.defaultLanguage || 'vi',
-              language: currentLangValid ? s.language : (res.defaultLanguage || 'vi')
+              defaultLanguage: res.defaultLanguage || 'en',
+              language: currentLangValid ? s.language : (res.defaultLanguage || 'en')
             };
           });
         }
@@ -579,44 +579,65 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const dynamicMethods: any = {};
   collections.forEach(col => {
     dynamicMethods[`add${col.singular}`] = async (item: any) => {
-      // Special logic for Transactions
+      const res = await _add(col.name, item, col.name as keyof AppState);
+      // Synchronize finance accounts and budgets across all consumers
       if (col.name === 'transactions') {
-        const accId = item.accountId;
-        if (accId) {
-          const acc = (state.financeAccounts || []).find(a => a.id === accId);
-          if (acc) {
-            let nb = acc.balance || 0;
-            if (item.type === 'Thu nhập') nb += item.amount;
-            else if (item.type === 'Chi tiêu' || item.type === 'Chuyển tiền') nb -= item.amount;
-            await _update('financeAccounts', acc.id, { balance: nb }, 'financeAccounts' as keyof AppState);
-          }
-          if (item.type === 'Chuyển tiền' && item.toAccountId) {
-            const tAcc = (state.financeAccounts || []).find(a => a.id === item.toAccountId);
-            if (tAcc) {
-              await _update('financeAccounts', tAcc.id, { balance: (tAcc.balance || 0) + item.amount }, 'financeAccounts' as keyof AppState);
-            }
-          }
+        try {
+          const [freshAccounts, freshBudgets] = await Promise.all([
+            apiCall('/api/data/financeAccounts'),
+            apiCall('/api/data/budgets')
+          ]);
+          setState(s => ({
+            ...s,
+            ...(Array.isArray(freshAccounts) ? { financeAccounts: freshAccounts } : {}),
+            ...(Array.isArray(freshBudgets) ? { budgets: freshBudgets } : {})
+          }));
+        } catch (syncErr) {
+          console.warn('Syncing finance accounts after transaction add:', syncErr);
         }
       }
-      return _add(col.name, item, col.name as keyof AppState);
+      return res;
     };
-    dynamicMethods[`update${col.singular}`] = async (id: string, updates: any) => _update(col.name, id, updates, col.name as keyof AppState);
-    dynamicMethods[`delete${col.singular}`] = async (id: string) => {
-      // Before delete, rollback transaction effect
+
+    dynamicMethods[`update${col.singular}`] = async (id: string, updates: any) => {
+      const res = await _update(col.name, id, updates, col.name as keyof AppState);
+      // Synchronize finance accounts and budgets after transaction modification
       if (col.name === 'transactions') {
-        const tx = (state.transactions || []).find(t => t.id === id);
-        if (tx && tx.accountId) {
-          const acc = (state.financeAccounts || []).find(a => a.id === tx.accountId);
-          if (acc) {
-            let nb = acc.balance || 0;
-            if (tx.type === 'Thu nhập') nb -= tx.amount;
-            else if (tx.type === 'Chi tiêu' || tx.type === 'Chuyển tiền') nb += tx.amount;
-            await _update('financeAccounts', acc.id, { balance: nb }, 'financeAccounts' as keyof AppState);
-          }
+        try {
+          const [freshAccounts, freshBudgets] = await Promise.all([
+            apiCall('/api/data/financeAccounts'),
+            apiCall('/api/data/budgets')
+          ]);
+          setState(s => ({
+            ...s,
+            ...(Array.isArray(freshAccounts) ? { financeAccounts: freshAccounts } : {}),
+            ...(Array.isArray(freshBudgets) ? { budgets: freshBudgets } : {})
+          }));
+        } catch (syncErr) {
+          console.warn('Syncing finance accounts after transaction update:', syncErr);
         }
       }
-      
+      return res;
+    };
+
+    dynamicMethods[`delete${col.singular}`] = async (id: string) => {
       await _delete(col.name, id, col.name as keyof AppState);
+      // Synchronize finance accounts and budgets after transaction removal
+      if (col.name === 'transactions') {
+        try {
+          const [freshAccounts, freshBudgets] = await Promise.all([
+            apiCall('/api/data/financeAccounts'),
+            apiCall('/api/data/budgets')
+          ]);
+          setState(s => ({
+            ...s,
+            ...(Array.isArray(freshAccounts) ? { financeAccounts: freshAccounts } : {}),
+            ...(Array.isArray(freshBudgets) ? { budgets: freshBudgets } : {})
+          }));
+        } catch (syncErr) {
+          console.warn('Syncing finance accounts after transaction delete:', syncErr);
+        }
+      }
       // Refresh tasks from server to get accurate cascading changes
       if (col.name === 'projects' || col.name === 'goals') {
         const updatedTasks = await apiCall('/api/data/tasks');
@@ -626,7 +647,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
 
   // Special cases
-  const markNotificationRead = async (id: string) => _update('notifications', id, { read: true }, 'notifications');
+  const markNotificationRead = async (id: string) => {
+    try {
+      await apiCall(`/api/notifications/${id}/read`, 'PUT');
+      setState(s => ({
+        ...s,
+        notifications: (s.notifications || []).map(n => n.id === id ? { ...n, read: true, readAt: new Date().toISOString() } : n)
+      }));
+    } catch (e) {
+      console.error('Failed to mark notification as read:', e);
+    }
+  };
   
   const completeTaskWithLinks = async (id: string) => { await _update('tasks', id, {status: "Hoàn thành"}, 'tasks'); };
   const toggleHabit = async (id: string) => {
@@ -658,8 +689,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const clearAllNotifications = async () => {
     try {
-      await apiCall('/api/notifications/all', 'DELETE');
-      setState(s => ({ ...s, notifications: [] }));
+      await apiCall('/api/notifications/read-all', 'PUT');
+      setState(s => ({
+        ...s,
+        notifications: (s.notifications || []).map(n => ({ ...n, read: true, readAt: new Date().toISOString() }))
+      }));
     } catch (e) {
       console.error(e);
     }

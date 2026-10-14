@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Menu, Moon, Sun, Search, Bell, Plus, Inbox, ShoppingCart, 
   Shield, CheckSquare, DollarSign, Calendar, Target, Zap, 
-  User, LogOut, ChevronDown, CheckCircle2, Globe, Sparkles, Lock, Flame, Award, Volume2, VolumeX, Bot
+  User, LogOut, ChevronDown, CheckCircle2, Globe, Sparkles, Lock, Flame, Award, Volume2, VolumeX, Bot,
+  ExternalLink, AlertTriangle
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { useTranslation } from '../lib/i18n';
@@ -304,15 +305,15 @@ export function TopBar() {
               : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
           }`}
           title={companionSettings.enabled && companionSettings.focusCompanionMode !== 'off'
-            ? `Bé ${MASCOT_PROFILES[companionSettings.mascotId]?.name || 'Lumi'} đang bật · Bấm để tắt nhân vật`
-            : 'Nhân vật AI đang tắt · Bấm để mở lại Bé AI Companion ngay!'}
-          aria-label="Bật/Tắt nhân vật AI"
+            ? `${MASCOT_PROFILES[companionSettings.mascotId]?.name || 'AI Companion'} ${t('is active · Click to hide')}`
+            : t('AI Companion is hidden · Click to open!')}
+          aria-label={t('Bật/Tắt nhân vật AI')}
         >
           <span className="text-base select-none">
             {MASCOT_PROFILES[companionSettings.mascotId]?.avatar || '🌟'}
           </span>
           <span className="hidden xl:inline text-xs font-bold">
-            {companionSettings.enabled && companionSettings.focusCompanionMode !== 'off' ? 'AI Bật' : 'Mở AI'}
+            {companionSettings.enabled && companionSettings.focusCompanionMode !== 'off' ? t('AI On') : t('Open AI')}
           </span>
         </button>
 
@@ -321,8 +322,8 @@ export function TopBar() {
           type="button"
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           className="p-2.5 text-slate-500 hover:text-violet-600 dark:hover:text-violet-300 hover:bg-violet-50 dark:hover:bg-purple-950/40 rounded-2xl transition-all cursor-pointer btn-squishy"
-          title={theme === 'dark' ? 'Chuyển sang chế độ Sáng' : 'Chuyển sang chế độ Tối'}
-          aria-label="Chuyển chế độ giao diện"
+          title={theme === 'dark' ? t('Switch to Light Mode') : t('Switch to Dark Mode')}
+          aria-label={t('Chuyển chế độ giao diện')}
         >
           {theme === 'dark' ? (
             <Sun className="w-5 h-5 text-amber-400 animate-pulse-soft" />
@@ -341,7 +342,7 @@ export function TopBar() {
               setShowUserMenu(false);
             }} 
             className="p-2.5 text-slate-500 hover:text-pink-600 dark:hover:text-pink-300 hover:bg-pink-50 dark:hover:bg-pink-950/40 rounded-2xl transition-all relative btn-squishy"
-            aria-label="Thông báo"
+            aria-label={t('Thông báo')}
           >
             <Bell className="w-5 h-5" />
             {unreadCount > 0 && (
@@ -352,7 +353,7 @@ export function TopBar() {
           {showNotifications && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)}></div>
-              <div className="absolute top-full right-0 mt-2 w-80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-purple-100 dark:border-purple-900/50 rounded-3xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute top-full right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-purple-100 dark:border-purple-900/50 rounded-3xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
                 <div className="flex items-center justify-between px-4 py-3 border-b border-purple-100/60 dark:border-purple-900/40 bg-gradient-to-r from-violet-500/10 to-pink-500/10">
                   <h3 className="font-black text-xs text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-1.5">
                     <span>🔔</span>
@@ -368,21 +369,63 @@ export function TopBar() {
                   {!notifications || notifications.length === 0 ? (
                     <div className="p-6 text-center text-xs text-slate-400 font-medium">✨ {t('Bạn đã xem hết mọi thông báo.')}</div>
                   ) : (
-                    notifications.map((notif: any) => (
-                      <div 
-                        key={notif.id} 
-                        className={`p-3.5 hover:bg-pink-50/50 dark:hover:bg-purple-950/30 cursor-pointer transition-colors ${notif.read ? 'opacity-60' : 'bg-pink-50/20'}`} 
-                        onClick={() => markNotificationRead(notif.id)}
-                      >
-                        <div className="flex items-start gap-2.5">
-                          <div className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${notif.read ? 'bg-slate-300' : 'bg-pink-500 ring-2 ring-pink-300/50'}`}></div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{notif.title}</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-2">{notif.message || notif.content || ''}</p>
+                    notifications.map((notif: any) => {
+                      const isCritical = notif.priority === 'CRITICAL';
+                      const isImportant = notif.priority === 'IMPORTANT';
+                      return (
+                        <div 
+                          key={notif.id} 
+                          className={`p-3.5 hover:bg-purple-50/50 dark:hover:bg-purple-950/30 cursor-pointer transition-colors ${
+                            notif.read ? 'opacity-60' : isCritical ? 'bg-rose-50/30 dark:bg-rose-950/20' : 'bg-purple-50/20'
+                          }`} 
+                          onClick={() => markNotificationRead(notif.id)}
+                        >
+                          <div className="flex items-start gap-2.5">
+                            <div className={`mt-1.5 w-2.5 h-2.5 rounded-full shrink-0 ${
+                              notif.read 
+                                ? 'bg-slate-300 dark:bg-slate-700' 
+                                : isCritical 
+                                ? 'bg-rose-500 ring-2 ring-rose-300 animate-pulse' 
+                                : isImportant
+                                ? 'bg-amber-500 ring-2 ring-amber-300'
+                                : 'bg-purple-500 ring-2 ring-purple-300/50'
+                            }`}></div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                {(isCritical || isImportant) && (
+                                  <span className={`px-1.5 py-0.2 rounded-md text-[9px] font-black uppercase tracking-wider ${
+                                    isCritical ? 'bg-rose-500 text-white' : 'bg-amber-500 text-white'
+                                  }`}>
+                                    {notif.priority}
+                                  </span>
+                                )}
+                                <p className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">{notif.title}</p>
+                              </div>
+                              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-3 whitespace-pre-line leading-relaxed">
+                                {notif.message || notif.content || ''}
+                              </p>
+                              {notif.actionUrl && (
+                                <div className="mt-2">
+                                  <a
+                                    href={notif.actionUrl}
+                                    target={notif.actionUrl.startsWith('http') ? '_blank' : '_self'}
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      markNotificationRead(notif.id);
+                                    }}
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold shadow-2xs transition-colors"
+                                  >
+                                    <span>{notif.actionLabel || t('Xem chi tiết')}</span>
+                                    <ExternalLink className="w-2.5 h-2.5" />
+                                  </a>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>

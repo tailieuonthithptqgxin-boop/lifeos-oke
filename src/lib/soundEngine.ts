@@ -239,6 +239,34 @@ class SoundEngine {
     osc.stop(now + 0.07);
   }
 
+  // 3.5. Notification Chime (Gentle 2-tone chime)
+  public playNotification() {
+    hapticEngine.trigger('light');
+    if (!this.enabled) return;
+    const ctx = this.initContext();
+    if (!ctx) return;
+
+    const now = ctx.currentTime;
+    const notes = [587.33, 880]; // D5 -> A5
+    notes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const startTime = now + idx * 0.1;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime);
+
+      gain.gain.setValueAtTime(0.12, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.35);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(startTime);
+      osc.stop(startTime + 0.35);
+    });
+  }
+
   // 4. Bell Ding (Focus session finish)
   public playBell() {
     if (!this.enabled) return;

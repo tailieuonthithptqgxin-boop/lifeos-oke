@@ -9,7 +9,50 @@ export type AdminTab =
   | 'custom_modules' 
   | 'gmail_config'
   | 'referrals'
-  | 'feedback';
+  | 'feedback'
+  | 'announcements';
+
+export interface AnnouncementItem {
+  id: string;
+  title: string;
+  message: string;
+  type: 'GENERAL' | 'MAINTENANCE' | 'FEATURE' | 'SECURITY' | 'PROMOTION';
+  priority: 'NORMAL' | 'IMPORTANT' | 'CRITICAL';
+  targetAudience: 'ALL' | 'ACTIVE' | 'INACTIVE' | 'ROLE_ADMIN' | 'ROLE_USER' | 'PLAN_PRO' | 'PLAN_FREE' | 'PLAN_TEAM' | 'SELECTED_USERS';
+  targetUserIds?: string | null;
+  channels: 'WEB' | 'EMAIL' | 'BOTH';
+  status: 'DRAFT' | 'SCHEDULED' | 'PUBLISHING' | 'PUBLISHED' | 'CANCELLED' | 'ARCHIVED';
+  scheduledFor?: string | null;
+  expiresAt?: string | null;
+  actionUrl?: string | null;
+  actionLabel?: string | null;
+  createdById: string;
+  createdByName?: string | null;
+  createdAt: string;
+  publishedAt?: string | null;
+  stats?: {
+    webTotal: number;
+    emailTotal: number;
+    emailSent: number;
+    emailFailed: number;
+  };
+  deliveries?: AnnouncementDeliveryItem[];
+}
+
+export interface AnnouncementDeliveryItem {
+  id: string;
+  announcementId: string;
+  userId: string;
+  userEmail?: string | null;
+  userName?: string | null;
+  channel: 'WEB' | 'EMAIL';
+  status: 'PENDING' | 'SENT' | 'FAILED' | 'SKIPPED';
+  errorMessage?: string | null;
+  sentAt?: string | null;
+  readAt?: string | null;
+  createdAt: string;
+}
+
 
 export interface SubscriptionRecord {
   id: string;

@@ -11,10 +11,10 @@ interface TabItem {
 }
 
 const PRIMARY_TABS: TabItem[] = [
-  { id: 'dashboard', label: 'Hôm nay', icon: LayoutDashboard },
-  { id: 'journey', label: 'Hành trình', icon: Compass },
-  { id: 'tasks', label: 'Công việc', icon: CheckSquare },
-  { id: 'focus', label: 'Tập trung', icon: Zap },
+  { id: 'dashboard', label: 'Today', icon: LayoutDashboard },
+  { id: 'journey', label: 'Journey', icon: Compass },
+  { id: 'tasks', label: 'Tasks', icon: CheckSquare },
+  { id: 'focus', label: 'Focus', icon: Zap },
 ];
 
 export function BottomNav() {
@@ -22,13 +22,13 @@ export function BottomNav() {
   const t = useTranslation(language);
 
   const pendingTaskCount = (tasks || []).filter(
-    t => t.status !== 'Hoàn thành' && t.status !== 'Hủy'
+    t => t.status !== 'Hoàn thành' && t.status !== 'Hủy' && t.status !== 'Completed' && t.status !== 'Cancelled'
   ).length;
 
   return (
     <nav
       id="mobile-bottom-nav"
-      aria-label={t('Thanh điều hướng di động')}
+      aria-label={t('Mobile Navigation')}
       className="md:hidden fixed bottom-2.5 left-3 right-3 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xl px-2 py-1.5 transition-all"
     >
       <div className="flex items-center justify-around max-w-lg mx-auto">
@@ -73,7 +73,7 @@ export function BottomNav() {
           className="flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl text-slate-500 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-300 font-semibold transition-all btn-squishy"
         >
           <Menu className="w-5 h-5" />
-          <span className="text-[10px] mt-1 tracking-tight font-bold">{t('Thêm')} ✨</span>
+          <span className="text-[10px] mt-1 tracking-tight font-bold">{t('More')} ✨</span>
         </button>
       </div>
     </nav>

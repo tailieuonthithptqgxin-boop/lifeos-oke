@@ -44,34 +44,34 @@ interface NavItem {
   description?: string;
 }
 
-// 1. Nhịp sống hàng ngày (Daily Rhythm)
+// 1. Daily Rhythm
 const DAILY_RHYTHM_ITEMS: NavItem[] = [
-  { id: 'dashboard', label: 'Hôm nay', icon: LayoutDashboard },
-  { id: 'focus', label: 'Tập trung', icon: Zap },
-  { id: 'journey', label: 'Hành trình', icon: Compass },
+  { id: 'dashboard', label: 'Today', icon: LayoutDashboard },
+  { id: 'focus', label: 'Focus', icon: Zap },
+  { id: 'journey', label: 'Journey', icon: Compass },
 ];
 
-// 2. Không gian sống & Làm việc (Life & Work Spaces)
+// 2. Spaces
 const SPACES_ITEMS: NavItem[] = [
-  { id: 'tasks', label: 'Công việc', icon: CheckSquare },
-  { id: 'projects', label: 'Dự án (P.A.R.A)', icon: FolderKanban },
-  { id: 'habits', label: 'Thói quen', icon: Target },
-  { id: 'finance', label: 'Tài chính', icon: DollarSign },
-  { id: 'study', label: 'Học tập & Từ vựng', icon: BookOpen },
-  { id: 'notes', label: 'Nhật ký & Ghi chú', icon: FileText },
-  { id: 'goals', label: 'Mục tiêu', icon: Target },
-  { id: 'calendar', label: 'Lịch biểu', icon: Calendar },
+  { id: 'tasks', label: 'Tasks', icon: CheckSquare },
+  { id: 'projects', label: 'Projects (P.A.R.A)', icon: FolderKanban },
+  { id: 'habits', label: 'Habits', icon: Target },
+  { id: 'finance', label: 'Finance', icon: DollarSign },
+  { id: 'study', label: 'Study & Vocab', icon: BookOpen },
+  { id: 'notes', label: 'Journal & Notes', icon: FileText },
+  { id: 'goals', label: 'Goals', icon: Target },
+  { id: 'calendar', label: 'Calendar', icon: Calendar },
 ];
 
-// 3. Hệ sinh thái & Tiện ích (Ecosystem & Tools)
+// 3. Ecosystem & Tools
 const SYSTEM_ITEMS: NavItem[] = [
-  { id: 'marketplace', label: 'Thư viện mẫu', icon: ShoppingBag },
-  { id: 'automation', label: 'Quy tắc tự động', icon: Cpu },
-  { id: 'decision', label: 'Ra quyết định', icon: GitBranch },
-  { id: 'subscription', label: 'Gói cước & Đội ngũ', icon: CreditCard },
-  { id: 'referral', label: 'Giới thiệu nhận 20%', icon: Gift },
-  { id: 'feedback', label: 'Góp ý & Hỗ trợ', icon: MessageSquare },
-  { id: 'admin', label: 'Quản trị hệ thống', icon: Shield, adminOnly: true }
+  { id: 'marketplace', label: 'Templates Marketplace', icon: ShoppingBag },
+  { id: 'automation', label: 'Automation Rules', icon: Cpu },
+  { id: 'decision', label: 'Decision Engine', icon: GitBranch },
+  { id: 'subscription', label: 'Plans & Team', icon: CreditCard },
+  { id: 'referral', label: 'Referral 20%', icon: Gift },
+  { id: 'feedback', label: 'Feedback & Support', icon: MessageSquare },
+  { id: 'admin', label: 'System Admin', icon: Shield, adminOnly: true }
 ];
 
 export function Sidebar() {
@@ -225,29 +225,29 @@ export function Sidebar() {
           {availableDailyItems.length > 0 && (
             <div className="space-y-1">
               <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center justify-between">
-                <span>{t('Nhịp sống')}</span>
-                <span className="text-[9px] text-emerald-500 font-bold lowercase">hôm nay</span>
+                <span>{t('Daily Rhythm')}</span>
+                <span className="text-[9px] text-emerald-500 font-bold lowercase">{t('today')}</span>
               </div>
               {availableDailyItems.map(renderNavButton)}
             </div>
           )}
 
-          {/* Group 2: Không gian sống & Làm việc (SPACES) */}
+          {/* Group 2: Spaces */}
           {availableSpacesItems.length > 0 && (
             <div className="space-y-1 pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
               <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                {t('Không gian sống')} ({availableSpacesItems.length})
+                {t('Spaces')} ({availableSpacesItems.length})
               </div>
               {availableSpacesItems.map(renderNavButton)}
             </div>
           )}
 
-          {/* Section: Lĩnh vực mở rộng (Custom Modules) */}
+          {/* Section: Custom Modules */}
           {customModules.length > 0 && (
             <div className="space-y-1 pt-2 border-t border-purple-100/60 dark:border-purple-900/30">
               <div className="px-3 pb-1 text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
                 <Layers className="w-3 h-3 text-indigo-500" />
-                <span>{t('Lĩnh vực mở rộng')}</span>
+                <span>{t('Custom Modules')}</span>
               </div>
               {customModules.map(mod => {
                 const modView = `custom_module_${mod.slug}`;
@@ -278,11 +278,11 @@ export function Sidebar() {
             </div>
           )}
 
-          {/* Group 3: Hệ sinh thái & Tiện ích (ECOSYSTEM & TOOLS) */}
+          {/* Group 3: System & Tools */}
           {availableSystemItems.length > 0 && (
             <div className="space-y-1 pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
               <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                {t('Hệ thống & Tiện ích')}
+                {t('System & Tools')}
               </div>
               {availableSystemItems.map(renderNavButton)}
             </div>

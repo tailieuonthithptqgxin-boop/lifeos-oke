@@ -67,16 +67,16 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
     let totalDays = 30;
     let subtitle = '';
     let projectable = false;
-    let prevLabel = 'kỳ trước';
+    let prevLabel = 'previous period';
 
     if (selectedPeriod === 'this_month') {
       startCur = new Date(currentYear, currentMonth, 1, 0, 0, 0, 0);
       endCur = new Date(currentYear, currentMonth, currentDate, 23, 59, 59, 999);
       daysCount = currentDate;
       totalDays = new Date(currentYear, currentMonth + 1, 0).getDate();
-      subtitle = `Tháng hiện tại (Tháng ${currentMonth + 1}/${currentYear}) · tính đến hôm nay (${currentDate}/${currentMonth + 1})`;
+      subtitle = `Current Month (Month ${currentMonth + 1}/${currentYear}) · as of today (${currentDate}/${currentMonth + 1})`;
       projectable = true;
-      prevLabel = 'cùng kỳ tháng trước';
+      prevLabel = 'same period last month';
 
       // Previous period: Same days of previous month
       startPrv = new Date(currentYear, currentMonth - 1, 1, 0, 0, 0, 0);
@@ -91,9 +91,9 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
       totalDays = daysInLastMonth;
       const m = startCur.getMonth() + 1;
       const y = startCur.getFullYear();
-      subtitle = `Tháng trước (Tháng ${m}/${y}) · trọn vẹn kỳ`;
+      subtitle = `Last Month (Month ${m}/${y}) · full period`;
       projectable = false;
-      prevLabel = 'tháng trước nữa';
+      prevLabel = 'two months ago';
 
       // Month before last
       startPrv = new Date(currentYear, currentMonth - 2, 1, 0, 0, 0, 0);
@@ -105,9 +105,9 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
       endCur = new Date(now.getTime());
       daysCount = 30;
       totalDays = 30;
-      subtitle = `30 ngày qua · tính đến hôm nay (${currentDate}/${currentMonth + 1}/${currentYear})`;
+      subtitle = `Last 30 days · as of today (${currentDate}/${currentMonth + 1}/${currentYear})`;
       projectable = false;
-      prevLabel = '30 ngày trước đó';
+      prevLabel = 'previous 30 days';
 
       endPrv = new Date(startCur.getTime() - 1);
       startPrv = new Date(endPrv.getTime() - 29 * 24 * 60 * 60 * 1000);
@@ -119,9 +119,9 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
       daysCount = Math.max(1, Math.ceil((endCur.getTime() - startCur.getTime()) / (24 * 60 * 60 * 1000)));
       const quarterEnd = new Date(currentYear, (q + 1) * 3, 0);
       totalDays = Math.ceil((quarterEnd.getTime() - startCur.getTime()) / (24 * 60 * 60 * 1000));
-      subtitle = `Quý ${q + 1}/${currentYear} · tính đến hôm nay (${currentDate}/${currentMonth + 1})`;
+      subtitle = `Q${q + 1}/${currentYear} · as of today (${currentDate}/${currentMonth + 1})`;
       projectable = true;
-      prevLabel = 'cùng kỳ quý trước';
+      prevLabel = 'same period last quarter';
 
       startPrv = new Date(currentYear, (q - 1) * 3, 1, 0, 0, 0, 0);
       endPrv = new Date(startPrv.getTime() + (daysCount * 24 * 60 * 60 * 1000) - 1);
@@ -130,9 +130,9 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
       endCur = new Date(now.getTime());
       daysCount = Math.max(1, Math.ceil((endCur.getTime() - startCur.getTime()) / (24 * 60 * 60 * 1000)));
       totalDays = (currentYear % 4 === 0 && currentYear % 100 !== 0) || currentYear % 400 === 0 ? 366 : 365;
-      subtitle = `Năm ${currentYear} · tính đến hôm nay (${currentDate}/${currentMonth + 1})`;
+      subtitle = `Year ${currentYear} · as of today (${currentDate}/${currentMonth + 1})`;
       projectable = true;
-      prevLabel = 'cùng kỳ năm trước';
+      prevLabel = 'same period last year';
 
       startPrv = new Date(currentYear - 1, 0, 1, 0, 0, 0, 0);
       endPrv = new Date(currentYear - 1, currentMonth, currentDate, 23, 59, 59, 999);
@@ -142,9 +142,9 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
       endCur = new Date(2099, 11, 31);
       daysCount = 1;
       totalDays = 1;
-      subtitle = `Toàn bộ lịch sử giao dịch ghi nhận`;
+      subtitle = `All recorded transaction history`;
       projectable = false;
-      prevLabel = 'kỳ trước';
+      prevLabel = 'previous period';
 
       startPrv = new Date(1990, 0, 1);
       endPrv = new Date(1999, 11, 31);
@@ -185,41 +185,41 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
   // 3. CORE METRICS COMPUTATION (100% REAL DATA)
   const currentIncome = useMemo(() => {
     return currentPeriodTx
-      .filter(t => t.type === 'Thu nhập')
+      .filter(t => t.type === 'Thu nhập' || t.type === 'Income')
       .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   }, [currentPeriodTx]);
 
   const currentExpense = useMemo(() => {
     return currentPeriodTx
-      .filter(t => t.type === 'Chi tiêu')
+      .filter(t => t.type === 'Chi tiêu' || t.type === 'Expense')
       .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   }, [currentPeriodTx]);
 
   const prevExpense = useMemo(() => {
     return prevPeriodTx
-      .filter(t => t.type === 'Chi tiêu')
+      .filter(t => t.type === 'Chi tiêu' || t.type === 'Expense')
       .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   }, [prevPeriodTx]);
 
   const prevIncome = useMemo(() => {
     return prevPeriodTx
-      .filter(t => t.type === 'Thu nhập')
+      .filter(t => t.type === 'Thu nhập' || t.type === 'Income')
       .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   }, [prevPeriodTx]);
 
   const expenseTxList = useMemo(() => {
-    return currentPeriodTx.filter(t => t.type === 'Chi tiêu');
+    return currentPeriodTx.filter(t => t.type === 'Chi tiêu' || t.type === 'Expense');
   }, [currentPeriodTx]);
 
   const incomeTxList = useMemo(() => {
-    return currentPeriodTx.filter(t => t.type === 'Thu nhập');
+    return currentPeriodTx.filter(t => t.type === 'Thu nhập' || t.type === 'Income');
   }, [currentPeriodTx]);
 
   const expenseTxCount = expenseTxList.length;
   const incomeTxCount = incomeTxList.length;
 
   // Card 1: Chi so với kỳ trước
-  const hasPrevExpenseData = prevPeriodTx.some(t => t.type === 'Chi tiêu' && Number(t.amount) > 0);
+  const hasPrevExpenseData = prevPeriodTx.some(t => (t.type === 'Chi tiêu' || t.type === 'Expense') && Number(t.amount) > 0);
   const expenseDiff = currentExpense - prevExpense;
   const expenseDiffPercent = hasPrevExpenseData && prevExpense > 0
     ? ((expenseDiff / prevExpense) * 100)
@@ -298,9 +298,9 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         if (!dayMap[key]) {
           dayMap[key] = { dateStr: key, income: 0, expense: 0, label: dLabel };
         }
-        if (t.type === 'Thu nhập') {
+        if (t.type === 'Thu nhập' || t.type === 'Income') {
           dayMap[key].income += Number(t.amount) || 0;
-        } else if (t.type === 'Chi tiêu') {
+        } else if (t.type === 'Chi tiêu' || t.type === 'Expense') {
           dayMap[key].expense += Number(t.amount) || 0;
         }
       });
@@ -323,14 +323,14 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         const startOfWeek = new Date(d);
         startOfWeek.setDate(d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1));
         const weekKey = startOfWeek.toISOString().split('T')[0];
-        const label = `Tuần ${startOfWeek.getDate()}/${startOfWeek.getMonth() + 1}`;
+        const label = `Week ${startOfWeek.getDate()}/${startOfWeek.getMonth() + 1}`;
 
         if (!weekMap[weekKey]) {
           weekMap[weekKey] = { weekKey, label, income: 0, expense: 0 };
         }
-        if (t.type === 'Thu nhập') {
+        if (t.type === 'Thu nhập' || t.type === 'Income') {
           weekMap[weekKey].income += Number(t.amount) || 0;
-        } else if (t.type === 'Chi tiêu') {
+        } else if (t.type === 'Chi tiêu' || t.type === 'Expense') {
           weekMap[weekKey].expense += Number(t.amount) || 0;
         }
       });
@@ -350,14 +350,14 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         const d = new Date(t.date);
         if (isNaN(d.getTime())) return;
         const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        const label = `T${d.getMonth() + 1}/${d.getFullYear()}`;
+        const label = `M${d.getMonth() + 1}/${d.getFullYear()}`;
 
         if (!monthMap[monthKey]) {
           monthMap[monthKey] = { monthKey, label, income: 0, expense: 0 };
         }
-        if (t.type === 'Thu nhập') {
+        if (t.type === 'Thu nhập' || t.type === 'Income') {
           monthMap[monthKey].income += Number(t.amount) || 0;
-        } else if (t.type === 'Chi tiêu') {
+        } else if (t.type === 'Chi tiêu' || t.type === 'Expense') {
           monthMap[monthKey].expense += Number(t.amount) || 0;
         }
       });
@@ -521,18 +521,18 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
           </div>
           <div className="flex items-center justify-between gap-4">
             <span className="text-emerald-400 font-medium flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400" /> Thu nhập:
+              <span className="w-2 h-2 rounded-full bg-emerald-400" /> Income:
             </span>
             <span className="font-bold font-mono text-emerald-400">+{formatCurrency(data.income)}</span>
           </div>
           <div className="flex items-center justify-between gap-4">
             <span className="text-rose-400 font-medium flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-rose-400" /> Chi tiêu:
+              <span className="w-2 h-2 rounded-full bg-rose-400" /> Expense:
             </span>
             <span className="font-bold font-mono text-rose-400">-{formatCurrency(data.expense)}</span>
           </div>
           <div className="border-t border-slate-800 pt-1.5 flex items-center justify-between gap-4 font-semibold">
-            <span className="text-slate-400">Chênh lệch:</span>
+            <span className="text-slate-400">Net Flow:</span>
             <span className={`font-mono ${data.net >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>
               {data.net >= 0 ? '+' : ''}{formatCurrency(data.net)}
             </span>
@@ -557,7 +557,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
           }`}
         >
           <Activity className="w-4 h-4 text-emerald-500" />
-          <span>Phân tích theo kỳ</span>
+          <span>Period Analysis</span>
         </button>
         <button
           type="button"
@@ -569,7 +569,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
           }`}
         >
           <Layers className="w-4 h-4 text-blue-500" />
-          <span>So sánh giữa các tháng</span>
+          <span>Multi-Month Comparison</span>
         </button>
       </div>
 
@@ -589,7 +589,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
               <TrendingUp className="w-5 h-5 stroke-[2.5]" />
             </div>
             <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              Phân tích thu chi
+              Income & Expense Analytics
             </h3>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1.5 font-medium flex items-center gap-1.5">
@@ -601,12 +601,12 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         {/* Period Selector Tabs */}
         <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800/80 p-1 rounded-2xl overflow-x-auto no-scrollbar shrink-0 self-start md:self-auto">
           {[
-            { id: 'this_month', label: 'Tháng này' },
-            { id: 'last_month', label: 'Tháng trước' },
-            { id: 'last_30_days', label: '30 ngày qua' },
-            { id: 'this_quarter', label: 'Quý này' },
-            { id: 'this_year', label: 'Năm nay' },
-            { id: 'all', label: 'Tất cả' },
+            { id: 'this_month', label: 'This Month' },
+            { id: 'last_month', label: 'Last Month' },
+            { id: 'last_30_days', label: 'Last 30 Days' },
+            { id: 'this_quarter', label: 'This Quarter' },
+            { id: 'this_year', label: 'This Year' },
+            { id: 'all', label: 'All Time' },
           ].map(p => (
             <button
               key={p.id}
@@ -630,7 +630,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
           <div className="flex items-center justify-between gap-2 mb-3">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Chi so với kỳ trước
+              Expense vs Previous Period
             </span>
             <div className={`p-2 rounded-xl ${expenseDiff > 0 ? 'bg-rose-500/10 text-rose-500' : 'bg-emerald-500/10 text-emerald-500'}`}>
               {expenseDiff > 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
@@ -646,13 +646,13 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
               {hasPrevExpenseData ? (
                 <>
                   <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-                    <span>Kỳ trước ({prevPeriodLabel}):</span>
+                    <span>Prior period ({prevPeriodLabel}):</span>
                     <span className="font-mono font-bold text-slate-700 dark:text-slate-300">
                       {formatCurrency(prevExpense)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-500 dark:text-slate-400">Chênh lệch:</span>
+                    <span className="text-slate-500 dark:text-slate-400">Difference:</span>
                     <span className={`font-mono font-black ${expenseDiff > 0 ? 'text-rose-500' : expenseDiff < 0 ? 'text-emerald-500' : 'text-slate-500'}`}>
                       {expenseDiff > 0 ? '+' : ''}{formatCurrency(expenseDiff)} ({expenseDiffPercent !== null ? `${expenseDiffPercent > 0 ? '+' : ''}${expenseDiffPercent.toFixed(1)}%` : '0%'})
                     </span>
@@ -661,10 +661,10 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
               ) : (
                 <div className="space-y-1">
                   <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[11px]">
-                    <AlertCircle className="w-3 h-3" /> Chưa có dữ liệu
+                    <AlertCircle className="w-3 h-3" /> No prior data
                   </div>
                   <p className="text-[11px] text-slate-400">
-                    Chưa ghi nhận giao dịch chi tiêu trong kỳ trước để đối soát so sánh.
+                    No expense transactions found in the previous period for comparison.
                   </p>
                 </div>
               )}
@@ -676,7 +676,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
           <div className="flex items-center justify-between gap-2 mb-3">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Chi trung bình mỗi ngày
+              Daily Average Expense
             </span>
             <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
               <Calendar className="w-4 h-4" />
@@ -689,8 +689,8 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
             </div>
 
             <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs flex items-center justify-between text-slate-500 dark:text-slate-400">
-              <span>Số giao dịch chi: <strong className="text-slate-800 dark:text-slate-200">{expenseTxCount}</strong></span>
-              <span>Số ngày tính: <strong className="text-slate-800 dark:text-slate-200">{daysAnalyzed} ngày</strong></span>
+              <span>Expense transactions: <strong className="text-slate-800 dark:text-slate-200">{expenseTxCount}</strong></span>
+              <span>Days analyzed: <strong className="text-slate-800 dark:text-slate-200">{daysAnalyzed} days</strong></span>
             </div>
           </div>
         </div>
@@ -699,7 +699,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
           <div className="flex items-center justify-between gap-2 mb-3">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Tỷ lệ giữ lại từ thu
+              Net Retention Rate
             </span>
             <div className={`p-2 rounded-xl ${hasIncomeData && (retentionRate ?? 0) >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-amber-500/10 text-amber-500'}`}>
               <Percent className="w-4 h-4" />
@@ -714,11 +714,11 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
                     {retentionRate.toFixed(1)}%
                   </span>
                   <span className={`text-xs font-bold px-2 py-0.5 rounded-md ${retentionRate >= 0 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-500'}`}>
-                    {retentionRate >= 0 ? 'Thặng dư' : 'Thâm hụt'}
+                    {retentionRate >= 0 ? 'Surplus' : 'Deficit'}
                   </span>
                 </div>
                 <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs flex items-center justify-between text-slate-500 dark:text-slate-400">
-                  <span>Tiền giữ lại:</span>
+                  <span>Net Retained:</span>
                   <span className={`font-mono font-bold ${retainedAmount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}`}>
                     {retainedAmount >= 0 ? '+' : ''}{formatCurrency(retainedAmount)}
                   </span>
@@ -727,10 +727,10 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
             ) : (
               <div className="space-y-1">
                 <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 font-bold text-[11px]">
-                  <AlertCircle className="w-3 h-3" /> Chưa có khoản thu để tính
+                  <AlertCircle className="w-3 h-3" /> No income to calculate
                 </div>
                 <p className="text-[11px] text-slate-400 mt-2">
-                  Cần ghi nhận ít nhất một khoản thu nhập trong kỳ để tính tỷ lệ giữ lại.
+                  At least one income transaction is required to calculate retention rate.
                 </p>
               </div>
             )}
@@ -741,10 +741,10 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
           <div className="flex items-center justify-between gap-2 mb-3">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Dự kiến chi cuối kỳ
+              Projected Period-End Expense
             </span>
             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
-              Ước tính
+              Estimated
             </span>
           </div>
 
@@ -755,16 +755,16 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
                   ~{formatCurrency(projectedExpense)}
                 </div>
                 <p className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-[11px] text-slate-500 dark:text-slate-400">
-                  Dựa trên tốc độ chi bình quân {formatCurrency(avgExpensePerDay)}/ngày trong {totalDaysInPeriod} ngày.
+                  Based on daily average spending of {formatCurrency(avgExpensePerDay)} over {totalDaysInPeriod} days.
                 </p>
               </>
             ) : (
               <div className="space-y-1">
                 <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-bold text-[11px]">
-                  <Info className="w-3 h-3" /> Chưa đủ dữ liệu dự báo
+                  <Info className="w-3 h-3" /> Insufficient data to project
                 </div>
                 <p className="text-[11px] text-slate-400 mt-2">
-                  Cần dữ liệu chi tiêu qua ít nhất 1 ngày trong kỳ để thiết lập xu hướng dự báo.
+                  Requires at least 1 day of expense data in this period to establish a trend.
                 </p>
               </div>
             )}
@@ -775,7 +775,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
           <div className="flex items-center justify-between gap-2 mb-3">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Nhóm chi lớn nhất
+              Top Expense Category
             </span>
             <div className="p-2 rounded-xl bg-purple-500/10 text-purple-500">
               <PieChartIcon className="w-4 h-4" />
@@ -792,15 +792,15 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
                   {formatCurrency(topCategory.total)}
                 </div>
                 <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs flex items-center justify-between text-slate-500 dark:text-slate-400">
-                  <span>Tỷ trọng:</span>
+                  <span>Share:</span>
                   <span className="font-mono font-black text-purple-600 dark:text-purple-400">
-                    {topCategory.percentage.toFixed(1)}% tổng chi ({topCategory.count} GD)
+                    {topCategory.percentage.toFixed(1)}% of total ({topCategory.count} txns)
                   </span>
                 </div>
               </>
             ) : (
               <div className="text-sm font-bold text-slate-400 py-2">
-                Chưa có chi tiêu
+                No expense recorded
               </div>
             )}
           </div>
@@ -810,7 +810,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 flex flex-col justify-between">
           <div className="flex items-center justify-between gap-2 mb-3">
             <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              Giao dịch chi lớn nhất
+              Largest Expense
             </span>
             <div className="p-2 rounded-xl bg-rose-500/10 text-rose-500">
               <Receipt className="w-4 h-4" />
@@ -824,7 +824,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
                   -{formatCurrency(maxExpenseTx.amount)}
                 </div>
                 <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 truncate">
-                  {maxExpenseTx.note || maxExpenseTx.category || 'Không có ghi chú'}
+                  {maxExpenseTx.note || maxExpenseTx.category || 'No description'}
                 </div>
                 <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 text-xs flex items-center justify-between text-slate-500 dark:text-slate-400">
                   <span className="truncate max-w-[120px]">{maxExpenseTx.category}</span>
@@ -833,7 +833,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
               </>
             ) : (
               <div className="text-sm font-bold text-slate-400 py-2">
-                Chưa có giao dịch chi
+                No expense transactions
               </div>
             )}
           </div>
@@ -846,10 +846,10 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
           <div>
             <h4 className="font-black text-slate-900 dark:text-white text-base flex items-center gap-2">
               <Activity className="w-4 h-4 text-emerald-500" />
-              <span>Biến động thu chi theo thời gian</span>
+              <span>Income & Expense Flow Over Time</span>
             </h4>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              So sánh luồng tiền vào (Thu nhập) và dòng tiền ra (Chi tiêu)
+              Compare cash inflows (Income) and cash outflows (Expense)
             </p>
           </div>
 
@@ -867,7 +867,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
                       : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                   }`}
                 >
-                  {g === 'day' ? 'Ngày' : g === 'week' ? 'Tuần' : 'Tháng'}
+                  {g === 'day' ? 'Day' : g === 'week' ? 'Week' : 'Month'}
                 </button>
               ))}
             </div>
@@ -881,7 +881,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
                     ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs'
                     : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                 }`}
-                title="Biểu đồ miền"
+                title="Area Chart"
               >
                 <Activity className="w-3.5 h-3.5" />
               </button>
@@ -893,7 +893,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
                     ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs'
                     : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                 }`}
-                title="Biểu đồ cột"
+                title="Bar Chart"
               >
                 <BarChart3 className="w-3.5 h-3.5" />
               </button>

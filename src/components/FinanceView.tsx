@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useAppStore } from '../lib/store';
+import { useTranslation } from '../lib/i18n';
 import { 
   Wallet, Plus, Target, ArrowRightLeft,
   PieChart, Activity, LayoutDashboard, TrendingUp
@@ -33,6 +34,7 @@ export function FinanceView() {
     savingGoals = [], 
     debts = [], 
     addTransaction, 
+    updateTransaction,
     deleteTransaction, 
     addFinanceAccount, 
     updateFinanceAccount, 
@@ -45,11 +47,14 @@ export function FinanceView() {
     deleteSavingGoal,
     addDebt,
     updateDebt,
-    deleteDebt
+    deleteDebt,
+    language
   } = useAppStore();
   
+  const t = useTranslation(language);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [showTxModal, setShowTxModal] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<any>(null);
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [editingAccount, setEditingAccount] = useState<any>(null);
 
@@ -157,14 +162,14 @@ export function FinanceView() {
   
   const COLORS = ['#ef4444', '#f97316', '#f59e0b', '#84cc16', '#22c55e', '#06b6d4', '#3b82f6', '#8b5cf6', '#d946ef', '#f43f5e'];
 
-  // Comparison Bar Chart Data: Thu nhập vs Chi tiêu vs Ngân sách
+  // Comparison Bar Chart Data: Income vs Expense vs Budget
   const incomeExpenseData = useMemo(() => {
     const list = [
-      { name: 'Thu nhập', amount: periodIncome, color: '#22c55e' },
-      { name: 'Chi tiêu', amount: periodExpense, color: '#ef4444' },
+      { name: 'Income', amount: periodIncome, color: '#22c55e' },
+      { name: 'Expense', amount: periodExpense, color: '#ef4444' },
     ];
     if (totalBudgetLimit > 0) {
-      list.push({ name: 'Ngân sách', amount: totalBudgetLimit, color: '#3b82f6' });
+      list.push({ name: 'Budget', amount: totalBudgetLimit, color: '#3b82f6' });
     }
     return list;
   }, [periodIncome, periodExpense, totalBudgetLimit]);
@@ -175,59 +180,60 @@ export function FinanceView() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">Tài chính</h2>
+            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">{t('Finance')}</h2>
             <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
               Money
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">Quản lý dòng tiền, ngân sách và mục tiêu tiết kiệm kỷ luật</p>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">{t('Manage cash flow, budgets, and disciplined savings')}</p>
         </div>
         <button type="button" 
           onClick={() => setShowTxModal(true)}
-          className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-2.5 rounded-2xl text-sm font-black transition-all shadow-md shadow-emerald-500/20 cursor-pointer"
+          className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-2.5 rounded-2xl text-sm font-black btn-squishy shadow-md shadow-emerald-500/20 cursor-pointer"
         >
-          <Plus className="w-4 h-4 stroke-[3]" /> Thêm Giao dịch
+          <Plus className="w-4 h-4 stroke-[3]" /> {t('Add Transaction')}
         </button>
       </div>
 
       {/* Navigation Tabs */}
       <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 shrink-0">
-        <FinanceTabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<LayoutDashboard className="w-4 h-4" />} label="Tổng quan" />
-        <FinanceTabButton active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} icon={<TrendingUp className="w-4 h-4" />} label="Phân tích thu chi" />
-        <FinanceTabButton active={activeTab === 'accounts'} onClick={() => setActiveTab('accounts')} icon={<Wallet className="w-4 h-4" />} label="Tài khoản" />
-        <FinanceTabButton active={activeTab === 'transactions'} onClick={() => setActiveTab('transactions')} icon={<ArrowRightLeft className="w-4 h-4" />} label="Giao dịch" />
-        <FinanceTabButton active={activeTab === 'budgets'} onClick={() => setActiveTab('budgets')} icon={<PieChart className="w-4 h-4" />} label="Ngân sách" />
-        <FinanceTabButton active={activeTab === 'goals'} onClick={() => setActiveTab('goals')} icon={<Target className="w-4 h-4" />} label="Mục tiêu" />
-        <FinanceTabButton active={activeTab === 'scenario'} onClick={() => setActiveTab('scenario')} icon={<Activity className="w-4 h-4" />} label="Mô phỏng tài chính" />
+        <FinanceTabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<LayoutDashboard className="w-4 h-4" />} label={t('Overview')} />
+        <FinanceTabButton active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} icon={<TrendingUp className="w-4 h-4" />} label={t('Income & Expense Analytics')} />
+        <FinanceTabButton active={activeTab === 'accounts'} onClick={() => setActiveTab('accounts')} icon={<Wallet className="w-4 h-4" />} label={t('Accounts')} />
+        <FinanceTabButton active={activeTab === 'transactions'} onClick={() => setActiveTab('transactions')} icon={<ArrowRightLeft className="w-4 h-4" />} label={t('Transactions')} />
+        <FinanceTabButton active={activeTab === 'budgets'} onClick={() => setActiveTab('budgets')} icon={<PieChart className="w-4 h-4" />} label={t('Budgets')} />
+        <FinanceTabButton active={activeTab === 'goals'} onClick={() => setActiveTab('goals')} icon={<Target className="w-4 h-4" />} label={t('Goals')} />
+        <FinanceTabButton active={activeTab === 'scenario'} onClick={() => setActiveTab('scenario')} icon={<Activity className="w-4 h-4" />} label={t('Financial Simulator')} />
       </div>
 
       {/* Tab Panels */}
-      {activeTab === 'overview' && (
-        <FinanceOverviewTab
-          totalBalance={totalBalance}
-          monthlyIncome={monthlyIncome}
-          monthlyExpense={monthlyExpense}
-          netIncome={netIncome}
-          chartPeriod={chartPeriod}
-          setChartPeriod={setChartPeriod}
-          periodFilteredTx={periodFilteredTx}
-          periodExpense={periodExpense}
-          totalBudgetLimit={totalBudgetLimit}
-          budgetRemaining={budgetRemaining}
-          budgetUtilizationPercent={budgetUtilizationPercent}
-          incomeExpenseData={incomeExpenseData}
-          categoryData={categoryData}
-          COLORS={COLORS}
-          financeAccounts={financeAccounts}
-          budgets={budgets}
-          monthlyTx={monthlyTx}
-          onOpenTxModal={() => setShowTxModal(true)}
-          onOpenAccountModal={(acc) => {
-            setEditingAccount(acc || null);
-            setShowAccountModal(true);
-          }}
-        />
-      )}
+      <div key={activeTab} className="animate-page-enter">
+        {activeTab === 'overview' && (
+          <FinanceOverviewTab
+            totalBalance={totalBalance}
+            monthlyIncome={monthlyIncome}
+            monthlyExpense={monthlyExpense}
+            netIncome={netIncome}
+            chartPeriod={chartPeriod}
+            setChartPeriod={setChartPeriod}
+            periodFilteredTx={periodFilteredTx}
+            periodExpense={periodExpense}
+            totalBudgetLimit={totalBudgetLimit}
+            budgetRemaining={budgetRemaining}
+            budgetUtilizationPercent={budgetUtilizationPercent}
+            incomeExpenseData={incomeExpenseData}
+            categoryData={categoryData}
+            COLORS={COLORS}
+            financeAccounts={financeAccounts}
+            budgets={budgets}
+            monthlyTx={monthlyTx}
+            onOpenTxModal={() => setShowTxModal(true)}
+            onOpenAccountModal={(acc) => {
+              setEditingAccount(acc || null);
+              setShowAccountModal(true);
+            }}
+          />
+        )}
 
       {activeTab === 'analytics' && (
         <FinanceAnalyticsTab
@@ -265,6 +271,10 @@ export function FinanceView() {
           transactions={transactions}
           formatCurrency={formatCurrency}
           onDeleteTransaction={(id) => deleteTransaction(id)}
+          onEditTransaction={(tx) => {
+            setEditingTransaction(tx);
+            setShowTxModal(true);
+          }}
         />
       )}
 
@@ -330,23 +340,23 @@ export function FinanceView() {
           onExecuteRealTransaction={() => {
             const acc = (financeAccounts || []).find((a: any) => a.id === scenarioAccId) || (financeAccounts && financeAccounts.length > 0 ? financeAccounts[0] : null);
             if (!acc) {
-              alert('Vui lòng tạo hoặc chọn một tài khoản trước.');
+              alert('Please create or select an account first.');
               return;
             }
             if (forecastAmount <= 0) {
-              alert('Vui lòng nhập số tiền chi lớn hơn 0.');
+              alert('Please enter an expense amount greater than 0.');
               return;
             }
             addTransaction({
               type: 'Chi tiêu',
               amount: forecastAmount,
-              category: forecastCategory || 'Chi tiêu',
+              category: forecastCategory || 'Expense',
               accountId: acc.id,
               date: todayStr,
-              note: forecastNote || 'Ghi nhận từ Dự báo chi tiêu',
+              note: forecastNote || 'Recorded from Expense Forecast',
               status: 'Completed'
             });
-            alert('Đã ghi nhận giao dịch thành công vào tài khoản!');
+            alert('Transaction successfully recorded to your account!');
             setForecastAmount(0);
             setForecastNote('');
           }}
@@ -356,6 +366,7 @@ export function FinanceView() {
           }}
         />
       )}
+      </div>
 
       {/* Global Modals */}
       {showAccountModal && (
@@ -384,13 +395,23 @@ export function FinanceView() {
 
       {showTxModal && (
         <TransactionModal 
-          onClose={() => setShowTxModal(false)}
+          initialData={editingTransaction}
+          onClose={() => {
+            setShowTxModal(false);
+            setEditingTransaction(null);
+          }}
           onSave={(tx: any) => {
-            addTransaction({
+            const formattedTx = {
               ...tx,
               amount: Number(tx.amount)
-            });
+            };
+            if (editingTransaction?.id) {
+              updateTransaction(editingTransaction.id, formattedTx);
+            } else {
+              addTransaction(formattedTx);
+            }
             setShowTxModal(false);
+            setEditingTransaction(null);
           }}
           accounts={financeAccounts}
         />

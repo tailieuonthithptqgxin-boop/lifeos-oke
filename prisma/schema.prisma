@@ -981,19 +981,76 @@ model TemplateUsage {
 }
 
 model Notification {
-  id        String   @id @default(uuid())
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  title     String
-  message   String
-  type      String   @default("info")
-  read      Boolean  @default(false)
-  date      DateTime @default(now())
-  createdAt DateTime @default(now())
+  id              String   @id @default(uuid())
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  announcementId  String?
+  announcement    Announcement? @relation(fields: [announcementId], references: [id], onDelete: SetNull)
+  title           String
+  message         String
+  type            String   @default("info")
+  priority        String   @default("NORMAL") // NORMAL, IMPORTANT, CRITICAL
+  actionUrl       String?
+  actionLabel     String?
+  read            Boolean  @default(false)
+  readAt          DateTime?
+  date            DateTime @default(now())
+  createdAt       DateTime @default(now())
 
   @@index([userId])
   @@index([read])
+  @@index([announcementId])
   @@map("notifications")
+}
+
+model Announcement {
+  id              String   @id @default(uuid())
+  title           String
+  message         String
+  type            String   @default("GENERAL") // GENERAL, MAINTENANCE, FEATURE, SECURITY, PROMOTION
+  priority        String   @default("NORMAL")  // NORMAL, IMPORTANT, CRITICAL
+  targetAudience  String   @default("ALL")     // ALL, ACTIVE, INACTIVE, ROLE_ADMIN, ROLE_USER, PLAN_PRO, PLAN_FREE, PLAN_TEAM, SELECTED_USERS
+  targetUserIds   String?  // JSON array string for specific target user IDs
+  channels        String   @default("WEB")     // WEB, EMAIL, BOTH
+  status          String   @default("DRAFT")   // DRAFT, SCHEDULED, PUBLISHING, PUBLISHED, CANCELLED, ARCHIVED
+  scheduledFor    DateTime?
+  expiresAt       DateTime?
+  actionUrl       String?
+  actionLabel     String?
+  createdById     String
+  createdByName   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  publishedAt     DateTime?
+
+  notifications   Notification[]
+  deliveries      AnnouncementDelivery[]
+
+  @@index([status])
+  @@index([targetAudience])
+  @@index([createdAt])
+  @@map("announcements")
+}
+
+model AnnouncementDelivery {
+  id              String   @id @default(uuid())
+  announcementId  String
+  announcement    Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  userId          String
+  userEmail       String
+  userName        String?
+  channel         String   // WEB, EMAIL
+  status          String   @default("PENDING") // PENDING, SENT, FAILED, SKIPPED
+  errorMessage    String?
+  sentAt          DateTime?
+  readAt          DateTime?
+  createdAt       DateTime @default(now())
+
+  @@unique([announcementId, userId, channel])
+  @@index([announcementId])
+  @@index([userId])
+  @@index([status])
+  @@map("announcement_deliveries")
 }
 
 model SupportTicket {

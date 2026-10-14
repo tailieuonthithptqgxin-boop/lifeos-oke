@@ -13,6 +13,7 @@ import {
   AlertCircle,
   MessageSquare,
   CreditCard,
+  Megaphone,
   X
 } from 'lucide-react';
 import { apiCall } from '../lib/apiClient';
@@ -39,6 +40,7 @@ import { AdminBankConfigTab } from './admin/AdminBankConfigTab';
 import { AdminGmailConfigTab } from './admin/AdminGmailConfigTab';
 import { AdminReferralsTab } from './admin/AdminReferralsTab';
 import { AdminFeedbackTab } from './admin/AdminFeedbackTab';
+import { AdminAnnouncementsTab } from './admin/AdminAnnouncementsTab';
 
 export type { ServicePlan, LanguageItem };
 
@@ -931,6 +933,19 @@ export function AdminView() {
             <MessageSquare className="w-3.5 h-3.5" />
             <span>Quản Lý Góp Ý</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('announcements')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'announcements'
+                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Megaphone className="w-3.5 h-3.5" />
+            <span>Thông Báo & Broadcast</span>
+          </button>
         </div>
       </div>
 
@@ -1103,6 +1118,13 @@ export function AdminView() {
       {activeTab === 'feedback' && (
         <div className="space-y-6 animate-in fade-in duration-150">
           <AdminFeedbackTab />
+        </div>
+      )}
+
+      {/* Tab 11: Announcements & Notifications */}
+      {activeTab === 'announcements' && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <AdminAnnouncementsTab onShowMessage={setMessage} />
         </div>
       )}
     </div>

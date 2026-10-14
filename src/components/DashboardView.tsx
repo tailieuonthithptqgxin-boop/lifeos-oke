@@ -160,19 +160,19 @@ export function DashboardView() {
   }, []);
 
   // Data Filters for Selected Date
-  const todayTasks = (tasks || []).filter(t => t.dueDate && t.dueDate.startsWith(dateStr) && t.status !== 'Hủy');
-  const pendingTasks = todayTasks.filter(t => t.status !== 'Hoàn thành');
-  const completedTasks = todayTasks.filter(t => t.status === 'Hoàn thành');
+  const todayTasks = (tasks || []).filter(t => t.dueDate && t.dueDate.startsWith(dateStr) && t.status !== 'Hủy' && t.status !== 'Cancelled');
+  const pendingTasks = todayTasks.filter(t => t.status !== 'Hoàn thành' && t.status !== 'Completed');
+  const completedTasks = todayTasks.filter(t => t.status === 'Hoàn thành' || t.status === 'Completed');
   
   const todayEvents = (events || []).filter(e => e.date && e.date.startsWith(dateStr));
   
   const todayExpenses = (transactions || [])
-    .filter(t => t.type === 'Chi tiêu' && t.date && t.date.startsWith(dateStr))
-    .reduce((sum, t) => sum + t.amount, 0);
+    .filter(t => (t.type === 'Chi tiêu' || t.type === 'Expense') && t.date && t.date.startsWith(dateStr))
+    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
   const todayIncome = (transactions || [])
-    .filter(t => t.type === 'Thu nhập' && t.date && t.date.startsWith(dateStr))
-    .reduce((sum, t) => sum + t.amount, 0);
+    .filter(t => (t.type === 'Thu nhập' || t.type === 'Income') && t.date && t.date.startsWith(dateStr))
+    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
   // Time & Capacity
   const plannedTaskHours = todayTasks.reduce((sum, t) => sum + (t.estimatedHours || 1), 0);
@@ -202,7 +202,7 @@ export function DashboardView() {
     : 0;
   const completedGoalsCount = activeGoals.filter(g => g.status === 'Completed' || g.progress >= 100).length;
   const goalsDisplayValue = `${avgGoalProgress}%`;
-  const goalsSubtext = activeGoals.length > 0 ? `${completedGoalsCount}/${activeGoals.length} hoàn thành` : 'Chưa có mục tiêu';
+  const goalsSubtext = activeGoals.length > 0 ? `${completedGoalsCount}/${activeGoals.length} completed` : 'No goals yet';
 
   // Habits completed for selected date
   const completedHabitsToday = (habits || []).filter(h => 
@@ -228,7 +228,7 @@ export function DashboardView() {
   // Tasks: 30 pts max
   const taskScore = todayTasks.length > 0 
     ? (completedTasks.length / todayTasks.length) * 30 
-    : (tasks.length > 0 ? (tasks.filter(t => t.status === 'Hoàn thành').length / tasks.length) * 20 : 0);
+    : (tasks.length > 0 ? (tasks.filter(t => t.status === 'Hoàn thành' || t.status === 'Completed').length / tasks.length) * 20 : 0);
   // Habits: 25 pts max
   const habitScore = habits.length > 0 
     ? (completedHabitsToday.length / habits.length) * 25 
@@ -252,8 +252,8 @@ export function DashboardView() {
     const d = new Date(t.date);
     return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
   });
-  const monthlyIncome = monthlyTx.filter(t => t.type === 'Thu nhập').reduce((sum, t) => sum + t.amount, 0);
-  const monthlyExpense = monthlyTx.filter(t => t.type === 'Chi tiêu').reduce((sum, t) => sum + t.amount, 0);
+  const monthlyIncome = monthlyTx.filter(t => t.type === 'Thu nhập' || t.type === 'Income').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  const monthlyExpense = monthlyTx.filter(t => t.type === 'Chi tiêu' || t.type === 'Expense').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
   const netMonthly = monthlyIncome - monthlyExpense;
   const recentTransactions = [...(transactions || [])]
     .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
@@ -294,9 +294,9 @@ export function DashboardView() {
 
   // Risk Detection
   const risks = [];
-  if (isOverload) risks.push({ type: 'Capacity Risk', message: `Quá tải: Kế hoạch (${plannedTaskHours}h) vượt Capacity (${dailyCapacity}h)` });
-  if (pendingTasks.some(t => t.priority === 'Cao' || t.priority === 'Nghiêm trọng')) risks.push({ type: 'Deadline Risk', message: 'Có công việc ưu tiên cao chưa hoàn thành' });
-  if (todayExpenses > 500000) risks.push({ type: 'Finance Risk', message: `Chi tiêu hôm nay (${formatCurrency(todayExpenses)}) cao hơn định mức thông thường` });
+  if (isOverload) risks.push({ type: 'Capacity Risk', message: `Capacity overload: Planned (${plannedTaskHours}h) exceeds daily capacity (${dailyCapacity}h)` });
+  if (pendingTasks.some(t => t.priority === 'Cao' || t.priority === 'Nghiêm trọng' || t.priority === 'High' || t.priority === 'Critical')) risks.push({ type: 'Deadline Risk', message: 'High-priority pending tasks require attention' });
+  if (todayExpenses > 500000) risks.push({ type: 'Finance Risk', message: `Spending today (${formatCurrency(todayExpenses)}) is higher than daily baseline` });
 
   // Timer State
   const [activeTimerTask, setActiveTimerTask] = useState<string | null>(null);
@@ -344,10 +344,10 @@ export function DashboardView() {
 
   const getGreeting = () => {
     const hour = currentTime.getHours();
-    if (hour >= 5 && hour < 12) return { text: 'Chào buổi sáng', sub: 'Sẵn sàng khởi động ngày mới tràn đầy năng lượng!' };
-    if (hour >= 12 && hour < 18) return { text: 'Chào buổi chiều', sub: 'Duy trì sự tập trung và chinh phục các mục tiêu hôm nay!' };
-    if (hour >= 18 && hour < 22) return { text: 'Chào buổi tối', sub: 'Đánh giá tiến độ hôm nay và chuẩn bị cho ngày mai nhẹ nhàng.' };
-    return { text: 'Khuya rồi', sub: 'Hãy hoàn thành nhanh để nghỉ ngơi tái tạo năng lượng bạn nhé.' };
+    if (hour >= 5 && hour < 12) return { text: t('Good morning'), sub: t('Ready to kickstart an energetic new day!') };
+    if (hour >= 12 && hour < 18) return { text: t('Good afternoon'), sub: t('Maintain momentum and conquer your goals today!') };
+    if (hour >= 18 && hour < 22) return { text: t('Good evening'), sub: t('Review your progress and wind down smoothly.') };
+    return { text: t('Late night'), sub: t('Wrap up your focus and get some restful sleep.') };
   };
   const greeting = getGreeting();
 
@@ -381,14 +381,14 @@ export function DashboardView() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[10px] font-black uppercase tracking-wider text-amber-300">
-                  Thử Thách 24h Cứu Chuỗi 🛡️
+                  {t("24h Streak Rescue Challenge")} 🛡️
                 </span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono font-bold animate-pulse">
-                  Đang đếm ngược
+                  {t("Counting down")}
                 </span>
               </div>
               <p className="text-xs sm:text-sm font-bold text-white mt-0.5">
-                Chuỗi {resurrectionStatus.lostStreak} ngày của bạn vừa bị đứt! Hoàn thành 1 thử thách để hồi sinh chuỗi ngay.
+                {t(`Your ${resurrectionStatus.lostStreak}-day streak was broken! Complete 1 challenge to resurrect it now.`)}
               </p>
             </div>
           </div>
@@ -400,7 +400,7 @@ export function DashboardView() {
             }}
             className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs shrink-0 cursor-pointer shadow-md shadow-amber-500/20 transition-all hover:scale-105 active:scale-95"
           >
-            Cứu Chuỗi Ngay
+            {t("Rescue Streak Now")}
           </button>
         </div>
       )}
@@ -417,7 +417,7 @@ export function DashboardView() {
             <div className="flex flex-wrap items-center gap-2">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-emerald-400 text-xs font-semibold">
                 <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>{formatDate(selectedDate)} · {currentTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                <span>{formatDate(selectedDate)} · {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
 
               {/* Gen Z Mood of the Day Picker */}
@@ -428,14 +428,14 @@ export function DashboardView() {
                   className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold backdrop-blur-md transition-all cursor-pointer hover:scale-105 active:scale-95 ${MOOD_PRESETS[todayMood].badgeBg}`}
                 >
                   <span>{MOOD_PRESETS[todayMood].emoji}</span>
-                  <span>{MOOD_PRESETS[todayMood].label}</span>
+                  <span>{t(MOOD_PRESETS[todayMood].label)}</span>
                 </button>
 
                 {showMoodPicker && (
                   <>
                     <div className="fixed inset-0 z-30" onClick={() => setShowMoodPicker(false)} />
                     <div className="absolute left-0 top-full mt-2 w-64 bg-slate-900 border border-slate-800 rounded-2xl p-2 shadow-2xl z-40 space-y-1 text-xs animate-in fade-in zoom-in-95">
-                      <span className="text-[10px] uppercase font-black text-slate-400 px-2 tracking-wider block">Chọn Vibe Hôm Nay</span>
+                      <span className="text-[10px] uppercase font-black text-slate-400 px-2 tracking-wider block">{t("Choose Today's Vibe")}</span>
                       {(Object.keys(MOOD_PRESETS) as GenZMood[]).map(key => {
                         const m = MOOD_PRESETS[key];
                         return (
@@ -452,8 +452,8 @@ export function DashboardView() {
                           >
                             <span className="text-base">{m.emoji}</span>
                             <div className="min-w-0">
-                              <span className="block truncate">{m.label}</span>
-                              <span className="text-[10px] text-slate-400 block truncate">{m.vibe}</span>
+                              <span className="block truncate">{t(m.label)}</span>
+                              <span className="text-[10px] text-slate-400 block truncate">{t(m.vibe)}</span>
                             </div>
                           </button>
                         );
@@ -473,7 +473,7 @@ export function DashboardView() {
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-slate-300 hover:text-white hover:border-emerald-500/40 text-xs font-bold transition-all cursor-pointer"
               >
                 <span>📸</span>
-                <span>Chia sẻ Story</span>
+                <span>{t("Share Story")}</span>
               </button>
 
               {/* Rest Day / Streak Freeze Shield Button */}
@@ -485,8 +485,8 @@ export function DashboardView() {
                   setStreakShield(streakFreezeEngine.getStatus(currentUser?.id));
                 }}
                 title={streakShield.isRestDayActive 
-                  ? "Chế độ nghỉ ngơi đang bật · Chuỗi Streak của bạn được bảo vệ 100%" 
-                  : `Bạn có ${streakShield.freezeCount} Băng Chuỗi ❄️. Bấm để bật chế độ nghỉ ngơi Rest Day`}
+                  ? t("Rest Day active · Your streak is 100% protected") 
+                  : t(`You have ${streakShield.freezeCount} Streak Freezes ❄️. Click to activate Rest Day mode`)}
                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold transition-all cursor-pointer ${
                   streakShield.isRestDayActive
                     ? 'bg-lime-500/20 text-lime-300 border-lime-500/50 shadow-xs'
@@ -494,7 +494,7 @@ export function DashboardView() {
                 }`}
               >
                 <span>{streakShield.isRestDayActive ? '🍵' : '❄️'}</span>
-                <span>{streakShield.isRestDayActive ? 'Đang nghỉ ngơi' : `${streakShield.freezeCount} Băng Chuỗi`}</span>
+                <span>{streakShield.isRestDayActive ? t('Rest Day') : `${streakShield.freezeCount} ${t('Freezes')}`}</span>
               </button>
 
               {/* Vibe Theme Switcher */}
@@ -507,7 +507,7 @@ export function DashboardView() {
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-purple-300 hover:text-white hover:border-purple-400/50 text-xs font-bold transition-all cursor-pointer"
               >
                 <span>🎨</span>
-                <span className="hidden sm:inline">Theme Vibe</span>
+                <span className="hidden sm:inline">{t("Vibe Theme")}</span>
               </button>
 
               {/* Monthly Wrapped Trigger */}
@@ -520,7 +520,7 @@ export function DashboardView() {
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-amber-300 hover:text-white hover:border-amber-400/50 text-xs font-bold transition-all cursor-pointer"
               >
                 <span>🎉</span>
-                <span>Wrapped</span>
+                <span>{t("Wrapped")}</span>
               </button>
 
               {/* AI Life Buddy Copilot Trigger */}
@@ -533,7 +533,7 @@ export function DashboardView() {
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:text-white hover:bg-emerald-500/30 text-xs font-bold transition-all cursor-pointer shadow-xs shadow-emerald-500/10"
               >
                 <span>🤖</span>
-                <span>AI Buddy</span>
+                <span>{t("AI Buddy")}</span>
               </button>
 
               {/* Persona Quiz Trigger */}
@@ -546,7 +546,7 @@ export function DashboardView() {
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-teal-300 hover:text-white hover:border-teal-400/50 text-xs font-bold transition-all cursor-pointer"
               >
                 <span>🎯</span>
-                <span>Persona</span>
+                <span>{t("Persona")}</span>
               </button>
 
               {/* Weekly Hall of Fame Leaderboard Trigger */}
@@ -559,23 +559,23 @@ export function DashboardView() {
                 className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/25 to-yellow-500/20 border border-amber-400/40 text-amber-300 hover:text-white hover:border-amber-300 text-xs font-black transition-all cursor-pointer shadow-xs shadow-amber-500/10 hover:scale-105 active:scale-95"
               >
                 <span>🏆</span>
-                <span>Bảng Phong Thần</span>
+                <span>{t("Leaderboard")}</span>
               </button>
             </div>
 
             {/* Greeting */}
             <div>
               <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-2 flex-wrap">
-                <span>{greeting.text}, {currentUser?.name || 'Bạn'}!</span>
+                <span>{greeting.text}, {currentUser?.name || 'Friend'}!</span>
                 <span className="inline-block animate-wave text-2xl">{MOOD_PRESETS[todayMood].emoji}</span>
               </h1>
               <p className="text-xs text-slate-400 italic mt-0.5">
-                {MOOD_PRESETS[todayMood].quote}
+                {t(MOOD_PRESETS[todayMood].quote)}
               </p>
               <p className="text-xs sm:text-sm text-slate-300 mt-1 leading-relaxed">
                 {pendingTasks.length > 0 
-                  ? `Bạn có ${pendingTasks.length} việc cần hoàn thành hôm nay. ${greeting.sub}`
-                  : `Tất cả việc hôm nay đã sẵn sàng! ${greeting.sub}`}
+                  ? t(`You have ${pendingTasks.length} tasks remaining today. ${greeting.sub}`)
+                  : t(`All tasks for today are completed! ${greeting.sub}`)}
               </p>
             </div>
 
@@ -585,15 +585,15 @@ export function DashboardView() {
               <div className="p-4 rounded-2xl bg-slate-800/90 border border-slate-700/80 flex flex-col justify-between shadow-xs min-h-[160px]">
                 <div className="flex items-center justify-between pb-2.5 border-b border-slate-700/50 gap-2">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-xs font-black text-emerald-400 uppercase tracking-wider truncate">🎯 3 Việc Hôm Nay</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-bold shrink-0">1-chạm</span>
+                    <span className="text-xs font-black text-emerald-400 uppercase tracking-wider truncate">🎯 {t("Today's Big 3")}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-bold shrink-0">{t("1-Tap")}</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowQuickTaskModal(true)}
                     className="text-xs font-bold text-slate-300 hover:text-white px-2 py-0.5 rounded-lg hover:bg-slate-700 transition-colors cursor-pointer shrink-0"
                   >
-                    + Thêm
+                    + {t("Add")}
                   </button>
                 </div>
 
@@ -609,14 +609,14 @@ export function DashboardView() {
                             type="button"
                             onClick={() => {
                               soundEngine.playSuccess();
-                              updateTask(task.id, { status: 'Hoàn thành' });
+                              updateTask(task.id, { status: 'Completed' });
                               setCelebration({
-                                title: 'Xuất sắc!',
-                                subtitle: `Đã hoàn thành: "${task.title}"`,
+                                title: t('Awesome!'),
+                                subtitle: `${t('Completed')}: "${task.title}"`,
                                 xpAwarded: 30
                               });
                             }}
-                            title="Đánh dấu hoàn thành"
+                            title={t("Mark completed")}
                             className="w-4 h-4 rounded-full border-2 border-emerald-500/60 hover:bg-emerald-500 hover:border-emerald-500 transition-all shrink-0 cursor-pointer flex items-center justify-center text-slate-950 font-black text-[9px]"
                           />
                           <span className="text-xs font-bold text-slate-200 truncate group-hover:text-white">
@@ -624,18 +624,18 @@ export function DashboardView() {
                           </span>
                         </div>
                         <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
-                          task.priority === 'Cao' || task.priority === 'Nghiêm trọng'
+                          task.priority === 'Cao' || task.priority === 'High' || task.priority === 'Nghiêm trọng' || task.priority === 'Urgent'
                             ? 'bg-rose-500/20 text-rose-300'
                             : 'bg-slate-700 text-slate-300'
                         }`}>
-                          {task.priority || 'P2'}
+                          {t(task.priority || 'Medium')}
                         </span>
                       </div>
                     ))
                   ) : (
                     <div className="py-2.5 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
                       <span className="text-base">🏆</span>
-                      <span className="font-bold text-emerald-400">Đã dọn dẹp sạch việc hôm nay!</span>
+                      <span className="font-bold text-emerald-400">{t("All daily priorities done!")}</span>
                     </div>
                   )}
                 </div>
@@ -645,7 +645,7 @@ export function DashboardView() {
                   onClick={() => setCurrentView('tasks')}
                   className="text-xs font-bold text-slate-400 hover:text-emerald-400 flex items-center gap-1 transition-colors cursor-pointer self-start pt-1"
                 >
-                  Xem toàn bộ ({pendingTasks.length} việc) <ChevronRight className="w-3.5 h-3.5" />
+                  {t("View all")} ({pendingTasks.length} {t("tasks")}) <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
 
@@ -653,10 +653,10 @@ export function DashboardView() {
               <div className="p-4 rounded-2xl bg-slate-800/90 border border-slate-700/80 flex flex-col justify-between shadow-xs min-h-[160px]">
                 <div className="flex items-center justify-between pb-2.5 border-b border-slate-700/50 gap-2">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-xs font-black text-teal-400 uppercase tracking-wider truncate">💳 An Toàn Tiêu</span>
+                    <span className="text-xs font-black text-teal-400 uppercase tracking-wider truncate">💳 {t("Safe-to-Spend")}</span>
                     <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-300 font-bold shrink-0">Auto</span>
                   </div>
-                  <span className="text-xs text-slate-400 shrink-0">còn {daysRemainingInMonth} ngày</span>
+                  <span className="text-xs text-slate-400 shrink-0">{daysRemainingInMonth} {t("days left")}</span>
                 </div>
 
                 <div className="my-2.5 flex-1 flex flex-col justify-center">
@@ -675,11 +675,11 @@ export function DashboardView() {
                             ? 'bg-emerald-500/20 text-emerald-300'
                             : 'bg-rose-500/20 text-rose-300 animate-pulse'
                         }`}>
-                          {safeToSpendTodayRemaining >= 0 ? 'An toàn' : 'Vượt hạn mức!'}
+                          {safeToSpendTodayRemaining >= 0 ? t('Safe') : t('Over Limit')}
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-400 mt-1 leading-snug">
-                        Hạn mức: {formatCurrency(dailySafeToSpendBudget)}/ngày · Đã chi: {formatCurrency(todayExpenses)}
+                        {t("Limit")}: {formatCurrency(dailySafeToSpendBudget)}/{t("day")} · {t("Spent")}: {formatCurrency(todayExpenses)}
                       </p>
                     </>
                   ) : (
@@ -689,11 +689,11 @@ export function DashboardView() {
                           {todayExpenses > 0 ? `-${formatCurrency(todayExpenses)}` : '0 ₫'}
                         </span>
                         <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300">
-                          Chưa đặt ngân sách
+                          {t("No Budget Set")}
                         </span>
                       </div>
                       <p className="text-[11px] text-slate-400 mt-1 leading-snug">
-                        {todayExpenses > 0 ? `Đã chi hôm nay: ${formatCurrency(todayExpenses)}` : 'Chưa thiết lập ngân sách tháng hoặc chưa có thu nhập'}
+                        {todayExpenses > 0 ? `${t("Spent today")}: ${formatCurrency(todayExpenses)}` : t("No monthly budget configured or no income yet")}
                       </p>
                     </>
                   )}
@@ -704,7 +704,7 @@ export function DashboardView() {
                   onClick={() => setCurrentView('finance')}
                   className="text-xs font-bold text-teal-400 hover:text-teal-300 flex items-center gap-1 transition-colors cursor-pointer self-start pt-1"
                 >
-                  {hasBudgetBaseline ? 'Sổ quỹ & chi tiết ví' : '+ Thiết lập ngân sách ngay'} <ChevronRight className="w-3.5 h-3.5" />
+                  {hasBudgetBaseline ? t('Finance ledger & wallets') : `+ ${t('Set up budget now')}`} <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
 
@@ -712,21 +712,21 @@ export function DashboardView() {
               <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/60 to-slate-900 border border-emerald-500/30 flex flex-col justify-between shadow-xs min-h-[160px]">
                 <div className="flex items-center justify-between pb-2.5 border-b border-emerald-500/20 gap-2">
                   <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-xs font-black text-amber-400 uppercase tracking-wider truncate">🔥 Chuỗi Kỷ Luật</span>
+                    <span className="text-xs font-black text-amber-400 uppercase tracking-wider truncate">🔥 {t("Discipline Streak")}</span>
                     <span className="text-[11px] font-black text-amber-300 px-1.5 py-0.2 rounded-md bg-amber-500/20 shrink-0">
-                      {maxHabitStreak} ngày
+                      {maxHabitStreak} {t("days")}
                     </span>
                   </div>
                   <span className="text-xs font-bold text-emerald-400 shrink-0">
-                    {streakShield.isRestDayActive ? 'Đang nghỉ ngơi' : `${streakShield.freezeCount} Băng ❄️`}
+                    {streakShield.isRestDayActive ? t('Rest Day') : `${streakShield.freezeCount} ${t('Freeze')} ❄️`}
                   </span>
                 </div>
 
                 <div className="my-2 flex-1 flex flex-col justify-center">
                   <p className="text-xs text-slate-300 leading-snug">
                     {todayFocusMinutes > 0 
-                      ? `Hôm nay đã tập trung ${todayFocusMinutes} phút deep work.`
-                      : 'Chưa có phiên tập trung nào hôm nay. Hãy bắt đầu ngay!'}
+                      ? `${t("Focused for")} ${todayFocusMinutes} ${t("mins of deep work today.")}`
+                      : t("No focus sessions yet today. Start right now!")}
                   </p>
                   <button
                     type="button"
@@ -738,7 +738,7 @@ export function DashboardView() {
                     className="w-full mt-2.5 py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
                   >
                     <Zap className="w-3.5 h-3.5 fill-slate-950" />
-                    <span>Vào Việc Ngay 25 Phút (Zen)</span>
+                    <span>{t("Start Focus 25m (Zen)")}</span>
                   </button>
                 </div>
 
@@ -747,7 +747,7 @@ export function DashboardView() {
                   onClick={() => setCurrentView('focus')}
                   className="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer self-start pt-1"
                 >
-                  Mở trang Pomodoro <ChevronRight className="w-3.5 h-3.5" />
+                  {t("Open Pomodoro")} <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
             </div>
@@ -763,7 +763,7 @@ export function DashboardView() {
                 className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>+ Thêm Task</span>
+                <span>+ {t("Add Task")}</span>
               </button>
               <button
                 type="button"
@@ -771,7 +771,7 @@ export function DashboardView() {
                 className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs border border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
               >
                 <Wallet className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Ghi chi tiêu</span>
+                <span>{t("Log Expense")}</span>
               </button>
               <button
                 type="button"
@@ -779,7 +779,7 @@ export function DashboardView() {
                 className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs border border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
               >
                 <Clock className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Tập trung</span>
+                <span>{t("Focus")}</span>
               </button>
               <button
                 type="button"
@@ -787,7 +787,7 @@ export function DashboardView() {
                 className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs border border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
               >
                 <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{dueVocabCount > 0 ? `Ôn Từ (${dueVocabCount})` : 'Học Từ Vựng'}</span>
+                <span>{dueVocabCount > 0 ? `${t("Review Vocab")} (${dueVocabCount})` : t("Study Vocab")}</span>
               </button>
             </div>
           </div>
@@ -845,14 +845,14 @@ export function DashboardView() {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">
-                Nghi Thức Tuần · Sunday Weekly Reset 🌿
+                {t("Weekly Ritual · Sunday Weekly Reset")} 🌿
               </span>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-black flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-400" /> +100 XP Thưởng
+                <Sparkles className="w-3 h-3 text-amber-400" /> +100 XP {t("Bonus")}
               </span>
             </div>
             <h3 className="font-bold text-sm text-white mt-0.5">
-              Đúc kết 7 ngày qua, dọn dẹp tâm trí & thiết lập 3 mục tiêu lớn tuần mới
+              {t("Reflect on the past 7 days, clear your mental load & align top 3 weekly goals.")}
             </h3>
           </div>
         </div>
@@ -866,7 +866,7 @@ export function DashboardView() {
           className="relative z-10 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs flex items-center gap-1.5 transition-all shadow-md shadow-emerald-500/20 cursor-pointer shrink-0 self-end sm:self-center hover:scale-105 active:scale-95"
         >
           <Sparkles className="w-3.5 h-3.5 fill-slate-950" />
-          <span>Bắt đầu Reset</span>
+          <span>{t("Start Reset")}</span>
         </button>
       </div>
 
@@ -896,14 +896,14 @@ export function DashboardView() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                  Đến hạn ôn tập Spaced Repetition (Ebbinghaus)
+                  {t("Due for Review · Spaced Repetition (Ebbinghaus)")}
                 </span>
                 <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 animate-pulse">
-                  {dueVocabCount} từ cần ôn
+                  {dueVocabCount} {t("cards due")}
                 </span>
               </div>
               <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white mt-0.5">
-                Các từ vựng đã đến điểm rơi trí nhớ cần củng cố để lưu vào trí nhớ dài hạn
+                {t("Vocabulary words reached memory decay point. Reinforce now for long-term retention.")}
               </h3>
             </div>
           </div>
@@ -914,7 +914,7 @@ export function DashboardView() {
               onClick={() => setCurrentView('study')}
               className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs transition-all shadow-md shadow-emerald-600/20 flex items-center gap-1.5 cursor-pointer"
             >
-              <span>Ôn ngay {dueVocabCount} từ 🚀</span>
+              <span>{t("Review Now")} ({dueVocabCount}) 🚀</span>
             </button>
           </div>
         </div>

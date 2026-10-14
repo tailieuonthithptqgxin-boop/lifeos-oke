@@ -68,19 +68,19 @@ import {
 import { apiCall } from '../lib/apiClient';
 
 const NOTE_TYPES: { type: NoteType; label: string; icon: any; color: string; bg: string }[] = [
-  { type: 'Normal', label: 'Thường', icon: FileText, color: 'text-slate-600', bg: 'bg-slate-100' },
+  { type: 'Normal', label: 'Standard', icon: FileText, color: 'text-slate-600', bg: 'bg-slate-100' },
   { type: 'Checklist', label: 'Checklist', icon: ListCheck, color: 'text-emerald-600', bg: 'bg-emerald-100' },
-  { type: 'Meeting', label: 'Cuộc họp', icon: Users, color: 'text-blue-600', bg: 'bg-blue-100' },
-  { type: 'Decision', label: 'Quyết định', icon: Scale, color: 'text-amber-600', bg: 'bg-amber-100' },
-  { type: 'Daily', label: 'Ghi chú Ngày', icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-100' },
-  { type: 'Study', label: 'Học tập', icon: GraduationCap, color: 'text-indigo-600', bg: 'bg-indigo-100' },
-  { type: 'Project', label: 'Dự án', icon: FolderKanban, color: 'text-cyan-600', bg: 'bg-cyan-100' },
-  { type: 'Idea', label: 'Ý tưởng', icon: Lightbulb, color: 'text-yellow-600', bg: 'bg-yellow-100' },
-  { type: 'Journal', label: 'Nhật ký', icon: BookOpen, color: 'text-rose-600', bg: 'bg-rose-100' },
-  { type: 'Reference', label: 'Tài liệu', icon: LinkIcon, color: 'text-teal-600', bg: 'bg-teal-100' },
-  { type: 'Finance', label: 'Tài chính', icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-100' },
-  { type: 'Research', label: 'Nghiên cứu', icon: Sparkles, color: 'text-violet-600', bg: 'bg-violet-100' },
-  { type: 'Custom', label: 'Tùy chỉnh', icon: Layers, color: 'text-slate-600', bg: 'bg-slate-100' },
+  { type: 'Meeting', label: 'Meeting', icon: Users, color: 'text-blue-600', bg: 'bg-blue-100' },
+  { type: 'Decision', label: 'Decision Log', icon: Scale, color: 'text-amber-600', bg: 'bg-amber-100' },
+  { type: 'Daily', label: 'Daily Note', icon: Calendar, color: 'text-purple-600', bg: 'bg-purple-100' },
+  { type: 'Study', label: 'Study Note', icon: GraduationCap, color: 'text-indigo-600', bg: 'bg-indigo-100' },
+  { type: 'Project', label: 'Project Note', icon: FolderKanban, color: 'text-cyan-600', bg: 'bg-cyan-100' },
+  { type: 'Idea', label: 'Idea', icon: Lightbulb, color: 'text-yellow-600', bg: 'bg-yellow-100' },
+  { type: 'Journal', label: 'Journal', icon: BookOpen, color: 'text-rose-600', bg: 'bg-rose-100' },
+  { type: 'Reference', label: 'Reference', icon: LinkIcon, color: 'text-teal-600', bg: 'bg-teal-100' },
+  { type: 'Finance', label: 'Finance Note', icon: DollarSign, color: 'text-emerald-600', bg: 'bg-emerald-100' },
+  { type: 'Research', label: 'Research', icon: Sparkles, color: 'text-violet-600', bg: 'bg-violet-100' },
+  { type: 'Custom', label: 'Custom', icon: Layers, color: 'text-slate-600', bg: 'bg-slate-100' },
 ];
 
 const STANDARD_TEMPLATES: NoteTemplate[] = [
@@ -88,60 +88,60 @@ const STANDARD_TEMPLATES: NoteTemplate[] = [
     id: 'tmpl_daily',
     title: 'Daily Reflection & Planning',
     type: 'Daily',
-    category: 'Hàng ngày',
-    description: 'Cấu trúc ghi chú daily theo dõi công việc, ý tưởng & suy ngẫm.',
+    category: 'Daily',
+    description: 'Structured daily log for tracking priorities, insights and evening reflection.',
     defaultSections: [
-      { id: 'sec_d1', title: '🎯 Việc quan trọng hôm nay', content: '• Task 1\n• Task 2' },
-      { id: 'sec_d2', title: '💡 Ý tưởng & Ghi nhận', content: 'Ghi lại các ý tưởng xuất hiện trong ngày...' },
-      { id: 'sec_d3', title: '🌱 Reflection & Bài học', content: 'Điều gì đã làm tốt? Điều gì cần cải thiện?' },
-      { id: 'sec_d4', title: '🚀 Chuẩn bị Ngày mai', content: '• Việc cần ưu tiên ngày mai...' }
+      { id: 'sec_d1', title: '🎯 Key Priorities Today', content: '• Task 1\n• Task 2' },
+      { id: 'sec_d2', title: '💡 Ideas & Observations', content: 'Capture thoughts that surfaced during the day...' },
+      { id: 'sec_d3', title: '🌱 Evening Reflection', content: 'What went well? What could be improved?' },
+      { id: 'sec_d4', title: '🚀 Tomorrow Preparation', content: '• Top priority tomorrow...' }
     ]
   },
   {
     id: 'tmpl_meeting',
     title: 'Meeting Notes & Actions',
     type: 'Meeting',
-    category: 'Cuộc họp',
-    description: 'Biên bản cuộc họp chuyên nghiệp với Action Items chuyển thành Task.',
+    category: 'Meetings',
+    description: 'Professional meeting minutes with action items convertible to tasks.',
     defaultSections: [
-      { id: 'sec_m1', title: '📌 Agenda & Mục tiêu', content: '1. Nội dung 1\n2. Nội dung 2' },
-      { id: 'sec_m2', title: '💬 Nội dung Thảo luận', content: 'Các điểm chính đã thảo luận...' },
-      { id: 'sec_m3', title: 'Chốt Quyết định', content: 'Thống nhất phương án xử lý...' }
+      { id: 'sec_m1', title: '📌 Agenda & Goals', content: '1. Topic 1\n2. Topic 2' },
+      { id: 'sec_m2', title: '💬 Discussion Summary', content: 'Key talking points covered...' },
+      { id: 'sec_m3', title: 'Key Decisions & Next Steps', content: 'Agreed direction and resolutions...' }
     ]
   },
   {
     id: 'tmpl_decision',
     title: 'Decision Log Framework',
     type: 'Decision',
-    category: 'Quyết định',
-    description: 'Ghi chép quyết định quan trọng: Context -> Options -> Pros/Cons -> Chosen Reason.',
+    category: 'Decisions',
+    description: 'Structured decision framework: Context -> Options -> Pros/Cons -> Chosen Rationale.',
     defaultSections: [
-      { id: 'sec_dec1', title: 'Bối cảnh (Context)', content: 'Vấn đề cần ra quyết định là gì?' },
-      { id: 'sec_dec2', title: 'Các phương án (Options)', content: 'Phân tích các lựa chọn khả thi...' }
+      { id: 'sec_dec1', title: 'Context & Problem Statement', content: 'What specific decision needs to be made?' },
+      { id: 'sec_dec2', title: 'Evaluated Options', content: 'Detailed analysis of viable alternatives...' }
     ]
   },
   {
     id: 'tmpl_study',
     title: 'Cornell Study Notes',
     type: 'Study',
-    category: 'Học tập',
-    description: 'Phương pháp Cornell: Cột từ khóa, Ghi chép chính, và Tóm tắt cuối bài.',
+    category: 'Study',
+    description: 'Cornell method: Key cues/terms, detailed lecture notes, and final summary.',
     defaultSections: [
-      { id: 'sec_st1', title: '🔑 Keywords & Cues', content: 'Từ khóa, khái niệm cốt lõi...' },
-      { id: 'sec_st2', title: '📝 Lecture Notes', content: 'Nội dung chi tiết bài học...' },
-      { id: 'sec_st3', title: 'Tóm tắt (Summary)', content: 'Tóm tắt bài học trong 2-3 câu...' }
+      { id: 'sec_st1', title: '🔑 Keywords & Cues', content: 'Key terms and core concepts...' },
+      { id: 'sec_st2', title: '📝 Lecture Notes', content: 'In-depth subject notes...' },
+      { id: 'sec_st3', title: 'Summary', content: 'Synthesize the main thesis in 2-3 sentences...' }
     ]
   },
   {
     id: 'tmpl_project',
     title: 'Project Kickoff Brief',
     type: 'Project',
-    category: 'Dự án',
-    description: 'Tài liệu khởi tạo dự án: Mục tiêu, Phạm vi, Quyết định & Rủi ro.',
+    category: 'Projects',
+    description: 'Project initiation brief: Goals, scope, architectural choices and risks.',
     defaultSections: [
-      { id: 'sec_pj1', title: 'Mục tiêu & Phạm vi', content: 'Dự án giải quyết vấn đề gì?' },
-      { id: 'sec_pj2', title: 'Ý tưởng & Giải pháp', content: 'Mô tả giải pháp đề xuất...' },
-      { id: 'sec_pj3', title: 'Quyết định & Lịch trình', content: 'Milestones chính...' }
+      { id: 'sec_pj1', title: 'Objectives & Scope', content: 'What exact problem does this initiative solve?' },
+      { id: 'sec_pj2', title: 'Architecture & Solution', content: 'Proposed system implementation...' },
+      { id: 'sec_pj3', title: 'Milestones & Timeline', content: 'Key deliverables and target dates...' }
     ]
   }
 ];
@@ -267,18 +267,18 @@ export function NotesView() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-6 rounded-3xl border border-purple-100/80 dark:border-purple-900/40 shadow-sm card-cute">
         <div>
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-gradient-to-tr from-violet-600 to-pink-500 text-white rounded-2xl flex items-center justify-center shadow-md shadow-purple-500/20 animate-wiggle">
+            <div className="w-11 h-11 bg-gradient-to-tr from-violet-600 to-pink-500 text-white rounded-2xl flex items-center justify-center shadow-md shadow-purple-500/20">
               <FileText className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">{t('Hệ thống Ghi chú & Tri thức')}</h1>
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">{t('Notes & Knowledge Hub')}</h1>
                 <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50">
-                  Notes Hub ✨
+                  Notes Hub
                 </span>
               </div>
               <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-1 font-medium">
-                {t('Ghi chép, liên kết ý tưởng, quản lý cuộc họp & xây dựng Knowledge Graph cá nhân chill chill 🌸')}
+                {t('Organize thoughts, link concepts, manage meetings, and build your personal Knowledge Graph')}
               </p>
             </div>
           </div>
@@ -289,7 +289,7 @@ export function NotesView() {
             onClick={() => handleCreateNewNote('Normal')}
             className="btn-squishy flex items-center gap-2 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 hover:from-violet-500 hover:to-pink-400 text-white font-extrabold px-5 py-3 rounded-2xl shadow-md shadow-purple-500/25 transition-all text-xs sm:text-sm cursor-pointer"
           >
-            <Plus className="w-4 h-4 stroke-[3]" /> {t('Tạo Ghi chú mới ✨')}
+            <Plus className="w-4 h-4 stroke-[3]" /> {t('Create New Note')}
           </button>
         </div>
       </div>
@@ -297,14 +297,14 @@ export function NotesView() {
       {/* SUB-TABS NAVIGATION */}
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
         {[
-          { id: 'dashboard', label: 'Tổng quan', icon: BarChart2 },
-          { id: 'all', label: 'Tất cả Ghi chú', icon: FileText, count: activeNotes.length },
-          { id: 'daily', label: 'Ghi chú Ngày', icon: Calendar },
-          { id: 'meetings', label: 'Cuộc họp & Quyết định', icon: Users },
-          { id: 'graph', label: 'Bi-directional Links', icon: Network },
-          { id: 'templates', label: 'Thư viện Mẫu', icon: Sparkles },
-          { id: 'analytics', label: 'Thống kê', icon: TrendingUp },
-          { id: 'archive', label: 'Lưu trữ & Thùng rác', icon: Archive, count: archivedNotes.length + trashNotes.length },
+          { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
+          { id: 'all', label: 'All Notes', icon: FileText, count: activeNotes.length },
+          { id: 'daily', label: 'Daily Notes', icon: Calendar },
+          { id: 'meetings', label: 'Meetings & Decisions', icon: Users },
+          { id: 'graph', label: 'Knowledge Graph', icon: Network },
+          { id: 'templates', label: 'Templates Library', icon: Sparkles },
+          { id: 'analytics', label: 'Analytics', icon: TrendingUp },
+          { id: 'archive', label: 'Archive & Trash', icon: Archive, count: archivedNotes.length + trashNotes.length },
         ].map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -333,11 +333,12 @@ export function NotesView() {
       </div>
 
       {/* VIEW CONTENT */}
-      {activeTab === 'dashboard' && (
-        <NotesDashboardView 
-          notes={activeNotes} 
-          pinnedNotes={pinnedNotes}
-          favoriteNotes={favoriteNotes}
+      <div key={activeTab} className="animate-page-enter">
+        {activeTab === 'dashboard' && (
+          <NotesDashboardView 
+            notes={activeNotes} 
+            pinnedNotes={pinnedNotes}
+            favoriteNotes={favoriteNotes}
           tags={allTags}
           onOpenDetail={setDetailNote}
           onOpenEdit={(n) => { setEditingNote(n); setIsEditorOpen(true); }}
@@ -419,6 +420,7 @@ export function NotesView() {
           onOpenDetail={setDetailNote}
         />
       )}
+      </div>
 
       {/* DETAIL MODAL */}
       {detailNote && (
@@ -1299,37 +1301,39 @@ function NoteDetailModal({
   }, [allNotes, note]);
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-      <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto animate-backdrop-fade">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-modal-enter">
         {/* HEADER */}
-        <div className="p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-blue-600 bg-blue-100 px-2.5 py-1 rounded-full">
-              {note.type || 'Normal'}
+            <span className="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-950/60 px-2.5 py-1 rounded-full">
+              {note.type || 'Standard'}
             </span>
-            <h3 className="font-bold text-slate-800 text-xl">{note.title}</h3>
+            <h3 className="font-bold text-slate-800 dark:text-white text-xl">{note.title}</h3>
           </div>
 
           <div className="flex items-center gap-2">
             <button type="button" 
               onClick={onTogglePin}
-              className={`p-2 rounded-xl hover:bg-slate-200 ${note.pinned ? 'text-amber-500' : 'text-slate-400'}`}
+              className={`p-2 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 btn-squishy cursor-pointer ${note.pinned ? 'text-amber-500' : 'text-slate-400'}`}
+              title="Pin note"
             >
               <Pin className="w-5 h-5 fill-current" />
             </button>
             <button type="button" 
               onClick={onToggleFav}
-              className={`p-2 rounded-xl hover:bg-slate-200 ${note.favorite ? 'text-rose-500' : 'text-slate-400'}`}
+              className={`p-2 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 btn-squishy cursor-pointer ${note.favorite ? 'text-rose-500' : 'text-slate-400'}`}
+              title="Favorite note"
             >
               <Star className="w-5 h-5 fill-current" />
             </button>
             <button type="button" 
               onClick={onEdit}
-              className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-2 rounded-xl flex items-center gap-1.5"
+              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black px-3.5 py-2 rounded-xl flex items-center gap-1.5 btn-squishy cursor-pointer shadow-sm shadow-emerald-500/20"
             >
-              <Edit3 className="w-4 h-4" /> Chỉnh sửa
+              <Edit3 className="w-4 h-4" /> Edit Note
             </button>
-            <button type="button" onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl">
+            <button type="button" onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl btn-squishy cursor-pointer">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -1539,14 +1543,14 @@ function NoteEditorModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-      <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto animate-backdrop-fade">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-modal-enter">
         {/* HEADER */}
-        <div className="p-6 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-          <h3 className="font-bold text-slate-800 text-lg">
-            {note.id ? 'Chỉnh sửa Ghi chú' : 'Tạo Ghi chú Mới'}
+        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
+          <h3 className="font-bold text-slate-800 dark:text-white text-lg">
+            {note.id ? 'Edit Note' : 'Create New Note'}
           </h3>
-          <button type="button" onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 rounded-xl">
+          <button type="button" onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl btn-squishy cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -1556,22 +1560,22 @@ function NoteEditorModal({
           {/* TITLE & TYPE */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="md:col-span-2">
-              <label className="text-xs font-bold text-slate-700 block mb-1">Tiêu đề Ghi chú *</label>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Note Title *</label>
               <input 
                 type="text"
                 value={formData.title || ''}
                 onChange={(e) => setFormData(s => ({ ...s, title: e.target.value }))}
-                placeholder="Nhập tiêu đề ghi chú..."
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500"
+                placeholder="Enter note title..."
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
             <div>
-              <label className="text-xs font-bold text-slate-700 block mb-1">Loại Ghi chú</label>
+              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Note Type</label>
               <select 
                 value={formData.type || 'Normal'}
                 onChange={(e) => setFormData(s => ({ ...s, type: e.target.value as NoteType }))}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
               >
                 {NOTE_TYPES.map(t => <option key={t.type} value={t.type}>{t.label}</option>)}
               </select>

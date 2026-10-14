@@ -835,7 +835,7 @@ function KanbanColumn({ title, status, tasks, onEdit, onDropTask, onTagClick, on
             draggable
             onDragStart={(e) => e.dataTransfer.setData("taskId", task.id)} 
             onClick={() => onEdit(task)}
-            className="card-cute bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-xs border border-purple-100/70 dark:border-purple-900/40 cursor-grab active:cursor-grabbing hover:border-purple-400 transition-all group"
+            className="card-cute bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-xs border border-purple-100/70 dark:border-purple-900/40 cursor-grab active:cursor-grabbing hover:border-purple-400 interactive-card transition-all group"
           >
             <div className="flex items-start justify-between gap-2 mb-2">
               <h4 className={`text-sm font-bold leading-snug ${
@@ -1005,10 +1005,16 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
       ? formData.tags.split(',').map((t: string) => t.trim().replace(/^#/, '')).filter(Boolean)
       : (Array.isArray(formData.tags) ? formData.tags : []);
 
+    const rawDesc = (formData.description || '').trim();
+    const rawNotes = (formData.notes || '').trim();
+    const mergedDescription = rawNotes && !rawDesc.includes(rawNotes)
+      ? (rawDesc ? `${rawDesc}\n\n[Ghi chú]: ${rawNotes}` : rawNotes)
+      : rawDesc;
+
     onSave({
       ...(task || {}),
       title: formData.title.trim(),
-      description: formData.description.trim(),
+      description: mergedDescription,
       status: formData.status,
       priority: formData.priority,
       dueDate: formData.dueDate || null,
@@ -1017,14 +1023,13 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
       estimatedHours: formData.estimatedHours ? Number(formData.estimatedHours) : 0,
       actualHours: formData.actualHours ? Number(formData.actualHours) : 0,
       recurrence: formData.recurrence,
-      tags: parsedTags,
-      notes: formData.notes
+      tags: parsedTags
     });
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-backdrop-fade">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] border border-slate-200 dark:border-slate-800 animate-modal-enter">
         <div className="flex justify-between items-center p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white">{task ? t('Chỉnh sửa Công việc') : t('Thêm Công việc Mới')}</h3>
           <div className="flex items-center gap-2">

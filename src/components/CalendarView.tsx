@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
 import { useAppStore } from '../lib/store';
-import { Calendar as CalendarIcon, Clock, Plus, MapPin, Video, LayoutList } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Plus, MapPin, Video, LayoutList, CheckSquare, Check, ChevronRight } from 'lucide-react';
 import { Event } from '../lib/types';
 
 export function CalendarView() {
-  const { events, tasks, addEvent, updateEvent, deleteEvent } = useAppStore();
+  const { events = [], tasks = [], addEvent, updateEvent, deleteEvent, updateTask, setCurrentView } = useAppStore();
   const [showModal, setShowModal] = useState<any>(false);
   const [viewMode, setViewMode] = useState<'timeline' | 'agenda'>('timeline');
   
   const today = new Date().toISOString().split('T')[0];
   
-  // A simple list view for calendar for now (Time-blocking view)
+  // Events
   const todayEvents = events.filter(e => e.date === today).sort((a, b) => a.startTime.localeCompare(b.startTime));
   const upcomingEvents = events.filter(e => e.date > today).sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
+
+  // Linked Tasks with Due Dates
+  const todayTasks = (tasks || []).filter(t => t.dueDate && t.dueDate.startsWith(today));
+  const upcomingTasks = (tasks || []).filter(t => t.dueDate && t.dueDate > today).slice(0, 5);
   
   const hours = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
@@ -20,40 +24,40 @@ export function CalendarView() {
     <div className="p-3.5 sm:p-6 pb-24 sm:pb-28 max-w-7xl mx-auto h-full flex flex-col space-y-4 sm:space-y-6 overflow-y-auto">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0">
         <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Lịch & Thời gian biểu</h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">Time-blocking và quản lý sự kiện hàng ngày.</p>
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Calendar & Schedule</h2>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">Time-blocking schedule and daily event management.</p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold shrink-0">
             <button
               type="button"
               onClick={() => setViewMode('timeline')}
-              className={`px-3 py-1.5 rounded-lg transition-colors ${
+              className={`px-3 py-1.5 rounded-lg transition-colors btn-squishy cursor-pointer ${
                 viewMode === 'timeline'
                   ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              Thời gian biểu
+              Timeline
             </button>
             <button
               type="button"
               onClick={() => setViewMode('agenda')}
-              className={`px-3 py-1.5 rounded-lg transition-colors ${
+              className={`px-3 py-1.5 rounded-lg transition-colors btn-squishy cursor-pointer ${
                 viewMode === 'agenda'
                   ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
               }`}
             >
-              Danh sách
+              Agenda
             </button>
           </div>
           <button 
             type="button"
             onClick={() => setShowModal(true)}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-blue-600 text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold hover:bg-blue-700 transition-colors shadow-xs"
+            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-3.5 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-black btn-squishy transition-colors shadow-md shadow-emerald-500/20 cursor-pointer"
           >
-            <Plus className="w-4 h-4" /> <span>Thêm Sự kiện</span>
+            <Plus className="w-4 h-4 stroke-[3]" /> <span>Add Event</span>
           </button>
         </div>
       </div>
@@ -98,6 +102,81 @@ export function CalendarView() {
                     </span>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* Today's Tasks & Deadlines (Cross-Feature Integration) */}
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base">
+                <CheckSquare className="w-5 h-5 text-emerald-500" /> Hạn công việc hôm nay ({todayTasks.length})
+              </h3>
+              <button
+                type="button"
+                onClick={() => setCurrentView('tasks')}
+                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <span>Mở Không gian Công việc</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            {todayTasks.length === 0 ? (
+              <div className="text-center py-6 text-slate-400 text-sm">
+                Không có công việc nào có hạn chót trong ngày hôm nay.
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {todayTasks.map(task => {
+                  const isDone = task.status === 'Hoàn thành' || task.status === 'Completed';
+                  return (
+                    <div 
+                      key={task.id}
+                      className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex items-center justify-between gap-3 hover:bg-slate-100/70 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => updateTask(task.id, { status: isDone ? 'Chưa làm' : 'Hoàn thành' })}
+                          className={`w-5 h-5 rounded-md border flex items-center justify-center shrink-0 cursor-pointer transition-all ${
+                            isDone 
+                              ? 'bg-emerald-500 border-emerald-500 text-slate-950 font-black' 
+                              : 'border-slate-300 dark:border-slate-600 hover:border-emerald-500'
+                          }`}
+                        >
+                          {isDone && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                        </button>
+                        <div className="min-w-0">
+                          <h4 className={`text-sm font-bold truncate ${isDone ? 'line-through text-slate-400' : 'text-slate-900 dark:text-white'}`}>
+                            {task.title}
+                          </h4>
+                          <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                            <span>Ước lượng: {task.estimatedHours || 1}h</span>
+                            {task.priority && (
+                              <>
+                                <span>•</span>
+                                <span className={
+                                  task.priority === 'Cao' || task.priority === 'Nghiêm trọng'
+                                    ? 'text-rose-500 font-bold'
+                                    : 'text-slate-500'
+                                }>
+                                  Độ ưu tiên: {task.priority}
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full shrink-0 ${
+                        isDone 
+                          ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300' 
+                          : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
+                      }`}>
+                        {task.status || 'Chưa làm'}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -268,47 +347,72 @@ function EventModal({ event, onClose, onSave, onDelete }: any) {
   const { projects } = useAppStore();
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
-        <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center shrink-0">
-          <h3 className="text-lg font-bold text-slate-900">{event ? 'Sửa Sự kiện' : 'Sự kiện mới'}</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-backdrop-fade">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 animate-modal-enter">
+        <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center shrink-0">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">{event ? 'Edit Event' : 'New Event'}</h3>
         </div>
         <div className="p-5 overflow-y-auto space-y-4">
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1">Tên sự kiện</label>
-            <input type="text" value={formData.title} onChange={e=>setFormData({...formData, title: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg" />
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Event Title *</label>
+            <input 
+              type="text" 
+              value={formData.title} 
+              onChange={e=>setFormData({...formData, title: e.target.value})} 
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium" 
+              placeholder="e.g. Strategy Review, Team Sync"
+            />
           </div>
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1">Ngày</label>
-            <input type="date" value={formData.date} onChange={e=>setFormData({...formData, date: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg" />
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Date</label>
+            <input 
+              type="date" 
+              value={formData.date} 
+              onChange={e=>setFormData({...formData, date: e.target.value})} 
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium" 
+            />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">Từ giờ</label>
-              <input type="time" value={formData.startTime} onChange={e=>setFormData({...formData, startTime: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg" />
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Start Time</label>
+              <input 
+                type="time" 
+                value={formData.startTime} 
+                onChange={e=>setFormData({...formData, startTime: e.target.value})} 
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium" 
+              />
             </div>
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1">Đến giờ</label>
-              <input type="time" value={formData.endTime} onChange={e=>setFormData({...formData, endTime: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg" />
+              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">End Time</label>
+              <input 
+                type="time" 
+                value={formData.endTime} 
+                onChange={e=>setFormData({...formData, endTime: e.target.value})} 
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium" 
+              />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1">Liên kết Dự án (Tuỳ chọn)</label>
-            <select value={formData.projectId} onChange={e=>setFormData({...formData, projectId: e.target.value})} className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg">
-              <option value="">-- Không --</option>
+            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Linked Project (Optional)</label>
+            <select 
+              value={formData.projectId} 
+              onChange={e=>setFormData({...formData, projectId: e.target.value})} 
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium"
+            >
+              <option value="">-- None --</option>
               {projects?.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
           </div>
         </div>
-        <div className="p-5 bg-slate-50 border-t border-slate-100 flex justify-between gap-3 shrink-0">
+        <div className="p-5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex justify-between gap-3 shrink-0">
           <div>
             {event && (
-              <button type="button" onClick={() => onDelete(event.id)} className="px-4 py-2 text-red-600 font-bold hover:bg-red-50 rounded-lg transition-colors">Xóa</button>
+              <button type="button" onClick={() => onDelete(event.id)} className="px-4 py-2 text-rose-600 dark:text-rose-400 font-bold hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl btn-squishy cursor-pointer">Delete</button>
             )}
           </div>
           <div className="flex gap-3">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 font-bold hover:bg-slate-200 rounded-lg transition-colors">Hủy</button>
-            <button type="button" onClick={() => onSave({...formData, ...(event?.id ? { id: event.id } : {})})} className="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors">Lưu</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl btn-squishy cursor-pointer">Cancel</button>
+            <button type="button" onClick={() => onSave({...formData, ...(event?.id ? { id: event.id } : {})})} className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl btn-squishy cursor-pointer shadow-md shadow-emerald-500/20">Save Event</button>
           </div>
         </div>
       </div>

@@ -191,6 +191,14 @@ class BackgroundWorker {
       } catch (err: any) {
         // Ignore budget threshold check failure
       }
+
+      // 4. Scheduled Announcements Auto-Publish Sweep
+      try {
+        const { announcementService } = await import('./announcement.service.js');
+        await announcementService.processScheduledAnnouncements();
+      } catch (annErr) {
+        console.warn('[BackgroundWorker] Scheduled announcements sweep error:', annErr);
+      }
     } catch (err: any) {
       // Quiet catch for top-level tick
     }

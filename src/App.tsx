@@ -21,6 +21,7 @@ import { AccountStatusBanner } from './components/AccountStatusBanner';
 import { LockedWorkspaceOverlay } from './components/LockedWorkspaceOverlay';
 import { GlobalCompanionOverlay } from './components/companion/GlobalCompanionOverlay';
 import { PwaPromptBanner } from './components/PwaPromptBanner';
+import { PageSkeleton } from './components/Skeleton';
 import { lazyWithRetry } from './lib/lazyWithRetry';
 import { Zap } from 'lucide-react';
 
@@ -334,7 +335,7 @@ function AppContent() {
       currentView === 'admin';
 
     return (
-      <div className="relative min-h-full flex flex-col flex-1">
+      <div key={currentView} className="relative min-h-full flex flex-col flex-1 animate-page-enter">
         {renderView()}
         {!hasSubAccess && !isUnrestrictedView && (
           <LockedWorkspaceOverlay />
@@ -352,14 +353,7 @@ function AppContent() {
         <TopBar />
         <AccountStatusBanner />
         <main className="flex-1 overflow-y-auto pb-28 md:pb-20 relative">
-          <React.Suspense
-            fallback={
-              <div className="flex-1 flex flex-col items-center justify-center p-12 min-h-[300px] text-slate-500">
-                <div className="w-9 h-9 border-3 border-emerald-500 border-t-teal-300 rounded-full animate-spin mb-3"></div>
-                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300">Đang tải mô-đun...</span>
-              </div>
-            }
-          >
+          <React.Suspense fallback={<PageSkeleton />}>
             {renderViewContent()}
           </React.Suspense>
         </main>
@@ -374,14 +368,14 @@ function AppContent() {
           type="button"
           id="btn-omni-quick-capture"
           onClick={() => toggleCommand()}
-          title="Mở bảng Lệnh nhanh & Tìm kiếm (Phím tắt: Ctrl + K)"
-          aria-label="Lệnh nhanh 1-chạm (Ctrl + K)"
+          title={t('Mở bảng Lệnh nhanh & Tìm kiếm (Phím tắt: Ctrl + K)')}
+          aria-label={t('Lệnh nhanh 1-chạm (Ctrl + K)')}
           className="h-11 sm:h-12 px-3.5 sm:px-4 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-slate-950 font-black shadow-xl shadow-emerald-500/25 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer border border-emerald-300/40"
         >
           <div className="w-6 h-6 rounded-full bg-slate-950/20 flex items-center justify-center">
             <Zap className="w-3.5 h-3.5 fill-slate-950 stroke-slate-950" />
           </div>
-          <span className="text-xs font-black tracking-tight hidden sm:inline">Lệnh nhanh</span>
+          <span className="text-xs font-black tracking-tight hidden sm:inline">{t('Lệnh nhanh')}</span>
           <kbd className="hidden lg:inline-block px-1.5 py-0.5 rounded-md bg-slate-950/25 text-[10px] font-mono font-bold text-slate-950">
             Ctrl K
           </kbd>

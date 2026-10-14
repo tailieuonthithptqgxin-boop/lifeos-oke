@@ -114,83 +114,85 @@ export function GoalsView() {
       </div>
 
       {/* Content Area according to activeTab */}
-      {activeTab === 'dashboard' && (
-        <DashboardView 
-          goals={goals} 
-          activeGoals={activeGoals} 
-          completedGoals={completedGoals}
-          onTrackGoals={onTrackGoals}
-          atRiskGoals={atRiskGoals}
-          criticalGoals={criticalGoals}
-          overallProgress={overallProgress}
-          avgGoalScore={avgGoalScore}
-          totalStreak={totalStreak}
-          onOpenGoalDetail={setSelectedGoalDetail}
-          onOpenNewGoal={openNewGoal}
-          setActiveTab={setActiveTab}
-        />
-      )}
+      <div key={activeTab} className="animate-page-enter">
+        {activeTab === 'dashboard' && (
+          <DashboardView 
+            goals={goals} 
+            activeGoals={activeGoals} 
+            completedGoals={completedGoals}
+            onTrackGoals={onTrackGoals}
+            atRiskGoals={atRiskGoals}
+            criticalGoals={criticalGoals}
+            overallProgress={overallProgress}
+            avgGoalScore={avgGoalScore}
+            totalStreak={totalStreak}
+            onOpenGoalDetail={setSelectedGoalDetail}
+            onOpenNewGoal={openNewGoal}
+            setActiveTab={setActiveTab}
+          />
+        )}
 
-      {activeTab === 'my_goals' && (
-        <MyGoalsView 
-          filteredGoals={filteredGoals}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          categoryFilter={categoryFilter}
-          setCategoryFilter={setCategoryFilter}
-          statusFilter={statusFilter}
-          setStatusFilter={setStatusFilter}
-          tierFilter={tierFilter}
-          setTierFilter={setTierFilter}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          onOpenDetail={setSelectedGoalDetail}
-          onOpenEdit={openEditGoal}
-          onOpenNew={openNewGoal}
-          projects={projects}
-          tasks={tasks}
-        />
-      )}
+        {activeTab === 'my_goals' && (
+          <MyGoalsView 
+            filteredGoals={filteredGoals}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            categoryFilter={categoryFilter}
+            setCategoryFilter={setCategoryFilter}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            tierFilter={tierFilter}
+            setTierFilter={setTierFilter}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            onOpenDetail={setSelectedGoalDetail}
+            onOpenEdit={openEditGoal}
+            onOpenNew={openNewGoal}
+            projects={projects}
+            tasks={tasks}
+          />
+        )}
 
-      {activeTab === 'execution' && (
-        <ExecutionView goals={goals} tasks={tasks} habits={habits} toggleGoalAction={toggleGoalAction} />
-      )}
+        {activeTab === 'execution' && (
+          <ExecutionView goals={goals} tasks={tasks} habits={habits} toggleGoalAction={toggleGoalAction} />
+        )}
 
-      {activeTab === 'timeline' && (
-        <TimelineView goals={goals} onOpenDetail={setSelectedGoalDetail} addGoalMilestone={addGoalMilestone} />
-      )}
+        {activeTab === 'timeline' && (
+          <TimelineView goals={goals} onOpenDetail={setSelectedGoalDetail} addGoalMilestone={addGoalMilestone} />
+        )}
 
-      {activeTab === 'action_plan' && (
-        <ActionPlanView goals={goals} projects={projects} tasks={tasks} habits={habits} onOpenDetail={setSelectedGoalDetail} />
-      )}
+        {activeTab === 'action_plan' && (
+          <ActionPlanView goals={goals} projects={projects} tasks={tasks} habits={habits} onOpenDetail={setSelectedGoalDetail} />
+        )}
 
-      {activeTab === 'pace_kpis' && (
-        <PaceKPIsView goals={goals} onOpenDetail={setSelectedGoalDetail} />
-      )}
+        {activeTab === 'pace_kpis' && (
+          <PaceKPIsView goals={goals} onOpenDetail={setSelectedGoalDetail} />
+        )}
 
-      {activeTab === 'scenarios' && (
-        <ScenariosView goals={goals} updateGoal={updateGoal} />
-      )}
+        {activeTab === 'scenarios' && (
+          <ScenariosView goals={goals} updateGoal={updateGoal} />
+        )}
 
-      {activeTab === 'risks' && (
-        <RisksConflictsView goals={goals} onOpenDetail={setSelectedGoalDetail} />
-      )}
+        {activeTab === 'risks' && (
+          <RisksConflictsView goals={goals} onOpenDetail={setSelectedGoalDetail} />
+        )}
 
-      {activeTab === 'reviews' && (
-        <ReviewsView goals={goals} addGoalReview={addGoalReview} />
-      )}
+        {activeTab === 'reviews' && (
+          <ReviewsView goals={goals} addGoalReview={addGoalReview} />
+        )}
 
-      {activeTab === 'analytics' && (
-        <AnalyticsView goals={goals} avgGoalScore={avgGoalScore} />
-      )}
+        {activeTab === 'analytics' && (
+          <AnalyticsView goals={goals} avgGoalScore={avgGoalScore} />
+        )}
 
-      {activeTab === 'templates' && (
-        <TemplatesView addGoal={addGoal} setActiveTab={setActiveTab} />
-      )}
+        {activeTab === 'templates' && (
+          <TemplatesView addGoal={addGoal} setActiveTab={setActiveTab} />
+        )}
 
-      {activeTab === 'archive' && (
-        <ArchiveView goals={goals} onOpenDetail={setSelectedGoalDetail} />
-      )}
+        {activeTab === 'archive' && (
+          <ArchiveView goals={goals} onOpenDetail={setSelectedGoalDetail} />
+        )}
+      </div>
 
       {/* Goal Form Modal */}
       {showGoalModal && (
@@ -1363,19 +1365,19 @@ function ArchiveView({ goals, onOpenDetail }: any) {
 // ----------------------------------------------------------------------
 function GoalDetailDrawer({ goal, onClose, onEdit, updateGoal, addGoalReview, toggleGoalAction, addGoalMilestone }: any) {
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/60 backdrop-blur-sm">
-      <div className="bg-white w-full max-w-xl h-full shadow-2xl flex flex-col overflow-hidden">
+    <div className="fixed inset-0 z-50 flex justify-end bg-slate-900/60 backdrop-blur-xs animate-backdrop-fade">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-xl h-full shadow-2xl flex flex-col overflow-hidden border-l border-slate-200 dark:border-slate-800 animate-modal-enter">
         {/* Header */}
-        <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
           <div>
-            <span className="text-[10px] font-extrabold text-blue-600 uppercase">{goal.category}</span>
-            <h3 className="text-lg font-bold text-slate-900">{goal.title}</h3>
+            <span className="text-[10px] font-extrabold text-purple-600 dark:text-purple-400 uppercase tracking-wider">{goal.category}</span>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-0.5">{goal.title}</h3>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={onEdit} className="p-2 text-slate-600 hover:bg-slate-200 rounded-xl">
+            <button type="button" onClick={onEdit} className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl btn-squishy cursor-pointer">
               <Edit2 className="w-4 h-4" />
             </button>
-            <button type="button" onClick={onClose} className="p-2 text-slate-600 hover:bg-slate-200 rounded-xl">
+            <button type="button" onClick={onClose} className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl btn-squishy cursor-pointer">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -1384,30 +1386,30 @@ function GoalDetailDrawer({ goal, onClose, onEdit, updateGoal, addGoalReview, to
         {/* Scrollable Body */}
         <div className="p-6 overflow-y-auto space-y-6 flex-1">
           {/* Progress */}
-          <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-2">
-            <div className="flex justify-between text-xs font-bold">
-              <span>Tiến độ thực hiện</span>
-              <span className="text-blue-600 font-black">{goal.progress}%</span>
+          <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+            <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
+              <span>Goal Progress</span>
+              <span className="text-purple-600 dark:text-purple-400 font-black">{goal.progress}%</span>
             </div>
-            <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
-              <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${goal.progress}%` }}></div>
+            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
+              <div className="bg-gradient-to-r from-violet-600 to-pink-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${goal.progress}%` }}></div>
             </div>
           </div>
 
           {/* Description */}
           {goal.description && (
             <div>
-              <h4 className="text-xs font-bold text-slate-500 uppercase mb-1">Mô tả</h4>
-              <p className="text-xs text-slate-800 leading-relaxed">{goal.description}</p>
+              <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-1">Description</h4>
+              <p className="text-xs text-slate-800 dark:text-slate-200 leading-relaxed font-medium">{goal.description}</p>
             </div>
           )}
 
           {/* Milestones */}
           <div>
-            <h4 className="text-xs font-bold text-slate-500 uppercase mb-2">Milestones</h4>
+            <h4 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">Milestones</h4>
             <div className="space-y-2">
               {goal.milestones?.map((m: GoalMilestone) => (
-                <div key={m.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex justify-between text-xs font-bold">
+                <div key={m.id} className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-200 dark:border-slate-800 flex justify-between text-xs font-bold text-slate-800 dark:text-slate-200">
                   <span>{m.title}</span>
                   <span className="text-slate-500">{m.progress}%</span>
                 </div>
@@ -1428,7 +1430,7 @@ function GoalModal({ goal, onClose, onSave, onDelete }: any) {
     id: goal?.id || Math.random().toString(36).substring(2, 9),
     title: goal?.title || '',
     description: goal?.description || '',
-    category: goal?.category || 'Phát triển bản thân',
+    category: goal?.category || 'Personal Growth',
     status: goal?.status || 'In Progress',
     priority: goal?.priority || 'High',
     progress: goal?.progress || 0,
@@ -1436,111 +1438,113 @@ function GoalModal({ goal, onClose, onSave, onDelete }: any) {
     current: goal?.current || 0,
     unit: goal?.unit || '%',
     deadline: goal?.deadline || new Date(Date.now() + 30*86400000).toISOString().split('T')[0],
-    color: goal?.color || '#3b82f6'
+    color: goal?.color || '#8b5cf6'
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col">
-        <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-          <h3 className="text-lg font-bold text-slate-900">{goal ? 'Chỉnh sửa Mục tiêu' : 'Mục tiêu Mới'}</h3>
-          <button type="button" onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-backdrop-fade">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 animate-modal-enter">
+        <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white">{goal ? 'Edit Goal' : 'New Goal'}</h3>
+          <button type="button" onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 btn-squishy cursor-pointer"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-1">Tên mục tiêu</label>
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Goal Title *</label>
             <input 
               type="text" 
               value={formData.title} 
               onChange={e=>setFormData({...formData, title: e.target.value})} 
-              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none" 
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none" 
+              placeholder="e.g. Master JLPT N2, Build SaaS MVP"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Lĩnh vực</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Category</label>
               <select 
                 value={formData.category} 
                 onChange={e=>setFormData({...formData, category: e.target.value})} 
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none"
               >
-                <option value="Sự nghiệp">Sự nghiệp</option>
-                <option value="Tài chính">Tài chính</option>
-                <option value="Sức khoẻ">Sức khoẻ</option>
-                <option value="Học tập">Học tập</option>
-                <option value="Phát triển bản thân">Phát triển bản thân</option>
+                <option value="Sự nghiệp">Career</option>
+                <option value="Tài chính">Finance</option>
+                <option value="Sức khoẻ">Health</option>
+                <option value="Học tập">Education</option>
+                <option value="Phát triển bản thân">Personal Growth</option>
               </select>
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Mức ưu tiên</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Priority</label>
               <select 
                 value={formData.priority} 
                 onChange={e=>setFormData({...formData, priority: e.target.value})} 
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none"
               >
-                <option value="Critical">Rất cao (Critical)</option>
-                <option value="High">Cao (High)</option>
-                <option value="Medium">Trung bình (Medium)</option>
-                <option value="Low">Thấp (Low)</option>
+                <option value="Critical">Critical</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
               </select>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Hiện tại</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Current Value</label>
               <input 
                 type="number" 
                 value={formData.current} 
                 onChange={e=>setFormData({...formData, current: Number(e.target.value)})} 
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none" 
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none font-mono" 
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Mục tiêu (Target)</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Target Value</label>
               <input 
                 type="number" 
                 value={formData.target} 
                 onChange={e=>setFormData({...formData, target: Number(e.target.value)})} 
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none" 
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none font-mono" 
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Đơn vị (Unit)</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Unit</label>
               <input 
                 type="text" 
                 value={formData.unit} 
                 onChange={e=>setFormData({...formData, unit: e.target.value})} 
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none" 
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none" 
+                placeholder="%, hours, books, VND..."
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Deadline</label>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Target Deadline</label>
               <input 
                 type="date" 
                 value={formData.deadline} 
                 onChange={e=>setFormData({...formData, deadline: e.target.value})} 
-                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none" 
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none" 
               />
             </div>
           </div>
         </div>
 
-        <div className="p-5 bg-slate-50 border-t border-slate-100 flex justify-between gap-3">
+        <div className="p-5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex justify-between gap-3">
           {goal ? (
-            <button type="button" onClick={() => onDelete(goal.id)} className="px-4 py-2 text-red-600 text-xs font-bold hover:bg-red-50 rounded-xl">Xóa</button>
+            <button type="button" onClick={() => onDelete(goal.id)} className="px-4 py-2 text-rose-600 dark:text-rose-400 text-xs font-bold hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl btn-squishy cursor-pointer">Delete</button>
           ) : <div />}
           <div className="flex gap-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 text-xs font-bold hover:bg-slate-200 rounded-xl">Hủy</button>
-            <button type="button" onClick={() => onSave(formData)} className="px-4 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700">Lưu</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 dark:text-slate-400 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl btn-squishy cursor-pointer">Cancel</button>
+            <button type="button" onClick={() => onSave(formData)} className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-xl btn-squishy cursor-pointer shadow-md shadow-emerald-500/20">Save Goal</button>
           </div>
         </div>
       </div>

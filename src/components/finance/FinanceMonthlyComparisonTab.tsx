@@ -67,7 +67,7 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
       const y = d.getFullYear();
       const m = d.getMonth() + 1;
       const k = `${y}-${String(m).padStart(2, '0')}`;
-      list.push({ key: k, label: `Tháng ${m}/${y}`, year: y, month: m });
+      list.push({ key: k, label: `Month ${m}/${y}`, year: y, month: m });
     }
     return list;
   }, [currentYear, currentMonth]);
@@ -132,13 +132,13 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
 
       monthTx.forEach(t => {
         const amt = Number(t.amount) || 0;
-        if (t.type === 'Thu nhập') {
+        if (t.type === 'Thu nhập' || t.type === 'Income') {
           inc += amt;
           incCount += 1;
-        } else if (t.type === 'Chi tiêu') {
+        } else if (t.type === 'Chi tiêu' || t.type === 'Expense') {
           exp += amt;
           expCount += 1;
-          const cat = t.category || 'Chưa phân loại';
+          const cat = t.category || 'Uncategorized';
           catMap[cat] = (catMap[cat] || 0) + amt;
         }
       });
@@ -151,8 +151,8 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
         year: y,
         month: m,
         key: k,
-        label: `Tháng ${m}/${y}`,
-        shortLabel: `T.${m}`,
+        label: `Month ${m}/${y}`,
+        shortLabel: `M${m}`,
         startDate,
         endDate,
         daysInMonth,
@@ -861,23 +861,23 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
       <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xs border border-slate-200 dark:border-slate-800 overflow-hidden">
         <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <h4 className="font-black text-slate-900 dark:text-white text-base">
-            Bảng đối soát dòng tiền đa tháng
+            Multi-Month Cash Flow Reconciliation Table
           </h4>
-          <span className="text-xs font-bold text-slate-400">{monthlyMetrics.length} tháng</span>
+          <span className="text-xs font-bold text-slate-400">{monthlyMetrics.length} months</span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-left">
             <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-wider border-b border-slate-100 dark:border-slate-800">
               <tr>
-                <th className="py-3 px-4">Tháng</th>
-                <th className="py-3 px-4 text-right">Tổng thu</th>
-                <th className="py-3 px-4 text-right">Thay đổi thu</th>
-                <th className="py-3 px-4 text-right">Tổng chi</th>
-                <th className="py-3 px-4 text-right">Thay đổi chi</th>
-                <th className="py-3 px-4 text-right">Chi TB/ngày</th>
-                <th className="py-3 px-4 text-right">Tiền giữ lại</th>
-                <th className="py-3 px-4 text-right">Tỷ lệ giữ lại</th>
+                <th className="py-3 px-4">Month</th>
+                <th className="py-3 px-4 text-right">Total Income</th>
+                <th className="py-3 px-4 text-right">Income Diff</th>
+                <th className="py-3 px-4 text-right">Total Expenses</th>
+                <th className="py-3 px-4 text-right">Expense Diff</th>
+                <th className="py-3 px-4 text-right">Avg Daily Spending</th>
+                <th className="py-3 px-4 text-right">Net Retained</th>
+                <th className="py-3 px-4 text-right">Retention Rate</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -893,7 +893,7 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
                 return (
                   <tr key={m.key} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
                     <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white whitespace-nowrap">
-                      {m.label} {m.isCurrentMonth && <span className="text-[10px] text-blue-500 font-normal">(Hiện tại)</span>}
+                      {m.label} {m.isCurrentMonth && <span className="text-[10px] text-blue-500 font-normal">(Current)</span>}
                     </td>
 
                     {/* Thu */}
@@ -945,7 +945,7 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
                           {m.retentionRate.toFixed(1)}%
                         </span>
                       ) : (
-                        <span className="text-slate-400 text-[11px]">Chưa có thu</span>
+                        <span className="text-slate-400 text-[11px]">No income</span>
                       )}
                     </td>
                   </tr>
@@ -1026,14 +1026,14 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
             <table className="w-full text-xs text-left">
               <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-wider border-b border-slate-100 dark:border-slate-800">
                 <tr>
-                  <th className="py-3 px-4">Nhóm chi</th>
+                  <th className="py-3 px-4">Category</th>
                   {monthlyMetrics.map(m => (
                     <th key={m.key} className="py-3 px-4 text-right whitespace-nowrap">
                       {m.shortLabel}
                     </th>
                   ))}
-                  <th className="py-3 px-4 text-right">Tổng kỳ</th>
-                  <th className="py-3 px-4 text-center">Biến động</th>
+                  <th className="py-3 px-4 text-right">Total Period</th>
+                  <th className="py-3 px-4 text-center">Trend</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">

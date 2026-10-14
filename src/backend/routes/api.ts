@@ -16,6 +16,7 @@ import { rpgService } from '../services/rpg.service.js';
 import { r2Router } from './r2.routes.js';
 import { customModulesRouter } from './customModules.routes.js';
 import { vocabRouter } from './vocab.routes.js';
+import { announcementService } from '../services/announcement.service.js';
 import { paymentRateLimiter, couponRateLimiter } from '../security/rateLimiter.js';
 import {
   FinanceTransactionSchema,
@@ -33,6 +34,8 @@ import {
   AdminUpdateStatusSchema,
   AdminChangePlanSchema,
   AdminResetPasswordSchema,
+  CreateAnnouncementSchema,
+  UpdateAnnouncementSchema,
   validateBody
 } from '../validation.js';
 
@@ -1378,11 +1381,28 @@ apiRouter.put('/notifications/:id/read', async (req: AuthRequest, res: Response)
   const { id } = req.params;
   try {
     const prisma = getPrisma();
-    await prisma.notification.updateMany({
-      where: { id, userId },
-      data: { read: true }
+    const notif = await prisma.notification.findFirst({
+      where: { id, userId }
     });
-    res.json({ success: true, message: 'Đã đánh dấu đã đọc' });
+
+    if (notif) {
+      await prisma.notification.update({
+        where: { id },
+        data: { read: true, readAt: new Date() }
+      });
+
+      if (notif.announcementId) {
+        await prisma.announcementDelivery.updateMany({
+          where: {
+            announcementId: notif.announcementId,
+            userId,
+            channel: 'WEB'
+          },
+          data: { readAt: new Date() }
+        });
+      }
+    }
+    res.json({ success: true, message: 'Notification marked as read' });
   } catch (err: any) {
     res.status(500).json({
       success: false,
@@ -1391,6 +1411,32 @@ apiRouter.put('/notifications/:id/read', async (req: AuthRequest, res: Response)
     });
   }
 });
+
+apiRouter.put('/notifications/read-all', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    const prisma = getPrisma();
+    const now = new Date();
+    await prisma.notification.updateMany({
+      where: { userId, read: false },
+      data: { read: true, readAt: now }
+    });
+
+    await prisma.announcementDelivery.updateMany({
+      where: { userId, channel: 'WEB', readAt: null },
+      data: { readAt: now }
+    });
+
+    res.json({ success: true, message: 'All notifications marked as read' });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: { code: 'UPDATE_FAILED', message: err.message },
+      message: err.message
+    });
+  }
+});
+
 
 // --------------------------------------------------------------------------
 // COMMERCE: COUPON VALIDATION & CHECKOUT
@@ -4722,6 +4768,177 @@ apiRouter.patch('/admin/feedback/:id', requireAdmin, async (req: AuthRequest, re
   } catch (err: any) {
     console.error('PATCH /admin/feedback/:id error:', err);
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ====================================================
+// ADMIN ANNOUNCEMENTS & NOTIFICATION CENTER
+// ====================================================
+
+// 1. Admin: Get audience user count and candidate preview
+apiRouter.get('/admin/announcements/audience-preview', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const audience = String(req.query.audience || 'ALL');
+    let userIds: string[] | undefined;
+    if (req.query.userIds) {
+      try {
+        userIds = JSON.parse(String(req.query.userIds));
+      } catch {
+        userIds = String(req.query.userIds).split(',').map(s => s.trim()).filter(Boolean);
+      }
+    }
+    const users = await announcementService.resolveTargetUsers(audience, userIds);
+    res.json({
+      success: true,
+      count: users.length,
+      sampleUsers: users.slice(0, 50).map(u => ({ id: u.id, name: u.name, email: u.email, role: u.role, plan: u.plan }))
+    });
+  } catch (err: any) {
+    console.error('GET /admin/announcements/audience-preview error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 2. Admin: List all announcements with delivery stats
+apiRouter.get('/admin/announcements', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const status = req.query.status ? String(req.query.status) : undefined;
+    const search = req.query.search ? String(req.query.search) : undefined;
+    const list = await announcementService.getAnnouncements({ status, search });
+    res.json({
+      success: true,
+      announcements: list
+    });
+  } catch (err: any) {
+    console.error('GET /admin/announcements error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 3. Admin: Get single announcement detail & delivery logs
+apiRouter.get('/admin/announcements/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const detail = await announcementService.getAnnouncementDetail(req.params.id);
+    res.json({
+      success: true,
+      announcement: detail
+    });
+  } catch (err: any) {
+    console.error('GET /admin/announcements/:id error:', err);
+    res.status(404).json({ success: false, message: err.message });
+  }
+});
+
+// 4. Admin: Create new announcement (Draft or Scheduled)
+apiRouter.post('/admin/announcements', requireAdmin, validateBody(CreateAnnouncementSchema), async (req: AuthRequest, res: Response) => {
+  try {
+    const adminUser = {
+      id: req.userId!,
+      name: req.user?.name || req.user?.email || 'Administrator'
+    };
+    const created = await announcementService.createAnnouncement(req.body, adminUser);
+    res.status(201).json({
+      success: true,
+      message: 'Announcement created successfully',
+      announcement: created
+    });
+  } catch (err: any) {
+    console.error('POST /admin/announcements error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 5. Admin: Update announcement (Draft / Scheduled only)
+apiRouter.put('/admin/announcements/:id', requireAdmin, validateBody(UpdateAnnouncementSchema), async (req: AuthRequest, res: Response) => {
+  try {
+    const adminUser = {
+      id: req.userId!,
+      name: req.user?.name || req.user?.email || 'Administrator'
+    };
+    const updated = await announcementService.updateAnnouncement(req.params.id, req.body, adminUser);
+    res.json({
+      success: true,
+      message: 'Announcement updated successfully',
+      announcement: updated
+    });
+  } catch (err: any) {
+    console.error('PUT /admin/announcements/:id error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 6. Admin: Publish announcement immediately
+apiRouter.post('/admin/announcements/:id/publish', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const adminUser = {
+      id: req.userId!,
+      name: req.user?.name || req.user?.email || 'Administrator'
+    };
+    const result = await announcementService.publishAnnouncement(req.params.id, adminUser);
+    res.json({
+      success: true,
+      message: `Announcement published successfully to ${result.targetedCount} users`,
+      ...result
+    });
+  } catch (err: any) {
+    console.error('POST /admin/announcements/:id/publish error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 7. Admin: Cancel scheduled announcement
+apiRouter.post('/admin/announcements/:id/cancel', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const adminUser = {
+      id: req.userId!,
+      name: req.user?.name || req.user?.email || 'Administrator'
+    };
+    const cancelled = await announcementService.cancelOrArchiveAnnouncement(req.params.id, 'CANCEL', adminUser);
+    res.json({
+      success: true,
+      message: 'Announcement scheduled release cancelled',
+      announcement: cancelled
+    });
+  } catch (err: any) {
+    console.error('POST /admin/announcements/:id/cancel error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 8. Admin: Archive announcement
+apiRouter.post('/admin/announcements/:id/archive', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const adminUser = {
+      id: req.userId!,
+      name: req.user?.name || req.user?.email || 'Administrator'
+    };
+    const archived = await announcementService.cancelOrArchiveAnnouncement(req.params.id, 'ARCHIVE', adminUser);
+    res.json({
+      success: true,
+      message: 'Announcement archived successfully',
+      announcement: archived
+    });
+  } catch (err: any) {
+    console.error('POST /admin/announcements/:id/archive error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 9. Admin: Delete announcement
+apiRouter.delete('/admin/announcements/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const adminUser = {
+      id: req.userId!,
+      name: req.user?.name || req.user?.email || 'Administrator'
+    };
+    await announcementService.deleteAnnouncement(req.params.id, adminUser);
+    res.json({
+      success: true,
+      message: 'Announcement deleted successfully'
+    });
+  } catch (err: any) {
+    console.error('DELETE /admin/announcements/:id error:', err);
+    res.status(400).json({ success: false, message: err.message });
   }
 });
 

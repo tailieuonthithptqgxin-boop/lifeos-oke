@@ -134,6 +134,22 @@ export const AdminUpdateLanguagesSchema = z.object({
   }))
 });
 
+export const CreateAnnouncementSchema = z.object({
+  title: z.string().min(1, 'Title is required').max(200),
+  message: z.string().min(1, 'Message is required'),
+  type: z.enum(['GENERAL', 'MAINTENANCE', 'FEATURE', 'SECURITY', 'PROMOTION']).default('GENERAL'),
+  priority: z.enum(['NORMAL', 'IMPORTANT', 'CRITICAL']).default('NORMAL'),
+  targetAudience: z.enum(['ALL', 'ACTIVE', 'INACTIVE', 'ROLE_ADMIN', 'ROLE_USER', 'PLAN_PRO', 'PLAN_FREE', 'PLAN_TEAM', 'SELECTED_USERS']).default('ALL'),
+  targetUserIds: z.array(z.string()).optional(),
+  channels: z.enum(['WEB', 'EMAIL', 'BOTH']).default('WEB'),
+  scheduledFor: z.string().optional().nullable(),
+  expiresAt: z.string().optional().nullable(),
+  actionUrl: z.string().optional().nullable(),
+  actionLabel: z.string().optional().nullable()
+});
+
+export const UpdateAnnouncementSchema = CreateAnnouncementSchema.partial();
+
 export function validateBody(schema: z.ZodSchema) {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse(req.body);

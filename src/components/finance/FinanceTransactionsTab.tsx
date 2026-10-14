@@ -5,12 +5,14 @@ interface FinanceTransactionsTabProps {
   transactions: any[];
   formatCurrency: (val: number) => string;
   onDeleteTransaction: (id: string) => void;
+  onEditTransaction?: (tx: any) => void;
 }
 
 export const FinanceTransactionsTab: React.FC<FinanceTransactionsTabProps> = ({
   transactions,
   formatCurrency,
-  onDeleteTransaction
+  onDeleteTransaction,
+  onEditTransaction
 }) => {
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
@@ -29,17 +31,26 @@ export const FinanceTransactionsTab: React.FC<FinanceTransactionsTabProps> = ({
                   tx.type === 'Chi tiêu' ? 'bg-red-100 dark:bg-red-950/60 text-red-600' : 'bg-blue-100 dark:bg-blue-950/60 text-blue-600'}`}
               >
                 {tx.type === 'Thu nhập' ? <TrendingUp className="w-5 h-5" /> : 
-                 tx.type === 'Chi tiêu' ? <TrendingDown className="w-5 h-5" /> : <ArrowRightLeft className="w-5 h-5" />}
+                  tx.type === 'Chi tiêu' ? <TrendingDown className="w-5 h-5" /> : <ArrowRightLeft className="w-5 h-5" />}
               </div>
               <div>
                 <div className="font-bold text-slate-900 dark:text-white">{tx.category}</div>
                 <div className="text-xs text-slate-500 mt-0.5">{tx.note} • {new Date(tx.date).toLocaleDateString('vi-VN')}</div>
               </div>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <div className={`font-black font-mono ${tx.type === 'Thu nhập' ? 'text-green-600' : tx.type === 'Chi tiêu' ? 'text-slate-900 dark:text-white' : 'text-blue-600'}`}>
                 {tx.type === 'Thu nhập' ? '+' : tx.type === 'Chi tiêu' ? '-' : ''}{formatCurrency(tx.amount)}
               </div>
+              {onEditTransaction && (
+                <button 
+                  type="button"
+                  onClick={() => onEditTransaction(tx)} 
+                  className="text-purple-600 dark:text-purple-400 text-xs font-bold hover:underline cursor-pointer"
+                >
+                  Sửa
+                </button>
+              )}
               <button 
                 type="button"
                 onClick={() => onDeleteTransaction(tx.id)} 

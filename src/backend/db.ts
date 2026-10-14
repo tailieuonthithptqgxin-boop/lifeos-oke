@@ -272,14 +272,15 @@ function formatIncomingData(collectionName: string, data: any) {
     }
 
     // Handle notes: append to description if provided
-    if (payload.notes) {
+    if (payload.notes && typeof payload.notes === 'string' && payload.notes.trim()) {
+      const cleanNotes = payload.notes.trim();
       if (!payload.description) {
-        payload.description = payload.notes;
-      } else if (!payload.description.includes(payload.notes)) {
-        payload.description = `${payload.description}\n\n[Ghi chú]: ${payload.notes}`;
+        payload.description = cleanNotes;
+      } else if (!payload.description.includes(cleanNotes)) {
+        payload.description = `${payload.description}\n\n[Ghi chú]: ${cleanNotes}`;
       }
-      delete payload.notes;
     }
+    delete payload.notes;
 
     // Numeric coercions
     if (payload.estimatedHours !== undefined) {
@@ -289,13 +290,29 @@ function formatIncomingData(collectionName: string, data: any) {
       payload.actualHours = Number(payload.actualHours) || 0;
     }
 
-    // Clean client-only presentation fields
-    delete payload.projectName;
-    delete payload.goalTitle;
-    delete payload.timerActive;
-    delete payload.timerSeconds;
-    delete payload.createdAt;
-    delete payload.updatedAt;
+    // Strict Prisma whitelist for Task model to prevent Unknown argument runtime errors
+    const VALID_TASK_FIELDS = new Set([
+      'id',
+      'userId',
+      'projectId',
+      'linkedGoalId',
+      'title',
+      'description',
+      'status',
+      'priority',
+      'dueDate',
+      'startDate',
+      'estimatedHours',
+      'actualHours',
+      'tags',
+      'recurring'
+    ]);
+
+    for (const key of Object.keys(payload)) {
+      if (!VALID_TASK_FIELDS.has(key)) {
+        delete payload[key];
+      }
+    }
   } else if (collectionName === 'projects') {
     if (!payload.name && payload.title) payload.name = payload.title;
     delete payload.title;
@@ -389,8 +406,8 @@ function formatIncomingData(collectionName: string, data: any) {
       if (!payload.name.includes(payload.code)) {
         payload.name = `${payload.name} (${payload.code})`;
       }
-      delete payload.code;
     }
+    delete payload.code;
     if (payload.targetGrade !== undefined) payload.targetGrade = parseFloat(payload.targetGrade) || 8;
     if (payload.currentGrade !== undefined) payload.currentGrade = parseFloat(payload.currentGrade) || 0;
     if (payload.progress !== undefined) payload.progress = parseFloat(payload.progress) || 0;
@@ -429,6 +446,44 @@ function formatIncomingData(collectionName: string, data: any) {
     if (!payload.person && payload.counterpart) payload.person = payload.counterpart;
     delete payload.counterpart;
     if (payload.amount !== undefined) payload.amount = parseFloat(payload.amount) || 0;
+  } else if (collectionName === 'transactions') {
+    if (payload.projectId) {
+      const projNote = `[Dự án]: ${payload.projectId}`;
+      if (payload.note && typeof payload.note === 'string' && payload.note.trim()) {
+        if (!payload.note.includes(payload.projectId)) {
+          payload.note = `${payload.note} · ${projNote}`;
+        }
+      } else {
+        payload.note = projNote;
+      }
+    }
+    delete payload.projectId;
+    delete payload.status;
+    delete payload.account;
+    delete payload.user;
+
+    if (payload.accountId === '') delete payload.accountId;
+    if (payload.toAccountId === '') payload.toAccountId = null;
+    if (payload.amount !== undefined) payload.amount = parseFloat(payload.amount) || 0;
+
+    // Strict Prisma whitelist for Transaction model to prevent Unknown argument runtime errors
+    const VALID_TX_FIELDS = new Set([
+      'id',
+      'userId',
+      'accountId',
+      'toAccountId',
+      'amount',
+      'type',
+      'category',
+      'date',
+      'note'
+    ]);
+
+    for (const key of Object.keys(payload)) {
+      if (!VALID_TX_FIELDS.has(key)) {
+        delete payload[key];
+      }
+    }
   }
 
   // Type coercions
@@ -909,6 +964,35 @@ export const dbService = {
       }
     }
 
+    if (collectionName === 'transactions') {
+      const prisma = getPrisma();
+      if (!payload.accountId || payload.accountId === '') {
+        const firstAcc = await prisma.financeAccount.findFirst({ where: { userId } });
+        if (firstAcc) {
+          payload.accountId = firstAcc.id;
+        } else {
+          const defaultAcc = await prisma.financeAccount.create({
+            data: { userId, name: 'Ví Tiền Mặt', type: 'Tiền mặt', balance: 0, currency: 'VND' }
+          });
+          payload.accountId = defaultAcc.id;
+        }
+      }
+      if (payload.toAccountId === '') {
+        payload.toAccountId = null;
+      }
+      if (!payload.date) {
+        payload.date = new Date().toISOString().split('T')[0];
+      }
+      if (!payload.type) {
+        payload.type = 'Chi tiêu';
+      }
+      if (!payload.category) {
+        payload.category = 'Chung';
+      }
+      const created = await this.executeFinanceTransaction(userId, payload);
+      return formatOutgoingData(collectionName, created);
+    }
+
     const created = await delegate.create({ data: payload });
     return formatOutgoingData(collectionName, created);
   },
@@ -969,6 +1053,64 @@ export const dbService = {
     delete payload.createdAt;
     delete payload.updatedAt;
 
+    if (collectionName === 'transactions') {
+      const prisma = getPrisma();
+      const updatedTx = await prisma.$transaction(async (tx) => {
+        const oldTx = existing;
+        const newPayload = { ...oldTx, ...payload };
+
+        // 1. Revert old transaction effect
+        const oldSourceAcc = await tx.financeAccount.findFirst({ where: { id: oldTx.accountId, userId } });
+        if (oldSourceAcc) {
+          let revertedBalance = oldSourceAcc.balance;
+          if (oldTx.type === 'Thu nhập') revertedBalance -= oldTx.amount;
+          else if (oldTx.type === 'Chi tiêu' || oldTx.type === 'Chuyển tiền') revertedBalance += oldTx.amount;
+          await tx.financeAccount.update({ where: { id: oldSourceAcc.id }, data: { balance: revertedBalance } });
+        }
+        if (oldTx.type === 'Chuyển tiền' && oldTx.toAccountId) {
+          const oldDestAcc = await tx.financeAccount.findFirst({ where: { id: oldTx.toAccountId, userId } });
+          if (oldDestAcc) {
+            await tx.financeAccount.update({ where: { id: oldDestAcc.id }, data: { balance: oldDestAcc.balance - oldTx.amount } });
+          }
+        }
+        if (oldTx.type === 'Chi tiêu' && oldTx.category) {
+          const oldBudget = await tx.budget.findFirst({ where: { userId, category: oldTx.category } });
+          if (oldBudget) {
+            await tx.budget.update({ where: { id: oldBudget.id }, data: { spent: Math.max(0, oldBudget.spent - oldTx.amount) } });
+          }
+        }
+
+        // 2. Apply new transaction effect
+        const targetAccountId = newPayload.accountId || oldTx.accountId;
+        const newSourceAcc = await tx.financeAccount.findFirst({ where: { id: targetAccountId, userId } });
+        if (newSourceAcc) {
+          let newBalance = newSourceAcc.balance;
+          if (newPayload.type === 'Thu nhập') newBalance += newPayload.amount;
+          else if (newPayload.type === 'Chi tiêu' || newPayload.type === 'Chuyển tiền') newBalance -= newPayload.amount;
+          await tx.financeAccount.update({ where: { id: newSourceAcc.id }, data: { balance: newBalance } });
+        }
+        if (newPayload.type === 'Chuyển tiền' && newPayload.toAccountId) {
+          const newDestAcc = await tx.financeAccount.findFirst({ where: { id: newPayload.toAccountId, userId } });
+          if (newDestAcc) {
+            await tx.financeAccount.update({ where: { id: newDestAcc.id }, data: { balance: newDestAcc.balance + newPayload.amount } });
+          }
+        }
+        if (newPayload.type === 'Chi tiêu' && newPayload.category) {
+          const newBudget = await tx.budget.findFirst({ where: { userId, category: newPayload.category } });
+          if (newBudget) {
+            await tx.budget.update({ where: { id: newBudget.id }, data: { spent: newBudget.spent + newPayload.amount } });
+          }
+        }
+
+        // 3. Update transaction record
+        return await tx.transaction.update({
+          where: { id },
+          data: payload
+        });
+      });
+      return formatOutgoingData(collectionName, updatedTx);
+    }
+
     const updated = await delegate.update({
       where: { id },
       data: payload
@@ -1006,6 +1148,10 @@ export const dbService = {
       const anyRecord = await delegate.findUnique({ where: { id } });
       if (!anyRecord) return null; // Idempotent delete if already gone
       throw new Error(`Record ${id} not found or you do not have permission to delete it`);
+    }
+
+    if (collectionName === 'transactions') {
+      return await this.deleteFinanceTransaction(userId, id);
     }
 
     return await delegate.delete({ where: { id } });

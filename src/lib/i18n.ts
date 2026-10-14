@@ -716,9 +716,9 @@ const sortedPhrases = Object.keys(translations.en)
  * Translates explicit keys or direct Vietnamese strings into English when language === 'en'.
  * In Vietnamese mode, preserves Vietnamese strings and translates English keys.
  */
-export function t(key: string, language: LanguageCode = 'vi'): string {
+export function t(key: string, language: LanguageCode = 'en'): string {
   if (!key) return '';
-  const lang = (language || 'vi').toLowerCase();
+  const lang = (language || 'en').toLowerCase();
   
   if (lang === 'vi') {
     const viVal = translations.vi[key] || translations.vi[key.trim()];
@@ -779,11 +779,12 @@ export function t(key: string, language: LanguageCode = 'vi'): string {
     .replace(/\bThứ Sáu\b/g, 'Friday')
     .replace(/\bThứ Bảy\b/g, 'Saturday')
     .replace(/\bChủ Nhật\b/g, 'Sunday')
-    .replace(/\btháng (\d+)\b/g, 'Month $1')
-    .replace(/\b(\d+)\s*ngày\b/g, '$1 days')
-    .replace(/\b(\d+)\s*giờ\b/g, '$1 hours')
-    .replace(/\b(\d+)\s*phút\b/g, '$1 mins')
-    .replace(/\b(\d+)\s*giây\b/g, '$1 secs');
+    .replace(/\btháng (\d+)\b/gi, 'Month $1')
+    .replace(/\bTháng (\d+)\b/g, 'Month $1')
+    .replace(/\b(\d+)\s*ngày\b/gi, '$1 days')
+    .replace(/\b(\d+)\s*giờ\b/gi, '$1 hours')
+    .replace(/\b(\d+)\s*phút\b/gi, '$1 mins')
+    .replace(/\b(\d+)\s*giây\b/gi, '$1 secs');
 
   if (res !== trimmed && dict[res]) return dict[res];
 
@@ -799,6 +800,72 @@ export function t(key: string, language: LanguageCode = 'vi'): string {
     }
   }
 
+  // 7. Word-boundary fallback for core common terms if Vietnamese characters remain
+  if (/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđĐ]/i.test(res)) {
+    const wordMap: Record<string, string> = {
+      'Hôm nay': 'Today', 'hôm nay': 'today',
+      'Hôm qua': 'Yesterday', 'hôm qua': 'yesterday',
+      'Ngày mai': 'Tomorrow', 'ngày mai': 'tomorrow',
+      'Hoàn thành': 'Completed', 'hoàn thành': 'completed',
+      'Chưa làm': 'To Do', 'chưa làm': 'to do',
+      'Đang làm': 'In Progress', 'đang làm': 'in progress',
+      'Đang chờ': 'Pending', 'đang chờ': 'pending',
+      'Đã xong': 'Done', 'đã xong': 'done',
+      'Hủy': 'Cancelled', 'hủy': 'cancelled',
+      'Xóa': 'Delete', 'xóa': 'delete',
+      'Sửa': 'Edit', 'sửa': 'edit',
+      'Tạo': 'Create', 'tạo': 'create',
+      'Thêm': 'Add', 'thêm': 'add',
+      'Lưu': 'Save', 'lưu': 'save',
+      'Đóng': 'Close', 'đóng': 'close',
+      'Xem': 'View', 'xem': 'view',
+      'Tất cả': 'All', 'tất cả': 'all',
+      'Tổng quan': 'Overview', 'tổng quan': 'overview',
+      'Thu nhập': 'Income', 'thu nhập': 'income',
+      'Chi tiêu': 'Expense', 'chi tiêu': 'expense',
+      'Ngân sách': 'Budget', 'ngân sách': 'budget',
+      'Tiết kiệm': 'Savings', 'tiết kiệm': 'savings',
+      'Số dư': 'Balance', 'số dư': 'balance',
+      'Giao dịch': 'Transactions', 'giao dịch': 'transactions',
+      'Tài khoản': 'Account', 'tài khoản': 'account',
+      'Thói quen': 'Habits', 'thói quen': 'habits',
+      'Mục tiêu': 'Goals', 'mục tiêu': 'goals',
+      'Công việc': 'Tasks', 'công việc': 'tasks',
+      'Dự án': 'Projects', 'dự án': 'projects',
+      'Học tập': 'Study', 'học tập': 'study',
+      'Ghi chú': 'Notes', 'ghi chú': 'notes',
+      'Lịch biểu': 'Calendar', 'lịch biểu': 'calendar',
+      'Tập trung': 'Focus', 'tập trung': 'focus',
+      'Cài đặt': 'Settings', 'cài đặt': 'settings',
+      'Thông báo': 'Notifications', 'thông báo': 'notifications',
+      'Đăng xuất': 'Log out', 'đăng xuất': 'log out',
+      'Đăng nhập': 'Log in', 'đăng nhập': 'log in',
+      'Tìm kiếm': 'Search', 'tìm kiếm': 'search',
+      'Lọc': 'Filter', 'lọc': 'filter',
+      'Ưu tiên': 'Priority', 'ưu tiên': 'priority',
+      'Hạn chót': 'Deadline', 'hạn chót': 'deadline',
+      'Trạng thái': 'Status', 'trạng thái': 'status',
+      'An toàn': 'Safe', 'an toàn': 'safe',
+      'Vượt hạn mức': 'Over Budget', 'vượt hạn mức': 'over budget',
+      'Đã duyệt': 'Approved', 'đã duyệt': 'approved',
+      'Chờ duyệt': 'Pending Review', 'chờ duyệt': 'pending review',
+      'Từ chối': 'Rejected', 'từ chối': 'rejected',
+      'Kỳ trước': 'Previous period', 'kỳ trước': 'previous period',
+      'Tháng trước': 'Last month', 'tháng trước': 'last month',
+      'Tháng này': 'This month', 'tháng này': 'this month',
+      'Năm nay': 'This year', 'năm nay': 'this year',
+      'Trung bình': 'Average', 'trung bình': 'average',
+      'Dự kiến': 'Projected', 'dự kiến': 'projected',
+      'Giữ lại': 'Retained', 'giữ lại': 'retained'
+    };
+
+    for (const [w, repl] of Object.entries(wordMap)) {
+      if (res.includes(w)) {
+        res = res.split(w).join(repl);
+      }
+    }
+  }
+
   return res;
 }
 
@@ -808,7 +875,7 @@ export function t(key: string, language: LanguageCode = 'vi'): string {
  * or with an explicit language code `useTranslation('en')`.
  */
 export function useTranslation(overrideLang?: LanguageCode) {
-  let activeLang: LanguageCode = overrideLang || 'vi';
+  let activeLang: LanguageCode = overrideLang || 'en';
   
   if (!overrideLang) {
     if (typeof window !== 'undefined') {
