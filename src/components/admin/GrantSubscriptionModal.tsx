@@ -55,9 +55,9 @@ export const GrantSubscriptionModal: React.FC<GrantSubscriptionModalProps> = ({
               onChange={e => setGrantPlanId(e.target.value)}
               className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white"
             >
-              <option value="PERSONAL_1M">Gói Cá Nhân (1 Tháng - 15.000 ₫)</option>
-              <option value="PERSONAL_3M">Gói Cá Nhân (3 Tháng - 40.000 ₫)</option>
-              <option value="TEAM_1M">Gói Đội Ngũ (Team 1 Tháng - 50.000 ₫, 5 thành viên)</option>
+              <option value="PERSONAL_1M">Gói Cá Nhân (1 Tháng - 29.000 ₫)</option>
+              <option value="PERSONAL_3M">Gói Cá Nhân (3 Tháng - 79.000 ₫)</option>
+              <option value="TEAM_1M">Gói Đội Ngũ (Team 1 Tháng - 99.000 ₫, 5 thành viên)</option>
               <option value="PRO">Gói Pro (199.000 ₫)</option>
               <option value="TEAM">Gói Team (499.000 ₫)</option>
             </select>

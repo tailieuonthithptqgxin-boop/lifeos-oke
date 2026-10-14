@@ -132,7 +132,7 @@ export function AdminBankConfigTab({ onShowMessage }: AdminBankConfigTabProps) {
   };
 
   const sampleMemo = `${bankConfig.transferPrefix || 'DUOTECH'} ORD8899`;
-  const dynamicVietQrUrl = `https://img.vietqr.io/image/${bankConfig.bankCode || 'MB'}-${bankConfig.accountNumber}-compact2.png?amount=15000&addInfo=${encodeURIComponent(sampleMemo)}&accountName=${encodeURIComponent(bankConfig.accountHolder)}`;
+  const dynamicVietQrUrl = `https://img.vietqr.io/image/${bankConfig.bankCode || 'MB'}-${bankConfig.accountNumber}-compact2.png?amount=29000&addInfo=${encodeURIComponent(sampleMemo)}&accountName=${encodeURIComponent(bankConfig.accountHolder)}`;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-150">

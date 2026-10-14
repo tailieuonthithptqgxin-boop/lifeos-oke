@@ -501,7 +501,7 @@ export function SubscriptionManagementView() {
                       name: 'Gói Cá Nhân (1 Tháng)',
                       badge: 'Tiết kiệm',
                       description: 'Trải nghiệm đầy đủ hệ thống quản trị cá nhân LifeOS trong 30 ngày.',
-                      price: 15000,
+                      price: 29000,
                       durationDays: 30,
                       billingCycle: '1 tháng (30 ngày)',
                       benefits: [
@@ -516,13 +516,13 @@ export function SubscriptionManagementView() {
                       name: 'Gói Cá Nhân (3 Tháng)',
                       badge: 'Phổ biến nhất',
                       description: 'Sử dụng 90 ngày liên tục với chi phí ưu đãi nhất cho cá nhân.',
-                      price: 40000,
+                      price: 79000,
                       durationDays: 90,
                       billingCycle: '3 tháng (90 ngày)',
                       benefits: [
                         'Bao gồm toàn bộ quyền lợi của gói Cá Nhân 1 Tháng',
                         'Thời hạn 90 ngày liên tục',
-                        'Tiết kiệm 5.000 VNĐ so với gia hạn từng tháng',
+                        'Tiết kiệm 8.000 VNĐ so với gia hạn từng tháng',
                         'Đồng bộ dữ liệu thời gian thực và sao lưu tự động'
                       ]
                     },
@@ -531,7 +531,7 @@ export function SubscriptionManagementView() {
                       name: 'Gói Đội Ngũ (Team 1 Tháng)',
                       badge: 'Tối đa 5 người dùng',
                       description: 'Dành cho nhóm làm việc. Chủ team được thêm tối đa 5 người dùng cùng dùng đầy đủ tính năng.',
-                      price: 50000,
+                      price: 99000,
                       durationDays: 30,
                       billingCycle: '1 tháng (30 ngày)',
                       benefits: [

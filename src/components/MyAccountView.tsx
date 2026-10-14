@@ -604,7 +604,7 @@ export function MyAccountView() {
               {
                 id: 'PERSONAL_1M',
                 name: 'Cá Nhân (1 Tháng)',
-                price: 15000,
+                price: 29000,
                 durationDays: 30,
                 billingCycle: '1 tháng (30 ngày)',
                 description: 'Toàn bộ chức năng quản lý cá nhân, tài chính, công việc, mục tiêu.'
@@ -612,7 +612,7 @@ export function MyAccountView() {
               {
                 id: 'PERSONAL_3M',
                 name: 'Cá Nhân (3 Tháng)',
-                price: 40000,
+                price: 79000,
                 durationDays: 90,
                 badge: 'Tiết kiệm',
                 billingCycle: '3 tháng (90 ngày)',
@@ -621,7 +621,7 @@ export function MyAccountView() {
               {
                 id: 'TEAM_1M',
                 name: 'Gói Đội Ngũ (Team 1 Tháng)',
-                price: 50000,
+                price: 99000,
                 durationDays: 30,
                 badge: 'Tối đa 5 người',
                 billingCycle: '1 tháng (30 ngày)',

@@ -118,8 +118,8 @@ export function CheckoutView({
     PERSONAL_1M: {
       name: 'Gói Cá Nhân (1 Tháng)',
       badge: 'Tiết kiệm',
-      monthlyPrice: 15000,
-      yearlyPrice: 15000,
+      monthlyPrice: 29000,
+      yearlyPrice: 29000,
       benefits: [
         'Toàn bộ tính năng Quản lý Công việc & Bộ lọc 7 tab',
         'Quản lý Tài chính, Ví tiền, Ngân sách và Báo cáo',
@@ -130,20 +130,20 @@ export function CheckoutView({
     PERSONAL_3M: {
       name: 'Gói Cá Nhân (3 Tháng)',
       badge: 'Phổ biến nhất',
-      monthlyPrice: 40000,
-      yearlyPrice: 40000,
+      monthlyPrice: 79000,
+      yearlyPrice: 79000,
       benefits: [
         'Bao gồm toàn bộ quyền lợi của Gói Cá Nhân 1 Tháng',
         'Thời hạn sử dụng 90 ngày liên tục',
-        'Tiết kiệm 5.000 VNĐ so với gia hạn từng tháng',
+        'Tiết kiệm 8.000 VNĐ so với gia hạn từng tháng',
         'Đồng bộ dữ liệu thời gian thực và sao lưu tự động'
       ]
     },
     TEAM_1M: {
       name: 'Gói Đội Ngũ (Team 1 Tháng)',
       badge: 'Dành cho Đội ngũ',
-      monthlyPrice: 50000,
-      yearlyPrice: 50000,
+      monthlyPrice: 99000,
+      yearlyPrice: 99000,
       benefits: [
         'Mở khóa toàn bộ chức năng LifeOS cho Chủ Team',
         'Cho phép thêm tối đa 5 thành viên cùng sử dụng',

@@ -70,7 +70,7 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
             </a>
             <a href="#preview" className="hover:text-cyan-400 transition-colors">Xem trước Workspace</a>
             <a href="#companion" className="hover:text-cyan-400 transition-colors">AI Copilot</a>
-            <a href="#pricing" className="hover:text-cyan-400 transition-colors">Bảng giá 15k</a>
+            <a href="#pricing" className="hover:text-cyan-400 transition-colors">Bảng giá 29k</a>
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
@@ -126,7 +126,7 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
             href="#pricing"
             className="w-full sm:w-auto px-6 py-3.5 sm:px-7 sm:py-4 bg-slate-900/80 hover:bg-slate-800 text-slate-200 hover:text-white text-sm sm:text-base font-semibold rounded-xl border border-slate-700/80 backdrop-blur-md transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
-            <span>Bảng giá chỉ từ 15k / tháng</span>
+            <span>Bảng giá chỉ từ 29k / tháng</span>
           </a>
         </div>
 
@@ -528,7 +528,7 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
               </div>
               <p className="text-xs text-slate-400 mb-6">Thử nghiệm phương pháp quản trị cuộc sống mới.</p>
               <div className="text-3xl font-black text-white mb-6">
-                {p1m?.pricing?.monthly?.displayPrice || `${(p1m?.price || 15000).toLocaleString('vi-VN')} ₫`} <span className="text-xs text-slate-400 font-normal">/ {p1m?.billingCycle || '30 ngày'}</span>
+                {p1m?.pricing?.monthly?.displayPrice || `${(p1m?.price || 29000).toLocaleString('vi-VN')} ₫`} <span className="text-xs text-slate-400 font-normal">/ {p1m?.billingCycle || '30 ngày'}</span>
               </div>
               <ul className="space-y-3 text-xs text-slate-300 mb-8">
                 <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-cyan-400 shrink-0" /> Mở khóa toàn bộ phân hệ LifeOS</li>
@@ -541,7 +541,7 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
               onClick={onLoginClick}
               className="w-full py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 transition-all cursor-pointer"
             >
-              Đăng ký Gói 1 Tháng (15k)
+              Đăng ký Gói 1 Tháng (29k)
             </button>
           </div>
 
@@ -554,11 +554,11 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-lg font-bold text-white">{p3m?.name || 'Cá Nhân (3 Tháng)'}</h3>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">Tiết kiệm 20%</span>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">Tiết kiệm 8.000 ₫</span>
               </div>
               <p className="text-xs text-slate-300 mb-6">{p3m?.description || 'Thời lượng chuẩn 90 ngày để biến kỷ luật thành bản năng vĩnh viễn.'}</p>
               <div className="text-3xl font-black text-white mb-6">
-                {p3m?.pricing?.monthly?.displayPrice || `${(p3m?.price || 40000).toLocaleString('vi-VN')} ₫`} <span className="text-xs text-slate-400 font-normal">/ {p3m?.billingCycle || '90 ngày'}</span>
+                {p3m?.pricing?.monthly?.displayPrice || `${(p3m?.price || 79000).toLocaleString('vi-VN')} ₫`} <span className="text-xs text-slate-400 font-normal">/ {p3m?.billingCycle || '90 ngày'}</span>
               </div>
               <ul className="space-y-3 text-xs text-slate-200 mb-8">
                 <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-emerald-400 shrink-0" /> Toàn bộ quyền lợi gói Pro Edition</li>
@@ -571,7 +571,7 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
               onClick={onLoginClick}
               className="w-full py-3.5 rounded-xl bg-gradient-to-r from-indigo-600 via-blue-600 to-cyan-500 hover:from-indigo-500 hover:to-cyan-400 text-white font-bold text-xs shadow-lg shadow-indigo-500/30 transition-all cursor-pointer"
             >
-              Chọn Gói Tiết Kiệm ({((p3m?.price || 40000) / 1000)}k / 3 Tháng)
+              Chọn Gói Tiết Kiệm ({((p3m?.price || 79000) / 1000)}k / 3 Tháng)
             </button>
           </div>
 
@@ -584,7 +584,7 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
               </div>
               <p className="text-xs text-slate-400 mb-6">{pTeam?.description || 'Dành cho nhóm bạn cùng học tập, thi đua giữ vững Streak.'}</p>
               <div className="text-3xl font-black text-white mb-6">
-                {pTeam?.pricing?.monthly?.displayPrice || `${(pTeam?.price || 50000).toLocaleString('vi-VN')} ₫`} <span className="text-xs text-slate-400 font-normal">/ {pTeam?.billingCycle || '30 ngày'}</span>
+                {pTeam?.pricing?.monthly?.displayPrice || `${(pTeam?.price || 99000).toLocaleString('vi-VN')} ₫`} <span className="text-xs text-slate-400 font-normal">/ {pTeam?.billingCycle || '30 ngày'}</span>
               </div>
               <ul className="space-y-3 text-xs text-slate-300 mb-8">
                 <li className="flex items-center gap-2.5"><Check className="w-4 h-4 text-indigo-400 shrink-0" /> Cho nhóm tối đa 5 thành viên</li>
@@ -597,7 +597,7 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
               onClick={onLoginClick}
               className="w-full py-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs border border-slate-700 transition-all cursor-pointer"
             >
-              Đăng ký Gói Nhóm (50k)
+              Đăng ký Gói Nhóm (99k)
             </button>
           </div>
         </div>

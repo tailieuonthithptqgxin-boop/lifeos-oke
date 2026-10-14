@@ -78,9 +78,9 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
                 className="w-full px-3 py-2 text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
               >
                 <option value="FREE">Chưa kích hoạt gói</option>
-                <option value="PERSONAL_1M">Gói Cá Nhân (1 Tháng - 15.000 ₫)</option>
-                <option value="PERSONAL_3M">Gói Cá Nhân (3 Tháng - 40.000 ₫)</option>
-                <option value="TEAM_1M">Gói Team (1 Tháng - 50.000 ₫)</option>
+                <option value="PERSONAL_1M">Gói Cá Nhân (1 Tháng - 29.000 ₫)</option>
+                <option value="PERSONAL_3M">Gói Cá Nhân (3 Tháng - 79.000 ₫)</option>
+                <option value="TEAM_1M">Gói Team (1 Tháng - 99.000 ₫)</option>
                 <option value="PRO">PRO</option>
                 <option value="TEAM">TEAM</option>
               </select>
