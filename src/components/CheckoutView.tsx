@@ -328,7 +328,7 @@ export function CheckoutView({
   };
 
   return (
-    <div className="min-h-full bg-slate-50 dark:bg-slate-950 py-6 sm:py-8 px-3.5 sm:px-6 lg:px-8 font-sans w-full min-w-0 max-w-full overflow-x-hidden">
+    <div className="min-h-full bg-slate-50 dark:bg-slate-950 py-6 sm:py-8 px-4 sm:px-6 lg:px-8 font-sans w-full min-w-0 max-w-full overflow-x-hidden">
       <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 w-full min-w-0">
         
         {/* Navigation & Tab Bar */}

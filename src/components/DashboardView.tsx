@@ -390,7 +390,7 @@ export function DashboardView() {
   });
 
   return (
-    <div className="w-full min-w-0 max-w-7xl mx-auto space-y-4 sm:space-y-6 overflow-x-hidden">
+    <div className="w-full min-w-0 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 overflow-x-hidden">
       {/* Streak Resurrection 24h Second Chance Alert Banner */}
       {resurrectionStatus.isPending && (
         <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-950/70 via-rose-950/50 to-amber-950/70 border border-amber-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl animate-in slide-in-from-top-2 duration-300">

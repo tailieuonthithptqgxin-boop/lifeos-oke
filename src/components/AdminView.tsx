@@ -668,7 +668,7 @@ export function AdminView() {
   };
 
   return (
-    <div className="w-full min-w-0 max-w-7xl mx-auto space-y-4 sm:space-y-6 font-sans overflow-x-hidden">
+    <div className="w-full min-w-0 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 font-sans overflow-x-hidden">
       {/* Page Title & Navigation Bar */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 w-full min-w-0">
         <div className="min-w-0">

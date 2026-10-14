@@ -360,7 +360,7 @@ export function MyAccountView() {
   const isCancelledAutoRenew = subData?.subscription?.status === 'Cancelled';
 
   return (
-    <div className="w-full min-w-0 max-w-4xl mx-auto space-y-4 sm:space-y-6 font-sans overflow-x-hidden">
+    <div className="w-full min-w-0 max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 font-sans overflow-x-hidden">
       <div>
         <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white truncate">Tài khoản & Dịch vụ của tôi</h2>
         <p className="text-xs sm:text-sm text-slate-500 break-words">

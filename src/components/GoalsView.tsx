@@ -70,7 +70,7 @@ export function GoalsView() {
   };
 
   return (
-    <div className="p-3 sm:p-6 pb-24 sm:pb-28 max-w-7xl mx-auto w-full min-w-0 max-w-full flex flex-col space-y-4 sm:space-y-6">
+    <div className="p-4 sm:p-6 lg:p-8 pb-24 sm:pb-28 max-w-7xl mx-auto w-full min-w-0 max-w-full flex flex-col space-y-4 sm:space-y-6">
       {/* Header Bar */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shrink-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl p-4 sm:p-5 rounded-3xl border border-purple-100/70 dark:border-purple-900/40 shadow-sm w-full min-w-0">
         <div>

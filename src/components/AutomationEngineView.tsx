@@ -887,7 +887,7 @@ export function AutomationEngineView() {
       </div>
 
       {/* MAIN VIEW CONTENT AREA */}
-      <div className="flex-1 p-6 space-y-6 max-w-7xl mx-auto w-full">
+      <div className="flex-1 p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 max-w-7xl mx-auto w-full min-w-0 max-w-full overflow-x-hidden">
         {/* ================================================================== */}
         {/* TAB 1: DASHBOARD ENGINE */}
         {/* ================================================================== */}

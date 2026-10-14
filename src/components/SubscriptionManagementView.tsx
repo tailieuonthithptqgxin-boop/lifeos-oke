@@ -389,7 +389,7 @@ export function SubscriptionManagementView() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 w-full min-w-0 max-w-6xl mx-auto p-3.5 sm:p-8 space-y-4 sm:space-y-6 overflow-x-hidden">
+      <div className="flex-1 w-full min-w-0 max-w-6xl mx-auto p-4 sm:p-8 space-y-4 sm:space-y-6 overflow-x-hidden">
 
         {/* Global Feedback Banner */}
         {statusMessage && (
