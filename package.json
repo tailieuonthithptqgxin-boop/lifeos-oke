@@ -8,7 +8,7 @@
     "prisma:generate": "prisma generate",
     "prisma:push": "prisma db push",
     "prisma:migrate": "prisma migrate deploy",
-    "build:server": "esbuild server.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/server.mjs",
+    "build:server": "esbuild src/backend/serverMain.ts --bundle --platform=node --format=esm --packages=external --outfile=dist/server.mjs",
     "build": "prisma generate && vite build && npm run build:server",
     "start": "node dist/server.mjs",
     "lint": "tsc --noEmit",
@@ -29,6 +29,7 @@
     "cookie-parser": "^1.4.7",
     "date-fns": "^4.4.0",
     "dotenv": "^17.2.3",
+    "esbuild": "^0.28.2",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.546.0",
@@ -61,5 +62,8 @@
   },
   "overrides": {
     "esbuild": "^0.28.2"
+  },
+  "engines": {
+    "node": ">=20.19.0"
   }
 }
