@@ -165,7 +165,8 @@ export interface PlanAuditLog {
 
 export interface GmailConfig {
   enabled: boolean;
-  serviceType: 'gmail' | 'smtp';
+  serviceType: 'gmail' | 'smtp' | 'resend';
+  apiKey?: string;
   user: string;
   appPassword?: string;
   fromName: string;

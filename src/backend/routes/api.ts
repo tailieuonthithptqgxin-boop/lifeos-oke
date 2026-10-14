@@ -4413,10 +4413,11 @@ apiRouter.post('/workspace/backup/import', requireAuth, async (req: AuthRequest,
 apiRouter.get('/admin/gmail/config', requireAdmin, async (req: AuthRequest, res: Response) => {
   try {
     const config = await gmailService.getConfig();
-    // Mask sensitive app password
+    // Mask sensitive app password and API key
     const safeConfig = {
       ...config,
-      appPassword: config.appPassword ? '••••••••••••••••' : ''
+      appPassword: config.appPassword ? '••••••••••••••••' : '',
+      apiKey: config.apiKey ? '••••••••••••••••' : ''
     };
     res.json({
       success: true,
@@ -4448,7 +4449,8 @@ apiRouter.put('/admin/gmail/config', requireAdmin, async (req: AuthRequest, res:
       message: 'Cập nhật cấu hình Gmail thành công!',
       config: {
         ...updated,
-        appPassword: updated.appPassword ? '••••••••••••••••' : ''
+        appPassword: updated.appPassword ? '••••••••••••••••' : '',
+        apiKey: updated.apiKey ? '••••••••••••••••' : ''
       }
     });
   } catch (err: any) {

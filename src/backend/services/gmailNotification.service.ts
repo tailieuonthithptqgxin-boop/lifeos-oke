@@ -41,7 +41,8 @@ export async function resolveHostToIPv4(hostname: string): Promise<string> {
 
 export interface GmailSmtpConfig {
   enabled: boolean;
-  serviceType: 'gmail' | 'smtp';
+  serviceType: 'gmail' | 'smtp' | 'resend';
+  apiKey?: string;
   user: string;
   appPassword?: string;
   fromName: string;
@@ -78,6 +79,7 @@ export function getAppBaseUrl(): string {
 export const DEFAULT_GMAIL_CONFIG: GmailSmtpConfig = {
   enabled: false,
   serviceType: 'gmail',
+  apiKey: '',
   user: '',
   appPassword: '',
   fromName: 'Life OS Notification Assistant',
@@ -159,9 +161,16 @@ class GmailNotificationService {
       passwordToSave = newConfig.appPassword.replace(/\s+/g, '');
     }
 
+    // If apiKey is not provided or masked, keep the existing apiKey
+    let apiKeyToSave = current.apiKey || '';
+    if (newConfig.apiKey && newConfig.apiKey !== '••••••••••••••••') {
+      apiKeyToSave = newConfig.apiKey.trim();
+    }
+
     const merged: GmailSmtpConfig = {
       ...current,
       ...newConfig,
+      serviceType: newConfig.serviceType || current.serviceType || 'gmail',
       user: newConfig.user !== undefined ? newConfig.user.trim() : current.user,
       fromEmail: newConfig.fromEmail !== undefined ? newConfig.fromEmail.trim() : current.fromEmail,
       fromName: newConfig.fromName !== undefined ? newConfig.fromName.trim() : current.fromName,
@@ -169,7 +178,8 @@ class GmailNotificationService {
       smtpHost: newConfig.smtpHost !== undefined ? newConfig.smtpHost.trim() : (current.smtpHost || 'smtp.gmail.com'),
       smtpPort: newConfig.smtpPort !== undefined ? Number(newConfig.smtpPort) : (current.smtpPort || 465),
       smtpSecure: newConfig.smtpSecure !== undefined ? Boolean(newConfig.smtpSecure) : current.smtpSecure,
-      appPassword: passwordToSave
+      appPassword: passwordToSave,
+      apiKey: apiKeyToSave
     };
 
     try {
@@ -228,7 +238,18 @@ class GmailNotificationService {
   private async getTransporter(): Promise<{ transporter: any; config: GmailSmtpConfig } | null> {
     const config = await this.getConfig();
 
-    if (!config.enabled || !config.user || !config.appPassword) {
+    if (!config.enabled) {
+      return null;
+    }
+
+    // Resend HTTP API doesn't use SMTP socket transporter
+    if (config.serviceType === 'resend') {
+      const key = (config.apiKey || config.appPassword || '').trim();
+      if (!key) return null;
+      return { transporter: null, config };
+    }
+
+    if (!config.user || !config.appPassword) {
       return null;
     }
 
@@ -245,10 +266,140 @@ class GmailNotificationService {
     }
   }
 
-  // Verify connection to Gmail SMTP server with auto-fallback between ports 465 and 587
+  // Send email via Resend REST API (Port 443 HTTPS - Works 100% on Railway Hobby & all cloud hosts)
+  async sendViaResend(
+    config: GmailSmtpConfig,
+    to: string,
+    subject: string,
+    html: string
+  ): Promise<{ sent: boolean; message: string }> {
+    const key = (config.apiKey || config.appPassword || '').trim();
+    if (!key) {
+      return { sent: false, message: 'Thiếu API Key của Resend (ví dụ: re_xxxx...). Vui lòng tạo tại resend.com.' };
+    }
+
+    try {
+      let fromAddress = config.fromEmail?.trim() || 'onboarding@resend.dev';
+      if (!fromAddress.includes('@')) {
+        fromAddress = 'onboarding@resend.dev';
+      }
+      const fromHeader = config.fromName ? `${config.fromName} <${fromAddress}>` : fromAddress;
+
+      const payload: any = {
+        from: fromHeader,
+        to: [to],
+        subject,
+        html
+      };
+      if (config.replyTo && config.replyTo.includes('@')) {
+        payload.reply_to = [config.replyTo.trim()];
+      }
+
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${key}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data: any = await res.json().catch(() => ({}));
+      if (res.ok && data?.id) {
+        return { sent: true, message: `Email đã gửi thành công qua Resend API (ID: ${data.id})` };
+      } else {
+        const errMsg = data?.message || data?.error?.message || `HTTP ${res.status}`;
+        return { sent: false, message: `Lỗi Resend API: ${errMsg}` };
+      }
+    } catch (err: any) {
+      return { sent: false, message: `Lỗi kết nối Resend API: ${err.message}` };
+    }
+  }
+
+  // Verify connection to Gmail SMTP / Resend server with auto-fallback
   async testConnection(testToEmail?: string): Promise<{ success: boolean; message: string }> {
     const config = await this.getConfig();
-    if (!config.enabled || !config.user || !config.appPassword) {
+    if (!config.enabled) {
+      return {
+        success: false,
+        message: 'Dịch vụ Email chưa được bật trong trang Quản trị.'
+      };
+    }
+
+    // Branch 1: Resend HTTP API (Port 443 - Bypasses all cloud/Railway SMTP port blocking)
+    if (config.serviceType === 'resend') {
+      const key = (config.apiKey || config.appPassword || '').trim();
+      if (!key) {
+        return {
+          success: false,
+          message: 'Chưa nhập Resend API Key (ví dụ: re_xxxx). Vui lòng đăng ký miễn phí tại resend.com để lấy key.'
+        };
+      }
+
+      const testHtml = `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 580px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 20px; overflow: hidden;">
+          <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 32px 24px; text-align: center; color: #ffffff;">
+            <h1 style="margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">⚡ Life OS Notification System</h1>
+            <p style="margin: 8px 0 0; font-size: 14px; opacity: 0.9;">Kiểm tra kết nối Resend API thành công (Cổng 443 HTTPS)</p>
+          </div>
+          <div style="padding: 32px 24px; color: #1e293b; line-height: 1.6;">
+            <p style="font-size: 15px; margin-top: 0;">Xin chào Quản trị viên,</p>
+            <p style="font-size: 14px; color: #475569;">Email này được gửi tự động qua Resend REST API (Cổng 443 HTTPS bảo mật chuẩn web). Hoạt động 100% ổn định trên mọi nền tảng hosting (Railway, VPS, Docker) mà không bị giới hạn cổng SMTP.</p>
+            <div style="background: #f0fdf4; border-left: 4px solid #10b981; padding: 14px 18px; border-radius: 8px; margin: 20px 0; font-size: 13px; color: #166534;">
+              <strong>Trạng thái:</strong> Sẵn sàng tự động gửi nhắc việc, cảnh báo ngân sách, lịch biểu và thông báo đơn hàng.
+            </div>
+            <p style="font-size: 12px; color: #94a3b8; margin-bottom: 0;">Thời gian kiểm tra: ${new Date().toLocaleString('vi-VN')}</p>
+          </div>
+        </div>
+      `;
+
+      if (testToEmail) {
+        const sendRes = await this.sendViaResend(
+          config,
+          testToEmail,
+          '✅ [Life OS] Kiểm tra kết nối Resend API thành công',
+          testHtml
+        );
+        this.addLog({
+          id: 'test_' + Date.now(),
+          recipientEmail: testToEmail,
+          subject: 'Kiểm tra kết nối Resend API',
+          category: 'TEST_CONNECTION',
+          status: sendRes.sent ? 'SENT' : 'FAILED',
+          errorMessage: sendRes.sent ? undefined : sendRes.message,
+          timestamp: new Date().toISOString()
+        });
+        return {
+          success: sendRes.sent,
+          message: sendRes.sent
+            ? `Kết nối Resend API thành công qua cổng 443 HTTPS! Email thử nghiệm đã được gửi tới ${testToEmail}.`
+            : sendRes.message
+        };
+      }
+
+      // Check API Key validity
+      try {
+        const verifyRes = await fetch('https://api.resend.com/api-keys', {
+          headers: { 'Authorization': `Bearer ${key}` }
+        });
+        if (!verifyRes.ok) {
+          const errData: any = await verifyRes.json().catch(() => ({}));
+          return {
+            success: false,
+            message: `Khóa Resend API không hợp lệ hoặc đã bị vô hiệu hóa: ${errData.message || verifyRes.statusText}`
+          };
+        }
+        return {
+          success: true,
+          message: 'Xác thực Resend API Key thành công qua cổng 443 HTTPS! Sẵn sàng gửi thông báo tự động.'
+        };
+      } catch (err: any) {
+        return { success: false, message: `Lỗi kết nối máy chủ Resend: ${err.message}` };
+      }
+    }
+
+    // Branch 2: Gmail SMTP / Custom SMTP
+    if (!config.user || !config.appPassword) {
       return {
         success: false,
         message: 'Gmail chưa được bật hoặc thiếu Tài khoản Gmail / Mật khẩu ứng dụng (App Password).'
@@ -302,17 +453,21 @@ class GmailNotificationService {
         const isAuthError = primaryErr.message?.includes('Invalid login') || 
                             primaryErr.message?.includes('535') || 
                             primaryErr.message?.includes('Username and Password not accepted') ||
-                            primaryErr.message?.includes('BadCredentials');
+                            primaryErr.message?.includes('BadCredentials') ||
+                            primaryErr.code === 'EAUTH';
 
         const isNetworkError = primaryErr.message?.includes('ENETUNREACH') || 
                                primaryErr.message?.includes('ETIMEDOUT') || 
-                               primaryErr.message?.includes('ECONNREFUSED');
+                               primaryErr.message?.includes('ECONNREFUSED') ||
+                               primaryErr.message?.includes('Connection timeout') ||
+                               primaryErr.message?.includes('timeout') ||
+                               primaryErr.code === 'ETIMEDOUT';
 
         let hint = '';
         if (isAuthError) {
           hint = ' Google từ chối tài khoản hoặc mật khẩu. Bạn hãy tạo và dùng "Mật khẩu ứng dụng" (App Password 16 ký tự, ví dụ: abcd efgh ijkl mnop) tại myaccount.google.com/apppasswords thay vì mật khẩu đăng nhập thông thường.';
         } else if (isNetworkError) {
-          hint = ' Kết nối mạng đến máy chủ SMTP thất bại. Hệ thống đã tự động thử nghiệm qua IPv4 ở cả cổng 465 và 587 nhưng máy chủ hosting đang chặn kết nối mạng ra ngoài.';
+          hint = ' Máy chủ hosting (như gói miễn phí / Hobby của Railway) chặn kết nối ra ngoài ở các cổng SMTP 465 và 587 để phòng chống spam. KHUYẾN NGHỊ: Hãy chuyển sang dùng "Resend API (Cổng 443 HTTPS)" hoàn toàn miễn phí (100 email/ngày) trong mục Hình thức kết nối — cổng HTTPS web không bao giờ bị chặn!';
         }
 
         return {
@@ -503,6 +658,22 @@ class GmailNotificationService {
     `;
 
     if (setup) {
+      // Branch Resend REST API (HTTPS Port 443)
+      if (setup.config.serviceType === 'resend') {
+        const res = await this.sendViaResend(setup.config, options.to, options.subject, emailHtml);
+        this.addLog({
+          id: 'log_' + Date.now(),
+          recipientEmail: options.to,
+          recipientName: options.recipientName,
+          subject: options.subject,
+          category: options.category,
+          status: res.sent ? 'SENT' : 'FAILED',
+          errorMessage: res.sent ? undefined : res.message,
+          timestamp: new Date().toISOString()
+        });
+        return res;
+      }
+
       try {
         await setup.transporter.sendMail({
           from: `"${setup.config.fromName}" <${setup.config.fromEmail || setup.config.user}>`,
@@ -606,6 +777,21 @@ class GmailNotificationService {
 
     const setup = await this.getTransporter();
     if (setup) {
+      // Branch Resend REST API (HTTPS Port 443)
+      if (setup.config.serviceType === 'resend') {
+        const res = await this.sendViaResend(setup.config, options.to, options.subject, options.html);
+        this.addLog({
+          id: 'log_' + Date.now(),
+          recipientEmail: options.to,
+          subject: options.subject,
+          category: options.category || 'SYSTEM',
+          status: res.sent ? 'SENT' : 'FAILED',
+          errorMessage: res.sent ? undefined : res.message,
+          timestamp: new Date().toISOString()
+        });
+        return res;
+      }
+
       try {
         const fromHeader = options.from || `"${setup.config.fromName}" <${setup.config.fromEmail || setup.config.user}>`;
         await setup.transporter.sendMail({
