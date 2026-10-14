@@ -35,11 +35,11 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
   const pTeam = plans.find(p => p.id === 'TEAM_1M' || p.id === 'TEAM');
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white relative overflow-hidden">
+    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-indigo-500 selection:text-white relative overflow-x-hidden w-full min-w-0 max-w-full">
       {/* Background ambient lighting - Modern Cyber/Indigo/Cyan glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1100px] h-[650px] bg-gradient-to-tr from-indigo-600/20 via-blue-600/15 to-cyan-400/10 blur-[140px] pointer-events-none rounded-full" />
-      <div className="absolute top-[850px] -left-40 w-[650px] h-[500px] bg-blue-600/10 blur-[150px] pointer-events-none rounded-full" />
-      <div className="absolute top-[1500px] -right-40 w-[600px] h-[550px] bg-cyan-500/10 blur-[160px] pointer-events-none rounded-full" />
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1100px] max-w-full h-[650px] bg-gradient-to-tr from-indigo-600/20 via-blue-600/15 to-cyan-400/10 blur-[140px] pointer-events-none rounded-full overflow-hidden" />
+      <div className="absolute top-[850px] -left-40 w-[650px] max-w-full h-[500px] bg-blue-600/10 blur-[150px] pointer-events-none rounded-full overflow-hidden" />
+      <div className="absolute top-[1500px] -right-40 w-[600px] max-w-full h-[550px] bg-cyan-500/10 blur-[160px] pointer-events-none rounded-full overflow-hidden" />
 
       {/* Modern High-Tech Glass Navbar */}
       <nav className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-2xl sticky top-0 z-50 transition-all">
@@ -518,7 +518,7 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto items-stretch">
+        <div className="grid md:grid-cols-3 gap-4 sm:gap-8 max-w-5xl mx-auto items-stretch w-full min-w-0">
           {/* Gói 1 Tháng */}
           <div className="bg-slate-900/70 rounded-2xl p-7 border border-slate-800 flex flex-col justify-between hover:border-slate-700 transition-all">
             <div>

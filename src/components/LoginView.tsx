@@ -198,8 +198,8 @@ export function LoginView({ onBack }: LoginViewProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#faf5ff] via-[#fdf2f8] to-[#f0fdfa] dark:from-slate-950 dark:via-[#110e1c] dark:to-[#1a1028] flex items-center justify-center p-4 sm:p-6 font-sans">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen min-h-[100dvh] bg-gradient-to-br from-[#faf5ff] via-[#fdf2f8] to-[#f0fdfa] dark:from-slate-950 dark:via-[#110e1c] dark:to-[#1a1028] flex items-center justify-center p-3.5 sm:p-6 font-sans w-full min-w-0 max-w-full overflow-x-hidden">
+      <div className="w-full max-w-md min-w-0">
         <button
           onClick={onBack}
           className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold text-purple-600 dark:text-purple-300 hover:text-pink-600 mb-6 transition-all px-3.5 py-1.5 rounded-full bg-white/70 dark:bg-slate-900/70 border border-purple-100/70 dark:border-purple-900/40 shadow-xs btn-squishy"
@@ -208,7 +208,7 @@ export function LoginView({ onBack }: LoginViewProps) {
           <span>Quay lại trang chủ ✨</span>
         </button>
 
-        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl shadow-2xl border border-purple-100/80 dark:border-purple-900/50 p-6 sm:p-8 card-cute">
+        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl sm:rounded-3xl shadow-2xl border border-purple-100/80 dark:border-purple-900/50 p-4 sm:p-8 card-cute w-full min-w-0">
           <div className="text-center mb-6">
             <div className="w-14 h-14 bg-gradient-to-tr from-violet-500 via-pink-500 to-amber-300 p-0.5 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-pink-500/25 animate-pulse-soft">
               <div className="w-full h-full bg-white dark:bg-slate-900 rounded-[14px] flex items-center justify-center">

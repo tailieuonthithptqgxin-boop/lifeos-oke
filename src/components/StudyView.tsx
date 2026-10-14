@@ -181,22 +181,22 @@ export function StudyView() {
   }).length;
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-transparent overflow-hidden">
+    <div className="flex-1 flex flex-col h-full bg-transparent overflow-hidden w-full min-w-0 max-w-full">
       {/* Top Header & Navigation Tabs */}
-      <div className="bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl border-b border-purple-100/60 dark:border-purple-900/30 px-4 sm:px-6 pt-4 pb-2 shrink-0">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-3">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-gradient-to-tr from-violet-600 to-pink-500 text-white rounded-2xl flex items-center justify-center shadow-md shadow-purple-500/20 animate-wiggle">
-              <GraduationCap className="w-6 h-6" />
+      <div className="bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl border-b border-purple-100/60 dark:border-purple-900/30 px-3.5 sm:px-6 pt-3.5 sm:pt-4 pb-2 shrink-0 w-full min-w-0 max-w-full overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-3 w-full min-w-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-gradient-to-tr from-violet-600 to-pink-500 text-white rounded-2xl flex items-center justify-center shadow-md shadow-purple-500/20 animate-wiggle shrink-0">
+              <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2">
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2 truncate">
                 Study OS
-                <span className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full bg-gradient-to-r from-violet-100 to-pink-100 dark:from-violet-950/60 dark:to-pink-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-800/50">
+                <span className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full bg-gradient-to-r from-violet-100 to-pink-100 dark:from-violet-950/60 dark:to-pink-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-800/50 shrink-0">
                   Pro Engine ✨
                 </span>
               </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium break-words">
                 {isVi ? 'Quản lý môn học, lịch thi, bài tập và mô phỏng điểm số thông minh chill chill 🌸' : 'Manage subjects, exams, assignments and smart GPA simulation chill chill 🌸'}
               </p>
             </div>
@@ -204,7 +204,7 @@ export function StudyView() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 w-full min-w-0 max-w-full">
           <TabButton active={activeTab === 'vocabulary'} onClick={() => setActiveTab('vocabulary')} icon={<BookOpen className="w-4 h-4 text-emerald-500" />} label={isVi ? 'Từ vựng & Ngoại ngữ 📚' : 'Vocabulary & Languages 📚'} />
           <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<Activity className="w-4 h-4" />} label={isVi ? 'Tổng quan GPA' : 'GPA Overview'} />
           <TabButton active={activeTab === 'my-grades'} onClick={() => setActiveTab('my-grades')} icon={<Award className="w-4 h-4" />} label={isVi ? 'Bảng điểm' : 'Report Card'} count={subjects.length} />
@@ -216,8 +216,8 @@ export function StudyView() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-        <div className="max-w-7xl mx-auto space-y-6">
+      <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 w-full min-w-0 max-w-full overflow-x-hidden">
+        <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 w-full min-w-0 max-w-full overflow-x-hidden">
           {activeTab === 'overview' && (
             <StudyOverviewTab 
               onNewSubject={() => { setEditingSubject(null); setShowSubjectModal(true); }}

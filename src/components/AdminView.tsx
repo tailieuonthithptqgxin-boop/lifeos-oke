@@ -668,21 +668,21 @@ export function AdminView() {
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6 font-sans">
+    <div className="w-full min-w-0 max-w-7xl mx-auto space-y-4 sm:space-y-6 font-sans overflow-x-hidden">
       {/* Page Title & Navigation Bar */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2.5">
-            <Shield className="w-7 h-7 text-blue-600" />
-            <span>Trung Tâm Quản Trị Hệ Thống</span>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 w-full min-w-0">
+        <div className="min-w-0">
+          <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2.5 truncate">
+            <Shield className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600 shrink-0" />
+            <span className="truncate">Trung Tâm Quản Trị Hệ Thống</span>
           </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+          <p className="text-xs sm:text-sm text-slate-500 mt-0.5 break-words">
             Duyệt thanh toán QR, quản lý gói dịch vụ, ngôn ngữ hệ thống, người dùng và thông tin ngân hàng
           </p>
         </div>
 
         {/* Global Tabs */}
-        <div className="flex flex-wrap items-center bg-purple-50/70 dark:bg-slate-800/80 p-1.5 rounded-2xl self-start lg:self-auto gap-1 border border-purple-100/70 dark:border-purple-950/40 shadow-xs">
+        <div className="flex flex-wrap items-center bg-purple-50/70 dark:bg-slate-800/80 p-1 sm:p-1.5 rounded-2xl self-start lg:self-auto gap-1 border border-purple-100/70 dark:border-purple-950/40 shadow-xs w-full lg:w-auto overflow-x-auto no-scrollbar">
           <button
             type="button"
             onClick={() => setActiveTab('requests')}

@@ -776,7 +776,7 @@ export function AutomationEngineView() {
   };
 
   return (
-    <div className="flex-1 bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-x-hidden">
+    <div className="flex-1 bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-x-hidden w-full min-w-0 max-w-full">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-5 right-5 z-50 bg-indigo-600 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-indigo-400/30 animate-bounce">
@@ -786,7 +786,7 @@ export function AutomationEngineView() {
       )}
 
       {/* HEADER BAR */}
-      <div className="border-b border-slate-800 bg-slate-900/90 backdrop-blur px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 z-20">
+      <div className="border-b border-slate-800 bg-slate-900/90 backdrop-blur px-3.5 sm:px-6 py-3.5 sm:py-4 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 sticky top-0 z-20 w-full min-w-0">
         <div>
           <div className="flex items-center gap-3">
             <div className="p-2 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-xl shadow-md">

@@ -447,7 +447,7 @@ export function JourneyView() {
   const selectedChapter = progState.journeyChapters.find(c => c.index === selectedChapterIndex) || progState.journeyChapters[0];
 
   return (
-    <div className="flex-1 p-3 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 relative animate-in fade-in duration-200">
+    <div className="flex-1 p-3.5 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6 relative animate-in fade-in duration-200 w-full min-w-0 max-w-full overflow-x-hidden">
       
       {/* Floating XP Gain Animation Toast */}
       {floatingXp && (

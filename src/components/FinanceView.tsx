@@ -175,28 +175,28 @@ export function FinanceView() {
   }, [periodIncome, periodExpense, totalBudgetLimit]);
 
   return (
-    <div className="p-4 sm:p-6 pb-24 sm:pb-28 max-w-7xl mx-auto h-full flex flex-col space-y-6 overflow-y-auto">
+    <div className="w-full min-w-0 max-w-7xl mx-auto flex flex-col space-y-4 sm:space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shrink-0">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">{t('Finance')}</h2>
-            <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 shrink-0 w-full min-w-0">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight truncate">{t('Finance')}</h2>
+            <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
               {t('Money')}
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">{t('Manage cash flow, budgets, and disciplined savings')}</p>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium break-words">{t('Manage cash flow, budgets, and disciplined savings')}</p>
         </div>
         <button type="button" 
           onClick={() => setShowTxModal(true)}
-          className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-2.5 rounded-2xl text-sm font-black btn-squishy shadow-md shadow-emerald-500/20 cursor-pointer"
+          className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black btn-squishy shadow-md shadow-emerald-500/20 cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4 stroke-[3]" /> {t('Add Transaction')}
         </button>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 shrink-0">
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 shrink-0 w-full min-w-0 max-w-full">
         <FinanceTabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<LayoutDashboard className="w-4 h-4" />} label={t('Overview')} />
         <FinanceTabButton active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} icon={<TrendingUp className="w-4 h-4" />} label={t('Income & Expense Analytics')} />
         <FinanceTabButton active={activeTab === 'accounts'} onClick={() => setActiveTab('accounts')} icon={<Wallet className="w-4 h-4" />} label={t('Accounts')} />

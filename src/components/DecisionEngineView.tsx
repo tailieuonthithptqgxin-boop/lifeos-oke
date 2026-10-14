@@ -252,17 +252,17 @@ export function DecisionEngineView() {
   });
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-8 pb-24 text-slate-800 dark:text-slate-100">
+    <div className="w-full min-w-0 max-w-7xl mx-auto space-y-4 sm:space-y-8 text-slate-800 dark:text-slate-100 overflow-x-hidden">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-purple-100/60 dark:border-purple-900/30 pb-6">
-        <div>
-          <div className="flex items-center gap-3.5">
-            <div className="p-2.5 bg-gradient-to-br from-violet-500 via-pink-500 to-rose-400 text-white rounded-2xl shadow-md shadow-pink-500/25">
-              <BrainCircuit className="w-8 h-8 stroke-[2.2]" />
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4 border-b border-purple-100/60 dark:border-purple-900/30 pb-4 sm:pb-6 w-full min-w-0">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
+            <div className="p-2 sm:p-2.5 bg-gradient-to-br from-violet-500 via-pink-500 to-rose-400 text-white rounded-2xl shadow-md shadow-pink-500/25 shrink-0">
+              <BrainCircuit className="w-6 h-6 sm:w-8 sm:h-8 stroke-[2.2]" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h1 className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight truncate">
                   Động Cơ Ra Quyết Định ✨
                 </h1>
                 <span className="px-2.5 py-0.5 text-xs font-black bg-pink-100 text-pink-700 dark:bg-purple-950/60 dark:text-pink-300 rounded-full border border-pink-200 dark:border-purple-800">

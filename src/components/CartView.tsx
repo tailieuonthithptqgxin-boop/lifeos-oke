@@ -61,19 +61,19 @@ export function CartView() {
 
   if (cart.length === 0) {
     return (
-      <div className="p-6 max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[70vh] text-center font-sans">
-        <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-5">
-          <ShoppingCart className="w-10 h-10 text-slate-400" />
+      <div className="p-4 sm:p-6 max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[70vh] text-center font-sans w-full min-w-0 max-w-full overflow-x-hidden">
+        <div className="w-16 h-16 sm:w-20 sm:h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-4 sm:mb-5">
+          <ShoppingCart className="w-8 h-8 sm:w-10 sm:h-10 text-slate-400" />
         </div>
-        <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Giỏ hàng của bạn đang trống</h2>
-        <p className="text-slate-500 max-w-md mb-6 text-sm">
+        <h2 className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white mb-2">Giỏ hàng của bạn đang trống</h2>
+        <p className="text-slate-500 max-w-md mb-6 text-xs sm:text-sm break-words">
           Bạn chưa chọn mẫu quy trình số nào từ Marketplace. Bạn có thể khám phá các mẫu có sẵn hoặc nâng cấp gói bản quyền trực tuyến LifeOS.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
           <button
             onClick={() => setCurrentView('subscription')}
-            className="px-6 py-3 bg-blue-600 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 hover:bg-blue-700 transition-colors flex items-center gap-2 cursor-pointer"
+            className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 cursor-pointer"
           >
             <Zap className="w-4 h-4 fill-white" />
             <span>Xem Gói Dịch Vụ LifeOS</span>
@@ -81,7 +81,7 @@ export function CartView() {
 
           <button
             onClick={() => setCurrentView('marketplace')}
-            className="px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-xs rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+            className="w-full sm:w-auto px-6 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-semibold text-xs rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
           >
             Khám phá Thư viện Mẫu
           </button>
@@ -91,11 +91,11 @@ export function CartView() {
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6 font-sans">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Giỏ hàng bản quyền</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+    <div className="w-full min-w-0 max-w-5xl mx-auto space-y-4 sm:space-y-6 font-sans overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full min-w-0">
+        <div className="min-w-0">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white truncate">Giỏ hàng bản quyền</h2>
+          <p className="text-xs text-slate-500 mt-0.5 break-words">
             Sản phẩm phần mềm & mẫu quy trình kỹ thuật số (Kích hoạt trực tuyến ngay sau khi thanh toán)
           </p>
         </div>

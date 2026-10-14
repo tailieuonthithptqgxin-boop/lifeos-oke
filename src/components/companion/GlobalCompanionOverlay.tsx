@@ -46,7 +46,12 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
   const [currentMood, setCurrentMood] = useState<CompanionMood>('idle');
   const [speechMessage, setSpeechMessage] = useState<string>('');
   const [showBubble, setShowBubble] = useState<boolean>(false);
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      return true; // Collapsed by default on mobile to prevent blocking cards
+    }
+    return false;
+  });
 
   // Modals
   const [showSettingsModal, setShowSettingsModal] = useState<boolean>(false);
@@ -228,8 +233,8 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
   // On mobile (< sm): bottom-20 left-3.5 so it docks cleanly on the left without colliding with right FAB or bottom nav
   const isLeft = settings.position === 'bottom-left';
   const posClasses = isLeft
-    ? 'bottom-20 left-3.5 sm:bottom-6 sm:left-6 md:left-[17.5rem] items-start'
-    : 'bottom-20 left-3.5 sm:bottom-6 sm:right-6 items-start sm:items-end';
+    ? 'bottom-16 left-3 sm:bottom-6 sm:left-6 md:left-[17.5rem] items-start'
+    : 'bottom-16 left-3 sm:bottom-6 sm:right-6 items-start sm:items-end';
 
   return (
     <>
@@ -243,7 +248,7 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
             message={speechMessage}
             profile={profile}
             onDismiss={() => setShowBubble(false)}
-            className="mb-2.5 max-w-[280px] sm:max-w-xs cursor-pointer"
+            className="mb-2 max-w-[calc(100vw-2.5rem)] sm:max-w-xs cursor-pointer"
             onClick={() => setShowChatModal(true)}
           />
         )}
@@ -252,14 +257,14 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
         {isCollapsed ? (
           <div 
             onClick={() => setIsCollapsed(false)}
-            className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 shadow-lg backdrop-blur-md hover:scale-105 active:scale-95 transition-all cursor-pointer group"
-            style={{ borderColor: `${profile.themeColor}44` }}
+            className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-2 rounded-full bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-800 shadow-md backdrop-blur-md hover:scale-105 active:scale-95 transition-all cursor-pointer group"
+            style={{ borderColor: `${profile.themeColor}55` }}
           >
-            <span className="text-base sm:text-lg animate-bounce">{profile.avatar}</span>
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
+            <span className="text-sm sm:text-base animate-bounce">{profile.avatar}</span>
+            <span className="text-[11px] sm:text-xs font-black text-slate-700 dark:text-slate-200">
               {profile.name}
             </span>
-            <Maximize2 className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500 transition-colors" />
+            <Maximize2 className="w-3 h-3 text-slate-400 group-hover:text-blue-500 transition-colors" />
           </div>
         ) : (
           /* Full Living Mascot Character Widget */
@@ -272,8 +277,8 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
               onClick={handleAvatarClick}
             />
 
-            {/* Quick Actions Floating Toolbar */}
-            <div className="absolute -top-2.5 right-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20 bg-white/90 dark:bg-slate-900/90 p-0.5 rounded-full shadow-md border border-slate-200/80 dark:border-slate-800 backdrop-blur-xs">
+            {/* Quick Actions Floating Toolbar (Visible on touch mobile and desktop hover) */}
+            <div className="absolute -top-2.5 right-0 flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-20 bg-white/95 dark:bg-slate-900/95 p-0.5 rounded-full shadow-md border border-slate-200/80 dark:border-slate-800 backdrop-blur-xs">
               {/* Chat Button */}
               <button
                 type="button"

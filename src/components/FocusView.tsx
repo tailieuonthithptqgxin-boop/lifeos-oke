@@ -412,8 +412,8 @@ export function FocusView() {
   };
 
   const focusContent = (
-    <div className={`p-4 sm:p-6 max-w-6xl mx-auto h-full flex flex-col space-y-6 ${
-      isZenMode ? 'dark fixed inset-0 z-[99999] w-screen h-screen bg-slate-950 text-slate-100 max-w-none p-6 sm:p-12 overflow-y-auto' : ''
+    <div className={`w-full min-w-0 max-w-6xl mx-auto flex flex-col space-y-4 sm:space-y-6 overflow-x-hidden ${
+      isZenMode ? 'dark fixed inset-0 z-[99999] w-screen h-screen bg-slate-950 text-slate-100 max-w-none p-4 sm:p-12 overflow-y-auto' : ''
     }`}>
       
       {/* Zen Mode Header Bar */}

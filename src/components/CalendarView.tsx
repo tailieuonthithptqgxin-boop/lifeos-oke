@@ -22,11 +22,11 @@ export function CalendarView() {
   const hours = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
   return (
-    <div className="p-3.5 sm:p-6 pb-24 sm:pb-28 max-w-7xl mx-auto h-full flex flex-col space-y-4 sm:space-y-6 overflow-y-auto">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">{isVi ? 'Lịch biểu & Kế hoạch' : 'Calendar & Schedule'}</h2>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">{isVi ? 'Thời gian biểu time-blocking và quản lý sự kiện mỗi ngày.' : 'Time-blocking schedule and daily event management.'}</p>
+    <div className="w-full min-w-0 max-w-7xl mx-auto flex flex-col space-y-4 sm:space-y-6 overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0 w-full min-w-0">
+        <div className="min-w-0">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight truncate">{isVi ? 'Lịch biểu & Kế hoạch' : 'Calendar & Schedule'}</h2>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5 break-words">{isVi ? 'Thời gian biểu time-blocking và quản lý sự kiện mỗi ngày.' : 'Time-blocking schedule and daily event management.'}</p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold shrink-0">
@@ -222,16 +222,16 @@ export function CalendarView() {
           </div>
         </div>
       ) : (
-      <div className="flex gap-6 h-full min-h-[600px]">
+      <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 min-h-[600px] w-full min-w-0 max-w-full">
         {/* Daily Time-blocking View */}
-        <div className="flex-1 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+        <div className="flex-1 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col w-full min-w-0 max-w-full">
           <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 shrink-0">
             <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
               <CalendarIcon className="w-5 h-5 text-blue-600" /> {isVi ? `Hôm nay (${new Date().toLocaleDateString('vi-VN')})` : `Today (${new Date().toLocaleDateString('en-US')})`}
             </h3>
           </div>
-          <div className="flex-1 overflow-x-auto overflow-y-auto relative">
-            <div className="min-w-[600px]">
+          <div className="flex-1 overflow-x-auto overflow-y-auto relative w-full min-w-0 max-w-full">
+            <div className="min-w-[540px] sm:min-w-[600px]">
               {/* Timeline Grid */}
               <div className="absolute top-0 left-0 bottom-0 w-16 border-r border-slate-100 bg-slate-50 z-10 flex flex-col">
                 {hours.map(h => (

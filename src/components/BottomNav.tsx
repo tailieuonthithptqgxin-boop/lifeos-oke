@@ -29,9 +29,9 @@ export function BottomNav() {
     <nav
       id="mobile-bottom-nav"
       aria-label={t('Mobile Navigation')}
-      className="md:hidden fixed bottom-2.5 left-3 right-3 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-2xl px-2 py-1.5 transition-all"
+      className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-slate-800/80 shadow-2xl px-2 pt-1.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] transition-all"
     >
-      <div className="flex items-center justify-around max-w-lg mx-auto">
+      <div className="flex items-center justify-around w-full max-w-md mx-auto">
         {PRIMARY_TABS.map(tab => {
           const Icon = tab.icon;
           const isActive = currentView === tab.id;

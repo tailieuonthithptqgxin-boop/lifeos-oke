@@ -328,8 +328,8 @@ export function CheckoutView({
   };
 
   return (
-    <div className="min-h-full bg-slate-50 dark:bg-slate-950 py-8 px-4 sm:px-6 lg:px-8 font-sans">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="min-h-full bg-slate-50 dark:bg-slate-950 py-6 sm:py-8 px-3.5 sm:px-6 lg:px-8 font-sans w-full min-w-0 max-w-full overflow-x-hidden">
+      <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 w-full min-w-0">
         
         {/* Navigation & Tab Bar */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -427,7 +427,7 @@ export function CheckoutView({
                 </div>
 
                 {/* Plan Selection Grid */}
-                <div className={`grid gap-4 ${Object.keys(PLAN_DETAILS).length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
+                <div className={`grid gap-4 ${Object.keys(PLAN_DETAILS).length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'} w-full min-w-0`}>
                   {Object.entries(PLAN_DETAILS).map(([planKey, planCfg]: [string, any]) => {
                     const isSelected = selectedPlan === planKey;
                     const isTeam = planKey.includes('TEAM') || planCfg.type === 'TEAM';
@@ -442,7 +442,7 @@ export function CheckoutView({
                       <div
                         key={planKey}
                         onClick={() => setSelectedPlan(planKey)}
-                        className={`cursor-pointer rounded-3xl p-6 border-2 transition-all relative flex flex-col justify-between ${
+                        className={`cursor-pointer rounded-2xl sm:rounded-3xl p-4 sm:p-6 border-2 transition-all relative flex flex-col justify-between w-full min-w-0 max-w-full overflow-hidden break-words ${
                           isSelected
                             ? isTeam
                               ? 'border-purple-600 bg-white dark:bg-slate-900 shadow-md ring-2 ring-purple-500/20'

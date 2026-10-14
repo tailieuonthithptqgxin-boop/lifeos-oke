@@ -360,10 +360,10 @@ export function MyAccountView() {
   const isCancelledAutoRenew = subData?.subscription?.status === 'Cancelled';
 
   return (
-    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-6 font-sans">
+    <div className="w-full min-w-0 max-w-4xl mx-auto space-y-4 sm:space-y-6 font-sans overflow-x-hidden">
       <div>
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Tài khoản & Dịch vụ của tôi</h2>
-        <p className="text-xs sm:text-sm text-slate-500">
+        <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white truncate">Tài khoản & Dịch vụ của tôi</h2>
+        <p className="text-xs sm:text-sm text-slate-500 break-words">
           Quản lý thông tin định danh, gói đăng ký SaaS trực tuyến và lịch sử thanh toán
         </p>
       </div>

@@ -198,7 +198,7 @@ export function TopBar() {
           {showCreateMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowCreateMenu(false)}></div>
-              <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 p-2 space-y-1 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute top-full right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 p-2 space-y-1 animate-in fade-in zoom-in-95 duration-100">
                 {!hasSubAccess ? (
                   <div className="p-3 text-center space-y-2.5">
                     <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto border border-amber-500/20">
@@ -461,7 +461,7 @@ export function TopBar() {
           {showUserMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)}></div>
-              <div className="absolute top-full right-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 p-2 space-y-1.5 animate-in fade-in zoom-in-95 duration-100 text-xs">
+              <div className="absolute top-full right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 p-2 space-y-1.5 animate-in fade-in zoom-in-95 duration-100 text-xs">
                 {/* Header User Info */}
                 <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl mb-1">
                   <div className="font-bold text-slate-900 dark:text-white truncate">{currentUser?.name || t('Người dùng')}</div>

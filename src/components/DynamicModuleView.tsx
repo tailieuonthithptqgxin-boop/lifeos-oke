@@ -216,16 +216,16 @@ export function DynamicModuleView({ slug }: { slug: string }) {
   }
 
   return (
-    <div className="flex-1 flex flex-col p-6 sm:p-8 space-y-6 max-w-7xl mx-auto w-full">
+    <div className="flex-1 flex flex-col p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 max-w-7xl mx-auto w-full min-w-0 max-w-full overflow-x-hidden">
       {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
-            <Layers className="w-7 h-7" />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-sm w-full min-w-0">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20 shrink-0">
+            <Layers className="w-6 h-6 sm:w-7 sm:h-7" />
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight truncate">
                 {moduleDef.name}
               </h1>
               <span className="px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 font-bold text-xs border border-blue-200 dark:border-blue-800">
@@ -279,8 +279,8 @@ export function DynamicModuleView({ slug }: { slug: string }) {
       )}
 
       {/* Search & Control bar */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="relative flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 w-full min-w-0">
+        <div className="relative flex-1 max-w-md w-full">
           <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
@@ -296,9 +296,9 @@ export function DynamicModuleView({ slug }: { slug: string }) {
       </div>
 
       {/* Records Table */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-xs">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl overflow-hidden shadow-xs w-full min-w-0">
         {filteredRecords.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-16 text-center text-slate-400">
+          <div className="flex flex-col items-center justify-center p-8 sm:p-16 text-center text-slate-400">
             <Layers className="w-12 h-12 stroke-[1.5] text-slate-300 dark:text-slate-700 mb-3" />
             <h4 className="text-base font-bold text-slate-700 dark:text-slate-300">Chưa có bản ghi nào</h4>
             <p className="text-xs text-slate-500 max-w-sm mt-1">
@@ -313,7 +313,7 @@ export function DynamicModuleView({ slug }: { slug: string }) {
             </button>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto w-full min-w-0 max-w-full">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
                 <tr>

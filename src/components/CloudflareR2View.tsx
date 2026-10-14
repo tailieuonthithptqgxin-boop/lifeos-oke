@@ -164,9 +164,9 @@ export function CloudflareR2View() {
   };
 
   return (
-    <div className="space-y-6 font-sans">
+    <div className="space-y-4 sm:space-y-6 font-sans w-full min-w-0 max-w-full overflow-x-hidden">
       {/* Header Banner */}
-      <div className="p-6 rounded-3xl bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-blue-500/10 border border-amber-200/60 dark:border-amber-900/40 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-gradient-to-r from-orange-500/10 via-amber-500/10 to-blue-500/10 border border-amber-200/60 dark:border-amber-900/40 flex flex-col md:flex-row md:items-center justify-between gap-4 w-full min-w-0">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <div className="p-2 rounded-xl bg-orange-500 text-white font-bold shrink-0 shadow-sm">
@@ -324,7 +324,7 @@ export function CloudflareR2View() {
         </div>
 
         {/* Setup Guide Card */}
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4 shadow-xs">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-4 shadow-xs w-full min-w-0">
           <h3 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
             <Key className="w-4 h-4 text-blue-500" />
             <span>Hướng dẫn lấy thông tin R2</span>
@@ -357,7 +357,7 @@ R2_PUBLIC_URL="https://pub-xxx.r2.dev"`}
       </div>
 
       {/* Bucket Files Manager Grid */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 space-y-4 shadow-xs">
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-4 shadow-xs w-full min-w-0">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">

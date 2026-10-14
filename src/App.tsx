@@ -345,14 +345,14 @@ function AppContent() {
   };
 
   return (
-    <div key={language} className="flex h-screen h-[100dvh] bg-gradient-to-br from-[#f8faf9] via-[#f4f8f6] to-[#f0fdf4] dark:from-slate-950 dark:via-[#0c1410] dark:to-[#061e14] overflow-hidden font-sans text-slate-900 dark:text-slate-100 transition-colors duration-200">
+    <div key={language} className="flex h-screen h-[100dvh] w-full max-w-full bg-gradient-to-br from-[#f8faf9] via-[#f4f8f6] to-[#f0fdf4] dark:from-slate-950 dark:via-[#0c1410] dark:to-[#061e14] overflow-hidden font-sans text-slate-900 dark:text-slate-100 transition-colors duration-200">
       <CommandCenter />
       <SyncIndicator />
       <Sidebar />
-      <div className="flex-1 flex flex-col min-w-0 relative">
+      <div className="flex-1 flex flex-col min-w-0 max-w-full relative overflow-x-hidden">
         <TopBar />
         <AccountStatusBanner />
-        <main className="flex-1 overflow-y-auto pb-28 md:pb-20 relative">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden w-full max-w-full pb-20 sm:pb-24 md:pb-20 relative">
           <React.Suspense fallback={<PageSkeleton />}>
             {renderViewContent()}
           </React.Suspense>
@@ -362,8 +362,8 @@ function AppContent() {
       <GlobalCompanionOverlay />
       <PwaPromptBanner />
 
-      {/* Floating Action Button for Omni Quick-Capture (1-touch on mobile/desktop) */}
-      <div className="fixed bottom-20 md:bottom-7 right-3.5 sm:right-6 md:right-28 z-40 flex items-center group">
+      {/* Floating Action Button for Omni Quick-Capture (Desktop only to prevent obstructing mobile cards) */}
+      <div className="hidden md:flex fixed bottom-7 right-6 md:right-28 z-40 items-center group">
         <button
           type="button"
           id="btn-omni-quick-capture"

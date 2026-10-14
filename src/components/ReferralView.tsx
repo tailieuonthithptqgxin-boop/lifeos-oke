@@ -203,9 +203,9 @@ export function ReferralView() {
   };
 
   return (
-    <div className="p-3.5 sm:p-6 max-w-7xl mx-auto space-y-6 pb-28">
+    <div className="w-full min-w-0 max-w-7xl mx-auto space-y-4 sm:space-y-6 pb-28 overflow-x-hidden">
       {/* 1. Header Banner Fresh Green Unisex */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-700 via-teal-700 to-emerald-600 p-6 sm:p-8 text-white shadow-xl border border-emerald-500/30">
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-emerald-700 via-teal-700 to-emerald-600 p-4 sm:p-8 text-white shadow-xl border border-emerald-500/30 w-full min-w-0">
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-16 -right-16 w-64 h-64 bg-teal-400/20 rounded-full blur-2xl pointer-events-none" />
 

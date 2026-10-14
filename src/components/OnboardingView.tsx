@@ -466,29 +466,29 @@ export function OnboardingView() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans">
-      <div className="w-full max-w-2xl">
+    <div className="min-h-screen min-h-[100dvh] bg-slate-50 flex flex-col items-center justify-center p-3.5 sm:p-6 font-sans w-full min-w-0 max-w-full overflow-x-hidden">
+      <div className="w-full max-w-2xl min-w-0">
         {/* Progress Header */}
-        <div className="flex items-center gap-2 mb-8">
+        <div className="flex items-center gap-1.5 sm:gap-2 mb-6 sm:mb-8 overflow-x-auto no-scrollbar w-full min-w-0">
           {steps.map((step, idx) => (
             <React.Fragment key={step.id}>
-              <div className="flex items-center gap-2">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-colors ${currentStep >= idx ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
-                  {currentStep > idx ? <Check className="w-4 h-4" /> : idx + 1}
+              <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs sm:text-sm font-bold transition-colors ${currentStep >= idx ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-400'}`}>
+                  {currentStep > idx ? <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : idx + 1}
                 </div>
                 <span className={`text-xs font-semibold uppercase tracking-wider hidden sm:block ${currentStep >= idx ? 'text-blue-900' : 'text-slate-400'}`}>
                   {step.title}
                 </span>
               </div>
               {idx < steps.length - 1 && (
-                <div className={`flex-1 h-1 rounded-full ${currentStep > idx ? 'bg-blue-600' : 'bg-slate-200'}`}></div>
+                <div className={`flex-1 min-w-3 sm:min-w-6 h-1 rounded-full ${currentStep > idx ? 'bg-blue-600' : 'bg-slate-200'}`}></div>
               )}
             </React.Fragment>
           ))}
         </div>
 
         {/* Content Box */}
-        <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-8 sm:p-10 mb-8 min-h-[440px] flex flex-col justify-center">
+        <div className="bg-white rounded-2xl sm:rounded-3xl shadow-xl border border-slate-100 p-4 sm:p-10 mb-6 sm:mb-8 min-h-0 sm:min-h-[440px] flex flex-col justify-center w-full min-w-0">
           {renderStepContent()}
         </div>
 

@@ -47,19 +47,19 @@ export function HabitsView() {
   };
 
   return (
-    <div className="p-4 sm:p-6 max-w-5xl mx-auto space-y-6">
+    <div className="w-full min-w-0 max-w-5xl mx-auto space-y-4 sm:space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full min-w-0">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight truncate">
               {isVi ? 'Theo dõi Thói quen' : 'Habits Tracker'}
             </h2>
-            <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
               {isVi ? 'Chuỗi Thói quen' : 'Habits Streak'}
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium break-words">
             {isVi 
               ? 'Xây dựng kỷ luật mỗi ngày thông qua duy trì chuỗi thói quen liên tục' 
               : 'Build lasting daily discipline through continuous habit streaks'}
@@ -68,7 +68,7 @@ export function HabitsView() {
         <button
           id="btn-add-habit"
           onClick={() => setShowAddModal(true)}
-          className="btn-squishy px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-sm font-black rounded-2xl flex items-center gap-2 shadow-md shadow-emerald-500/20 transition-all self-start sm:self-auto cursor-pointer"
+          className="btn-squishy px-4 sm:px-5 py-2 sm:py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-black rounded-2xl flex items-center gap-2 shadow-md shadow-emerald-500/20 transition-all self-start sm:self-auto cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4 stroke-[3]" /> <span>{isVi ? 'Thêm thói quen' : 'Add Habit'}</span>
         </button>
@@ -76,31 +76,31 @@ export function HabitsView() {
 
       {/* Habits List */}
       {(habits || []).length === 0 ? (
-        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center animate-page-enter">
-          <Activity className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-          <h3 className="font-black text-slate-900 dark:text-white">
+        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-800 p-8 sm:p-12 text-center animate-page-enter w-full min-w-0">
+          <Activity className="w-10 h-10 sm:w-12 sm:h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
+          <h3 className="font-black text-slate-900 dark:text-white text-sm sm:text-base">
             {isVi ? 'Chưa có thói quen nào được theo dõi' : 'No habits tracked yet'}
           </h3>
-          <p className="text-xs text-slate-500 mt-1 font-medium">
+          <p className="text-xs text-slate-500 mt-1 font-medium break-words">
             {isVi 
               ? 'Nhấp "Thêm thói quen" để bắt đầu xây dựng chuỗi kỷ luật ngay hôm nay!' 
               : 'Click "Add Habit" to start building your streak today!'}
           </p>
         </div>
       ) : (
-        <div className="space-y-3 animate-page-enter">
+        <div className="space-y-2.5 sm:space-y-3 animate-page-enter w-full min-w-0">
           {habits.map((habit: Habit) => {
             const completed = isCompletedToday(habit);
             return (
               <div
                 key={habit.id}
-                className={`flex items-center justify-between p-4 sm:p-5 rounded-2xl border transition-all interactive-card ${
+                className={`flex items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all interactive-card gap-2.5 sm:gap-4 w-full min-w-0 ${
                   completed
                     ? 'bg-emerald-500/10 dark:bg-emerald-950/30 border-emerald-500/30 shadow-2xs'
                     : 'bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border-slate-200/80 dark:border-slate-800/80 shadow-2xs'
                 }`}
               >
-                <div className="flex items-center gap-4 min-w-0">
+                <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
                   <button
                     type="button"
                     onClick={() => {
@@ -115,17 +115,17 @@ export function HabitsView() {
                         }
                       }
                     }}
-                    className={`btn-squishy w-10 h-10 rounded-2xl flex items-center justify-center transition-all cursor-pointer ${
+                    className={`btn-squishy w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                       completed
                         ? 'bg-gradient-to-tr from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/25'
                         : 'border-2 border-purple-200 dark:border-slate-700 hover:border-purple-400 bg-purple-50/30 dark:bg-slate-800/50'
                     }`}
                   >
-                    {completed && <Check className="w-5 h-5 stroke-[3]" />}
+                    {completed && <Check className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" />}
                   </button>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <h4
-                      className={`font-bold text-sm sm:text-base truncate ${
+                      className={`font-bold text-xs sm:text-base break-words line-clamp-2 ${
                         completed
                           ? 'line-through text-slate-400 dark:text-slate-500'
                           : 'text-slate-900 dark:text-white'
@@ -133,7 +133,7 @@ export function HabitsView() {
                     >
                       {habit.name}
                     </h4>
-                    <span className="text-[11px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-100/70 dark:bg-purple-950/60 px-2 py-0.5 rounded-full inline-block mt-0.5">
+                    <span className="text-[10px] sm:text-[11px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-100/70 dark:bg-purple-950/60 px-2 py-0.5 rounded-full inline-block mt-0.5">
                       {habit.category || 'Personal'}
                     </span>
                   </div>

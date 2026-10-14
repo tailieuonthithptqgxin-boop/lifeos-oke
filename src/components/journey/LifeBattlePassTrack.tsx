@@ -79,27 +79,27 @@ const BATTLE_PASS_TIERS: BattlePassTier[] = [
 
 export function LifeBattlePassTrack({ userLevel, userCoins }: LifeBattlePassTrackProps) {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-full overflow-hidden">
       
       {/* Battle Pass Header Banner */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-emerald-950/40 to-slate-900 border border-emerald-500/30 p-6 sm:p-8 text-white shadow-2xl">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-black uppercase tracking-wider">
-              <Crown className="w-3.5 h-3.5" />
-              <span>LIFE PASS · SEASON 01: THE AWAKENING</span>
+      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-r from-slate-900 via-emerald-950/40 to-slate-900 border border-emerald-500/30 p-4 sm:p-8 text-white shadow-2xl w-full min-w-0">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6 w-full min-w-0">
+          <div className="space-y-2 max-w-xl min-w-0">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[10px] sm:text-xs font-black uppercase tracking-wider shrink-0">
+              <Crown className="w-3.5 h-3.5 shrink-0" />
+              <span className="truncate">LIFE PASS · SEASON 01: THE AWAKENING</span>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-black text-white">
+            <h2 className="text-xl sm:text-3xl font-black text-white">
               Đường Đua Tiến Trình Mùa Giải
             </h2>
-            <p className="text-xs text-slate-300 leading-relaxed">
+            <p className="text-xs text-slate-300 leading-relaxed break-words">
               Tích lũy cấp độ thực tế từ công việc, thói quen và học tập để mở khóa các mốc quà tặng độc quyền của Mùa Giải Khởi Nguyên.
             </p>
           </div>
 
-          <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-700/80 text-center shrink-0 min-w-[180px]">
+          <div className="p-3 sm:p-4 rounded-2xl bg-slate-900/90 border border-slate-700/80 text-center shrink-0 w-full sm:w-auto">
             <span className="text-[10px] font-black uppercase text-slate-400 block mb-0.5">CẤP ĐỘ CỦA BẠN</span>
-            <div className="text-3xl font-black text-emerald-400">LEVEL {userLevel}</div>
+            <div className="text-2xl sm:text-3xl font-black text-emerald-400">LEVEL {userLevel}</div>
             <span className="text-[11px] text-slate-400 block mt-1">
               Đã mở {BATTLE_PASS_TIERS.filter(t => userLevel >= t.requiredLevel).length} / {BATTLE_PASS_TIERS.length} Tiers
             </span>
@@ -108,19 +108,19 @@ export function LifeBattlePassTrack({ userLevel, userCoins }: LifeBattlePassTrac
       </div>
 
       {/* Horizontal Scrollable Battle Pass Track */}
-      <div className="p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-6">
+      <div className="p-4 sm:p-6 rounded-2xl sm:rounded-3xl bg-slate-900 border border-slate-800 shadow-xl space-y-4 sm:space-y-6 w-full min-w-0 max-w-full overflow-hidden">
         
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             <span className="text-xs font-black uppercase text-slate-400 tracking-wider">TIẾN TRÌNH CÁC MỐC</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold">
+            <span className="text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold">
               Cuộn ngang để xem hết 10 Tiers ➔
             </span>
           </div>
         </div>
 
         {/* Scroll Container */}
-        <div className="overflow-x-auto pb-6 scrollbar-thin">
+        <div className="overflow-x-auto pb-4 sm:pb-6 scrollbar-thin w-full min-w-0 max-w-full">
           <div className="flex items-stretch gap-4 min-w-[1100px] pt-4">
             {BATTLE_PASS_TIERS.map((tier) => {
               const isUnlocked = userLevel >= tier.requiredLevel;

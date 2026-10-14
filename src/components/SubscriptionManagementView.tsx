@@ -288,11 +288,11 @@ export function SubscriptionManagementView() {
   const isTeamMember = subStatus?.isTeamMember || teamData?.role === 'MEMBER';
 
   return (
-    <div className="flex-1 flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100">
+    <div className="flex-1 flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-slate-100 w-full min-w-0 max-w-full overflow-x-hidden">
       
       {/* Top Banner / Hero Header */}
-      <div className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 px-4 sm:px-8">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-4 sm:py-6 px-3.5 sm:px-8 w-full min-w-0">
+        <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4 w-full min-w-0">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-900 text-blue-700 dark:text-blue-300 text-xs font-bold uppercase tracking-wider mb-2">
               <Zap className="w-3.5 h-3.5 fill-blue-600" />
@@ -389,7 +389,7 @@ export function SubscriptionManagementView() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-8 space-y-6">
+      <div className="flex-1 w-full min-w-0 max-w-6xl mx-auto p-3.5 sm:p-8 space-y-4 sm:space-y-6 overflow-x-hidden">
 
         {/* Global Feedback Banner */}
         {statusMessage && (
@@ -494,7 +494,7 @@ export function SubscriptionManagementView() {
                   <p className="text-xs">Đang đồng bộ danh sách gói dịch vụ...</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 w-full min-w-0">
                   {(dynamicPlans.length > 0 ? dynamicPlans : [
                     {
                       id: 'PERSONAL_1M',

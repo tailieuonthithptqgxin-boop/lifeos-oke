@@ -21,7 +21,7 @@ export const CompanionSpeechBubble: React.FC<CompanionSpeechBubbleProps> = ({
 
   return (
     <div 
-      className={`relative max-w-xs sm:max-w-sm p-3.5 rounded-2xl shadow-xl border bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-medium animate-in fade-in zoom-in-95 duration-200 z-50 ${className}`}
+      className={`relative w-auto max-w-[calc(100vw-2.5rem)] sm:max-w-sm p-3.5 rounded-2xl shadow-xl border bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-medium animate-in fade-in zoom-in-95 duration-200 z-50 ${className}`}
       style={{
         borderColor: `${profile.themeColor}33`,
         boxShadow: `0 10px 25px -5px ${profile.glowColor}`
@@ -53,7 +53,7 @@ export const CompanionSpeechBubble: React.FC<CompanionSpeechBubbleProps> = ({
         </button>
       </div>
 
-      <p className="leading-relaxed text-slate-700 dark:text-slate-200 text-xs sm:text-[13px]">
+      <p className="leading-relaxed text-slate-700 dark:text-slate-200 text-xs sm:text-[13px] break-words">
         {message}
       </p>
     </div>

@@ -81,19 +81,19 @@ export function ProjectsView() {
   });
 
   return (
-    <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
+    <div className="w-full min-w-0 max-w-7xl mx-auto space-y-4 sm:space-y-6 overflow-x-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full min-w-0">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h2 className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight truncate">
               {isVi ? 'Quản lý Dự án' : 'Projects Management'}
             </h2>
-            <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50">
+            <span className="text-[10px] font-extrabold uppercase px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50 shrink-0">
               {isVi ? 'Không gian Dự án' : 'Projects Hub'}
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium break-words">
             {isVi 
               ? 'Theo dõi mốc quan trọng, sức khỏe vận hành và tiến độ của các dự án trọng điểm' 
               : 'Track milestones, operational health, and progress across key initiatives'}
@@ -102,7 +102,7 @@ export function ProjectsView() {
         <button
           id="btn-add-project"
           onClick={() => setShowAddModal(true)}
-          className="btn-squishy px-5 py-3 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 hover:from-violet-500 hover:to-pink-400 text-white text-sm font-extrabold rounded-2xl flex items-center gap-2 shadow-md shadow-purple-500/25 transition-all self-start sm:self-auto cursor-pointer"
+          className="btn-squishy px-4 sm:px-5 py-2.5 sm:py-3 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 hover:from-violet-500 hover:to-pink-400 text-white text-xs sm:text-sm font-extrabold rounded-2xl flex items-center gap-2 shadow-md shadow-purple-500/25 transition-all self-start sm:self-auto cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4 stroke-[3]" /> <span>{isVi ? 'Thêm dự án' : 'Add Project'}</span>
         </button>
@@ -144,7 +144,7 @@ export function ProjectsView() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-page-enter">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 animate-page-enter w-full min-w-0">
           {filteredProjects.map((project: Project) => {
             const pTasks = (tasks || []).filter(t => t.projectId === project.id);
             const pTasksDone = pTasks.filter(t => t.status === 'Hoàn thành' || t.status === 'Completed').length;
@@ -156,9 +156,9 @@ export function ProjectsView() {
             return (
               <div
                 key={project.id}
-                className="card-cute bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-purple-100/80 dark:border-purple-900/40 rounded-3xl p-5 space-y-4 hover:shadow-md interactive-card transition-all"
+                className="card-cute bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-purple-100/80 dark:border-purple-900/40 rounded-2xl sm:rounded-3xl p-4 sm:p-5 space-y-4 hover:shadow-md interactive-card transition-all w-full min-w-0 max-w-full overflow-hidden break-words"
               >
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start justify-between gap-2.5 sm:gap-3">
                   <div className="space-y-1">
                     <span
                       className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black ${
