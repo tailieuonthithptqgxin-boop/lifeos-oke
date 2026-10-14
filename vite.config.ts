@@ -22,10 +22,14 @@ export default defineConfig(() => {
       stringify: true,
     },
     esbuild: {
-      target: 'es2022',
+      target: 'esnext',
+      supported: {
+        'destructuring': true,
+      },
     },
     build: {
-      target: 'es2022',
+      target: 'esnext',
+      cssTarget: 'esnext',
       chunkSizeWarningLimit: 4000,
       rollupOptions: {
         output: {
