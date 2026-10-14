@@ -1,17 +1,20 @@
 import nodemailer from 'nodemailer';
-import { gmailService } from './services/gmailNotification.service.js';
+import { gmailService, resolveHostToIPv4 } from './services/gmailNotification.service.js';
 
 let cachedTransporter: any = null;
 
-function getFallbackTransporter(): any {
+async function getFallbackTransporter(): Promise<any> {
   const hasSmtpConfig = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
   if (!hasSmtpConfig) {
     return null;
   }
 
   if (!cachedTransporter) {
+    const originalHost = process.env.SMTP_HOST;
+    const ipv4Host = await resolveHostToIPv4(originalHost);
+
     cachedTransporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
+      host: ipv4Host,
       port: Number(process.env.SMTP_PORT) || 587,
       secure: process.env.SMTP_SECURE === 'true',
       auth: {
@@ -25,6 +28,10 @@ function getFallbackTransporter(): any {
       connectionTimeout: 10000,
       greetingTimeout: 10000,
       socketTimeout: 15000,
+      tls: {
+        servername: originalHost,
+        rejectUnauthorized: false
+      }
     });
   }
 
@@ -40,7 +47,7 @@ export const sendEmail = async (to: string, subject: string, html: string): Prom
     }
 
     // 2. Secondary fallback: Check if static process.env SMTP config exists
-    const fallbackTransporter = getFallbackTransporter();
+    const fallbackTransporter = await getFallbackTransporter();
     if (fallbackTransporter) {
       await fallbackTransporter.sendMail({
         from: process.env.SMTP_FROM || '"LifeOS System" <no-reply@lifeos.com>',

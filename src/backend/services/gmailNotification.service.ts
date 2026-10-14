@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import dns from 'dns';
+import net from 'net';
 import { getPrisma } from '../db.js';
 
 // Force IPv4-first DNS lookup to eliminate ENETUNREACH IPv6 connection errors
@@ -9,6 +10,33 @@ try {
   }
 } catch (e) {
   // Ignore
+}
+
+/**
+ * Resolves hostname to an IPv4 address string to guarantee that Nodemailer's internal
+ * socket logic doesn't attempt an IPv6 connection (which causes ENETUNREACH on platforms
+ * like Railway, VPS, or Docker without outbound IPv6 routing).
+ */
+export async function resolveHostToIPv4(hostname: string): Promise<string> {
+  if (!hostname) return 'smtp.gmail.com';
+  if (net.isIP(hostname)) return hostname;
+
+  return new Promise<string>((resolve) => {
+    // 1. Try dns.resolve4 first
+    dns.resolve4(hostname, (err, addresses) => {
+      if (!err && addresses && addresses.length > 0) {
+        return resolve(addresses[0]);
+      }
+      // 2. Fallback to dns.lookup with family 4
+      dns.lookup(hostname, { family: 4 }, (err2, address) => {
+        if (!err2 && address) {
+          return resolve(address);
+        }
+        // 3. Fallback to original hostname if resolution fails
+        resolve(hostname);
+      });
+    });
+  });
 }
 
 export interface GmailSmtpConfig {
@@ -162,10 +190,10 @@ class GmailNotificationService {
   }
 
   // Helper to create transport instance with IPv4 forced and proper timeouts
-  private createTransporterInstance(config: GmailSmtpConfig, overridePort?: number, overrideSecure?: boolean): any {
+  private async createTransporterInstance(config: GmailSmtpConfig, overridePort?: number, overrideSecure?: boolean): Promise<any> {
     const cleanPassword = (config.appPassword || '').replace(/\s+/g, '');
     const isGmail = config.serviceType === 'gmail' || !config.smtpHost || config.smtpHost.includes('gmail');
-    const host = isGmail ? 'smtp.gmail.com' : (config.smtpHost || 'smtp.gmail.com');
+    const originalHost = isGmail ? 'smtp.gmail.com' : (config.smtpHost || 'smtp.gmail.com');
     const port = overridePort !== undefined 
       ? overridePort 
       : (Number(config.smtpPort) || (isGmail ? 465 : 587));
@@ -173,19 +201,24 @@ class GmailNotificationService {
       ? overrideSecure 
       : (config.smtpSecure !== undefined ? Boolean(config.smtpSecure) : (port === 465));
 
+    // CRITICAL: Resolve domain name explicitly to an IPv4 address string to guarantee that Nodemailer's internal
+    // socket creation does NOT resolve to IPv6 on cloud hostings without IPv6 routing (e.g. Railway, Docker).
+    const ipv4Host = await resolveHostToIPv4(originalHost);
+
     return nodemailer.createTransport({
-      host,
+      host: ipv4Host,
       port,
       secure: isSecure,
       auth: {
         user: config.user.trim(),
         pass: cleanPassword
       },
-      family: 4, // CRITICAL: Force IPv4 to prevent ENETUNREACH on IPv6-disabled cloud networks (Railway, VPS, Docker)
+      family: 4, // Force IPv4
       connectionTimeout: 15000,
       greetingTimeout: 15000,
       socketTimeout: 20000,
       tls: {
+        servername: originalHost, // CRITICAL: Provide SNI hostname for TLS handshake so Google SSL verification succeeds
         rejectUnauthorized: false
       }
     } as any);
@@ -204,7 +237,7 @@ class GmailNotificationService {
     }
 
     try {
-      this.cachedTransporter = this.createTransporterInstance(config);
+      this.cachedTransporter = await this.createTransporterInstance(config);
       return { transporter: this.cachedTransporter, config };
     } catch (err) {
       console.error('[GmailNotificationService] Transporter initialization failed:', err);
@@ -228,7 +261,7 @@ class GmailNotificationService {
 
     // Primary attempt with IPv4
     try {
-      activeTransporter = this.createTransporterInstance(config, usedPort, usedSecure);
+      activeTransporter = await this.createTransporterInstance(config, usedPort, usedSecure);
       await activeTransporter.verify();
       this.cachedTransporter = activeTransporter;
     } catch (primaryErr: any) {
@@ -239,7 +272,7 @@ class GmailNotificationService {
       const fallbackSecure = fallbackPort === 465;
 
       try {
-        const fallbackTransporter = this.createTransporterInstance(config, fallbackPort, fallbackSecure);
+        const fallbackTransporter = await this.createTransporterInstance(config, fallbackPort, fallbackSecure);
         await fallbackTransporter.verify();
         
         // Fallback succeeded! Switch to fallback and persist update to config
@@ -500,7 +533,7 @@ class GmailNotificationService {
             const currentPort = Number(setup.config.smtpPort) || 465;
             const altPort = currentPort === 465 ? 587 : 465;
             const altSecure = altPort === 465;
-            const altTransporter = this.createTransporterInstance(setup.config, altPort, altSecure);
+            const altTransporter = await this.createTransporterInstance(setup.config, altPort, altSecure);
             await altTransporter.sendMail({
               from: `"${setup.config.fromName}" <${setup.config.fromEmail || setup.config.user}>`,
               replyTo: setup.config.replyTo || undefined,
@@ -603,7 +636,7 @@ class GmailNotificationService {
             const currentPort = Number(setup.config.smtpPort) || 465;
             const altPort = currentPort === 465 ? 587 : 465;
             const altSecure = altPort === 465;
-            const altTransporter = this.createTransporterInstance(setup.config, altPort, altSecure);
+            const altTransporter = await this.createTransporterInstance(setup.config, altPort, altSecure);
             const fromHeader = options.from || `"${setup.config.fromName}" <${setup.config.fromEmail || setup.config.user}>`;
             await altTransporter.sendMail({
               from: fromHeader,
