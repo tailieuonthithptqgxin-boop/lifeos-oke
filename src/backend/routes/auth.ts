@@ -168,7 +168,7 @@ authRouter.post('/register', authRateLimiter, validateBody(RegisterSchema), asyn
     console.error('Register error:', error);
     let errMsg = error.message || '';
     if (errMsg.includes('localhost:5432') || errMsg.includes("Can't reach database server") || errMsg.includes('P1001')) {
-      errMsg = 'Chưa cấu hình Cơ sở dữ liệu Cloud trên Vercel. Vui lòng thêm biến môi trường DATABASE_URL (ví dụ từ Neon.tech hoặc Supabase) vào Vercel Project Settings.';
+      errMsg = 'Chưa kết nối được Cơ sở dữ liệu Cloud. Vui lòng kiểm tra biến môi trường DATABASE_URL trong mục Variables trên Railway.';
     }
     res.status(500).json({
       success: false,
