@@ -477,11 +477,11 @@ export function DashboardView() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         
         {/* CỘT TRÁI (8/12 CỘT): GREETING & SMART NUDGE CARD */}
-        <div className="lg:col-span-8 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-950 border border-emerald-200/70 dark:border-slate-800 rounded-2xl p-5 sm:p-7 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-hidden">
+        <div className="lg:col-span-8 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-950 border border-emerald-200/70 dark:border-slate-800 rounded-2xl p-5 sm:p-7 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-visible">
           {/* Subtle ambient blur */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-400/10 dark:bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="relative z-10 space-y-4">
+          <div className="relative z-30 space-y-4">
             {/* Top row: Date & Time, Mood Selector, Date Navigation */}
             <div className="flex flex-wrap items-center justify-between gap-2.5">
               <div className="flex items-center gap-2">
@@ -491,14 +491,15 @@ export function DashboardView() {
                 </div>
 
                 {/* Gen Z Mood of the day button */}
-                <div className="relative">
+                <div className="relative inline-block">
                   <button
                     type="button"
                     onClick={() => setShowMoodPicker(prev => !prev)}
-                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-all cursor-pointer hover:scale-105 active:scale-95 ${MOOD_PRESETS[todayMood].badgeBg}`}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-2xs ${MOOD_PRESETS[todayMood].badgeBg}`}
                   >
                     <span>{MOOD_PRESETS[todayMood].emoji}</span>
                     <span className="hidden sm:inline">{t(MOOD_PRESETS[todayMood].label)}</span>
+                    <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
                   </button>
 
                   {showMoodPicker && (
@@ -506,9 +507,9 @@ export function DashboardView() {
                       {/* Backdrop for Mobile and Desktop */}
                       <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-xs md:bg-transparent md:backdrop-blur-none" onClick={() => setShowMoodPicker(false)} />
 
-                      {/* Desktop Popover */}
-                      <div className="hidden md:block absolute left-0 top-full mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-2 shadow-xl z-50 space-y-1 text-xs animate-in fade-in zoom-in-95">
-                        <div className="flex items-center justify-between px-2 py-1 border-b border-slate-100 dark:border-slate-800 mb-1">
+                      {/* Desktop Popover: exactly absolute top-full left-0 mt-2 z-50 w-72 */}
+                      <div className="hidden md:block absolute top-full left-0 mt-2 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl p-2 w-72 space-y-1 text-xs animate-in fade-in zoom-in-95">
+                        <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-slate-100 dark:border-slate-800 mb-1">
                           <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Tâm trạng hôm nay</span>
                           <button 
                             type="button" 
@@ -520,6 +521,7 @@ export function DashboardView() {
                         </div>
                         {(Object.keys(MOOD_PRESETS) as GenZMood[]).map(key => {
                           const m = MOOD_PRESETS[key];
+                          const isSelected = todayMood === key;
                           return (
                             <button
                               key={key}
@@ -530,13 +532,14 @@ export function DashboardView() {
                                 setTodayMoodState(key);
                                 setShowMoodPicker(false);
                               }}
-                              className={`w-full flex items-center gap-2.5 p-2 rounded-xl text-left transition-colors cursor-pointer ${todayMood === key ? 'bg-emerald-600 text-white font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                              className={`w-full flex items-center gap-2.5 p-2 rounded-xl text-left transition-colors cursor-pointer ${isSelected ? 'bg-emerald-600 text-white font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
                             >
                               <span className="text-base">{m.emoji}</span>
-                              <div className="min-w-0">
-                                <span className="block truncate">{t(m.label)}</span>
-                                <span className="text-[10px] text-slate-400 block truncate">{t(m.vibe)}</span>
+                              <div className="min-w-0 flex-1">
+                                <span className="block truncate font-semibold">{t(m.label)}</span>
+                                <span className={`text-[10px] block truncate ${isSelected ? 'text-emerald-100' : 'text-slate-400'}`}>{t(m.vibe)}</span>
                               </div>
+                              {isSelected && <Check className="w-3.5 h-3.5 shrink-0 stroke-[3]" />}
                             </button>
                           );
                         })}

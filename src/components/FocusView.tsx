@@ -422,91 +422,79 @@ export function FocusView() {
   const remainingSeconds = activeSession ? Math.max(0, activeSession.plannedDuration * 60 - elapsedSeconds) : currentPlannedMinutes * 60;
   const progressFraction = activeSession ? Math.min(1, elapsedSeconds / (activeSession.plannedDuration * 60)) : 0;
 
-  // 4 Reusable Compact Metrics Cards
+  // 4 Reusable Compact Metrics Cards (Slim horizontal bars py-2.5 px-3.5 on Desktop)
   const renderStatsCards = (extraClass = "") => (
-    <div className={`grid grid-cols-2 lg:grid-cols-4 gap-3 ${extraClass}`}>
+    <div className={`grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 ${extraClass}`}>
       {/* 1. Thời gian Focus */}
-      <div className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs flex items-center justify-between gap-3">
+      <div className="py-2.5 px-3.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
-            {isVi ? 'Thời gian Focus' : 'Focus Time'}
-          </span>
-          <div className="text-xl font-black text-slate-900 dark:text-white font-mono tracking-tight mt-0.5">
-            {Math.floor(totalMinutesToday / 60)}h {totalMinutesToday % 60}m
-          </div>
-          <div className="flex items-center gap-2 mt-1.5">
-            <div className="flex-1 bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
-              <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${progressPercent}%` }} />
-            </div>
-            <span className="text-[10px] text-slate-400 font-semibold shrink-0">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate">
+              {isVi ? 'Thời gian Focus' : 'Focus Time'}
+            </span>
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold shrink-0">
               {progressPercent}%
             </span>
           </div>
+          <div className="text-lg font-black text-slate-900 dark:text-white font-mono tracking-tight leading-none mt-1">
+            {Math.floor(totalMinutesToday / 60)}h {totalMinutesToday % 60}m
+          </div>
         </div>
-        <div className="w-9 h-9 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+        <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
           <Clock className="w-4 h-4" />
         </div>
       </div>
 
       {/* 2. Phiên hoàn thành */}
-      <div className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs flex items-center justify-between gap-3">
-        <div className="min-w-0">
+      <div className="py-2.5 px-3.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
             {isVi ? 'Phiên hoàn thành' : 'Completed Sessions'}
           </span>
-          <div className="text-xl font-black text-slate-900 dark:text-white font-mono tracking-tight mt-0.5">
-            {completedToday.length}
+          <div className="text-lg font-black text-slate-900 dark:text-white font-mono tracking-tight leading-none mt-1">
+            {completedToday.length} <span className="text-xs font-semibold text-slate-400 font-sans">/{todaySessions.length}</span>
           </div>
-          <span className="text-[10px] text-slate-400 font-medium block truncate mt-1">
-            /{todaySessions.length} {isVi ? 'phiên đã bắt đầu' : 'started'}
-          </span>
         </div>
-        <div className="w-9 h-9 rounded-xl bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+        <div className="w-8 h-8 rounded-xl bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
           <Target className="w-4 h-4" />
         </div>
       </div>
 
       {/* 3. Gián đoạn */}
-      <div className="p-3.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs flex items-center justify-between gap-3">
-        <div className="min-w-0">
+      <div className="py-2.5 px-3.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
             {isVi ? 'Gián đoạn' : 'Interruptions'}
           </span>
-          <div className="text-xl font-black text-amber-500 font-mono tracking-tight mt-0.5">
-            {todaySessions.reduce((acc, curr) => acc + (curr.interruptions?.length || 0), 0)}
+          <div className="text-lg font-black text-amber-500 font-mono tracking-tight leading-none mt-1">
+            {todaySessions.reduce((acc, curr) => acc + (curr.interruptions?.length || 0), 0)} <span className="text-[10px] font-semibold text-slate-400 font-sans">{isVi ? 'lần' : 'times'}</span>
           </div>
-          <span className="text-[10px] text-slate-400 font-medium block truncate mt-1">
-            {isVi ? 'Lần mất tập trung' : 'Distractions'}
-          </span>
         </div>
-        <div className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+        <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
           <ShieldAlert className="w-4 h-4" />
         </div>
       </div>
 
-      {/* 4. Focus Streak (Light Mode uses warm gold, never hardcoded pure black!) */}
-      <div className="p-3.5 bg-gradient-to-br from-amber-50/70 to-orange-50/40 border border-amber-200/70 dark:from-slate-900 dark:to-slate-950 dark:border-slate-800 rounded-2xl shadow-xs flex items-center justify-between gap-3">
-        <div className="min-w-0">
+      {/* 4. Focus Streak */}
+      <div className="py-2.5 px-3.5 bg-gradient-to-br from-amber-50/70 to-orange-50/40 border border-amber-200/70 dark:from-slate-900 dark:to-slate-950 dark:border-slate-800 rounded-2xl shadow-xs flex items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <span className="text-[10px] font-bold text-amber-700/80 dark:text-amber-400/80 uppercase tracking-wider block truncate">
             Focus Streak
           </span>
-          <div className="text-xl font-black text-amber-600 dark:text-amber-400 font-mono tracking-tight mt-0.5">
-            {focusStreak} {isVi ? 'ngày' : 'days'}
+          <div className="text-lg font-black text-amber-600 dark:text-amber-400 font-mono tracking-tight leading-none mt-1">
+            {focusStreak} <span className="text-[10px] font-bold text-amber-600/80 dark:text-amber-400/80 font-sans">{isVi ? 'ngày' : 'days'}</span>
           </div>
-          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium block truncate mt-1">
-            {isVi ? 'Chuỗi duy trì thực tế' : 'Active streak'}
-          </span>
         </div>
-        <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-          <span className="text-base">🔥</span>
+        <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+          <span className="text-sm">🔥</span>
         </div>
       </div>
     </div>
   );
 
   const focusContent = (
-    <div className={`w-full min-w-0 max-w-7xl mx-auto flex flex-col space-y-4 md:space-y-5 overflow-x-hidden ${
-      isZenMode ? 'dark fixed inset-0 z-[99999] w-screen h-screen bg-slate-950 text-slate-100 max-w-none p-4 sm:p-12 overflow-y-auto' : 'px-4 sm:px-6 py-4 sm:py-6 pb-28 md:pb-12'
+    <div className={`w-full min-w-0 max-w-7xl mx-auto flex flex-col space-y-3.5 sm:space-y-4 overflow-x-hidden ${
+      isZenMode ? 'dark fixed inset-0 z-[99999] w-screen h-screen bg-slate-950 text-slate-100 max-w-none p-4 sm:p-12 overflow-y-auto' : 'px-4 sm:px-6 py-3 sm:py-5 pb-28 md:pb-12'
     }`}>
       
       {/* ========================================================================= */}
@@ -595,7 +583,7 @@ export function FocusView() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start flex-1 min-h-0">
         
         {/* CỘT TRÁI (7/12 CỘT TRÊN DESKTOP) - TRẠM ĐỒNG HỒ POMODORO (ĐƯA LÊN ĐẦU TRÊN MOBILE) */}
-        <div className="order-1 lg:order-none lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all flex flex-col justify-between items-center text-center space-y-4 relative overflow-hidden">
+        <div className="order-1 lg:order-none lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between items-center text-center space-y-3 sm:space-y-3.5 relative overflow-hidden">
           
           {/* Subtle ambient blur */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/5 dark:bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
