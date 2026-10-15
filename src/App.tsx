@@ -351,7 +351,7 @@ function AppContent() {
   };
 
   return (
-    <div key={language} className="flex h-screen h-[100dvh] w-full max-w-full bg-gradient-to-br from-[#f8faf9] via-[#f4f8f6] to-[#f0fdf4] dark:from-slate-950 dark:via-[#0c1410] dark:to-[#061e14] overflow-hidden font-sans text-slate-900 dark:text-slate-100 transition-colors duration-200">
+    <div key={language} className="flex h-screen h-[100dvh] w-full max-w-full bg-[#F8FAFC] dark:bg-slate-950 overflow-hidden font-sans text-[#0F172A] dark:text-slate-100 transition-colors duration-150">
       <CommandCenter />
       <SyncIndicator />
       <Sidebar />

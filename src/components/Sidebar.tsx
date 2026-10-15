@@ -129,32 +129,17 @@ export function Sidebar() {
           setCurrentView(item.id);
           if (isMobileMenuOpen) toggleMobileMenu();
         }}
-        className={`w-full group flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all duration-200 text-left cursor-pointer ${
+        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors text-left cursor-pointer ${
           isActive
-            ? 'bg-emerald-500 text-slate-950 font-black shadow-md shadow-emerald-500/20 scale-[1.01]'
-            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100'
+            ? 'bg-[#ECFDF5] dark:bg-emerald-950/40 text-[#059669] dark:text-emerald-400'
+            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-[#0F172A] dark:hover:text-slate-100'
         }`}
       >
-        <div className={`p-1 rounded-xl transition-all ${
-          isActive ? 'text-slate-950' : 'text-slate-400 group-hover:text-emerald-500 dark:group-hover:text-emerald-400'
-        }`}>
-          <Icon className="w-4 h-4 shrink-0" />
-        </div>
+        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#059669] dark:text-emerald-400' : 'text-slate-400'}`} />
         <span className="truncate flex-1">{t(item.label)}</span>
-        {isActive && (
-          <span className="w-1.5 h-1.5 rounded-full bg-slate-950 shrink-0" />
-        )}
         {item.id === 'subscription' && (
-          <span
-            className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
-              subscriptionStatus?.hasAccess
-                ? (isActive ? 'bg-slate-950/20 text-slate-950' : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-200/60')
-                : (isActive ? 'bg-slate-950/20 text-slate-950' : 'bg-rose-100 text-rose-800 dark:bg-rose-950/80 dark:text-rose-300 border border-rose-200/60')
-            }`}
-          >
-            {subscriptionStatus?.hasAccess
-              ? `${subscriptionStatus.remainingDays || 0} ${isVi ? 'ngày' : 'days'}`
-              : (subscriptionStatus?.status === 'EXPIRED' ? (isVi ? 'Hết hạn' : 'Expired') : (isVi ? 'Chưa mua' : 'No plan'))}
+          <span className="text-[10px] font-normal text-slate-400">
+            {subscriptionStatus?.hasAccess ? `${subscriptionStatus.remainingDays || 0}d` : 'Free'}
           </span>
         )}
       </button>
@@ -166,33 +151,28 @@ export function Sidebar() {
       {/* Mobile backdrop */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-slate-950/50 md:hidden backdrop-blur-sm transition-opacity"
+          className="fixed inset-0 z-40 bg-slate-950/40 md:hidden backdrop-blur-xs transition-opacity"
           onClick={toggleMobileMenu}
         />
       )}
 
       <aside
         id="app-sidebar"
-        className={`fixed md:static inset-y-0 left-0 z-50 flex flex-col w-72 md:w-64 bg-white/95 dark:bg-slate-950/95 backdrop-blur-xl border-r border-slate-200/80 dark:border-slate-800/80 transition-transform duration-200 ease-in-out shadow-2xl md:shadow-none ${
+        className={`fixed md:static inset-y-0 left-0 z-50 flex flex-col w-[240px] md:w-[240px] shrink-0 bg-white dark:bg-slate-900 border-r border-[#E2E8F0] dark:border-slate-800 transition-transform duration-200 ease-in-out ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
-        {/* Brand header with Fresh Green Unisex Logo */}
-        <div className="h-16 flex items-center justify-between px-5 sm:px-6 border-b border-slate-200/80 dark:border-slate-800/80 shrink-0">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-2xs">
-              <Sparkles className="w-5 h-5 fill-current" />
+        {/* Brand header with Minimalist Logo */}
+        <div className="h-16 flex items-center justify-between px-4 border-b border-[#E2E8F0] dark:border-slate-800 shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-6 h-6 rounded-md bg-[#10B981] flex items-center justify-center text-white text-xs font-bold">
+              ⚡
             </div>
-            <div>
-              <div className="flex items-center gap-1.5">
-                <h1 className="font-black text-slate-900 dark:text-white tracking-tight leading-none text-base">
-                  Life<span className="text-emerald-500">OS</span>
-                </h1>
-                <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                  Gen-Z
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-400 font-bold mt-0.5">Personal Life OS</p>
+            <div className="flex items-center gap-1.5">
+              <span className="font-semibold text-sm text-[#0F172A] dark:text-white tracking-tight">LifeOS</span>
+              <span className="text-[10px] font-normal px-1.5 py-0.2 rounded border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
+                Gen-Z
+              </span>
             </div>
           </div>
 
@@ -202,9 +182,9 @@ export function Sidebar() {
               type="button"
               onClick={() => setShowCustomizer(true)}
               title={isVi ? 'Cá nhân hóa danh mục' : 'Customize Sidebar'}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-emerald-500 hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-colors cursor-pointer"
+              className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Sliders className="w-4 h-4" />
+              <Sliders className="w-3.5 h-3.5" />
             </button>
 
             {/* Close button on mobile */}
@@ -212,32 +192,31 @@ export function Sidebar() {
               type="button"
               onClick={toggleMobileMenu}
               aria-label={isVi ? 'Đóng danh mục' : 'Close Menu'}
-              className="md:hidden p-1.5 rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="md:hidden p-1 rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
         {/* Navigation list */}
-        <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-4">
+        <nav className="flex-1 overflow-y-auto px-2.5 py-3 space-y-4">
           
-          {/* Group 1: Nhịp sống hàng ngày (DAILY RHYTHM) */}
+          {/* Group 1: NHỊP SỐNG HÀNG NGÀY */}
           {availableDailyItems.length > 0 && (
-            <div className="space-y-1">
-              <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center justify-between">
-                <span>{t('Daily Rhythm')}</span>
-                <span className="text-[9px] text-emerald-500 font-bold lowercase">{t('today')}</span>
+            <div className="space-y-0.5">
+              <div className="px-3 pb-1 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                {isVi ? 'NHỊP SỐNG HÀNG NGÀY' : 'DAILY RHYTHM'}
               </div>
               {availableDailyItems.map(renderNavButton)}
             </div>
           )}
 
-          {/* Group 2: Spaces */}
+          {/* Group 2: KHÔNG GIAN */}
           {availableSpacesItems.length > 0 && (
-            <div className="space-y-1 pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
-              <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-                {t('Spaces')} ({availableSpacesItems.length})
+            <div className="space-y-0.5 pt-2 border-t border-[#E2E8F0] dark:border-slate-800">
+              <div className="px-3 pb-1 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                {isVi ? 'KHÔNG GIAN' : 'SPACES'}
               </div>
               {availableSpacesItems.map(renderNavButton)}
             </div>
@@ -291,21 +270,21 @@ export function Sidebar() {
         </nav>
 
         {/* Quick Preferences: Theme & Language */}
-        <div className="px-3.5 pt-2.5 pb-2.5 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs gap-2">
+        <div className="px-3 py-2 border-t border-[#E2E8F0] dark:border-slate-800 flex items-center justify-between gap-1.5">
           <button
             type="button"
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-2xl bg-emerald-50/80 dark:bg-slate-800/80 hover:bg-emerald-100 dark:hover:bg-slate-700/80 font-bold transition-all text-emerald-800 dark:text-emerald-300 cursor-pointer text-xs btn-squishy border border-emerald-200/50"
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors"
             title={isVi ? 'Giao diện' : 'Theme'}
           >
             {theme === 'dark' ? (
               <>
-                <Sun className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <Sun className="w-3.5 h-3.5 text-amber-500 shrink-0" />
                 <span>{isVi ? 'Tối' : 'Dark'}</span>
               </>
             ) : (
               <>
-                <Moon className="w-3.5 h-3.5 text-emerald-700 shrink-0" />
+                <Moon className="w-3.5 h-3.5 text-slate-500 shrink-0" />
                 <span>{isVi ? 'Sáng' : 'Light'}</span>
               </>
             )}
@@ -315,45 +294,39 @@ export function Sidebar() {
             value={language}
             onChange={(e) => setLanguage(e.target.value)}
             aria-label={isVi ? 'Ngôn ngữ' : 'Language'}
-            className="px-2.5 py-2 rounded-2xl bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700/80 font-bold text-xs border border-slate-200 dark:border-slate-700 outline-none cursor-pointer text-slate-700 dark:text-slate-300 transition-all btn-squishy"
+            className="flex-1 py-1.5 px-2 rounded-md border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300 outline-none cursor-pointer"
           >
-            {(activeLanguages && activeLanguages.length > 0 ? activeLanguages : [
-              { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳' },
-              { code: 'en', name: 'English', flag: '🇬🇧' }
-            ]).map(l => (
-              <option key={l.code} value={l.code}>
-                {l.flag} {l.name}
-              </option>
-            ))}
+            <option value="vi">Tiếng Việt</option>
+            <option value="en">English</option>
           </select>
         </div>
 
         {/* Footer profile & quick status */}
-        <div className="p-3 border-t border-slate-100 dark:border-slate-800 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
-          <div className="flex items-center justify-between p-2.5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-slate-500/10 border border-emerald-200/40 dark:border-emerald-800/30 shadow-xs">
+        <div className="p-3 border-t border-[#E2E8F0] dark:border-slate-800 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+          <div className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
             <button
               type="button"
               onClick={() => {
                 setCurrentView('account');
                 if (isMobileMenuOpen) toggleMobileMenu();
               }}
-              className="flex items-center gap-2.5 min-w-0 text-left transition-opacity cursor-pointer flex-1 mr-2 group"
+              className="flex items-center gap-2.5 min-w-0 text-left cursor-pointer flex-1 mr-1.5 group"
               title={isVi ? 'Tài khoản của tôi' : 'My Account'}
             >
               <div className="relative shrink-0">
                 <img
-                  src={currentUser?.avatar || 'https://ui-avatars.com/api/?name=User&background=random'}
-                  alt={currentUser?.name || 'User'}
-                  className="w-9 h-9 rounded-2xl bg-slate-200 dark:bg-slate-700 object-cover ring-2 ring-emerald-500/40 shadow-xs"
+                  src={currentUser?.avatar || 'https://ui-avatars.com/api/?name=LifeOS+SuperAdmin&background=10B981&color=fff'}
+                  alt={currentUser?.name || 'LifeOS SuperAdmin'}
+                  className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 object-cover border border-slate-200 dark:border-slate-700"
                 />
-                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 border-2 border-white dark:border-slate-900" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white dark:border-slate-900" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-black text-slate-800 dark:text-slate-100 truncate group-hover:text-emerald-700 transition-colors">
-                  {currentUser?.name || (isVi ? 'Người dùng' : 'User')}
+                <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate group-hover:text-emerald-600 transition-colors">
+                  {currentUser?.name || 'LifeOS SuperAdmin'}
                 </p>
-                <p className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold truncate">
-                  {currentUser?.plan || 'Free'}
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal truncate">
+                  {currentUser?.plan || 'SuperAdmin'}
                 </p>
               </div>
             </button>
@@ -362,7 +335,7 @@ export function Sidebar() {
               type="button"
               onClick={logout}
               title={isVi ? 'Đăng xuất' : 'Sign Out'}
-              className="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors shrink-0 btn-squishy"
+              className="p-1.5 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors shrink-0"
             >
               <LogOut className="w-4 h-4" />
             </button>

@@ -181,14 +181,13 @@ export const InteractiveCompanionChatModal: React.FC<InteractiveCompanionChatMod
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-slate-950/40 backdrop-blur-xs animate-in fade-in duration-200">
       <div 
-        className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden max-h-[85vh] sm:max-h-[620px] transition-all"
-        style={{ borderColor: `${character.themeColor}33` }}
+        className="w-full max-w-lg bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-xl shadow-lg flex flex-col overflow-hidden max-h-[85vh] sm:max-h-[620px] transition-all"
       >
         {/* Header */}
         <div 
-          className="relative px-5 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-900/80"
+          className="relative px-4 py-3 border-b border-[#E2E8F0] dark:border-slate-800 flex items-center justify-between bg-[#F8FAFC] dark:bg-slate-900"
         >
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 flex items-center justify-center relative">

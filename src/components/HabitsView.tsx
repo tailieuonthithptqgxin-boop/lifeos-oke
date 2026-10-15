@@ -52,14 +52,14 @@ export function HabitsView() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full min-w-0">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight truncate">
+            <h2 className="text-xl sm:text-2xl font-semibold text-[#0F172A] dark:text-white tracking-tight truncate">
               {isVi ? 'Theo dõi Thói quen' : 'Habits Tracker'}
             </h2>
-            <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-              {isVi ? 'Chuỗi Thói quen' : 'Habits Streak'}
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/60 shrink-0">
+              {isVi ? 'Kỷ luật mỗi ngày' : 'Daily Routine'}
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium break-words">
+          <p className="text-xs sm:text-sm text-[#64748B] dark:text-slate-400 mt-1 font-normal break-words">
             {isVi 
               ? 'Xây dựng kỷ luật mỗi ngày thông qua duy trì chuỗi thói quen liên tục' 
               : 'Build lasting daily discipline through continuous habit streaks'}
@@ -68,39 +68,39 @@ export function HabitsView() {
         <button
           id="btn-add-habit"
           onClick={() => setShowAddModal(true)}
-          className="btn-squishy px-4 sm:px-5 py-2 sm:py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs sm:text-sm font-black rounded-2xl flex items-center gap-2 shadow-md shadow-emerald-500/20 transition-all self-start sm:self-auto cursor-pointer shrink-0"
+          className="h-9 px-3.5 bg-[#10B981] hover:bg-[#059669] text-white text-xs font-medium rounded-lg flex items-center gap-1.5 transition-colors self-start sm:self-auto cursor-pointer shrink-0 shadow-xs"
         >
-          <Plus className="w-4 h-4 stroke-[3]" /> <span>{isVi ? 'Thêm thói quen' : 'Add Habit'}</span>
+          <Plus className="w-4 h-4 stroke-[2.5]" /> <span>{isVi ? 'Thêm thói quen' : 'Add Habit'}</span>
         </button>
       </div>
 
       {/* Habits List */}
       {(habits || []).length === 0 ? (
-        <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-200 dark:border-slate-800 p-8 sm:p-12 text-center animate-page-enter w-full min-w-0">
+        <div className="bg-white dark:bg-slate-900 rounded-xl border border-[#E2E8F0] dark:border-slate-800 p-8 sm:p-12 text-center animate-page-enter w-full min-w-0">
           <Activity className="w-10 h-10 sm:w-12 sm:h-12 text-slate-300 dark:text-slate-600 mx-auto mb-3" />
-          <h3 className="font-black text-slate-900 dark:text-white text-sm sm:text-base">
+          <h3 className="font-semibold text-[#0F172A] dark:text-white text-sm sm:text-base">
             {isVi ? 'Chưa có thói quen nào được theo dõi' : 'No habits tracked yet'}
           </h3>
-          <p className="text-xs text-slate-500 mt-1 font-medium break-words">
+          <p className="text-xs text-[#64748B] mt-1 font-normal break-words">
             {isVi 
               ? 'Nhấp "Thêm thói quen" để bắt đầu xây dựng chuỗi kỷ luật ngay hôm nay!' 
               : 'Click "Add Habit" to start building your streak today!'}
           </p>
         </div>
       ) : (
-        <div className="space-y-2.5 sm:space-y-3 animate-page-enter w-full min-w-0">
+        <div className="space-y-3 animate-page-enter w-full min-w-0">
           {habits.map((habit: Habit) => {
             const completed = isCompletedToday(habit);
             return (
               <div
                 key={habit.id}
-                className={`flex items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all interactive-card gap-2.5 sm:gap-4 w-full min-w-0 ${
+                className={`flex items-center justify-between p-4 rounded-xl border transition-colors gap-3 sm:gap-4 w-full min-w-0 shadow-2xs ${
                   completed
-                    ? 'bg-emerald-500/10 dark:bg-emerald-950/30 border-emerald-500/30 shadow-2xs'
-                    : 'bg-white/95 dark:bg-slate-900/90 backdrop-blur-md border-slate-200/80 dark:border-slate-800/80 shadow-2xs'
+                    ? 'bg-[#F8FAFC] dark:bg-slate-900/40 border-[#E2E8F0] dark:border-slate-800'
+                    : 'bg-white dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                 }`}
               >
-                <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+                <div className="flex items-center gap-3.5 min-w-0 flex-1">
                   <button
                     type="button"
                     onClick={() => {
@@ -115,35 +115,39 @@ export function HabitsView() {
                         }
                       }
                     }}
-                    className={`btn-squishy w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center transition-all cursor-pointer shrink-0 ${
+                    className={`w-5 h-5 rounded-full flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                       completed
-                        ? 'bg-gradient-to-tr from-emerald-500 to-teal-500 text-white shadow-md shadow-emerald-500/25'
-                        : 'border-2 border-purple-200 dark:border-slate-700 hover:border-purple-400 bg-purple-50/30 dark:bg-slate-800/50'
+                        ? 'bg-[#10B981] border border-[#10B981] text-white shadow-2xs'
+                        : 'border border-[#CBD5E1] dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-emerald-500'
                     }`}
                   >
-                    {completed && <Check className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" />}
+                    {completed && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                   </button>
                   <div className="min-w-0 flex-1">
                     <h4
-                      className={`font-bold text-xs sm:text-base break-words line-clamp-2 ${
+                      className={`font-medium text-sm break-words line-clamp-1 ${
                         completed
                           ? 'line-through text-slate-400 dark:text-slate-500'
-                          : 'text-slate-900 dark:text-white'
+                          : 'text-[#0F172A] dark:text-white'
                       }`}
                     >
                       {habit.name}
                     </h4>
-                    <span className="text-[10px] sm:text-[11px] font-semibold text-purple-600 dark:text-purple-400 bg-purple-100/70 dark:bg-purple-950/60 px-2 py-0.5 rounded-full inline-block mt-0.5">
-                      {habit.category || 'Personal'}
-                    </span>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 shrink-0">
-                  <div className="flex items-center gap-1.5 text-xs font-black text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-950/60 px-3 py-1.5 rounded-full border border-amber-200/60 dark:border-amber-800/60 shadow-xs">
-                    <Flame className="w-4 h-4 fill-amber-500 text-amber-500" />
-                    <span>{habit.streak || 0} {isVi ? 'ngày' : 'days'}</span>
+                <div className="flex items-center gap-2.5 shrink-0">
+                  {/* Pastel Category Tag */}
+                  <span className="text-xs font-normal text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-100 dark:border-emerald-900/60 px-2.5 py-0.5 rounded">
+                    {habit.category || 'Personal'}
+                  </span>
+
+                  {/* Delicate Light Orange Streak Badge */}
+                  <div className="flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-0.5 rounded border border-amber-200/60 dark:border-amber-800/60">
+                    <Flame className="w-3.5 h-3.5 text-amber-500" />
+                    <span>{habit.streak || 0} {isVi ? 'ngày' : 'd'}</span>
                   </div>
+
                   <button
                     onClick={() => {
                       const confirmMsg = isVi 
@@ -153,10 +157,10 @@ export function HabitsView() {
                         deleteHabit && deleteHabit(habit.id);
                       }
                     }}
-                    className="p-2 text-slate-400 hover:text-rose-500 transition-colors rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer btn-squishy"
+                    className="p-1.5 text-slate-400 hover:text-rose-500 transition-colors rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
                     title={isVi ? 'Xóa thói quen' : 'Delete habit'}
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -167,14 +171,14 @@ export function HabitsView() {
 
       {/* Add Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4 backdrop-blur-xs animate-backdrop-fade">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 animate-modal-enter">
-            <h3 className="text-lg font-black text-slate-900 dark:text-white">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 flex items-center justify-center p-4 backdrop-blur-xs animate-backdrop-fade">
+          <div className="bg-white dark:bg-slate-900 rounded-xl max-w-sm w-full p-5 border border-[#E2E8F0] dark:border-slate-800 shadow-lg space-y-4 animate-modal-enter">
+            <h3 className="text-base font-semibold text-[#0F172A] dark:text-white">
               {isVi ? 'Thói Quen Mới' : 'New Habit'}
             </h3>
-            <form onSubmit={handleAdd} className="space-y-4">
+            <form onSubmit={handleAdd} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                   {isVi ? 'Tên thói quen *' : 'Habit Name *'}
                 </label>
                 <input
@@ -183,17 +187,17 @@ export function HabitsView() {
                   placeholder={isVi ? 'VD: Đọc 20 trang sách, Tập thể dục 30p' : 'e.g. Read 20 pages, 30m Workout'}
                   value={newHabitName}
                   onChange={e => setNewHabitName(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:border-emerald-500"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
                   {isVi ? 'Danh mục' : 'Category'}
                 </label>
                 <select
                   value={newHabitCategory}
                   onChange={e => setNewHabitCategory(e.target.value)}
-                  className="w-full px-3.5 py-2.5 text-xs sm:text-sm rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                  className="w-full px-3 py-2 text-xs sm:text-sm rounded-lg border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:border-emerald-500 cursor-pointer"
                 >
                   <option value={isVi ? 'Cá nhân' : 'Personal'}>{isVi ? 'Cá nhân' : 'Personal'}</option>
                   <option value={isVi ? 'Công việc' : 'Work'}>{isVi ? 'Công việc' : 'Work'}</option>
@@ -201,17 +205,17 @@ export function HabitsView() {
                   <option value={isVi ? 'Học tập' : 'Study'}>{isVi ? 'Học tập' : 'Study'}</option>
                 </select>
               </div>
-              <div className="flex justify-end gap-3 pt-2">
+              <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="btn-squishy px-4 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl cursor-pointer"
+                  className="px-3.5 py-2 text-xs font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg cursor-pointer"
                 >
                   {isVi ? 'Hủy' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
-                  className="btn-squishy px-5 py-2.5 text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-2xl shadow-md shadow-emerald-500/20 cursor-pointer"
+                  className="px-4 py-2 text-xs font-medium bg-[#10B981] hover:bg-[#059669] text-white rounded-lg shadow-xs cursor-pointer"
                 >
                   {isVi ? 'Tạo Thói Quen' : 'Create Habit'}
                 </button>

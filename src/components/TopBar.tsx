@@ -111,41 +111,39 @@ export function TopBar() {
   const inboxCount = inbox?.length || 0;
 
   return (
-    <header className="h-14 md:h-16 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between px-3.5 sm:px-5 md:px-6 shrink-0 z-30 transition-colors">
+    <header className="h-14 md:h-16 bg-white dark:bg-slate-950 border-b border-[#E2E8F0] dark:border-slate-800 flex items-center justify-between px-3.5 sm:px-5 md:px-6 shrink-0 z-30 transition-colors">
       {/* Mobile Brand Logo */}
       <div className="flex md:hidden items-center gap-2 shrink-0">
-        <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-xs font-black text-xs">
+        <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center text-white shadow-xs font-bold text-xs">
           ⚡
         </div>
-        <span className="font-black text-sm tracking-tight text-slate-900 dark:text-white">LifeOS</span>
+        <span className="font-semibold text-sm tracking-tight text-slate-900 dark:text-white">LifeOS</span>
       </div>
 
       {/* Desktop Quick Search Bar (Hidden on Mobile) */}
-      <div className="hidden md:flex flex-1 max-w-lg min-w-0 mr-2 sm:mr-4 md:mr-6">
+      <div className="hidden md:flex flex-1 max-w-lg min-w-0 mr-4">
         <button 
           type="button" 
           onClick={toggleCommand}
-          className="w-full relative flex items-center text-left pl-8 sm:pl-10 pr-3 md:pr-24 py-2 sm:py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-full text-xs sm:text-sm text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-xs transition-all group btn-squishy"
+          className="w-full relative flex items-center text-left pl-9 pr-24 h-9 bg-[#F8FAFC] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-lg text-xs text-slate-500 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-colors group cursor-pointer"
         >
-          <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-emerald-600 transition-colors shrink-0" />
-          <span className="truncate max-w-[calc(100%-1rem)] font-medium">{t('Tìm kiếm nhanh hoặc mở Command Center...')}</span>
-          <div className="absolute right-3.5 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 opacity-80 pointer-events-none">
-            <kbd className="px-2 py-0.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-black text-emerald-800 dark:text-emerald-300 shadow-2xs">Ctrl</kbd>
-            <span className="text-slate-400 text-xs font-bold">+</span>
-            <kbd className="px-2 py-0.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-black text-emerald-800 dark:text-emerald-300 shadow-2xs">K</kbd>
+          <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-emerald-600 transition-colors shrink-0" />
+          <span className="truncate max-w-[calc(100%-1rem)] font-normal text-slate-500">{t('Tìm kiếm nhanh hoặc mở Command Center...')}</span>
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1">
+            <kbd className="px-1.5 py-0.5 bg-[#F1F5F9] dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-medium text-slate-500 shadow-2xs">Ctrl + K</kbd>
           </div>
         </button>
       </div>
       
       {/* Right Action Cluster */}
-      <div className="flex items-center gap-1.5 sm:gap-2.5 md:gap-3 shrink-0">
+      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
         
         {/* Mobile Search Icon Button */}
         <button
           type="button"
           onClick={toggleCommand}
           aria-label={t('Tìm kiếm')}
-          className="md:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          className="md:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
         >
           <Search className="w-4 h-4" />
         </button>
@@ -155,34 +153,37 @@ export function TopBar() {
           type="button"
           onClick={() => setCurrentView('journey')}
           title={`Level ${realLevel} · ${realCp} CP · ${realStreak} ngày streak`}
-          className="md:hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-800 font-bold text-[10px] shadow-2xs shrink-0 cursor-pointer"
+          className="md:hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-[#E2E8F0] dark:border-slate-800 font-semibold text-[10px] shadow-2xs shrink-0 cursor-pointer"
         >
-          <span className="text-amber-600 dark:text-amber-400 font-black">LV.{realLevel}</span>
-          <span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold">⚡{realCp > 999 ? `${(realCp/1000).toFixed(1)}k` : realCp}</span>
-          <span className="text-rose-500 dark:text-rose-400 font-mono font-bold">🔥{realStreak}</span>
+          <span className="text-amber-600 dark:text-amber-400 font-bold">LV.{realLevel}</span>
+          <span className="text-emerald-600 dark:text-emerald-400 font-mono font-medium">⚡{realCp > 999 ? `${(realCp/1000).toFixed(1)}k` : realCp}</span>
+          <span className="text-rose-500 dark:text-rose-400 font-mono font-medium">🔥{realStreak}</span>
         </button>
 
-        {/* Desktop Modern RPG Game HUD Pill */}
+        {/* Desktop Modern Gamification HUD Pill */}
         <button
           type="button"
           onClick={() => setCurrentView('journey')}
-          title={`Hồ sơ Anh Hùng: Level ${realLevel} · ${realStreak} ngày streak · Nhấn để xem bản đồ chiến đấu RPG`}
-          className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200/90 dark:border-slate-800 hover:border-emerald-500/80 font-black text-xs shadow-2xs hover:scale-105 active:scale-95 transition-all cursor-pointer group"
+          title={`Level ${realLevel} · ${realCp} CP · ${realCoins} Coins · ${realStreak}d Streak`}
+          className="hidden md:inline-flex items-center gap-2.5 h-9 px-3 rounded-lg bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-xs text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
         >
-          <span className="px-2 py-0.5 rounded-md bg-amber-400 text-slate-950 text-[10px] font-black uppercase shadow-2xs">
+          <span className="font-semibold text-slate-900 dark:text-white">
             LV.{realLevel}
           </span>
-          <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-            <Zap className="w-3.5 h-3.5 fill-current" />
-            <span className="font-mono text-[11px] font-bold">{realCp.toLocaleString()} CP</span>
+          <span className="text-slate-200 dark:text-slate-700">|</span>
+          <div className="flex items-center gap-1 text-emerald-600">
+            <Zap className="w-3.5 h-3.5" />
+            <span className="font-mono text-[11px] font-medium">{realCp.toLocaleString()} CP</span>
           </div>
-          <div className="flex items-center gap-1 text-amber-600 dark:text-amber-300 border-l border-slate-200 dark:border-slate-700/80 pl-2">
-            <span className="text-[11px]">🪙</span>
-            <span className="font-mono text-[11px] font-bold">{realCoins}</span>
+          <span className="text-slate-200 dark:text-slate-700">|</span>
+          <div className="flex items-center gap-1 text-amber-500">
+            <Award className="w-3.5 h-3.5" />
+            <span className="font-mono text-[11px] font-medium">{realCoins}</span>
           </div>
-          <div className="flex items-center gap-0.5 text-rose-500 dark:text-rose-400 border-l border-slate-200 dark:border-slate-700/80 pl-2">
-            <Flame className="w-3.5 h-3.5 fill-current animate-pulse" />
-            <span className="font-mono text-[11px] font-bold">{realStreak}d</span>
+          <span className="text-slate-200 dark:text-slate-700">|</span>
+          <div className="flex items-center gap-1 text-rose-500">
+            <Flame className="w-3.5 h-3.5" />
+            <span className="font-mono text-[11px] font-medium">{realStreak}d</span>
           </div>
         </button>
 
@@ -196,16 +197,16 @@ export function TopBar() {
               setShowUserMenu(false);
             }}
             aria-label={t('Tạo mới')}
-            className="flex items-center justify-center gap-1.5 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-500 text-white p-2.5 sm:px-4 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black transition-all shadow-md shadow-emerald-500/20 cursor-pointer btn-squishy shrink-0"
+            className="h-9 px-3.5 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs"
           >
-            {!hasSubAccess ? <Lock className="w-4 h-4 text-amber-200" /> : <Plus className="w-4 h-4 stroke-[2.5]" />}
-            <span className="hidden sm:inline">{t('Tạo mới')}</span>
+            {!hasSubAccess ? <Lock className="w-3.5 h-3.5 text-white/80" /> : <Plus className="w-3.5 h-3.5 stroke-[2.5]" />}
+            <span>{t('Tạo mới')}</span>
           </button>
 
           {showCreateMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowCreateMenu(false)}></div>
-              <div className="absolute top-full right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 p-2 space-y-1 animate-in fade-in zoom-in-95 duration-100">
+              <div className="absolute top-full right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-lg shadow-sm z-50 p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100">
                 {!hasSubAccess ? (
                   <div className="p-3 text-center space-y-2.5">
                     <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto border border-amber-500/20">
@@ -323,20 +324,18 @@ export function TopBar() {
               window.dispatchEvent(new CustomEvent('lifeos-companion-settings-updated', { detail: updated }));
             }
           }}
-          className={`hidden md:inline-flex p-2.5 rounded-2xl transition-all cursor-pointer btn-squishy items-center gap-1.5 ${
+          className={`hidden md:inline-flex h-9 px-3 rounded-lg border text-xs font-medium transition-colors cursor-pointer items-center gap-1.5 ${
             companionSettings.enabled && companionSettings.focusCompanionMode !== 'off'
-              ? 'text-amber-500 hover:text-amber-600 bg-amber-500/10 hover:bg-amber-500/20 ring-1 ring-amber-500/30 shadow-xs'
-              : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+              ? 'bg-[#ECFDF5] border-emerald-200 text-[#059669] hover:bg-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-800'
+              : 'bg-white dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50'
           }`}
           title={companionSettings.enabled && companionSettings.focusCompanionMode !== 'off'
             ? `${MASCOT_PROFILES[companionSettings.mascotId]?.name || 'AI Companion'} ${t('is active · Click to hide')}`
             : t('AI Companion is hidden · Click to open!')}
           aria-label={t('Bật/Tắt nhân vật AI')}
         >
-          <span className="text-base select-none">
-            {MASCOT_PROFILES[companionSettings.mascotId]?.avatar || '🌟'}
-          </span>
-          <span className="hidden xl:inline text-xs font-bold">
+          <Bot className="w-4 h-4 text-emerald-600" />
+          <span className="hidden xl:inline text-xs font-medium">
             {companionSettings.enabled && companionSettings.focusCompanionMode !== 'off' ? (isVi ? 'AI Bật' : 'AI On') : (isVi ? 'Mở AI' : 'Open AI')}
           </span>
         </button>
@@ -345,14 +344,14 @@ export function TopBar() {
         <button
           type="button"
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="hidden md:inline-flex p-2.5 text-slate-500 hover:text-amber-500 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-2xl transition-all cursor-pointer btn-squishy"
+          className="hidden md:inline-flex h-9 w-9 items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg border border-[#E2E8F0] dark:border-slate-800 transition-colors cursor-pointer"
           title={theme === 'dark' ? t('Switch to Light Mode') : t('Switch to Dark Mode')}
           aria-label={t('Chuyển chế độ giao diện')}
         >
           {theme === 'dark' ? (
-            <Sun className="w-5 h-5 text-amber-400 animate-pulse-soft" />
+            <Sun className="w-4 h-4 text-amber-400" />
           ) : (
-            <Moon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+            <Moon className="w-4 h-4 text-slate-600 dark:text-slate-300" />
           )}
         </button>
 
@@ -365,26 +364,26 @@ export function TopBar() {
               setShowCreateMenu(false); 
               setShowUserMenu(false);
             }} 
-            className="p-2.5 text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-2xl transition-all relative btn-squishy"
+            className="h-9 w-9 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg border border-[#E2E8F0] dark:border-slate-800 transition-colors relative cursor-pointer"
             aria-label={t('Thông báo')}
           >
-            <Bell className="w-5 h-5" />
+            <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full ring-2 ring-white dark:ring-slate-900 animate-pulse"></span>
+              <span className="absolute top-2 right-2 w-2 h-2 bg-[#10B981] rounded-full"></span>
             )}
           </button>
           
           {showNotifications && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)}></div>
-              <div className="absolute top-full right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 rounded-3xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-emerald-500/10 to-teal-500/10">
-                  <h3 className="font-black text-xs text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-1.5">
-                    <span>🔔</span>
+              <div className="absolute top-full right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-lg shadow-sm z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
+                  <h3 className="font-semibold text-xs text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                    <Bell className="w-3.5 h-3.5 text-slate-500" />
                     <span>{t('Thông báo')} ({unreadCount})</span>
                   </h3>
                   {unreadCount > 0 && (
-                    <button type="button" onClick={clearAllNotifications} className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-bold">
+                    <button type="button" onClick={clearAllNotifications} className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-medium">
                       {t('Đã đọc tất cả')}
                     </button>
                   )}
@@ -466,14 +465,14 @@ export function TopBar() {
               setShowNotifications(false);
               setShowCreateMenu(false);
             }}
-            className="flex items-center gap-2 p-1 pl-1.5 sm:pr-3 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/90 dark:border-slate-800 transition-all btn-squishy"
+            className="flex items-center gap-2 h-9 p-1 pl-1.5 pr-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 border border-[#E2E8F0] dark:border-slate-800 transition-colors cursor-pointer"
           >
             <img 
-              src={currentUser?.avatar || 'https://ui-avatars.com/api/?name=User&background=random'} 
+              src={currentUser?.avatar || 'https://ui-avatars.com/api/?name=LifeOS+SuperAdmin&background=10B981&color=fff'} 
               alt="Avatar" 
-              className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 object-cover ring-2 ring-emerald-500/30" 
+              className="w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-800 object-cover" 
             />
-            <span className="hidden sm:inline text-xs font-black text-slate-700 dark:text-slate-200 max-w-[100px] truncate">
+            <span className="hidden sm:inline text-xs font-medium text-slate-700 dark:text-slate-200 max-w-[100px] truncate">
               {currentUser?.name?.split(' ')[0] || t('Tài khoản')}
             </span>
             <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
@@ -482,7 +481,7 @@ export function TopBar() {
           {showUserMenu && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)}></div>
-              <div className="absolute top-full right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 p-2 space-y-1.5 animate-in fade-in zoom-in-95 duration-100 text-xs">
+              <div className="absolute top-full right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-lg shadow-sm z-50 p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100 text-xs">
                 {/* Header User Info */}
                 <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl mb-1">
                   <div className="font-bold text-slate-900 dark:text-white truncate">{currentUser?.name || t('Người dùng')}</div>

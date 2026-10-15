@@ -21,19 +21,14 @@ export const CompanionSpeechBubble: React.FC<CompanionSpeechBubbleProps> = ({
 
   return (
     <div 
-      className={`relative w-auto max-w-[calc(100vw-2.5rem)] sm:max-w-sm p-3.5 rounded-2xl shadow-xl border bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-medium animate-in fade-in zoom-in-95 duration-200 z-50 ${className}`}
-      style={{
-        borderColor: `${profile.themeColor}33`,
-        boxShadow: `0 10px 25px -5px ${profile.glowColor}`
-      }}
+      className={`relative w-auto max-w-[calc(100vw-2.5rem)] sm:max-w-sm p-3.5 rounded-xl shadow-lg border border-[#E2E8F0] dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-normal animate-in fade-in zoom-in-95 duration-200 z-50 ${className}`}
     >
       {/* Speech tail pointer */}
       <div 
-        className="absolute w-3 h-3 bg-white dark:bg-slate-900 border-b border-r transform rotate-45"
+        className="absolute w-2.5 h-2.5 bg-white dark:bg-slate-900 border-b border-r border-[#E2E8F0] dark:border-slate-800 transform rotate-45"
         style={{
-          borderColor: `${profile.themeColor}33`,
-          bottom: position === 'top' ? '-6px' : undefined,
-          right: position === 'top' ? '28px' : undefined
+          bottom: position === 'top' ? '-5px' : undefined,
+          right: position === 'top' ? '24px' : undefined
         }}
       />
 
