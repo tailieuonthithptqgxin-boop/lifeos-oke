@@ -503,9 +503,21 @@ export function DashboardView() {
 
                   {showMoodPicker && (
                     <>
-                      <div className="fixed inset-0 z-30" onClick={() => setShowMoodPicker(false)} />
-                      <div className="absolute left-0 top-full mt-2 w-60 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-2 shadow-xl z-40 space-y-1 text-xs animate-in fade-in zoom-in-95">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 px-2 tracking-wider block">Tâm trạng hôm nay</span>
+                      {/* Backdrop for Mobile and Desktop */}
+                      <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-xs md:bg-transparent md:backdrop-blur-none" onClick={() => setShowMoodPicker(false)} />
+
+                      {/* Desktop Popover */}
+                      <div className="hidden md:block absolute left-0 top-full mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-2 shadow-xl z-50 space-y-1 text-xs animate-in fade-in zoom-in-95">
+                        <div className="flex items-center justify-between px-2 py-1 border-b border-slate-100 dark:border-slate-800 mb-1">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Tâm trạng hôm nay</span>
+                          <button 
+                            type="button" 
+                            onClick={() => setShowMoodPicker(false)} 
+                            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                         {(Object.keys(MOOD_PRESETS) as GenZMood[]).map(key => {
                           const m = MOOD_PRESETS[key];
                           return (
@@ -528,6 +540,52 @@ export function DashboardView() {
                             </button>
                           );
                         })}
+                      </div>
+
+                      {/* Mobile Bottom Sheet (Thumb-friendly & No overflow) */}
+                      <div className="md:hidden fixed inset-x-0 bottom-0 z-50 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 rounded-t-3xl p-5 shadow-2xl space-y-3 max-h-[80vh] overflow-y-auto animate-slide-up pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+                        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">✨</span>
+                            <span className="text-sm font-black text-slate-900 dark:text-white">Tâm trạng hôm nay của bạn</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setShowMoodPicker(false)}
+                            className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full bg-slate-100 dark:bg-slate-800 cursor-pointer"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 pt-1">
+                          {(Object.keys(MOOD_PRESETS) as GenZMood[]).map(key => {
+                            const m = MOOD_PRESETS[key];
+                            const isSelected = todayMood === key;
+                            return (
+                              <button
+                                key={key}
+                                type="button"
+                                onClick={() => {
+                                  soundEngine.playPop();
+                                  setTodayMood(key);
+                                  setTodayMoodState(key);
+                                  setShowMoodPicker(false);
+                                }}
+                                className={`flex items-center gap-2.5 p-3 rounded-2xl text-left border transition-all cursor-pointer ${
+                                  isSelected 
+                                    ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-bold shadow-xs' 
+                                    : 'bg-slate-50 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300'
+                                }`}
+                              >
+                                <span className="text-2xl">{m.emoji}</span>
+                                <div className="min-w-0">
+                                  <span className="block text-xs font-bold truncate">{t(m.label)}</span>
+                                  <span className={`text-[10px] block truncate ${isSelected ? 'text-slate-900/80 font-medium' : 'text-slate-400'}`}>{t(m.vibe)}</span>
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </>
                   )}
