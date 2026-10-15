@@ -422,71 +422,71 @@ export function FocusView() {
   const remainingSeconds = activeSession ? Math.max(0, activeSession.plannedDuration * 60 - elapsedSeconds) : currentPlannedMinutes * 60;
   const progressFraction = activeSession ? Math.min(1, elapsedSeconds / (activeSession.plannedDuration * 60)) : 0;
 
-  // 4 Reusable Compact Metrics Cards (Slim horizontal bars py-2.5 px-3.5 on Desktop)
+  // 4 Reusable Compact Metrics Cards (Minimalist Linear / Notion styling)
   const renderStatsCards = (extraClass = "") => (
     <div className={`grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 ${extraClass}`}>
       {/* 1. Thời gian Focus */}
-      <div className="py-2.5 px-3.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs flex items-center justify-between gap-3">
+      <div className="py-2.5 px-3.5 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-1">
-            <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate">
+            <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate">
               {isVi ? 'Thời gian Focus' : 'Focus Time'}
             </span>
-            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold shrink-0">
+            <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">
               {progressPercent}%
             </span>
           </div>
-          <div className="text-lg font-black text-slate-900 dark:text-white font-mono tracking-tight leading-none mt-1">
+          <div className="text-lg font-bold text-slate-900 dark:text-white font-mono tracking-tight leading-none mt-1">
             {Math.floor(totalMinutesToday / 60)}h {totalMinutesToday % 60}m
           </div>
         </div>
-        <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200/50 dark:border-emerald-800/50">
           <Clock className="w-4 h-4" />
         </div>
       </div>
 
       {/* 2. Phiên hoàn thành */}
-      <div className="py-2.5 px-3.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs flex items-center justify-between gap-3">
+      <div className="py-2.5 px-3.5 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
+          <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
             {isVi ? 'Phiên hoàn thành' : 'Completed Sessions'}
           </span>
-          <div className="text-lg font-black text-slate-900 dark:text-white font-mono tracking-tight leading-none mt-1">
-            {completedToday.length} <span className="text-xs font-semibold text-slate-400 font-sans">/{todaySessions.length}</span>
+          <div className="text-lg font-bold text-slate-900 dark:text-white font-mono tracking-tight leading-none mt-1">
+            {completedToday.length} <span className="text-xs font-normal text-slate-400 font-sans">/{todaySessions.length}</span>
           </div>
         </div>
-        <div className="w-8 h-8 rounded-xl bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400 flex items-center justify-center shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
           <Target className="w-4 h-4" />
         </div>
       </div>
 
       {/* 3. Gián đoạn */}
-      <div className="py-2.5 px-3.5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl shadow-xs flex items-center justify-between gap-3">
+      <div className="py-2.5 px-3.5 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
+          <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
             {isVi ? 'Gián đoạn' : 'Interruptions'}
           </span>
-          <div className="text-lg font-black text-amber-500 font-mono tracking-tight leading-none mt-1">
-            {todaySessions.reduce((acc, curr) => acc + (curr.interruptions?.length || 0), 0)} <span className="text-[10px] font-semibold text-slate-400 font-sans">{isVi ? 'lần' : 'times'}</span>
+          <div className="text-lg font-bold text-amber-500 font-mono tracking-tight leading-none mt-1">
+            {todaySessions.reduce((acc, curr) => acc + (curr.interruptions?.length || 0), 0)} <span className="text-[10px] font-normal text-slate-400 font-sans">{isVi ? 'lần' : 'times'}</span>
           </div>
         </div>
-        <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-200/50 dark:border-amber-800/50">
           <ShieldAlert className="w-4 h-4" />
         </div>
       </div>
 
       {/* 4. Focus Streak */}
-      <div className="py-2.5 px-3.5 bg-gradient-to-br from-amber-50/70 to-orange-50/40 border border-amber-200/70 dark:from-slate-900 dark:to-slate-950 dark:border-slate-800 rounded-2xl shadow-xs flex items-center justify-between gap-3">
+      <div className="py-2.5 px-3.5 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <span className="text-[10px] font-bold text-amber-700/80 dark:text-amber-400/80 uppercase tracking-wider block truncate">
+          <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
             Focus Streak
           </span>
-          <div className="text-lg font-black text-amber-600 dark:text-amber-400 font-mono tracking-tight leading-none mt-1">
-            {focusStreak} <span className="text-[10px] font-bold text-amber-600/80 dark:text-amber-400/80 font-sans">{isVi ? 'ngày' : 'days'}</span>
+          <div className="text-lg font-bold text-amber-500 dark:text-amber-400 font-mono tracking-tight leading-none mt-1">
+            {focusStreak} <span className="text-[10px] font-normal text-slate-400 font-sans">{isVi ? 'ngày' : 'days'}</span>
           </div>
         </div>
-        <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-          <span className="text-sm">🔥</span>
+        <div className="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/40 border border-amber-200/50 dark:border-amber-800/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+          <span className="text-xs">🔥</span>
         </div>
       </div>
     </div>
@@ -582,15 +582,12 @@ export function FocusView() {
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start flex-1 min-h-0">
         
-        {/* CỘT TRÁI (7/12 CỘT TRÊN DESKTOP) - TRẠM ĐỒNG HỒ POMODORO (ĐƯA LÊN ĐẦU TRÊN MOBILE) */}
-        <div className="order-1 lg:order-none lg:col-span-7 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-3xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between items-center text-center space-y-3 sm:space-y-3.5 relative overflow-hidden">
+        {/* CỘT TRÁI (7/12 CỘT TRÊN DESKTOP) - TRẠM ĐỒNG HỒ POMODORO (LINEAR / NOTION MINIMALIST) */}
+        <div className="order-1 lg:order-none lg:col-span-7 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 flex flex-col justify-between items-center text-center space-y-5 relative">
           
-          {/* Subtle ambient blur */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/5 dark:bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-
-          {/* Mode Switcher Tabs (Pomodoro 25p / Deep Work 50p / Nghỉ ngắn 5p / Siêu tập trung 90p) */}
+          {/* Mode Switcher Tabs */}
           <div className="w-full flex items-center justify-center">
-            <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 max-w-full overflow-x-auto no-scrollbar gap-1">
+            <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 max-w-full overflow-x-auto no-scrollbar gap-1 text-xs">
               {FOCUS_MODES.map((m) => {
                 const isSelected = selectedMode === m.mode;
                 return (
@@ -604,11 +601,11 @@ export function FocusView() {
                         setSelectedMode(m.mode);
                       }
                     }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                       isSelected
-                        ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-2xs'
-                        : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200'
-                    } ${activeSession && activeSession.status === 'Running' ? 'opacity-60 cursor-not-allowed' : ''}`}
+                        ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-2xs font-semibold'
+                        : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
+                    } ${activeSession && activeSession.status === 'Running' ? 'opacity-50 cursor-not-allowed' : ''}`}
                   >
                     <span>{m.label}</span>
                   </button>
@@ -617,180 +614,125 @@ export function FocusView() {
             </div>
           </div>
 
-          {/* Task Selector Pill (Mục tiêu phiên tập trung) */}
-          <div className="w-full flex items-center justify-center">
-            {!activeSession ? (
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-100/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-300 max-w-full">
-                <Target className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                <span className="font-semibold shrink-0">🎯 {isVi ? 'Mục tiêu phiên này:' : 'Session Goal:'}</span>
-                <select 
-                  value={selectedTaskId} 
-                  onChange={e => setSelectedTaskId(e.target.value)}
-                  className="bg-transparent border-0 outline-none text-xs font-bold text-slate-800 dark:text-slate-100 cursor-pointer max-w-[180px] sm:max-w-xs truncate"
-                >
-                  <option value="" className="dark:bg-slate-900">{isVi ? 'Chọn công việc cần tập trung...' : 'Pick a task...'}</option>
-                  {tasks.filter(t => t.status !== 'Hoàn thành' && t.status !== 'Hủy').map(t => (
-                    <option key={t.id} value={t.id} className="dark:bg-slate-900">{t.title}</option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-xs font-bold text-emerald-700 dark:text-emerald-300 max-w-full">
-                <Target className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                <span className="truncate">🎯 {activeSession.title}</span>
-              </div>
-            )}
-          </div>
+          {/* LARGE TYPOGRAPHIC POMODORO TIMER (Geometric Monospaced, without heavy enclosing cards) */}
+          <div className="py-6 sm:py-8 flex flex-col items-center justify-center">
+            <div className={`text-6xl sm:text-7xl md:text-8xl font-light font-mono tracking-tighter tabular-nums select-none ${
+              !activeSession 
+                ? 'text-slate-900 dark:text-white' 
+                : activeSession.status === 'Paused' 
+                  ? 'text-amber-500' 
+                  : 'text-emerald-600 dark:text-emerald-400'
+            }`}>
+              {formatTime(remainingSeconds)}
+            </div>
 
-          {/* Vòng tròn Đồng hồ (Timer Circle - w-48 h-48 sm:w-52 sm:h-52 md:w-56 md:h-56) */}
-          <div className="relative w-48 h-48 sm:w-52 sm:h-52 md:w-56 md:h-56 mx-auto flex items-center justify-center">
-            <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 240 240">
-              <defs>
-                <linearGradient id="focusTimerGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" stopColor="#10b981" />
-                  <stop offset="100%" stopColor="#14b8a6" />
-                </linearGradient>
-              </defs>
-              <circle 
-                cx="120" cy="120" r="100" 
-                className="stroke-slate-100 dark:stroke-slate-800" 
-                strokeWidth="8" 
-                fill="none" 
-              />
-              <circle 
-                cx="120" cy="120" r="100" 
-                className={`transition-all duration-1000 ease-linear ${
-                  activeSession?.status === 'Paused' ? 'stroke-amber-400' : ''
-                }`} 
-                stroke={
-                  !activeSession 
-                    ? 'transparent' 
-                    : activeSession.status === 'Paused' 
-                      ? '#f59e0b' 
-                      : 'url(#focusTimerGrad)'
-                }
-                strokeWidth="8" 
-                fill="none" 
-                strokeLinecap="round"
-                strokeDasharray={2 * Math.PI * 100}
-                strokeDashoffset={2 * Math.PI * 100 * (1 - progressFraction)}
-              />
-            </svg>
+            <p className="text-xs sm:text-sm font-normal text-slate-500 dark:text-slate-400 tracking-wide mt-2">
+              {!activeSession 
+                ? (isVi ? 'Phiên tập trung' : 'Focus Session')
+                : activeSession.status === 'Running'
+                  ? (isVi ? 'Đang tập trung sâu' : 'Deep Focus Session')
+                  : (isVi ? 'Tạm dừng phiên' : 'Session Paused')
+              }
+            </p>
 
-            <div className="flex flex-col items-center justify-center text-center z-10 px-4">
-              {/* Badge State (Chuẩn logic: Idle -> SẴN SÀNG; Running -> ĐANG TẬP TRUNG; Paused -> TẠM DỪNG) */}
+            {/* Task Goal Selector (Subtle inline text) */}
+            <div className="mt-3">
               {!activeSession ? (
-                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 mb-1 flex items-center gap-1">
-                  <span>⚡</span> {isVi ? 'SẴN SÀNG TẬP TRUNG' : 'READY TO FOCUS'}
-                </span>
-              ) : activeSession.status === 'Running' ? (
-                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 mb-1 flex items-center gap-1.5 animate-pulse">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
-                  {isVi ? 'ĐANG TẬP TRUNG SÂU' : 'DEEP FOCUSING'}
-                </span>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400">
+                  <Target className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span className="font-medium shrink-0">{isVi ? 'Mục tiêu:' : 'Goal:'}</span>
+                  <select 
+                    value={selectedTaskId} 
+                    onChange={e => setSelectedTaskId(e.target.value)}
+                    className="bg-transparent border-0 outline-none text-xs font-normal text-slate-700 dark:text-slate-300 cursor-pointer max-w-[200px] truncate"
+                  >
+                    <option value="" className="dark:bg-slate-900">{isVi ? 'Chọn công việc cần tập trung...' : 'Pick a task...'}</option>
+                    {tasks.filter(t => t.status !== 'Hoàn thành' && t.status !== 'Hủy').map(t => (
+                      <option key={t.id} value={t.id} className="dark:bg-slate-900">{t.title}</option>
+                    ))}
+                  </select>
+                </div>
               ) : (
-                <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 mb-1 flex items-center gap-1 animate-pulse">
-                  <span>⏸️</span> {isVi ? 'ĐANG TẠM DỪNG' : 'SESSION PAUSED'}
-                </span>
-              )}
-
-              {/* Big Time Display */}
-              <div className={`text-4xl sm:text-5xl font-black tabular-nums tracking-tight ${
-                !activeSession 
-                  ? 'text-slate-800 dark:text-white' 
-                  : activeSession.status === 'Paused' 
-                    ? 'text-amber-500' 
-                    : 'text-emerald-600 dark:text-emerald-400'
-              }`}>
-                {formatTime(remainingSeconds)}
-              </div>
-
-              {/* Subtext */}
-              <div className="text-[11px] font-bold mt-1.5 px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200/60 dark:border-slate-700/60">
-                {!activeSession 
-                  ? `⏱️ ${currentPlannedMinutes} ${isVi ? 'phút mục tiêu' : 'min target'}`
-                  : `⏱️ ${formatTime(elapsedSeconds)} ${isVi ? 'đã trôi qua' : 'elapsed'}`
-                }
-              </div>
-            </div>
-          </div>
-
-          {/* Cụm Nút Điều Khiển Thông Minh (Play / Pause / Finish / Cancel) */}
-          {!activeSession ? (
-            <div className="w-full flex justify-center pt-1">
-              <button 
-                type="button" 
-                onClick={startFocus}
-                className="w-full sm:w-auto px-8 py-3.5 bg-emerald-600 hover:bg-emerald-500 active:scale-98 text-white rounded-2xl font-bold text-sm sm:text-base transition-all shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2 cursor-pointer min-h-[48px]"
-              >
-                <Play className="w-5 h-5 fill-current" />
-                <span>{isVi ? 'Bắt đầu phiên tập trung' : 'Start Focus Session'}</span>
-              </button>
-            </div>
-          ) : (
-            <div className="w-full space-y-3 pt-1">
-              <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
-                {activeSession.status === 'Running' ? (
-                  <button 
-                    type="button" 
-                    onClick={pauseFocus}
-                    className="px-5 sm:px-6 py-2.5 sm:py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-amber-500/20 transition-all cursor-pointer min-h-[44px]"
-                    title={isVi ? "Tạm dừng phiên" : "Pause session"}
-                  >
-                    <Pause className="w-4 h-4 fill-current" />
-                    <span>{isVi ? 'Tạm dừng' : 'Pause'}</span>
-                  </button>
-                ) : (
-                  <button 
-                    type="button" 
-                    onClick={resumeFocus}
-                    className="px-5 sm:px-6 py-2.5 sm:py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 transition-all cursor-pointer min-h-[44px]"
-                    title={isVi ? "Tiếp tục phiên" : "Resume session"}
-                  >
-                    <Play className="w-4 h-4 fill-current ml-0.5" />
-                    <span>{isVi ? 'Tiếp tục' : 'Resume'}</span>
-                  </button>
-                )}
-
-                {/* Nút Hoàn thành sớm (Sáng sủa, không dùng màu đen) */}
-                <button 
-                  type="button" 
-                  onClick={finishFocus}
-                  className="px-4 py-2.5 sm:py-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-emerald-400 dark:border-slate-700 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer min-h-[44px]"
-                  title={isVi ? "Hoàn thành sớm phiên này" : "Finish early"}
-                >
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                  <span>{isVi ? 'Hoàn thành sớm' : 'Finish early'}</span>
-                </button>
-                
-                {/* Nút Hủy phiên (Màu đỏ nhạt) */}
-                <button 
-                  type="button" 
-                  onClick={cancelFocus}
-                  className="px-4 py-2.5 sm:py-3 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 dark:text-rose-400 dark:border-rose-900/60 font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer min-h-[44px]"
-                  title={isVi ? "Hủy phiên này" : "Cancel session"}
-                >
-                  <Square className="w-3.5 h-3.5 fill-current" />
-                  <span>{isVi ? 'Hủy' : 'Cancel'}</span>
-                </button>
-              </div>
-
-              {/* Nút Ghi chú / Gián đoạn (Dạng button pill nhẹ nhàng) */}
-              {activeSession.status === 'Paused' && (
-                <div className="pt-1">
-                  <button
-                    type="button"
-                    onClick={() => setShowInterruptionModal(true)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium transition-colors cursor-pointer"
-                  >
-                    <span>💬</span>
-                    <span>{isVi ? 'Ghi nhận lý do gián đoạn / Ghi chú nhanh' : 'Log interruption / Quick note'}</span>
-                  </button>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                  <Target className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span className="truncate">{activeSession.title}</span>
                 </div>
               )}
             </div>
-          )}
+          </div>
 
+          {/* Minimalist Controls */}
+          <div className="w-full flex items-center justify-center pt-1">
+            {!activeSession ? (
+              <button 
+                type="button" 
+                onClick={startFocus}
+                className="w-full sm:w-auto px-8 py-3 bg-emerald-600 hover:bg-emerald-500 active:scale-98 text-white rounded-xl font-medium text-sm transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <Play className="w-4 h-4 fill-current" />
+                <span>{isVi ? 'Bắt đầu phiên tập trung' : 'Start Focus Session'}</span>
+              </button>
+            ) : (
+              <div className="w-full space-y-3">
+                <div className="flex flex-wrap items-center justify-center gap-2.5">
+                  {activeSession.status === 'Running' ? (
+                    <button 
+                      type="button" 
+                      onClick={pauseFocus}
+                      className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-medium text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+                      title={isVi ? "Tạm dừng phiên" : "Pause session"}
+                    >
+                      <Pause className="w-4 h-4 fill-current" />
+                      <span>{isVi ? 'Tạm dừng' : 'Pause'}</span>
+                    </button>
+                  ) : (
+                    <button 
+                      type="button" 
+                      onClick={resumeFocus}
+                      className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs sm:text-sm flex items-center justify-center gap-2 shadow-xs transition-all cursor-pointer"
+                      title={isVi ? "Tiếp tục phiên" : "Resume session"}
+                    >
+                      <Play className="w-4 h-4 fill-current ml-0.5" />
+                      <span>{isVi ? 'Tiếp tục' : 'Resume'}</span>
+                    </button>
+                  )}
+
+                  <button 
+                    type="button" 
+                    onClick={finishFocus}
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-emerald-600 dark:text-emerald-400 border border-slate-200 dark:border-slate-700 font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    title={isVi ? "Hoàn thành sớm phiên này" : "Finish early"}
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{isVi ? 'Hoàn thành sớm' : 'Finish early'}</span>
+                  </button>
+                  
+                  <button 
+                    type="button" 
+                    onClick={cancelFocus}
+                    className="px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-rose-50 hover:text-rose-600 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 font-medium text-xs sm:text-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                    title={isVi ? "Hủy phiên này" : "Cancel session"}
+                  >
+                    <Square className="w-3.5 h-3.5 fill-current" />
+                    <span>{isVi ? 'Hủy' : 'Cancel'}</span>
+                  </button>
+                </div>
+
+                {activeSession.status === 'Paused' && (
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowInterruptionModal(true)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-normal transition-colors cursor-pointer"
+                    >
+                      <span>💬</span>
+                      <span>{isVi ? 'Ghi nhận lý do gián đoạn' : 'Log interruption reason'}</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* THẺ THỐNG KÊ THU GỌN TRÊN MOBILE (< lg) - NẰM NGAY DƯỚI ĐỒNG HỒ */}
@@ -809,38 +751,38 @@ export function FocusView() {
 
           {/* History Card (Chiều cao thu gọn khi chưa có dữ liệu) */}
           {!isZenMode && (
-            <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-3xl shadow-sm border border-slate-200/80 dark:border-slate-800/80 overflow-hidden flex flex-col">
-              <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 flex items-center justify-between">
-                <h3 className="font-extrabold text-slate-900 dark:text-white flex items-center gap-2 text-xs uppercase tracking-wider">
-                  <Clock className="w-4 h-4 text-emerald-500" /> {isVi ? 'Lịch sử hôm nay 📅' : "Today's History 📅"}
+            <div className="bg-white dark:bg-[#0F172A] rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+              <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex items-center justify-between">
+                <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2 text-xs uppercase tracking-wider">
+                  <Clock className="w-4 h-4 text-emerald-500" /> {isVi ? 'Lịch sử hôm nay' : "Today's History"}
                 </h3>
-                <span className="text-[11px] font-semibold text-slate-400">
+                <span className="text-[11px] font-medium text-slate-400">
                   {todaySessions.length} {isVi ? 'phiên' : 'sessions'}
                 </span>
               </div>
               <div className="p-3 sm:p-4 space-y-2.5 max-h-56 overflow-y-auto">
                 {todaySessions.length === 0 ? (
-                  <div className="text-center py-5 text-xs text-slate-400 font-medium">
+                  <div className="text-center py-5 text-xs text-slate-400 font-normal">
                     {isVi ? 'Chưa có phiên nào hôm nay. Hãy bắt đầu ngay! ✨' : 'No focus sessions yet today. Start right now! ✨'}
                   </div>
                 ) : (
                   todaySessions.map(session => (
-                    <div key={session.id} className="p-2.5 bg-slate-50/80 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800 text-xs transition-colors hover:border-emerald-300/60">
+                    <div key={session.id} className="p-2.5 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800 text-xs transition-colors hover:border-slate-300 dark:hover:border-slate-700">
                       <div className="flex items-center justify-between gap-2 mb-1">
-                        <h4 className="font-bold text-slate-800 dark:text-slate-200 truncate">{session.title}</h4>
-                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full shrink-0 ${
-                          session.status === 'Completed' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200/60' : 
+                        <h4 className="font-medium text-slate-800 dark:text-slate-200 truncate">{session.title}</h4>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md shrink-0 ${
+                          session.status === 'Completed' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60' : 
                           session.status === 'Cancelled' ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' :
-                          'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-400'
+                          'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60'
                         }`}>
                           {isVi ? (session.status === 'Completed' ? 'Hoàn thành' : session.status === 'Cancelled' ? 'Đã hủy' : session.status) : (session.status === 'Completed' ? 'Completed' : session.status === 'Cancelled' ? 'Cancelled' : session.status)}
                         </span>
                       </div>
-                      <div className="flex flex-wrap gap-3 text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                      <div className="flex flex-wrap gap-3 text-[11px] font-normal text-slate-500 dark:text-slate-400">
                         <span className="flex items-center gap-1"><Target className="w-3 h-3 text-emerald-500" /> {session.mode} ({session.plannedDuration}m)</span>
-                        <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-teal-500" /> {isVi ? 'Thực:' : 'Actual:'} {session.actualDuration}m</span>
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-slate-400" /> {isVi ? 'Thực:' : 'Actual:'} {session.actualDuration}m</span>
                         {session.interruptions && session.interruptions.length > 0 && (
-                          <span className="flex items-center gap-1 text-amber-600"><ShieldAlert className="w-3 h-3" /> {session.interruptions.length} {isVi ? 'gián đoạn' : 'interruptions'}</span>
+                          <span className="flex items-center gap-1 text-amber-500"><ShieldAlert className="w-3 h-3" /> {session.interruptions.length} {isVi ? 'gián đoạn' : 'interruptions'}</span>
                         )}
                       </div>
                     </div>

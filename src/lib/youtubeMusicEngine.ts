@@ -17,39 +17,63 @@ export const CURATED_FOCUS_TRACKS: YouTubeTrack[] = [
   {
     id: '5qap5aO4i9A',
     url: 'https://www.youtube.com/watch?v=5qap5aO4i9A',
-    title: 'Lofi Hip Hop Radio – Beats to Relax/Study to',
-    channel: 'Lofi Girl',
+    title: 'Rain & Lo-Fi Waves',
+    channel: 'Focus Mixtape',
     thumbnailUrl: 'https://img.youtube.com/vi/5qap5aO4i9A/hqdefault.jpg',
     category: 'lofi'
   },
   {
-    id: 'DWcJFNfaw90',
-    url: 'https://www.youtube.com/watch?v=DWcJFNfaw90',
-    title: 'synthwave radio – beats to chill/game to',
-    channel: 'Lofi Girl',
-    thumbnailUrl: 'https://img.youtube.com/vi/DWcJFNfaw90/hqdefault.jpg',
-    category: 'lofi'
+    id: 'xNN7iTA57jM',
+    url: 'https://www.youtube.com/watch?v=xNN7iTA57jM',
+    title: 'Deep Forest Ambience',
+    channel: 'Nature Soundscapes',
+    thumbnailUrl: 'https://img.youtube.com/vi/xNN7iTA57jM/hqdefault.jpg',
+    category: 'nature'
+  },
+  {
+    id: 'nMfPqeZjc2c',
+    url: 'https://www.youtube.com/watch?v=nMfPqeZjc2c',
+    title: 'White Noise Generator',
+    channel: 'Pure Frequencies',
+    thumbnailUrl: 'https://img.youtube.com/vi/nMfPqeZjc2c/hqdefault.jpg',
+    category: 'ambient'
+  },
+  {
+    id: 'gaGrHUekGdc',
+    url: 'https://www.youtube.com/watch?v=gaGrHUekGdc',
+    title: 'Cafe Chatter & Jazz',
+    channel: 'Cozy Coffee Shop',
+    thumbnailUrl: 'https://img.youtube.com/vi/gaGrHUekGdc/hqdefault.jpg',
+    category: 'ambient'
+  },
+  {
+    id: 'mPZkdNFkNps',
+    url: 'https://www.youtube.com/watch?v=mPZkdNFkNps',
+    title: 'Gentle Rain Shower',
+    channel: 'Calm Rainfall',
+    thumbnailUrl: 'https://img.youtube.com/vi/mPZkdNFkNps/hqdefault.jpg',
+    category: 'nature'
+  },
+  {
+    id: 'lTRiuFIWV54',
+    url: 'https://www.youtube.com/watch?v=lTRiuFIWV54',
+    title: 'Bibliotheca Background',
+    channel: 'Quiet Quest & Old Library',
+    thumbnailUrl: 'https://img.youtube.com/vi/lTRiuFIWV54/hqdefault.jpg',
+    category: 'ambient'
   },
   {
     id: 'WPni755-Krg',
     url: 'https://www.youtube.com/watch?v=WPni755-Krg',
-    title: 'Classical Music for Studying & Brain Power (Mozart, Beethoven)',
+    title: 'Classical Music for Brain Power',
     channel: 'HALIDONMUSIC',
     thumbnailUrl: 'https://img.youtube.com/vi/WPni755-Krg/hqdefault.jpg',
     category: 'classical'
   },
   {
-    id: 'lTRiuFIWV54',
-    url: 'https://www.youtube.com/watch?v=lTRiuFIWV54',
-    title: 'Deep Focus Music – 4 Hours Ambient Study Soundscape',
-    channel: 'Quiet Quest',
-    thumbnailUrl: 'https://img.youtube.com/vi/lTRiuFIWV54/hqdefault.jpg',
-    category: 'ambient'
-  },
-  {
     id: 'TURbeWK2wwg',
     url: 'https://www.youtube.com/watch?v=TURbeWK2wwg',
-    title: 'Peaceful Piano Music for Deep Concentration & Reading',
+    title: 'Peaceful Piano Concentration',
     channel: 'Soothing Relaxation',
     thumbnailUrl: 'https://img.youtube.com/vi/TURbeWK2wwg/hqdefault.jpg',
     category: 'piano'
