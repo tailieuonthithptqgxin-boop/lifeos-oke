@@ -239,7 +239,7 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
   return (
     <>
       <div 
-        className={`fixed z-[60] flex flex-col pointer-events-auto transition-all duration-300 ${posClasses} ${className}`}
+        className={`hidden md:flex fixed z-[60] flex-col pointer-events-auto transition-all duration-300 ${posClasses} ${className}`}
         aria-label="AI Study Companion"
       >
         {/* Floating Speech Bubble */}

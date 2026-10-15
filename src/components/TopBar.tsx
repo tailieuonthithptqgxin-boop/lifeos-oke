@@ -111,27 +111,24 @@ export function TopBar() {
   const inboxCount = inbox?.length || 0;
 
   return (
-    <header className="h-16 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between px-3.5 sm:px-5 md:px-6 shrink-0 z-30 transition-colors">
-      {/* Mobile Menu Toggle */}
-      <button 
-        type="button" 
-        onClick={toggleMobileMenu} 
-        aria-label="Mở danh mục điều hướng"
-        className="md:hidden p-2.5 mr-2 text-slate-600 dark:text-slate-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-2xl transition-all shrink-0 btn-squishy"
-      >
-        <Menu className="w-5 h-5" />
-      </button>
+    <header className="h-14 md:h-16 bg-white/90 dark:bg-slate-950/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between px-3.5 sm:px-5 md:px-6 shrink-0 z-30 transition-colors">
+      {/* Mobile Brand Logo */}
+      <div className="flex md:hidden items-center gap-2 shrink-0">
+        <div className="w-7 h-7 rounded-lg bg-gradient-to-tr from-emerald-600 to-teal-500 flex items-center justify-center text-white shadow-xs font-black text-xs">
+          ⚡
+        </div>
+        <span className="font-black text-sm tracking-tight text-slate-900 dark:text-white">LifeOS</span>
+      </div>
 
-      {/* Quick Search Bar */}
-      <div className="flex-1 max-w-lg min-w-0 mr-2 sm:mr-4 md:mr-6">
+      {/* Desktop Quick Search Bar (Hidden on Mobile) */}
+      <div className="hidden md:flex flex-1 max-w-lg min-w-0 mr-2 sm:mr-4 md:mr-6">
         <button 
           type="button" 
           onClick={toggleCommand}
           className="w-full relative flex items-center text-left pl-8 sm:pl-10 pr-3 md:pr-24 py-2 sm:py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-full text-xs sm:text-sm text-slate-500 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800 hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-xs transition-all group btn-squishy"
         >
           <Search className="w-4 h-4 sm:w-4.5 sm:h-4.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-emerald-600 transition-colors shrink-0" />
-          <span className="truncate max-w-[calc(100%-1rem)] font-medium sm:hidden">{t('Tìm kiếm nhanh...')}</span>
-          <span className="truncate max-w-[calc(100%-1rem)] font-medium hidden sm:inline">{t('Tìm kiếm nhanh hoặc mở Command Center...')}</span>
+          <span className="truncate max-w-[calc(100%-1rem)] font-medium">{t('Tìm kiếm nhanh hoặc mở Command Center...')}</span>
           <div className="absolute right-3.5 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 opacity-80 pointer-events-none">
             <kbd className="px-2 py-0.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-[10px] font-black text-emerald-800 dark:text-emerald-300 shadow-2xs">Ctrl</kbd>
             <span className="text-slate-400 text-xs font-bold">+</span>
@@ -143,12 +140,34 @@ export function TopBar() {
       {/* Right Action Cluster */}
       <div className="flex items-center gap-1.5 sm:gap-2.5 md:gap-3 shrink-0">
         
-        {/* Modern RPG Game HUD Pill */}
+        {/* Mobile Search Icon Button */}
+        <button
+          type="button"
+          onClick={toggleCommand}
+          aria-label={t('Tìm kiếm')}
+          className="md:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+        >
+          <Search className="w-4 h-4" />
+        </button>
+
+        {/* Mobile Compact Gamification Pill */}
+        <button
+          type="button"
+          onClick={() => setCurrentView('journey')}
+          title={`Level ${realLevel} · ${realCp} CP · ${realStreak} ngày streak`}
+          className="md:hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 text-white font-bold text-[10px] shadow-xs shrink-0 cursor-pointer"
+        >
+          <span className="text-amber-400 font-black">LV.{realLevel}</span>
+          <span className="text-emerald-400 font-mono">⚡{realCp > 999 ? `${(realCp/1000).toFixed(1)}k` : realCp}</span>
+          <span className="text-rose-400 font-mono">🔥{realStreak}</span>
+        </button>
+
+        {/* Desktop Modern RPG Game HUD Pill */}
         <button
           type="button"
           onClick={() => setCurrentView('journey')}
           title={`Hồ sơ Anh Hùng: Level ${realLevel} · ${realStreak} ngày streak · Nhấn để xem bản đồ chiến đấu RPG`}
-          className="hidden sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 text-white border border-slate-700/80 hover:border-emerald-500/80 font-black text-xs shadow-md shadow-slate-950/20 hover:scale-105 active:scale-95 transition-all cursor-pointer group"
+          className="hidden md:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 text-white border border-slate-700/80 hover:border-emerald-500/80 font-black text-xs shadow-md shadow-slate-950/20 hover:scale-105 active:scale-95 transition-all cursor-pointer group"
         >
           <span className="px-2 py-0.5 rounded-md bg-amber-400 text-slate-950 text-[10px] font-black uppercase">
             LV.{realLevel}
@@ -167,8 +186,8 @@ export function TopBar() {
           </div>
         </button>
 
-        {/* Primary Action Button: + Tạo mới */}
-        <div className="relative">
+        {/* Desktop Primary Action Button: + Tạo mới (Hidden on mobile because it is on bottom nav) */}
+        <div className="hidden md:block relative">
           <button 
             type="button" 
             onClick={() => {

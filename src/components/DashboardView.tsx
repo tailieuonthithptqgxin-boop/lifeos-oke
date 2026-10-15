@@ -95,6 +95,9 @@ export function DashboardView() {
   // Dismissed Smart Action Pills (by id: 'sunday_reset', 'ebbinghaus', 'resurrection')
   const [dismissedPills, setDismissedPills] = useState<Record<string, boolean>>({});
 
+  // Mobile Insights Tab state ('harmony' | 'finance')
+  const [mobileInsightsTab, setMobileInsightsTab] = useState<'harmony' | 'finance'>('harmony');
+
   // Mascot Lumi state
   const userId = currentUser?.id;
   const [profile, setProfile] = useState<RetentionProfile>(() => retentionEngine.getProfile(userId));
@@ -466,7 +469,7 @@ export function DashboardView() {
   };
 
   return (
-    <div className="w-full min-w-0 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 overflow-x-hidden">
+    <div className="w-full min-w-0 max-w-7xl mx-auto px-4 py-4 sm:p-6 lg:p-8 space-y-4 md:space-y-6 pb-28 md:pb-12 overflow-x-hidden">
       
       {/* ========================================================================= */}
       {/* TẦNG 2: COMPACT HERO & GAMIFICATION HUB (GRID 12 CỘT)                     */}
@@ -474,7 +477,7 @@ export function DashboardView() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         
         {/* CỘT TRÁI (8/12 CỘT): GREETING & SMART NUDGE CARD */}
-        <div className="lg:col-span-8 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-950 border border-emerald-200/70 dark:border-slate-800 rounded-2xl p-6 sm:p-7 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-hidden">
+        <div className="lg:col-span-8 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-950 border border-emerald-200/70 dark:border-slate-800 rounded-2xl p-5 sm:p-7 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-hidden">
           {/* Subtle ambient blur */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-400/10 dark:bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -576,113 +579,115 @@ export function DashboardView() {
             </div>
           </div>
 
-          {/* NHẮC NHỞ THÔNG MINH (SMART ACTION PILLS) - Gom gọn & có nút X */}
-          <div className="relative z-10 pt-5 space-y-2">
-            {/* Pill 1: Sunday Weekly Reset */}
-            {!dismissedPills['sunday_reset'] && (
-              <div className="p-2.5 sm:px-3 sm:py-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-300/80 dark:border-emerald-800/60 flex items-center justify-between gap-3 text-xs animate-in fade-in duration-200">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-base shrink-0">🌿</span>
-                  <div className="min-w-0">
-                    <span className="font-bold text-emerald-900 dark:text-emerald-200 truncate block">
-                      Nghi thức tuần · Tái thiết lập Chủ nhật (+100 XP)
-                    </span>
-                    <span className="text-[11px] text-emerald-700 dark:text-emerald-400 truncate block">
-                      Tổng kết tuần qua và căn chỉnh mục tiêu tuần mới để tâm trí thảnh thơi.
-                    </span>
+          {/* NHẮC NHỞ THÔNG MINH (SMART ACTION PILLS) - Swipeable on mobile */}
+          {(!dismissedPills['sunday_reset'] || (dueVocabCount > 0 && !dismissedPills['ebbinghaus']) || (resurrectionStatus.isPending && !dismissedPills['resurrection'])) && (
+            <div className="relative z-10 pt-4 md:pt-5 flex md:flex-col overflow-x-auto no-scrollbar gap-2 py-1 pb-1 -mx-2 px-2 sm:mx-0 sm:px-0">
+              {/* Pill 1: Sunday Weekly Reset */}
+              {!dismissedPills['sunday_reset'] && (
+                <div className="min-w-[85vw] sm:min-w-0 shrink-0 md:shrink p-2.5 sm:px-3 sm:py-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-300/80 dark:border-emerald-800/60 flex items-center justify-between gap-3 text-xs animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-base shrink-0">🌿</span>
+                    <div className="min-w-0">
+                      <span className="font-bold text-emerald-900 dark:text-emerald-200 truncate block">
+                        Nghi thức tuần · Tái thiết lập Chủ nhật (+100 XP)
+                      </span>
+                      <span className="text-[11px] text-emerald-700 dark:text-emerald-400 truncate block">
+                        Tổng kết tuần qua và căn chỉnh mục tiêu tuần mới để tâm trí thảnh thơi.
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        soundEngine.playPop();
+                        setShowSundayReset(true);
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer min-h-[36px]"
+                    >
+                      Bắt đầu
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDismissedPills(prev => ({ ...prev, sunday_reset: true }))}
+                      title="Ẩn thông báo này"
+                      className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      soundEngine.playPop();
-                      setShowSundayReset(true);
-                    }}
-                    className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
-                  >
-                    Bắt đầu
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDismissedPills(prev => ({ ...prev, sunday_reset: true }))}
-                    title="Ẩn thông báo này"
-                    className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* Pill 2: Spaced Repetition Due Vocab */}
-            {dueVocabCount > 0 && !dismissedPills['ebbinghaus'] && (
-              <div className="p-2.5 sm:px-3 sm:py-2 rounded-xl bg-teal-500/10 dark:bg-teal-950/40 border border-teal-300/80 dark:border-teal-800/60 flex items-center justify-between gap-3 text-xs animate-in fade-in duration-200">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-base shrink-0">📚</span>
-                  <div className="min-w-0">
-                    <span className="font-bold text-teal-900 dark:text-teal-200 truncate block">
-                      Đến hạn ôn tập Ebbinghaus ({dueVocabCount} từ vựng)
-                    </span>
-                    <span className="text-[11px] text-teal-700 dark:text-teal-400 truncate block">
-                      Từ vựng đã chạm điểm rơi trí nhớ, hãy củng cố để nhớ bền vững.
-                    </span>
+              {/* Pill 2: Spaced Repetition Due Vocab */}
+              {dueVocabCount > 0 && !dismissedPills['ebbinghaus'] && (
+                <div className="min-w-[85vw] sm:min-w-0 shrink-0 md:shrink p-2.5 sm:px-3 sm:py-2 rounded-xl bg-teal-500/10 dark:bg-teal-950/40 border border-teal-300/80 dark:border-teal-800/60 flex items-center justify-between gap-3 text-xs animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-base shrink-0">📚</span>
+                    <div className="min-w-0">
+                      <span className="font-bold text-teal-900 dark:text-teal-200 truncate block">
+                        Đến hạn ôn tập Ebbinghaus ({dueVocabCount} từ vựng)
+                      </span>
+                      <span className="text-[11px] text-teal-700 dark:text-teal-400 truncate block">
+                        Từ vựng đã chạm điểm rơi trí nhớ, hãy củng cố để nhớ bền vững.
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setCurrentView('study')}
+                      className="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer min-h-[36px]"
+                    >
+                      Ôn tập ngay
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDismissedPills(prev => ({ ...prev, ebbinghaus: true }))}
+                      title="Ẩn thông báo này"
+                      className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentView('study')}
-                    className="px-3 py-1 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
-                  >
-                    Ôn tập ngay
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDismissedPills(prev => ({ ...prev, ebbinghaus: true }))}
-                    title="Ẩn thông báo này"
-                    className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            )}
+              )}
 
-            {/* Pill 3: Streak Resurrection Challenge */}
-            {resurrectionStatus.isPending && !dismissedPills['resurrection'] && (
-              <div className="p-2.5 sm:px-3 sm:py-2 rounded-xl bg-amber-500/10 dark:bg-amber-950/40 border border-amber-300/80 dark:border-amber-800/60 flex items-center justify-between gap-3 text-xs animate-in fade-in duration-200">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="text-base shrink-0">🔥</span>
-                  <div className="min-w-0">
-                    <span className="font-bold text-amber-900 dark:text-amber-200 truncate block">
-                      Cứu chuỗi kỉ luật ({resurrectionStatus.lostStreak} ngày bị đứt)
-                    </span>
-                    <span className="text-[11px] text-amber-700 dark:text-amber-400 truncate block">
-                      Hoàn thành thử thách tập trung trong 24h để hồi sinh toàn bộ chuỗi.
-                    </span>
+              {/* Pill 3: Streak Resurrection Challenge */}
+              {resurrectionStatus.isPending && !dismissedPills['resurrection'] && (
+                <div className="min-w-[85vw] sm:min-w-0 shrink-0 md:shrink p-2.5 sm:px-3 sm:py-2 rounded-xl bg-amber-500/10 dark:bg-amber-950/40 border border-amber-300/80 dark:border-amber-800/60 flex items-center justify-between gap-3 text-xs animate-in fade-in duration-200">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-base shrink-0">🔥</span>
+                    <div className="min-w-0">
+                      <span className="font-bold text-amber-900 dark:text-amber-200 truncate block">
+                        Cứu chuỗi kỉ luật ({resurrectionStatus.lostStreak} ngày bị đứt)
+                      </span>
+                      <span className="text-[11px] text-amber-700 dark:text-amber-400 truncate block">
+                        Hoàn thành thử thách tập trung trong 24h để hồi sinh toàn bộ chuỗi.
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => setShowResurrectionModal(true)}
+                      className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer min-h-[36px]"
+                    >
+                      Hồi sinh ngay
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDismissedPills(prev => ({ ...prev, resurrection: true }))}
+                      title="Ẩn thông báo này"
+                      className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => setShowResurrectionModal(true)}
-                    className="px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
-                  >
-                    Hồi sinh ngay
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDismissedPills(prev => ({ ...prev, resurrection: true }))}
-                    title="Ẩn thông báo này"
-                    className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* CỘT PHẢI (4/12 CỘT): LUMI & LEVEL PROGRESS CARD (GỘP CHUNG 1 CARD) */}
@@ -841,7 +846,7 @@ export function DashboardView() {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div className="flex md:grid overflow-x-auto snap-x snap-mandatory gap-3 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 no-scrollbar md:grid-cols-3">
               {[0, 1, 2].map((slotIdx) => {
                 const taskId = slotTaskIds[slotIdx];
                 const task = tasks.find(t => t.id === taskId);
@@ -855,7 +860,7 @@ export function DashboardView() {
                 return (
                   <div
                     key={slotIdx}
-                    className={`rounded-xl border p-4 flex flex-col justify-between min-h-[140px] transition-all relative ${
+                    className={`min-w-[85vw] sm:min-w-[280px] md:min-w-0 snap-center shrink-0 md:shrink rounded-xl border p-4 flex flex-col justify-between min-h-[140px] transition-all relative ${
                       task
                         ? isCompleted
                           ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800'
@@ -1081,8 +1086,8 @@ export function DashboardView() {
         <div className="lg:col-span-4 space-y-6">
           
           {/* Card 1: Trạm Tập Trung (Focus & Pomodoro Station) */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200 space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-200 space-y-3 sm:space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-2.5 sm:pb-3">
               <div>
                 <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm">
                   Trạm Tập Trung (Zen / Pomodoro)
@@ -1098,26 +1103,42 @@ export function DashboardView() {
               </button>
             </div>
 
-            {/* Focus Big Metric */}
-            <div className="p-4 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 text-center space-y-2">
-              <span className="text-xs text-emerald-800 dark:text-emerald-300 font-bold block">
-                Thời gian tập trung hôm nay
-              </span>
-              <div className="text-3xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
-                {studyDisplayValue}
+            {/* Focus Big Metric / Mini-player on mobile */}
+            <div className="p-3 sm:p-4 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 flex sm:flex-col items-center sm:items-stretch justify-between gap-3">
+              <div className="text-left sm:text-center space-y-0.5 sm:space-y-2 min-w-0 flex-1">
+                <span className="text-xs text-emerald-800 dark:text-emerald-300 font-bold block truncate">
+                  Thời gian tập trung hôm nay
+                </span>
+                <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
+                  {studyDisplayValue}
+                </div>
+                <span className="text-[11px] sm:text-xs text-slate-500 block truncate">
+                  {studySubtext}
+                </span>
+                <div className="w-full bg-emerald-200/60 dark:bg-emerald-900/60 h-2 rounded-full overflow-hidden mt-2 hidden sm:block">
+                  <div 
+                    className="h-full bg-emerald-600 dark:bg-emerald-400 rounded-full transition-all duration-300"
+                    style={{ width: `${focusProgressPercent}%` }}
+                  />
+                </div>
               </div>
-              <span className="text-xs text-slate-500 block">
-                {studySubtext}
-              </span>
-              <div className="w-full bg-emerald-200/60 dark:bg-emerald-900/60 h-2 rounded-full overflow-hidden mt-2">
-                <div 
-                  className="h-full bg-emerald-600 dark:bg-emerald-400 rounded-full transition-all duration-300"
-                  style={{ width: `${focusProgressPercent}%` }}
-                />
-              </div>
+
+              {/* Mobile Start Button in Mini-player row */}
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  setZenFocusTaskId(slotTaskIds[0] || pendingTasks[0]?.id);
+                  setZenFocusOpen(true);
+                }}
+                className="sm:hidden px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm shadow-emerald-600/20 shrink-0 cursor-pointer active:scale-95 min-h-[44px]"
+              >
+                <Zap className="w-4 h-4 fill-white" />
+                <span>Bắt đầu</span>
+              </button>
             </div>
 
-            {/* Big Launch Button in Emerald */}
+            {/* Big Launch Button in Emerald (desktop / tablet) */}
             <button
               type="button"
               onClick={() => {
@@ -1125,7 +1146,7 @@ export function DashboardView() {
                 setZenFocusTaskId(slotTaskIds[0] || pendingTasks[0]?.id);
                 setZenFocusOpen(true);
               }}
-              className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm shadow-emerald-600/20 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+              className="hidden sm:flex w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs items-center justify-center gap-2 shadow-sm shadow-emerald-600/20 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98] min-h-[44px]"
             >
               <Zap className="w-4 h-4 fill-white" />
               <span>⚡ Bắt đầu Tập trung 25p</span>
@@ -1249,11 +1270,152 @@ export function DashboardView() {
         />
       </div>
 
-      {/* SECOND ROW: 5D HARMONY RADAR (7 COLS) & TÀI CHÍNH + TIẾN ĐỘ DỰ ÁN (5 COLS) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+      {/* Mobile Segmented Control Tab for 5D Harmony vs. Finance (< lg) */}
+      <div className="flex lg:hidden items-center p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
+        <button
+          type="button"
+          onClick={() => {
+            soundEngine.playPop();
+            setMobileInsightsTab('harmony');
+          }}
+          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[40px] ${
+            mobileInsightsTab === 'harmony'
+              ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+              : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Activity className="w-3.5 h-3.5" />
+          <span>Cân bằng 5D</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            soundEngine.playPop();
+            setMobileInsightsTab('finance');
+          }}
+          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[40px] ${
+            mobileInsightsTab === 'finance'
+              ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs'
+              : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+          }`}
+        >
+          <Wallet className="w-3.5 h-3.5" />
+          <span>Tài chính & Dự án</span>
+        </button>
+      </div>
+
+      {/* MOBILE DISPLAY (< lg): Render either Harmony or Finance based on tab */}
+      <div className="block lg:hidden">
+        {mobileInsightsTab === 'harmony' ? (
+          <LifeHarmonyRadarWidget 
+            harmony={harmonyOverview} 
+            onExploreGoals={() => setCurrentView('goals')}
+            className="w-full"
+          />
+        ) : (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-5">
+            {/* PHẦN 1: TÓM TẮT TÀI CHÍNH */}
+            <div className="space-y-3.5">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+                    <Wallet className="w-4 h-4" />
+                  </div>
+                  <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm">
+                    Tài chính & Hạn mức
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('finance')}
+                  className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                >
+                  Sổ thu chi <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              {/* Total Balance Card */}
+              <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-50/80 via-white to-teal-50/60 dark:from-slate-800/80 dark:to-slate-800/40 border border-emerald-200/60 dark:border-slate-700 flex items-center justify-between">
+                <div>
+                  <span className="text-[11px] text-slate-500 font-semibold block">Số dư khả dụng</span>
+                  <span className="text-xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
+                    {formatCurrency(totalBalance)}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] text-slate-400 block">Dòng tiền tháng</span>
+                  <span className={`text-xs font-bold font-mono ${netMonthly >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {netMonthly >= 0 ? '+' : ''}{formatCurrency(netMonthly)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Daily Safe-to-Spend Status */}
+              <div className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+                <span className="text-slate-600 dark:text-slate-400 font-medium">Hạn mức an toàn hôm nay:</span>
+                <span className={`font-mono font-bold ${safeToSpendTodayRemaining >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'}`}>
+                  {safeToSpendTodayRemaining >= 0 ? formatCurrency(safeToSpendTodayRemaining) : `-${formatCurrency(Math.abs(safeToSpendTodayRemaining))}`}
+                </span>
+              </div>
+            </div>
+
+            {/* PHẦN 2: TIẾN ĐỘ DỰ ÁN P.A.R.A */}
+            <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400">
+                    <FolderKanban className="w-4 h-4" />
+                  </div>
+                  <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm">
+                    Tiến độ Dự án (P.A.R.A)
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('projects')}
+                  className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline flex items-center gap-1"
+                >
+                  Tất cả ({projects.length}) <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {recentProjects.length === 0 ? (
+                  <p className="text-xs text-slate-400 py-2 text-center">Chưa có dự án nào được khởi tạo.</p>
+                ) : (
+                  recentProjects.map(proj => (
+                    <div 
+                      key={proj.id}
+                      className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                          {proj.name}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-500 font-mono shrink-0">
+                          {proj.progress || 0}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                        <div 
+                          className="h-full bg-teal-500 rounded-full transition-all duration-300"
+                          style={{ width: `${Math.min(100, proj.progress || 0)}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* DESKTOP DISPLAY (>= lg): 5D HARMONY RADAR (7 COLS) & TÀI CHÍNH + TIẾN ĐỘ DỰ ÁN (5 COLS) */}
+      <div className="hidden lg:grid grid-cols-12 gap-6 items-stretch">
         
         {/* CỘT TRÁI (7/12 CỘT): CHỈ SỐ CÂN BẰNG CUỘC SỐNG (5D HARMONY RADAR CHART) */}
-        <div className="lg:col-span-7 flex flex-col">
+        <div className="col-span-7 flex flex-col">
           <LifeHarmonyRadarWidget 
             harmony={harmonyOverview} 
             onExploreGoals={() => setCurrentView('goals')}
@@ -1262,7 +1424,7 @@ export function DashboardView() {
         </div>
 
         {/* CỘT PHẢI (5/12 CỘT): TÓM TẮT TÀI CHÍNH & TIẾN ĐỘ DỰ ÁN P.A.R.A */}
-        <div className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-5">
+        <div className="col-span-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-5">
           
           {/* PHẦN 1: TÓM TẮT TÀI CHÍNH */}
           <div className="space-y-3.5">
