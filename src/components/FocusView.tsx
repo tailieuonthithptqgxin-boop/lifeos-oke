@@ -184,17 +184,58 @@ export function FocusView() {
     }
   };
 
-  // Restore active running/paused session on mount if one is already recorded
+  // Switch focus mode and sync timer duration instantly
+  const handleSelectMode = (newMode: FocusMode) => {
+    try { soundEngine.playPop(); } catch {}
+    setSelectedMode(newMode);
+    const newDuration = getDurationForMode(newMode);
+
+    if (activeSession) {
+      if (activeSession.status === 'Running') {
+        const confirmSwitch = window.confirm(
+          isVi 
+            ? `Bạn đang trong phiên tập trung. Chuyển sang chế độ ${newMode} (${newDuration} phút) và đặt lại đồng hồ?` 
+            : `You have an active session. Switch to ${newMode} (${newDuration} mins) and reset timer?`
+        );
+        if (!confirmSwitch) return;
+        
+        try {
+          updateFocusSession(activeSession.id, { 
+            status: 'Cancelled',
+            actualDuration: Math.floor(elapsedSeconds / 60)
+          });
+        } catch {}
+      }
+      
+      setActiveSession(null);
+      setElapsedSeconds(0);
+      accumulatedSecsRef.current = 0;
+      sessionStartTsRef.current = null;
+    } else {
+      setElapsedSeconds(0);
+      accumulatedSecsRef.current = 0;
+      sessionStartTsRef.current = null;
+    }
+  };
+
+  // Restore active running/paused session on mount if one is already recorded (within 24h)
   useEffect(() => {
     if (!activeSession && focusSessions && focusSessions.length > 0) {
       const ongoing = focusSessions.find(s => s.status === 'Running' || s.status === 'Paused');
       if (ongoing) {
-        setActiveSession(ongoing);
-        if (ongoing.status === 'Running') {
-          sessionStartTsRef.current = Date.now();
+        const sessionDate = ongoing.createdAt || ongoing.startTime;
+        const isRecent = sessionDate && (Date.now() - new Date(sessionDate).getTime() < 24 * 60 * 60 * 1000);
+        if (isRecent) {
+          setActiveSession(ongoing);
+          if (ongoing.mode) {
+            setSelectedMode(ongoing.mode);
+          }
+          if (ongoing.status === 'Running') {
+            sessionStartTsRef.current = Date.now();
+          }
+          accumulatedSecsRef.current = (ongoing.actualDuration || 0) * 60;
+          setElapsedSeconds(accumulatedSecsRef.current);
         }
-        accumulatedSecsRef.current = (ongoing.actualDuration || 0) * 60;
-        setElapsedSeconds(accumulatedSecsRef.current);
       }
     }
   }, [focusSessions]);
@@ -594,18 +635,12 @@ export function FocusView() {
                   <button
                     key={m.mode}
                     type="button"
-                    disabled={Boolean(activeSession && activeSession.status === 'Running')}
-                    onClick={() => {
-                      if (!activeSession) {
-                        soundEngine.playPop();
-                        setSelectedMode(m.mode);
-                      }
-                    }}
+                    onClick={() => handleSelectMode(m.mode)}
                     className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer whitespace-nowrap shrink-0 ${
                       isSelected
                         ? 'bg-white dark:bg-slate-800 text-emerald-600 dark:text-emerald-400 shadow-2xs font-semibold'
-                        : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200'
-                    } ${activeSession && activeSession.status === 'Running' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        : 'text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-white/60 dark:hover:bg-slate-800/60'
+                    }`}
                   >
                     <span>{m.label}</span>
                   </button>
@@ -628,7 +663,7 @@ export function FocusView() {
 
             <p className="text-xs sm:text-sm font-normal text-slate-500 dark:text-slate-400 tracking-wide mt-2">
               {!activeSession 
-                ? (isVi ? 'Phiên tập trung' : 'Focus Session')
+                ? (isVi ? `${currentPlannedMinutes} phút mục tiêu` : `${currentPlannedMinutes} min target`)
                 : activeSession.status === 'Running'
                   ? (isVi ? 'Đang tập trung sâu' : 'Deep Focus Session')
                   : (isVi ? 'Tạm dừng phiên' : 'Session Paused')
