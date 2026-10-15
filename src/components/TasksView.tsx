@@ -4,7 +4,8 @@ import { useTranslation } from '../lib/i18n';
 import { 
   Check, Clock, AlertTriangle, Play, Square, Plus, Edit3,
   Calendar as CalendarIcon, Tag, FolderKanban, LayoutGrid, List as ListIcon, X, Trash2, Search, Target,
-  Paperclip, Upload, Download, FileText, File, Loader2
+  Paperclip, Upload, Download, FileText, File, Loader2,
+  CalendarCheck, Flame, Layers, MoreVertical
 } from 'lucide-react';
 import { Task, TaskStatus, Priority } from '../lib/types';
 import { formatCurrency, formatDate } from '../lib/utils';
@@ -89,6 +90,8 @@ export function TasksView() {
   const [filterStatus, setFilterStatus] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [quickTitle, setQuickTitle] = useState('');
+  const [quickPriority, setQuickPriority] = useState<Priority>('Trung bình');
+  const [quickDueDate, setQuickDueDate] = useState<string>('');
   
   // Timer state
   const [activeTimerTask, setActiveTimerTask] = useState<string | null>(null);
@@ -251,8 +254,8 @@ export function TasksView() {
     await addTask({
       title,
       status: 'Chưa làm',
-      priority: 'Trung bình',
-      dueDate: localToday,
+      priority: quickPriority || 'Trung bình',
+      dueDate: quickDueDate || localToday,
       estimatedHours: 1,
       actualHours: 0,
       tags: []
@@ -267,17 +270,14 @@ export function TasksView() {
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight truncate">{t('Quản lý Công việc')}</h2>
-            <span className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-              {isVi ? 'Công việc' : 'Tasks'}
-            </span>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium break-words">{t('Lập kế hoạch, theo dõi tiến độ và tối ưu thời gian thực hiện tác vụ')}</p>
         </div>
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="hidden sm:flex items-center gap-3">
           <button 
             type="button"
             onClick={openNewTask}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-5 py-2.5 rounded-2xl text-sm font-black transition-all shadow-md shadow-emerald-500/20 cursor-pointer"
+            className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-sm shadow-emerald-500/20 cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
             <span>{t('Thêm công việc')}</span>
@@ -285,14 +285,15 @@ export function TasksView() {
         </div>
       </div>
 
-      {/* Interactive Dashboard Stats Cards (Clickable to Filter) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+      {/* 4 Bento Stat Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
         <StatCard 
           title={t('Hôm nay')} 
           value={`${counts.completedToday}/${counts.today}`} 
           desc={t('Đã hoàn thành hôm nay')} 
-          bg="bg-gradient-to-br from-violet-500/10 via-purple-500/5 to-pink-500/10 dark:from-violet-950/40 dark:to-purple-950/20" 
-          color="text-purple-600 dark:text-purple-400" 
+          icon={CalendarCheck}
+          iconColor="text-emerald-600 dark:text-emerald-400"
+          iconBg="bg-emerald-100/80 dark:bg-emerald-950/60"
           active={filterStatus === 'Today'}
           onClick={() => setFilterStatus(filterStatus === 'Today' ? 'All' : 'Today')}
         />
@@ -300,8 +301,9 @@ export function TasksView() {
           title={t('Quá hạn')} 
           value={counts.overdue} 
           desc={t('Cần xử lý khẩn cấp')} 
-          bg="bg-gradient-to-br from-rose-500/10 to-pink-500/5 dark:from-rose-950/40 dark:to-pink-950/20" 
-          color="text-rose-600 dark:text-rose-400" 
+          icon={AlertTriangle}
+          iconColor="text-rose-600 dark:text-rose-400"
+          iconBg="bg-rose-100/80 dark:bg-rose-950/60"
           active={filterStatus === 'Overdue'}
           onClick={() => setFilterStatus(filterStatus === 'Overdue' ? 'All' : 'Overdue')}
         />
@@ -309,8 +311,9 @@ export function TasksView() {
           title={t('Rủi ro cao')} 
           value={counts.highRisk} 
           desc={t('Hạn chót gấp / Tải lớn')} 
-          bg="bg-gradient-to-br from-amber-500/10 to-yellow-500/5 dark:from-amber-950/40 dark:to-yellow-950/20" 
-          color="text-amber-600 dark:text-amber-400" 
+          icon={Flame}
+          iconColor="text-amber-600 dark:text-amber-400"
+          iconBg="bg-amber-100/80 dark:bg-amber-950/60"
           active={filterStatus === 'HighRisk'}
           onClick={() => setFilterStatus(filterStatus === 'HighRisk' ? 'All' : 'HighRisk')}
         />
@@ -318,155 +321,184 @@ export function TasksView() {
           title={t('Tổng công việc')} 
           value={counts.activeTotal} 
           desc={t('Đang chờ xử lý')} 
-          bg="bg-gradient-to-br from-purple-50/50 to-pink-50/30 dark:from-slate-900/80 dark:to-slate-800/80" 
-          color="text-slate-700 dark:text-slate-300" 
+          icon={Layers}
+          iconColor="text-slate-700 dark:text-slate-300"
+          iconBg="bg-slate-100 dark:bg-slate-800"
           active={filterStatus === 'All'}
           onClick={() => setFilterStatus('All')}
         />
       </div>
 
-      {/* Controls: Search & Filters */}
-      <div className="flex flex-col gap-3 bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
-        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-          {/* Search Input */}
-          <div className="relative flex-1 min-w-0">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+      {/* Unified Compact Toolbar: Filter Tabs + Search + View Switcher */}
+      <div className="bg-white dark:bg-slate-900 p-2 sm:p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5 shadow-xs">
+        {/* Left: Filter Tabs with Horizontal Scroll on Mobile */}
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1 lg:mx-0 lg:px-0">
+          <FilterButton active={filterStatus === 'All'} count={counts.all} onClick={() => handleSelectFilter('All')}>
+            {t('Tất cả')}
+          </FilterButton>
+          <FilterButton active={filterStatus === 'Today'} count={counts.today} onClick={() => handleSelectFilter('Today')}>
+            {t('Hôm nay')}
+          </FilterButton>
+          <FilterButton active={filterStatus === 'Chưa làm'} count={counts.todo} onClick={() => handleSelectFilter('Chưa làm')}>
+            {t('Chưa làm')}
+          </FilterButton>
+          <FilterButton active={filterStatus === 'Đang làm'} count={counts.inProgress} onClick={() => handleSelectFilter('Đang làm')}>
+            {t('Đang làm')}
+          </FilterButton>
+          <FilterButton active={filterStatus === 'Hoàn thành'} count={counts.completed} onClick={() => handleSelectFilter('Hoàn thành')}>
+            {t('Hoàn thành')}
+          </FilterButton>
+          <FilterButton active={filterStatus === 'Đang chờ'} count={counts.waiting} onClick={() => handleSelectFilter('Đang chờ')}>
+            {t('Đang chờ')}
+          </FilterButton>
+          <FilterButton active={filterStatus === 'Overdue'} count={counts.overdue} alert={counts.overdue > 0} onClick={() => handleSelectFilter('Overdue')}>
+            {t('Quá hạn')}
+          </FilterButton>
+        </div>
+
+        {/* Right: Search Input + View Mode Switcher */}
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="relative flex-1 lg:w-64 xl:w-72">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               id="task-search-input"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('Tìm kiếm công việc theo tên, mô tả hoặc thẻ (#deadline, #baocao)...')}
-              className="w-full pl-9 pr-8 py-2 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500 transition-all"
+              placeholder={t('Tìm kiếm công việc...')}
+              className="w-full pl-8 pr-7 py-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/50 transition-all"
             />
             {searchQuery && (
               <button
                 type="button"
                 id="clear-task-search-btn"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer"
                 title={t('Xóa tìm kiếm')}
               >
-                <X className="w-4 h-4" />
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
 
-          <div className="flex items-center justify-end gap-3">
-            {/* View Mode Switcher */}
-            <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl shrink-0">
-              <button 
-                type="button" 
-                id="tasks-view-list-btn"
-                onClick={() => setViewMode('list')} 
-                title={t('Dạng danh sách')}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${viewMode === 'list' ? 'bg-white dark:bg-slate-900 shadow-xs text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-              >
-                <ListIcon className="w-4 h-4" />
-              </button>
-              <button 
-                type="button" 
-                id="tasks-view-kanban-btn"
-                onClick={() => setViewMode('kanban')} 
-                title={t('Dạng Kanban')}
-                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${viewMode === 'kanban' ? 'bg-white dark:bg-slate-900 shadow-xs text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-              >
-                <LayoutGrid className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Status Filters & Tag Quick Filter Chips */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-            <FilterButton active={filterStatus === 'All'} count={counts.all} onClick={() => setFilterStatus('All')}>
-              {t('Tất cả')}
-            </FilterButton>
-            <FilterButton active={filterStatus === 'Today'} count={counts.today} onClick={() => setFilterStatus('Today')}>
-              {t('Hôm nay')}
-            </FilterButton>
-            <FilterButton active={filterStatus === 'Chưa làm'} count={counts.todo} onClick={() => setFilterStatus('Chưa làm')}>
-              {t('Chưa làm')}
-            </FilterButton>
-            <FilterButton active={filterStatus === 'Đang làm'} count={counts.inProgress} onClick={() => setFilterStatus('Đang làm')}>
-              {t('Đang làm')}
-            </FilterButton>
-            <FilterButton active={filterStatus === 'Hoàn thành'} count={counts.completed} onClick={() => setFilterStatus('Hoàn thành')}>
-              {t('Hoàn thành')}
-            </FilterButton>
-            <FilterButton active={filterStatus === 'Đang chờ'} count={counts.waiting} onClick={() => setFilterStatus('Đang chờ')}>
-              {t('Đang chờ')}
-            </FilterButton>
-            <FilterButton active={filterStatus === 'Overdue'} count={counts.overdue} alert={counts.overdue > 0} onClick={() => setFilterStatus('Overdue')}>
-              {t('Quá hạn')}
-            </FilterButton>
-          </div>
-
-          {/* Quick Tag Chips */}
-          {allTags.length > 0 && (
-            <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs text-slate-500">
-              <span className="flex items-center gap-1 text-slate-400 shrink-0"><Tag className="w-3 h-3" /> {t('Thẻ:')}</span>
-              {allTags.slice(0, 6).map(tag => {
-                const isSelected = searchQuery.toLowerCase() === tag.toLowerCase() || searchQuery.toLowerCase() === `#${tag.toLowerCase()}`;
-                return (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => setSearchQuery(isSelected ? '' : tag)}
-                    className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors shrink-0 cursor-pointer ${
-                      isSelected 
-                        ? 'bg-blue-600 text-white shadow-xs' 
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    }`}
-                  >
-                    #{tag}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Search feedback banner */}
-        {searchQuery && (
-          <div className="flex items-center justify-between bg-blue-50/80 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-lg text-xs">
-            <span>
-              {t('Kết quả tìm kiếm cho:')} <strong>"{searchQuery}"</strong> ({filteredTasks.length} {t('công việc tìm thấy')})
-            </span>
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="text-blue-600 dark:text-blue-400 hover:underline font-semibold ml-2 cursor-pointer"
+          {/* View Mode Switcher */}
+          <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl shrink-0 border border-slate-200/50 dark:border-slate-700/50">
+            <button 
+              type="button" 
+              id="tasks-view-list-btn"
+              onClick={() => setViewMode('list')} 
+              title={t('Dạng danh sách')}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                viewMode === 'list' 
+                  ? 'bg-white dark:bg-slate-900 shadow-xs text-emerald-600 dark:text-emerald-400 font-bold' 
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+              }`}
             >
-              {t('Xóa tìm kiếm')}
+              <ListIcon className="w-4 h-4" />
+            </button>
+            <button 
+              type="button" 
+              id="tasks-view-kanban-btn"
+              onClick={() => setViewMode('kanban')} 
+              title={t('Dạng Kanban')}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                viewMode === 'kanban' 
+                  ? 'bg-white dark:bg-slate-900 shadow-xs text-emerald-600 dark:text-emerald-400 font-bold' 
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+              }`}
+            >
+              <LayoutGrid className="w-4 h-4" />
             </button>
           </div>
-        )}
+        </div>
       </div>
+
+      {/* Quick Tag Chips (if any) */}
+      {allTags.length > 0 && (
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs text-slate-500 -mt-1 px-1">
+          <span className="flex items-center gap-1 text-slate-400 shrink-0 text-[11px]"><Tag className="w-3 h-3" /> {t('Thẻ:')}</span>
+          {allTags.slice(0, 8).map(tag => {
+            const isSelected = searchQuery.toLowerCase() === tag.toLowerCase() || searchQuery.toLowerCase() === `#${tag.toLowerCase()}`;
+            return (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => setSearchQuery(isSelected ? '' : tag)}
+                className={`px-2 py-0.5 rounded-full text-[11px] font-medium transition-colors shrink-0 cursor-pointer ${
+                  isSelected 
+                    ? 'bg-emerald-500 text-slate-950 font-bold shadow-2xs' 
+                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/60 dark:border-slate-700/60'
+                }`}
+              >
+                #{tag}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Search feedback banner */}
+      {searchQuery && (
+        <div className="flex items-center justify-between bg-emerald-50/80 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 px-3 py-1.5 rounded-xl text-xs border border-emerald-200/60 dark:border-emerald-800/40">
+          <span>
+            {t('Kết quả tìm kiếm cho:')} <strong>"{searchQuery}"</strong> ({filteredTasks.length} {t('công việc tìm thấy')})
+          </span>
+          <button
+            type="button"
+            onClick={() => setSearchQuery('')}
+            className="text-emerald-700 dark:text-emerald-300 hover:underline font-bold ml-2 cursor-pointer"
+          >
+            {t('Xóa tìm kiếm')}
+          </button>
+        </div>
+      )}
 
       {/* Main View Area */}
       <div className="flex-1 overflow-hidden flex flex-col">
         {viewMode === 'list' ? (
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col">
-            {/* Quick Add Task Input at top of list */}
-            <form onSubmit={handleQuickCreate} className="p-3.5 border-b border-slate-100 dark:border-slate-800 flex items-center gap-3 bg-slate-50/60 dark:bg-slate-800/40">
-              <Plus className="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 ml-1" />
-              <input
-                type="text"
-                value={quickTitle}
-                onChange={e => setQuickTitle(e.target.value)}
-                placeholder={t('Thêm nhanh công việc mới... (Nhập tên rồi nhấn Enter để lưu)')}
-                className="flex-1 bg-transparent text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden"
-              />
-              {quickTitle.trim() && (
-                <button
-                  type="submit"
-                  className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-lg shadow-xs transition-colors cursor-pointer"
+            {/* Linear Style Quick Add Task Input */}
+            <form onSubmit={handleQuickCreate} className="p-2.5 sm:p-3 border-b border-slate-100 dark:border-slate-800 flex flex-wrap sm:flex-nowrap items-center gap-2 bg-slate-50/70 dark:bg-slate-800/40">
+              <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 ml-1" />
+                <input
+                  type="text"
+                  value={quickTitle}
+                  onChange={e => setQuickTitle(e.target.value)}
+                  placeholder={t('Thêm nhanh công việc mới... (Nhấn Enter để lưu)')}
+                  className="w-full bg-transparent text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden"
+                />
+              </div>
+
+              {/* Quick Metadata Selectors */}
+              <div className="flex items-center gap-1.5 w-full sm:w-auto justify-end shrink-0">
+                <input
+                  type="date"
+                  value={quickDueDate}
+                  onChange={e => setQuickDueDate(e.target.value)}
+                  className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-slate-600 dark:text-slate-300 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+                  title={t('Hạn chót')}
+                />
+                <select
+                  value={quickPriority}
+                  onChange={e => setQuickPriority(e.target.value as Priority)}
+                  className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-slate-600 dark:text-slate-300 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+                  title={t('Độ ưu tiên')}
                 >
-                  {t('Thêm ngay')}
-                </button>
-              )}
+                  <option value="Thấp">{t('Thấp')}</option>
+                  <option value="Trung bình">{t('Trung bình')}</option>
+                  <option value="Cao">{t('Cao')}</option>
+                  <option value="Nghiêm trọng">{t('Nghiêm trọng')}</option>
+                </select>
+                {quickTitle.trim() && (
+                  <button
+                    type="submit"
+                    className="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-lg shadow-xs transition-colors cursor-pointer shrink-0"
+                  >
+                    {t('Thêm ↵')}
+                  </button>
+                )}
+              </div>
             </form>
 
             <div className="divide-y divide-slate-100 dark:divide-slate-800 overflow-y-auto flex-1">
@@ -608,23 +640,31 @@ export function TasksView() {
   );
 }
 
-function StatCard({ title, value, desc, bg, color, active, onClick }: any) {
+function StatCard({ title, value, desc, icon: Icon, iconColor, iconBg, active, onClick }: any) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`p-4 sm:p-5 rounded-2xl text-left transition-all cursor-pointer ${bg} border backdrop-blur-md ${
+      className={`p-3.5 sm:p-4 rounded-2xl text-left transition-all cursor-pointer bg-white dark:bg-slate-900 border ${
         active 
-          ? 'ring-2 ring-emerald-500 shadow-md border-emerald-400 scale-[1.01]' 
-          : 'border-slate-200/80 dark:border-slate-800/80 hover:border-emerald-500/40 hover:shadow-2xs'
+          ? 'ring-2 ring-emerald-500/50 border-emerald-500 shadow-sm bg-emerald-50/30 dark:bg-emerald-950/20' 
+          : 'border-slate-200/80 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-2xs'
       }`}
     >
-      <div className="flex items-center justify-between mb-1">
-        <h4 className={`text-[11px] font-black uppercase tracking-wider ${color}`}>{title}</h4>
-        <span className="text-xs">⚡</span>
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+          {title}
+        </span>
+        <div className={`w-7 h-7 rounded-xl flex items-center justify-center ${iconBg}`}>
+          <Icon className={`w-3.5 h-3.5 ${iconColor}`} />
+        </div>
       </div>
-      <div className={`text-2xl sm:text-3xl font-black ${color} tracking-tight`}>{value}</div>
-      <p className={`text-[11px] mt-1 opacity-80 ${color} font-semibold`}>{desc}</p>
+      <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+        {value}
+      </div>
+      <p className="text-[11px] mt-0.5 text-slate-400 dark:text-slate-500 font-medium truncate">
+        {desc}
+      </p>
     </button>
   );
 }
@@ -657,6 +697,39 @@ function FilterButton({ active, count, alert, children, onClick }: any) {
   );
 }
 
+function getPriorityBadge(priority: string, t: any) {
+  switch (priority) {
+    case 'Nghiêm trọng':
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-900/60">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 animate-pulse"></span>
+          {t('Nghiêm trọng')}
+        </span>
+      );
+    case 'Cao':
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900/40">
+          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0"></span>
+          {t('Cao')}
+        </span>
+      );
+    case 'Trung bình':
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/60">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0"></span>
+          {t('Trung bình')}
+        </span>
+      );
+    default:
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700">
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0"></span>
+          {t(priority || 'Thấp')}
+        </span>
+      );
+  }
+}
+
 function TaskRow({ task, onEdit, onDelete, onToggleStatus, timerActive, timerSeconds, onToggleTimer, formatTimer, projectName, goalTitle, onTagClick }: any) {
   const { language } = useAppStore();
   const t = useTranslation(language);
@@ -667,70 +740,62 @@ function TaskRow({ task, onEdit, onDelete, onToggleStatus, timerActive, timerSec
   return (
     <div 
       onClick={onEdit}
-      className={`p-4 flex items-center gap-3.5 hover:bg-purple-50/30 dark:hover:bg-slate-800/60 transition-all group cursor-pointer ${
-        isCompleted ? 'bg-purple-50/15 dark:bg-slate-900/40 opacity-75' : ''
+      className={`p-3 sm:p-3.5 flex items-center gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all group cursor-pointer border-b border-slate-100 dark:border-slate-800 last:border-b-0 ${
+        isCompleted ? 'bg-slate-50/40 dark:bg-slate-900/40 opacity-70' : ''
       }`}
     >
-      {/* Checkbox button */}
+      {/* Round emerald checkbox */}
       <button 
         type="button"
         onClick={(e) => { 
           e.stopPropagation(); 
           onToggleStatus(); 
         }}
-        className={`btn-squishy w-6 h-6 rounded-xl flex items-center justify-center border-2 transition-all shrink-0 cursor-pointer ${
+        className={`w-5 h-5 rounded-full flex items-center justify-center border-2 transition-all shrink-0 cursor-pointer ${
           isCompleted 
-            ? 'bg-gradient-to-tr from-violet-600 to-pink-500 border-transparent text-white shadow-xs' 
-            : 'border-purple-200 dark:border-slate-600 text-transparent hover:border-purple-500 hover:bg-purple-50/50 dark:hover:bg-purple-950/30'
+            ? 'bg-emerald-500 border-emerald-500 text-slate-950 shadow-xs' 
+            : 'border-slate-300 dark:border-slate-600 text-transparent hover:border-emerald-500 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/30'
         }`}
         title={isCompleted ? t('Đánh dấu chưa hoàn thành') : t('Đánh dấu hoàn thành')}
       >
-        <Check className="w-3.5 h-3.5 stroke-[3]" />
+        <Check className="w-3 h-3 stroke-[3]" />
       </button>
       
       {/* Task Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className={`font-bold text-sm truncate ${isCompleted ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-900 dark:text-white'}`}>
+          <p className={`font-semibold text-sm truncate ${isCompleted ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-900 dark:text-white'}`}>
             {t(task.title)}
           </p>
           {task.priority === 'Nghiêm trọng' && <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0 animate-wiggle" />}
         </div>
         
-        <div className="flex flex-wrap items-center gap-2 mt-1.5 text-xs">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1 text-xs">
           {projectName && (
-            <span className="flex items-center gap-1 text-purple-700 dark:text-purple-300 bg-purple-100/70 dark:bg-purple-950/50 px-2.5 py-0.5 rounded-full font-bold">
-              <FolderKanban className="w-3 h-3 text-purple-500" /> {t(projectName)}
+            <span className="flex items-center gap-1 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md font-medium border border-slate-200/50 dark:border-slate-700/50">
+              <FolderKanban className="w-3 h-3 text-emerald-500" /> {t(projectName)}
             </span>
           )}
           {goalTitle && (
-            <span className="flex items-center gap-1 text-pink-700 dark:text-pink-300 bg-pink-100/70 dark:bg-pink-950/50 px-2.5 py-0.5 rounded-full font-bold">
-              <Target className="w-3 h-3 text-pink-500" /> {t(goalTitle)}
+            <span className="flex items-center gap-1 text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md font-medium border border-slate-200/50 dark:border-slate-700/50">
+              <Target className="w-3 h-3 text-emerald-500" /> {t(goalTitle)}
             </span>
           )}
           {task.dueDate && (
-            <span className={`flex items-center gap-1 font-bold ${
+            <span className={`flex items-center gap-1 font-medium ${
               isOverdue 
-                ? 'text-rose-600 font-extrabold bg-rose-50 dark:bg-rose-950/40 px-2.5 py-0.5 rounded-full border border-rose-200 dark:border-rose-900/50' 
-                : 'text-slate-500 dark:text-slate-400 bg-purple-50/50 dark:bg-slate-800/80 px-2.5 py-0.5 rounded-full border border-purple-100/40 dark:border-purple-900/30'
+                ? 'text-rose-600 font-bold bg-rose-50 dark:bg-rose-950/40 px-2 py-0.5 rounded-md border border-rose-200 dark:border-rose-900/50' 
+                : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/50 dark:border-slate-700/50'
             }`}>
               <CalendarIcon className="w-3 h-3" /> {formatDate(task.dueDate, language)}
             </span>
           )}
-          <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-black ${
-            task.priority === 'Nghiêm trọng' 
-              ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200' 
-              : task.priority === 'Cao' 
-              ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200' 
-              : task.priority === 'Trung bình' 
-              ? 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200' 
-              : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
-          }`}>
-            {t(task.priority || 'Trung bình')}
-          </span>
-          {(task.estimatedHours || task.actualHours) && (
-            <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 rounded-full font-semibold">
-              <Clock className="w-3 h-3 text-purple-400" /> {task.actualHours || 0}h / {task.estimatedHours || 1}h
+          
+          {getPriorityBadge(task.priority, t)}
+
+          {Boolean((task.estimatedHours && Number(task.estimatedHours) > 0) || (task.actualHours && Number(task.actualHours) > 0)) && (
+            <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md font-medium border border-slate-200/50 dark:border-slate-700/50">
+              <Clock className="w-3 h-3 text-slate-400" /> {task.actualHours || 0}h / {task.estimatedHours || 1}h
             </span>
           )}
           
@@ -742,24 +807,29 @@ function TaskRow({ task, onEdit, onDelete, onToggleStatus, timerActive, timerSec
                 e.stopPropagation();
                 if (onTagClick) onTagClick(tag);
               }}
-              className="inline-flex items-center gap-0.5 text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/50 hover:bg-purple-100 dark:hover:bg-purple-900/60 px-2 py-0.5 rounded-full font-bold cursor-pointer transition-colors"
+              className="inline-flex items-center gap-0.5 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-2 py-0.5 rounded-md text-[11px] font-medium cursor-pointer transition-colors border border-slate-200/50 dark:border-slate-700/50"
               title={`${t('Lọc theo thẻ')} #${tag}`}
             >
-              <Tag className="w-2.5 h-2.5 text-purple-400" /> #{tag}
+              <Tag className="w-2.5 h-2.5 text-slate-400" /> #{tag}
             </span>
           ))}
         </div>
       </div>
 
+      {/* Gamification XP badge */}
+      <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-extrabold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40 shrink-0">
+        ⚡ +15 XP
+      </span>
+
       {/* Action buttons on row */}
-      <div className="flex items-center gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1 sm:gap-1.5 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity shrink-0">
         {!isCompleted && (
           <button 
             type="button"
             onClick={(e) => { e.stopPropagation(); onToggleTimer(); }}
-            className={`flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            className={`flex items-center justify-center gap-1 px-2 py-1 rounded-lg text-xs font-bold transition-all ${
               timerActive 
-                ? 'bg-red-100 text-red-700 ring-2 ring-red-200 animate-pulse' 
+                ? 'bg-rose-100 text-rose-700 ring-2 ring-rose-200 animate-pulse' 
                 : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
             }`}
             title={t('Đo thời gian làm việc')}
@@ -767,7 +837,7 @@ function TaskRow({ task, onEdit, onDelete, onToggleStatus, timerActive, timerSec
             {timerActive ? (
               <><Square className="w-3 h-3 fill-current" /> {formatTimer(timerSeconds)}</>
             ) : (
-              <><Play className="w-3 h-3 fill-current" /> <span className="hidden md:inline">{t('Bắt đầu')}</span></>
+              <><Play className="w-3 h-3 fill-current" /> <span className="hidden lg:inline">{t('Bắt đầu')}</span></>
             )}
           </button>
         )}
@@ -775,19 +845,19 @@ function TaskRow({ task, onEdit, onDelete, onToggleStatus, timerActive, timerSec
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onEdit(); }}
-          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-lg transition-colors cursor-pointer"
+          className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/50 rounded-lg transition-colors cursor-pointer"
           title={t('Chỉnh sửa chi tiết')}
         >
-          <Edit3 className="w-4 h-4" />
+          <Edit3 className="w-3.5 h-3.5" />
         </button>
 
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg transition-colors cursor-pointer"
+          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg transition-colors cursor-pointer"
           title={t('Xóa công việc')}
         >
-          <Trash2 className="w-4 h-4" />
+          <Trash2 className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>
@@ -802,10 +872,10 @@ function KanbanColumn({ title, status, tasks, onEdit, onDropTask, onTagClick, on
   
   return (
     <div 
-      className={`flex-1 min-w-[280px] flex flex-col rounded-3xl border transition-all overflow-hidden ${
+      className={`flex-1 min-w-[280px] flex flex-col rounded-2xl border transition-all overflow-hidden ${
         isDragOver 
-          ? "bg-purple-50/60 border-purple-400 border-dashed ring-2 ring-purple-300" 
-          : "bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border-purple-100/80 dark:border-purple-900/40 shadow-xs"
+          ? "bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-500 border-dashed ring-2 ring-emerald-400/40" 
+          : "bg-slate-50/70 dark:bg-slate-900/60 backdrop-blur-md border-slate-200/80 dark:border-slate-800 shadow-xs"
       }`}
       onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
       onDragLeave={() => setIsDragOver(false)}
@@ -816,19 +886,19 @@ function KanbanColumn({ title, status, tasks, onEdit, onDropTask, onTagClick, on
         if (taskId && onDropTask) onDropTask(taskId, status);
       }}
     >
-      <div className="p-4 border-b border-purple-100/60 dark:border-slate-800 bg-purple-50/40 dark:bg-purple-950/20 flex justify-between items-center">
-        <h3 className="font-extrabold text-slate-800 dark:text-slate-200 text-sm flex items-center gap-2">
+      <div className="p-3.5 border-b border-slate-200/70 dark:border-slate-800 bg-white/70 dark:bg-slate-800/50 flex justify-between items-center">
+        <h3 className="font-bold text-slate-800 dark:text-slate-200 text-sm flex items-center gap-2">
           <span>{title}</span>
-          <span className="bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 px-2.5 py-0.5 rounded-full text-xs font-black">
+          <span className="bg-slate-200/70 dark:bg-slate-700 text-slate-700 dark:text-slate-300 px-2 py-0.2 rounded-full text-xs font-black">
             {colTasks.length}
           </span>
         </h3>
       </div>
 
-      <div className="p-3 flex-1 overflow-y-auto space-y-3">
+      <div className="p-2.5 flex-1 overflow-y-auto space-y-2.5">
         {colTasks.length === 0 && (
           <div className="py-10 text-center text-xs text-slate-400 font-medium">
-            🌸 {t('Kéo thả hoặc thêm việc vào đây')}
+            ✨ {t('Kéo thả hoặc thêm việc vào đây')}
           </div>
         )}
         {colTasks.map((task: any) => (
@@ -837,10 +907,10 @@ function KanbanColumn({ title, status, tasks, onEdit, onDropTask, onTagClick, on
             draggable
             onDragStart={(e) => e.dataTransfer.setData("taskId", task.id)} 
             onClick={() => onEdit(task)}
-            className="card-cute bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-xs border border-purple-100/70 dark:border-purple-900/40 cursor-grab active:cursor-grabbing hover:border-purple-400 interactive-card transition-all group"
+            className="bg-white dark:bg-slate-900 p-3.5 rounded-xl shadow-xs border border-slate-200/80 dark:border-slate-800 cursor-grab active:cursor-grabbing hover:border-emerald-500/50 transition-all group"
           >
             <div className="flex items-start justify-between gap-2 mb-2">
-              <h4 className={`text-sm font-bold leading-snug ${
+              <h4 className={`text-sm font-semibold leading-snug ${
                 task.status === 'Hoàn thành' || task.status === 'Done' ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-900 dark:text-white'
               }`}>
                 {t(task.title)}
@@ -848,34 +918,26 @@ function KanbanColumn({ title, status, tasks, onEdit, onDropTask, onTagClick, on
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onDelete(task.id); }}
-                className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-rose-500 rounded-xl transition-all hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-rose-500 rounded-lg transition-all hover:bg-rose-50 dark:hover:bg-rose-950/40"
                 title={t('Xóa nhanh')}
               >
                 <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
 
-            <div className="flex flex-wrap gap-1.5 mt-2.5 text-xs">
-              <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-black ${
-                task.priority === 'Nghiêm trọng' 
-                  ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200' 
-                  : task.priority === 'Cao'
-                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200'
-                  : 'bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300'
-              }`}>
-                {t(task.priority || 'Trung bình')}
-              </span>
+            <div className="flex flex-wrap items-center gap-1.5 mt-2 text-xs">
+              {getPriorityBadge(task.priority, t)}
 
               {task.dueDate && (
-                <span className="text-[10px] font-bold flex items-center gap-1 text-slate-500 dark:text-slate-400 bg-purple-50/50 dark:bg-slate-800 px-2.5 py-0.5 rounded-full border border-purple-100/40 dark:border-purple-900/30">
-                  <CalendarIcon className="w-3 h-3 text-purple-400" /> {formatDate(task.dueDate, language)}
+                <span className="text-[10px] font-medium flex items-center gap-1 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/50 dark:border-slate-700/50">
+                  <CalendarIcon className="w-3 h-3 text-slate-400" /> {formatDate(task.dueDate, language)}
                 </span>
               )}
             </div>
 
             {/* Tags in Kanban card */}
             {Array.isArray(task.tags) && task.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2.5 pt-2 border-t border-purple-100/40 dark:border-purple-900/30">
+              <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t border-slate-100 dark:border-slate-800">
                 {task.tags.map((tag: string, i: number) => (
                   <span 
                     key={i}
@@ -883,7 +945,7 @@ function KanbanColumn({ title, status, tasks, onEdit, onDropTask, onTagClick, on
                       e.stopPropagation();
                       if (onTagClick) onTagClick(tag);
                     }}
-                    className="text-[10px] inline-flex items-center gap-0.5 text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/60 px-2 py-0.5 rounded-full font-bold cursor-pointer transition-colors"
+                    className="text-[10px] inline-flex items-center gap-0.5 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-1.5 py-0.2 rounded-md font-medium cursor-pointer transition-colors"
                     title={`${t('Lọc theo thẻ')} #${tag}`}
                   >
                     #{tag}
