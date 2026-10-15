@@ -431,18 +431,6 @@ export function TopBar() {
                     })
                   )}
                 </div>
-                <div className="p-2.5 border-t border-purple-100/60 dark:border-purple-900/40 bg-slate-50/80 dark:bg-slate-800/80">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowNotifications(false);
-                      setCurrentView('notifications');
-                    }}
-                    className="w-full py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-[11px] font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors cursor-pointer"
-                  >
-                    <span>🔔 Cài đặt thông báo màn hình khóa & Lịch</span>
-                  </button>
-                </div>
               </div>
             </>
           )}

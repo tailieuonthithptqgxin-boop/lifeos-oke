@@ -51,10 +51,8 @@ if (isProduction) {
 
 import { authRouter } from './routes/auth.js';
 import { apiRouter } from './routes/api.js';
-import { notificationRouter } from './routes/notification.routes.js';
 import { checkDbConnection, dbService, getPrisma } from './db.js';
 import { workerService } from './services/worker.service.js';
-import { notificationCronService } from './services/notificationCron.service.js';
 import { csrfProtection } from './security/csrf.js';
 
 function ensurePostgresRunning() {
@@ -122,8 +120,6 @@ async function startServer() {
 
   // Start background worker scheduler (every 5 minutes to optimize cloud database compute/connections)
   workerService.start(300000);
-  // Start 3-channel notification scheduler (runs every minute: Web Push, Calendar alerts, Messenger)
-  notificationCronService.start();
 
   // Health check endpoint (Liveness Probe)
   app.get('/health', async (req, res) => {
@@ -379,7 +375,6 @@ async function startServer() {
 
   // API Routes
   app.use('/api/auth', authRouter);
-  app.use('/api', notificationRouter);
   app.use('/api', apiRouter);
 
   // Return 404 JSON for unhandled /api/* routes instead of returning HTML SPA fallback
@@ -471,7 +466,6 @@ async function startServer() {
     console.log(`Received ${signal}. Shutting down gracefully...`);
     try {
       workerService.stop();
-      notificationCronService.stop();
     } catch (e) {}
 
     // PROD-002 FIX: Force exit after 30s if connections don't close

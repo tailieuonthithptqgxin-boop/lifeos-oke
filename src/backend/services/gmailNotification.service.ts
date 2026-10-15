@@ -2,7 +2,6 @@ import nodemailer from 'nodemailer';
 import dns from 'dns';
 import net from 'net';
 import { getPrisma } from '../db.js';
-import { pushNotificationService } from './pushNotification.service.js';
 
 // Force IPv4-first DNS lookup to eliminate ENETUNREACH IPv6 connection errors
 try {
@@ -594,26 +593,6 @@ class GmailNotificationService {
       }
     }
 
-    // Dispatch Web Push PWA over HTTPS port 443 (100% Free on Railway)
-    let pushDispatched = false;
-    try {
-      const prisma = getPrisma();
-      const user = await prisma.user.findFirst({ where: { email: options.to.toLowerCase().trim() } });
-      if (user) {
-        const cleanBody = options.content.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 180);
-        const pushRes = await pushNotificationService.sendPushToUser(user.id, {
-          title: options.headline || options.subject,
-          body: cleanBody || options.subject,
-          url: options.actionUrl || '/'
-        });
-        if (pushRes.sent > 0) {
-          pushDispatched = true;
-        }
-      }
-    } catch (pushErr) {
-      // Ignore push error
-    }
-
     const setup = await this.getTransporter();
     const actionUrl = options.actionUrl || getAppBaseUrl();
 
@@ -761,20 +740,9 @@ class GmailNotificationService {
           timestamp: new Date().toISOString()
         });
 
-        if (pushDispatched) {
-          return { sent: true, message: 'Cổng SMTP bị chặn trên hosting, hệ thống đã nổ thông báo màn hình khóa (Web Push PWA) qua cổng HTTPS 443 thành công!' };
-        }
-
         return { sent: false, message: `Lỗi gửi Gmail: ${err.message}` };
       }
     } else {
-      if (pushDispatched) {
-        return { 
-          sent: true, 
-          message: 'Đã phát thông báo nổ màn hình khóa (Web Push PWA) tới thiết bị thành công qua cổng HTTPS 443!' 
-        };
-      }
-
       // In simulated mode if SMTP not yet configured by admin
       this.addLog({
         id: 'log_' + Date.now(),

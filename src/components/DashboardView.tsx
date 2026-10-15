@@ -31,7 +31,6 @@ import { AiLifeBuddyCopilotModal } from './companion/AiLifeBuddyCopilotModal';
 import { QuickPersonaQuizModal } from './onboarding/QuickPersonaQuizModal';
 import { StreakResurrectionModal } from './dashboard/StreakResurrectionModal';
 import { WeeklyLeaderboardModal } from './dashboard/WeeklyLeaderboardModal';
-import { QuickNotificationWidget } from './QuickNotificationWidget';
 
 export function DashboardView() {
   const { 
@@ -618,9 +617,6 @@ export function DashboardView() {
                   : (isVi ? `Tất cả công việc hôm nay đã hoàn thành! ${greeting.sub}` : `All tasks for today are completed! ${greeting.sub}`)}
               </p>
             </div>
-
-            {/* Quick Multi-Channel Notifications & Calendar Sync */}
-            <QuickNotificationWidget />
 
             {/* THE 3-SECOND RULE COCKPIT: TRẠM CHỈ HUY 3 GIÂY CHO GEN Z */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 py-1">

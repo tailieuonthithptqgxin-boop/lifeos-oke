@@ -18,7 +18,6 @@ export const NAV_MODULE_METADATA = [
   { id: 'calendar' as ViewState, labelVi: 'Lịch biểu', labelEn: 'Calendar', iconEmoji: '📅', descVi: 'Lịch sự kiện & thời gian biểu', descEn: 'Event schedule & time blocking', group: 'space' },
   { id: 'marketplace' as ViewState, labelVi: 'Thư viện mẫu', labelEn: 'Templates Marketplace', iconEmoji: '🛍️', descVi: '12 templates cuộc sống thực chiến', descEn: '12 practical life templates', group: 'system' },
   { id: 'automation' as ViewState, labelVi: 'Quy tắc tự động', labelEn: 'Automation Rules', iconEmoji: '⚙️', descVi: '16 luật tự động hóa dữ liệu', descEn: '16 data automation rules', group: 'system' },
-  { id: 'notifications' as ViewState, labelVi: 'Thông báo & Đa kênh', labelEn: 'Notifications & Sync', iconEmoji: '🔔', descVi: 'Web Push PWA, Lịch .ics & Messenger (Cổng 443)', descEn: 'Web Push PWA, Calendar .ics & Messenger (Port 443)', group: 'system' },
   { id: 'decision' as ViewState, labelVi: 'Bộ máy ra quyết định', labelEn: 'Decision Engine', iconEmoji: '⚖️', descVi: 'Động cơ cân nhắc quyết định 10/10/10', descEn: '10/10/10 Decision framework engine', group: 'system' },
   { id: 'subscription' as ViewState, labelVi: 'Gói & Nhóm', labelEn: 'Plans & Team', iconEmoji: '💎', descVi: 'Nâng cấp và quản lý thành viên', descEn: 'Upgrade & manage team members', group: 'system' },
   { id: 'referral' as ViewState, labelVi: 'Giới thiệu 20%', labelEn: 'Referral 20%', iconEmoji: '🎁', descVi: 'Chương trình Affiliate hoa hồng', descEn: 'Affiliate commission program', group: 'system' },
