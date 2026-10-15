@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   Brain, Clock, AlertTriangle, CheckCircle2, Play, Flame, 
   Sparkles, Filter, ChevronRight, Layers, Volume2, ArrowRight,
-  BookOpen, Bookmark, Calendar, RotateCcw, Shuffle, Check
+  BookOpen, Bookmark, Calendar, RotateCcw, Shuffle, Check, Search
 } from 'lucide-react';
 import { 
   VocabWord, 
@@ -22,13 +22,15 @@ interface TodayStudyTabProps {
     mode: 'flashcard' | 'flashcard_reverse' | 'quiz' | 'spelling' | 'fill_in_blank'
   ) => void;
   onOpenWordDetail: (word: VocabWord) => void;
+  onLookupWord?: () => void;
 }
 
 export function TodayStudyTab({
   activeLang,
   allWords = [],
   onStartStudyBatch,
-  onOpenWordDetail
+  onOpenWordDetail,
+  onLookupWord
 }: TodayStudyTabProps) {
   const [selectedBatchSize, setSelectedBatchSize] = useState<number>(15);
   const [selectedMode, setSelectedMode] = useState<'flashcard' | 'flashcard_reverse' | 'quiz' | 'spelling' | 'fill_in_blank'>('flashcard');
@@ -87,7 +89,7 @@ export function TodayStudyTab({
     <div className="space-y-5 animate-in fade-in duration-200">
       
       {/* ========================================================================= */}
-      {/* 1. UPPER SECTION (2-COLUMN GRID)                                          */}
+      {/* 1. UPPER SECTION (2-COLUMN BENTO GRID)                                    */}
       {/* ========================================================================= */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Left Card: Vocabulary Master */}
@@ -96,7 +98,7 @@ export function TodayStudyTab({
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <span className="text-xl">{activeLang.flag || '🇬🇧'}</span>
-                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#8387F5]/15 text-[#8387F5] border border-[#8387F5]/30">
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800">
                   {activeLang.name || 'Tiếng Anh'}
                 </span>
               </div>
@@ -113,28 +115,38 @@ export function TodayStudyTab({
 
           <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
             <span>Mục tiêu: {activeLang.dailyNewWordTarget} từ mới / ngày</span>
-            <span className="font-medium text-slate-700 dark:text-slate-300">Cấp độ: {activeLang.level}</span>
+            {onLookupWord && (
+              <button
+                type="button"
+                onClick={onLookupWord}
+                className="px-2.5 py-1 rounded-lg text-xs font-medium border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer flex items-center gap-1.5"
+                title="Tra từ điển & tìm kiếm"
+              >
+                <Search className="w-3.5 h-3.5 text-slate-400" />
+                <span>Tra từ</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Right Card: Kế hoạch Ôn tập & Nạp từ trong ngày (Solid Deep Emerald Green #0D523F) */}
-        <div className="bg-[#0D523F] text-white rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between">
+        {/* Right Card: Kế hoạch Ôn tập (Balanced White Card with Emerald CTA) */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between">
           <div>
-            <span className="text-[10px] font-semibold text-emerald-200 uppercase tracking-wider block">
+            <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">
               LỊCH HỌC HÔM NAY
             </span>
-            <h2 className="text-base sm:text-lg font-bold text-white tracking-tight mt-1">
-              Kế hoạch Ôn tập & Nạp từ trong ngày
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight mt-1">
+              Kế hoạch Ôn tập
             </h2>
-            <p className="text-xs text-emerald-100/90 leading-relaxed mt-1">
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-1">
               Ôn tập đúng thời điểm nguy cơ quên bắt đầu tăng để khóa kiến thức vào trí nhớ dài hạn.
             </p>
           </div>
 
-          <div className="pt-3 mt-3 border-t border-emerald-700/50 flex items-end justify-between">
+          <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-end justify-between">
             <div>
-              <span className="text-[10px] text-emerald-200/80 uppercase tracking-wider block">Tổng cần học</span>
-              <span className="text-2xl sm:text-3xl font-black text-white">{plan.totalToStudy} từ</span>
+              <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Tổng cần học</span>
+              <span className="text-2xl sm:text-3xl font-mono tabular-nums font-bold text-slate-900 dark:text-white">{plan.totalToStudy} từ</span>
             </div>
 
             <button
@@ -143,8 +155,8 @@ export function TodayStudyTab({
               disabled={plan.totalToStudy === 0}
               className={`px-4 py-2 rounded-xl font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 shadow-xs ${
                 plan.totalToStudy > 0
-                  ? 'bg-white hover:bg-slate-100 text-[#0D523F] active:scale-95'
-                  : 'bg-white/30 text-emerald-200 cursor-not-allowed'
+                  ? 'bg-[#10B981] hover:bg-[#059669] text-white active:scale-95'
+                  : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed'
               }`}
             >
               <Play className="w-3.5 h-3.5 fill-current" />
@@ -466,46 +478,42 @@ export function TodayStudyTab({
         ) : (
           <div className="divide-y divide-slate-100 dark:divide-slate-800">
             {(displayWords || []).map(w => {
+              const isLearned = w.state === 'mastered' || (w.state !== 'new' && (w.repetitions || 0) > 0);
               const retention = estimateRetentionProbability(w.lastReviewedAt, w.intervalDays, w.easeFactor, w.lapses);
-              
-              const getRetentionBadge = () => {
-                if (w.state === 'new') {
-                  return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">🌱 Chưa học</span>;
-                }
-                if (retention < 60) {
-                  return <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">Nguy cơ quên: {retention}%</span>;
-                }
-                if (retention < 80) {
-                  return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Đang giảm: {retention}%</span>;
-                }
-                return <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Ổn định: {retention}%</span>;
-              };
 
               return (
                 <div
                   key={w.id}
-                  className="py-3 px-2 flex items-center justify-between gap-3 hover:bg-slate-50 dark:hover:bg-slate-800/40 rounded-xl transition"
+                  className="py-3 px-2 flex items-center justify-between gap-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 rounded-xl transition-colors group"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <button
                       type="button"
                       onClick={() => speakWord(w.term, activeLang.speechVoiceCode)}
-                      className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950/50 rounded-lg cursor-pointer shrink-0"
+                      className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg cursor-pointer shrink-0 transition-colors"
                       title="Phát âm"
                     >
                       <Volume2 className="w-4 h-4" />
                     </button>
 
+                    {/* Single elegant status dot */}
+                    <span 
+                      className={`w-2 h-2 rounded-full shrink-0 ${
+                        isLearned ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'
+                      }`} 
+                      title={isLearned ? `Đang ôn tập (${retention}% lưu giữ)` : 'Chưa học'}
+                    />
+
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span 
                           onClick={() => onOpenWordDetail(w)}
-                          className="font-black text-sm text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer truncate"
+                          className="font-semibold text-sm text-slate-900 dark:text-white hover:text-emerald-600 dark:hover:text-emerald-400 cursor-pointer truncate transition-colors"
                         >
                           {w.term}
                         </span>
                         {w.partOfSpeech && (
-                          <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
+                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
                             {w.partOfSpeech}
                           </span>
                         )}
@@ -515,23 +523,28 @@ export function TodayStudyTab({
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-slate-600 dark:text-slate-300 truncate">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">
                         {w.meaning}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2.5 shrink-0">
-                    {getRetentionBadge()}
+                  <div className="flex items-center gap-3 shrink-0">
+                    {isLearned && (
+                      <span className="text-[11px] font-mono text-slate-400 hidden sm:inline">
+                        {retention}%
+                      </span>
+                    )}
 
                     <span className="text-[11px] text-slate-400 font-medium hidden md:inline">
-                      Khoảng cách: {w.intervalDays}d
+                      {w.intervalDays}d
                     </span>
 
                     <button
                       type="button"
                       onClick={() => onOpenWordDetail(w)}
-                      className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg cursor-pointer"
+                      className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg cursor-pointer transition-colors"
+                      title="Xem chi tiết"
                     >
                       <ChevronRight className="w-4 h-4" />
                     </button>

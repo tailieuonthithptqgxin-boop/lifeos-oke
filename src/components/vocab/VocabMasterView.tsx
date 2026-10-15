@@ -920,6 +920,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
           allWords={allCombinedWords}
           onStartStudyBatch={(words, mode) => handleStartStudyExplicit(words, mode)}
           onOpenWordDetail={(word) => setDetailWord(word)}
+          onLookupWord={() => setShowUniversalSearchModal(true)}
         />
       )}
 
