@@ -155,11 +155,11 @@ export function TopBar() {
           type="button"
           onClick={() => setCurrentView('journey')}
           title={`Level ${realLevel} · ${realCp} CP · ${realStreak} ngày streak`}
-          className="md:hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900 text-white font-bold text-[10px] shadow-xs shrink-0 cursor-pointer"
+          className="md:hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-800 font-bold text-[10px] shadow-2xs shrink-0 cursor-pointer"
         >
-          <span className="text-amber-400 font-black">LV.{realLevel}</span>
-          <span className="text-emerald-400 font-mono">⚡{realCp > 999 ? `${(realCp/1000).toFixed(1)}k` : realCp}</span>
-          <span className="text-rose-400 font-mono">🔥{realStreak}</span>
+          <span className="text-amber-600 dark:text-amber-400 font-black">LV.{realLevel}</span>
+          <span className="text-emerald-600 dark:text-emerald-400 font-mono font-bold">⚡{realCp > 999 ? `${(realCp/1000).toFixed(1)}k` : realCp}</span>
+          <span className="text-rose-500 dark:text-rose-400 font-mono font-bold">🔥{realStreak}</span>
         </button>
 
         {/* Desktop Modern RPG Game HUD Pill */}
@@ -167,22 +167,22 @@ export function TopBar() {
           type="button"
           onClick={() => setCurrentView('journey')}
           title={`Hồ sơ Anh Hùng: Level ${realLevel} · ${realStreak} ngày streak · Nhấn để xem bản đồ chiến đấu RPG`}
-          className="hidden md:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-slate-900 text-white border border-slate-700/80 hover:border-emerald-500/80 font-black text-xs shadow-md shadow-slate-950/20 hover:scale-105 active:scale-95 transition-all cursor-pointer group"
+          className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200/90 dark:border-slate-800 hover:border-emerald-500/80 font-black text-xs shadow-2xs hover:scale-105 active:scale-95 transition-all cursor-pointer group"
         >
-          <span className="px-2 py-0.5 rounded-md bg-amber-400 text-slate-950 text-[10px] font-black uppercase">
+          <span className="px-2 py-0.5 rounded-md bg-amber-400 text-slate-950 text-[10px] font-black uppercase shadow-2xs">
             LV.{realLevel}
           </span>
-          <div className="flex items-center gap-1 text-emerald-400">
-            <Zap className="w-3.5 h-3.5 fill-emerald-400 text-emerald-400" />
-            <span className="font-mono text-[11px]">{realCp.toLocaleString()} CP</span>
+          <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
+            <Zap className="w-3.5 h-3.5 fill-current" />
+            <span className="font-mono text-[11px] font-bold">{realCp.toLocaleString()} CP</span>
           </div>
-          <div className="flex items-center gap-1 text-amber-300 border-l border-slate-700/80 pl-2">
+          <div className="flex items-center gap-1 text-amber-600 dark:text-amber-300 border-l border-slate-200 dark:border-slate-700/80 pl-2">
             <span className="text-[11px]">🪙</span>
-            <span className="font-mono text-[11px]">{realCoins}</span>
+            <span className="font-mono text-[11px] font-bold">{realCoins}</span>
           </div>
-          <div className="flex items-center gap-0.5 text-rose-400 border-l border-slate-700/80 pl-2">
-            <Flame className="w-3.5 h-3.5 fill-rose-500 text-rose-500 animate-pulse" />
-            <span className="font-mono text-[11px]">{realStreak}d</span>
+          <div className="flex items-center gap-0.5 text-rose-500 dark:text-rose-400 border-l border-slate-200 dark:border-slate-700/80 pl-2">
+            <Flame className="w-3.5 h-3.5 fill-current animate-pulse" />
+            <span className="font-mono text-[11px] font-bold">{realStreak}d</span>
           </div>
         </button>
 
@@ -345,14 +345,14 @@ export function TopBar() {
         <button
           type="button"
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="hidden md:inline-flex p-2.5 text-slate-500 hover:text-violet-600 dark:hover:text-violet-300 hover:bg-violet-50 dark:hover:bg-purple-950/40 rounded-2xl transition-all cursor-pointer btn-squishy"
+          className="hidden md:inline-flex p-2.5 text-slate-500 hover:text-amber-500 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-2xl transition-all cursor-pointer btn-squishy"
           title={theme === 'dark' ? t('Switch to Light Mode') : t('Switch to Dark Mode')}
           aria-label={t('Chuyển chế độ giao diện')}
         >
           {theme === 'dark' ? (
             <Sun className="w-5 h-5 text-amber-400 animate-pulse-soft" />
           ) : (
-            <Moon className="w-5 h-5 text-violet-600" />
+            <Moon className="w-5 h-5 text-slate-600 dark:text-slate-300" />
           )}
         </button>
 
@@ -365,31 +365,31 @@ export function TopBar() {
               setShowCreateMenu(false); 
               setShowUserMenu(false);
             }} 
-            className="p-2.5 text-slate-500 hover:text-pink-600 dark:hover:text-pink-300 hover:bg-pink-50 dark:hover:bg-pink-950/40 rounded-2xl transition-all relative btn-squishy"
+            className="p-2.5 text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-2xl transition-all relative btn-squishy"
             aria-label={t('Thông báo')}
           >
             <Bell className="w-5 h-5" />
             {unreadCount > 0 && (
-              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full ring-2 ring-white dark:ring-slate-900 animate-pulse"></span>
+              <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full ring-2 ring-white dark:ring-slate-900 animate-pulse"></span>
             )}
           </button>
           
           {showNotifications && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)}></div>
-              <div className="absolute top-full right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-purple-100 dark:border-purple-900/50 rounded-3xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-purple-100/60 dark:border-purple-900/40 bg-gradient-to-r from-violet-500/10 to-pink-500/10">
+              <div className="absolute top-full right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800 rounded-3xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-gradient-to-r from-emerald-500/10 to-teal-500/10">
                   <h3 className="font-black text-xs text-slate-800 dark:text-slate-200 uppercase tracking-widest flex items-center gap-1.5">
                     <span>🔔</span>
                     <span>{t('Thông báo')} ({unreadCount})</span>
                   </h3>
                   {unreadCount > 0 && (
-                    <button type="button" onClick={clearAllNotifications} className="text-xs text-purple-600 dark:text-purple-400 hover:underline font-bold">
+                    <button type="button" onClick={clearAllNotifications} className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-bold">
                       {t('Đã đọc tất cả')}
                     </button>
                   )}
                 </div>
-                <div className="max-h-80 overflow-y-auto divide-y divide-purple-50 dark:divide-purple-900/30">
+                <div className="max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
                   {!notifications || notifications.length === 0 ? (
                     <div className="p-6 text-center text-xs text-slate-400 font-medium">✨ {t('Bạn đã xem hết mọi thông báo.')}</div>
                   ) : (
@@ -399,8 +399,8 @@ export function TopBar() {
                       return (
                         <div 
                           key={notif.id} 
-                          className={`p-3.5 hover:bg-purple-50/50 dark:hover:bg-purple-950/30 cursor-pointer transition-colors ${
-                            notif.read ? 'opacity-60' : isCritical ? 'bg-rose-50/30 dark:bg-rose-950/20' : 'bg-purple-50/20'
+                          className={`p-3.5 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer transition-colors ${
+                            notif.read ? 'opacity-60' : isCritical ? 'bg-rose-50/30 dark:bg-rose-950/20' : 'bg-emerald-50/20 dark:bg-emerald-950/20'
                           }`} 
                           onClick={() => markNotificationRead(notif.id)}
                         >
@@ -412,7 +412,7 @@ export function TopBar() {
                                 ? 'bg-rose-500 ring-2 ring-rose-300 animate-pulse' 
                                 : isImportant
                                 ? 'bg-amber-500 ring-2 ring-amber-300'
-                                : 'bg-purple-500 ring-2 ring-purple-300/50'
+                                : 'bg-emerald-500 ring-2 ring-emerald-300/50'
                             }`}></div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-1.5 flex-wrap">
@@ -438,7 +438,7 @@ export function TopBar() {
                                       e.stopPropagation();
                                       markNotificationRead(notif.id);
                                     }}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold shadow-2xs transition-colors"
+                                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[10px] font-bold shadow-2xs transition-colors"
                                   >
                                     <span>{notif.actionLabel || t('Xem chi tiết')}</span>
                                     <ExternalLink className="w-2.5 h-2.5" />
@@ -466,17 +466,17 @@ export function TopBar() {
               setShowNotifications(false);
               setShowCreateMenu(false);
             }}
-            className="flex items-center gap-2 p-1 pl-1.5 sm:pr-3 rounded-full hover:bg-violet-50 dark:hover:bg-purple-950/40 border border-purple-200/60 dark:border-purple-800/50 transition-all btn-squishy"
+            className="flex items-center gap-2 p-1 pl-1.5 sm:pr-3 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/90 dark:border-slate-800 transition-all btn-squishy"
           >
             <img 
               src={currentUser?.avatar || 'https://ui-avatars.com/api/?name=User&background=random'} 
               alt="Avatar" 
-              className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 object-cover ring-2 ring-pink-400/40" 
+              className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 object-cover ring-2 ring-emerald-500/30" 
             />
             <span className="hidden sm:inline text-xs font-black text-slate-700 dark:text-slate-200 max-w-[100px] truncate">
               {currentUser?.name?.split(' ')[0] || t('Tài khoản')}
             </span>
-            <ChevronDown className="w-3.5 h-3.5 text-purple-400" />
+            <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
           </button>
 
           {showUserMenu && (

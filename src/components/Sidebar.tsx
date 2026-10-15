@@ -245,7 +245,7 @@ export function Sidebar() {
 
           {/* Section: Custom Modules */}
           {customModules.length > 0 && (
-            <div className="space-y-1 pt-2 border-t border-purple-100/60 dark:border-purple-900/30">
+            <div className="space-y-1 pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
               <div className="px-3 pb-1 text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
                 <Layers className="w-3 h-3 text-indigo-500" />
                 <span>{t('Custom Modules')}</span>

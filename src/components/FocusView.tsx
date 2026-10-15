@@ -494,7 +494,7 @@ export function FocusView() {
 
   const focusContent = (
     <div className={`w-full min-w-0 max-w-7xl mx-auto flex flex-col space-y-3.5 sm:space-y-4 overflow-x-hidden ${
-      isZenMode ? 'dark fixed inset-0 z-[99999] w-screen h-screen bg-slate-950 text-slate-100 max-w-none p-4 sm:p-12 overflow-y-auto' : 'px-4 sm:px-6 py-3 sm:py-5 pb-28 md:pb-12'
+      isZenMode ? 'dark fixed inset-0 z-[99999] w-screen h-screen bg-slate-950 text-slate-100 max-w-none p-4 sm:p-12 overflow-y-auto' : 'px-4 sm:px-6 py-3 sm:py-4 pb-24 md:pb-3'
     }`}>
       
       {/* ========================================================================= */}
@@ -642,8 +642,8 @@ export function FocusView() {
             )}
           </div>
 
-          {/* Vòng tròn Đồng hồ (Timer Circle - w-56 h-56 sm:w-60 sm:h-60) */}
-          <div className="relative w-56 h-56 sm:w-60 sm:h-60 mx-auto flex items-center justify-center">
+          {/* Vòng tròn Đồng hồ (Timer Circle - w-48 h-48 sm:w-52 sm:h-52 md:w-56 md:h-56) */}
+          <div className="relative w-48 h-48 sm:w-52 sm:h-52 md:w-56 md:h-56 mx-auto flex items-center justify-center">
             <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 240 240">
               <defs>
                 <linearGradient id="focusTimerGrad" x1="0%" y1="0%" x2="100%" y2="100%">

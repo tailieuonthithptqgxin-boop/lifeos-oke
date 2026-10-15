@@ -358,7 +358,7 @@ function AppContent() {
       <div className="flex-1 flex flex-col min-w-0 max-w-full relative overflow-x-hidden">
         <TopBar />
         <AccountStatusBanner />
-        <main className="flex-1 overflow-y-auto overflow-x-hidden w-full max-w-full pb-20 sm:pb-24 md:pb-20 relative">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden w-full max-w-full pb-20 sm:pb-24 md:pb-6 relative">
           <React.Suspense fallback={<PageSkeleton />}>
             {renderViewContent()}
           </React.Suspense>

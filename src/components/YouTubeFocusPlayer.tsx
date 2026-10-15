@@ -313,7 +313,7 @@ export function YouTubeFocusPlayer({
           {activeTab === 'custom' && (
             <form onSubmit={handleCustomSubmit} className="space-y-2.5">
               <div>
-                <label className="block text-[11px] font-extrabold text-purple-600 dark:text-purple-400 mb-1 uppercase tracking-wider">
+                <label className="block text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 mb-1 uppercase tracking-wider">
                   Dán link YouTube (Video hoặc Live stream):
                 </label>
                 <input
@@ -325,7 +325,7 @@ export function YouTubeFocusPlayer({
                     if (errorMsg) setErrorMsg(null);
                   }}
                   placeholder="VD: https://www.youtube.com/watch?v=..."
-                  className="w-full px-3.5 py-2.5 text-xs bg-white dark:bg-slate-800 border border-purple-100 dark:border-purple-900/50 rounded-2xl focus:outline-hidden focus:ring-2 focus:ring-purple-400 text-slate-900 dark:text-white"
+                  className="w-full px-3.5 py-2.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
                 />
               </div>
 
@@ -335,7 +335,7 @@ export function YouTubeFocusPlayer({
                   value={customTitle}
                   onChange={e => setCustomTitle(e.target.value)}
                   placeholder="Tên gợi nhớ (Tùy chọn, VD: Nhạc piano chill ✨)"
-                  className="w-full px-3.5 py-2.5 text-xs bg-white dark:bg-slate-800 border border-purple-100 dark:border-purple-900/50 rounded-2xl focus:outline-hidden focus:ring-2 focus:ring-purple-400 text-slate-900 dark:text-white"
+                  className="w-full px-3.5 py-2.5 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
                 />
               </div>
 
@@ -348,7 +348,7 @@ export function YouTubeFocusPlayer({
 
               <button
                 type="submit"
-                className="btn-squishy w-full py-2.5 bg-gradient-to-r from-rose-500 via-pink-500 to-purple-600 hover:from-rose-600 hover:to-purple-700 text-white rounded-2xl text-xs font-extrabold transition-all shadow-md shadow-pink-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
+                className="btn-squishy w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl text-xs font-extrabold transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
                 <span>Nạp & Bắt đầu phát 🎵</span>
@@ -356,13 +356,13 @@ export function YouTubeFocusPlayer({
             </form>
           )}
 
-          <div className="pt-2 border-t border-purple-100/60 dark:border-purple-900/30 flex items-center justify-between text-[11px] text-slate-400">
+          <div className="pt-2 border-t border-slate-200/60 dark:border-slate-800/60 flex items-center justify-between text-[11px] text-slate-400">
             <span>Âm lượng & điều khiển trực tiếp trên video 🎧</span>
             <a
               href={`https://www.youtube.com/watch?v=${currentVideoId}`}
               target="_blank"
               rel="noreferrer"
-              className="hover:text-indigo-500 flex items-center gap-1"
+              className="hover:text-emerald-500 flex items-center gap-1"
             >
               <span>Xem trên YouTube</span>
               <ExternalLink className="w-3 h-3" />

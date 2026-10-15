@@ -223,8 +223,8 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
     });
   };
 
-  // If disabled completely or off, do not render floating widget
-  if (!settings.enabled || settings.focusCompanionMode === 'off') {
+  // If disabled completely, off, or on dashboard (where Lumi is already docked in Gamification Bento Card)
+  if (!settings.enabled || settings.focusCompanionMode === 'off' || currentView === 'dashboard') {
     return null;
   }
 
