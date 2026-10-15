@@ -481,7 +481,7 @@ export function DashboardView() {
           {/* Subtle ambient blur */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-400/10 dark:bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="relative z-30 space-y-4">
+          <div className="relative z-40 space-y-4">
             {/* Top row: Date & Time, Mood Selector, Date Navigation */}
             <div className="flex flex-wrap items-center justify-between gap-2.5">
               <div className="flex items-center gap-2">
@@ -491,7 +491,7 @@ export function DashboardView() {
                 </div>
 
                 {/* Gen Z Mood of the day button */}
-                <div className="relative inline-block">
+                <div className={`relative inline-block ${showMoodPicker ? 'z-50' : 'z-20'}`}>
                   <button
                     type="button"
                     onClick={() => setShowMoodPicker(prev => !prev)}
@@ -505,10 +505,10 @@ export function DashboardView() {
                   {showMoodPicker && (
                     <>
                       {/* Backdrop for Mobile and Desktop */}
-                      <div className="fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-xs md:bg-transparent md:backdrop-blur-none" onClick={() => setShowMoodPicker(false)} />
+                      <div className="fixed inset-0 z-40 bg-slate-900/40 md:bg-transparent" onClick={() => setShowMoodPicker(false)} />
 
                       {/* Desktop Popover: exactly absolute top-full left-0 mt-2 z-50 w-72 */}
-                      <div className="hidden md:block absolute top-full left-0 mt-2 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl rounded-2xl p-2 w-72 space-y-1 text-xs animate-in fade-in zoom-in-95">
+                      <div className="hidden md:block absolute top-full left-0 mt-2 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl p-2 w-72 space-y-1 text-xs opacity-100">
                         <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-slate-100 dark:border-slate-800 mb-1">
                           <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">Tâm trạng hôm nay</span>
                           <button 
@@ -642,10 +642,10 @@ export function DashboardView() {
 
           {/* NHẮC NHỞ THÔNG MINH (SMART ACTION PILLS) - Swipeable on mobile */}
           {(!dismissedPills['sunday_reset'] || (dueVocabCount > 0 && !dismissedPills['ebbinghaus']) || (resurrectionStatus.isPending && !dismissedPills['resurrection'])) && (
-            <div className="relative z-10 pt-4 md:pt-5 flex md:flex-col overflow-x-auto no-scrollbar gap-2 py-1 pb-1 -mx-2 px-2 sm:mx-0 sm:px-0">
+            <div className="relative z-0 pt-4 md:pt-5 flex md:flex-col overflow-x-auto no-scrollbar gap-2 py-1 pb-1 -mx-2 px-2 sm:mx-0 sm:px-0">
               {/* Pill 1: Sunday Weekly Reset */}
               {!dismissedPills['sunday_reset'] && (
-                <div className="min-w-[85vw] sm:min-w-0 shrink-0 md:shrink p-2.5 sm:px-3 sm:py-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-300/80 dark:border-emerald-800/60 flex items-center justify-between gap-3 text-xs animate-in fade-in duration-200">
+                <div className="min-w-[85vw] sm:min-w-0 shrink-0 md:shrink p-2.5 sm:px-3 sm:py-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-300/80 dark:border-emerald-800/60 flex items-center justify-between gap-3 text-xs transition-colors">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-base shrink-0">🌿</span>
                     <div className="min-w-0">
@@ -682,7 +682,7 @@ export function DashboardView() {
 
               {/* Pill 2: Spaced Repetition Due Vocab */}
               {dueVocabCount > 0 && !dismissedPills['ebbinghaus'] && (
-                <div className="min-w-[85vw] sm:min-w-0 shrink-0 md:shrink p-2.5 sm:px-3 sm:py-2 rounded-xl bg-teal-500/10 dark:bg-teal-950/40 border border-teal-300/80 dark:border-teal-800/60 flex items-center justify-between gap-3 text-xs animate-in fade-in duration-200">
+                <div className="min-w-[85vw] sm:min-w-0 shrink-0 md:shrink p-2.5 sm:px-3 sm:py-2 rounded-xl bg-teal-500/10 dark:bg-teal-950/40 border border-teal-300/80 dark:border-teal-800/60 flex items-center justify-between gap-3 text-xs transition-colors">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-base shrink-0">📚</span>
                     <div className="min-w-0">
@@ -716,7 +716,7 @@ export function DashboardView() {
 
               {/* Pill 3: Streak Resurrection Challenge */}
               {resurrectionStatus.isPending && !dismissedPills['resurrection'] && (
-                <div className="min-w-[85vw] sm:min-w-0 shrink-0 md:shrink p-2.5 sm:px-3 sm:py-2 rounded-xl bg-amber-500/10 dark:bg-amber-950/40 border border-amber-300/80 dark:border-amber-800/60 flex items-center justify-between gap-3 text-xs animate-in fade-in duration-200">
+                <div className="min-w-[85vw] sm:min-w-0 shrink-0 md:shrink p-2.5 sm:px-3 sm:py-2 rounded-xl bg-amber-500/10 dark:bg-amber-950/40 border border-amber-300/80 dark:border-amber-800/60 flex items-center justify-between gap-3 text-xs transition-colors">
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="text-base shrink-0">🔥</span>
                     <div className="min-w-0">
