@@ -19,11 +19,15 @@ import { soundEngine } from '../../lib/soundEngine';
 import { CompanionSpeechBubble } from './CompanionSpeechBubble';
 import { CompanionSettingsModal } from './CompanionSettingsModal';
 import { InteractiveCompanionChatModal } from './InteractiveCompanionChatModal';
+import { CompanionAvatar } from './CompanionAvatar';
 import { 
   Settings2, 
   Moon, 
   Sparkles, 
-  Bot 
+  Bot,
+  MessageSquare,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 
 export interface GlobalCompanionOverlayProps {
@@ -208,6 +212,12 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
     }
   };
 
+  // Auto-dismiss modals when currentView changes
+  useEffect(() => {
+    setShowChatModal(false);
+    setShowSettingsModal(false);
+  }, [currentView]);
+
   const handleToggleQuietMode = (e: React.MouseEvent) => {
     e.stopPropagation();
     const nextMode: CompanionFocusMode = settings.focusCompanionMode === 'quiet' ? 'normal' : 'quiet';
@@ -217,23 +227,23 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
     });
   };
 
-  // If disabled completely, off, or on dashboard (where Lumi is already docked in Gamification Bento Card)
-  if (!settings.enabled || settings.focusCompanionMode === 'off' || currentView === 'dashboard') {
+  // If disabled completely or off, do not render floating widget
+  if (!settings.enabled || settings.focusCompanionMode === 'off') {
     return null;
   }
 
   // Positioning classes:
   // On desktop: bottom-6, right-6 (or left-6)
-  // On mobile (< sm): bottom-20 left-3.5 so it docks cleanly on the left without colliding with right FAB or bottom nav
+  // On mobile (< sm): bottom-20 left-3 so it docks cleanly above bottom nav
   const isLeft = settings.position === 'bottom-left';
   const posClasses = isLeft
-    ? 'bottom-16 left-3 sm:bottom-6 sm:left-6 md:left-[17.5rem] items-start'
-    : 'bottom-16 left-3 sm:bottom-6 sm:right-6 items-start sm:items-end';
+    ? 'bottom-20 left-3 sm:bottom-6 sm:left-6 md:left-[17.5rem] items-start'
+    : 'bottom-20 right-3 sm:bottom-6 sm:right-6 items-end';
 
   return (
     <>
       <div 
-        className={`hidden md:flex fixed z-[60] flex-col pointer-events-auto transition-all duration-300 ${posClasses} ${className}`}
+        className={`fixed z-[60] flex flex-col pointer-events-auto transition-all duration-300 ${posClasses} ${className}`}
         aria-label="AI Study Companion"
       >
         {/* Floating Speech Bubble */}
@@ -247,46 +257,83 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
           />
         )}
 
-        {/* Modern Flat FAB Button / 2D Vector Avatar */}
-        <div className="relative group">
-          <button
-            type="button"
-            onClick={handleAvatarClick}
-            aria-label={`Trợ lý ảo ${profile.name}`}
-            className="flex items-center gap-2 h-10 px-3 rounded-lg bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 shadow-sm hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors cursor-pointer"
+        {/* Collapsed Compact Docked Pill Mode */}
+        {isCollapsed ? (
+          <div 
+            onClick={() => setIsCollapsed(false)}
+            className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-2 rounded-full bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-800 shadow-md backdrop-blur-md hover:scale-105 active:scale-95 transition-all cursor-pointer group"
+            style={{ borderColor: `${profile.themeColor}55` }}
           >
-            <div className="relative flex items-center justify-center w-6 h-6 rounded-md bg-[#ECFDF5] dark:bg-emerald-950/60 text-[#059669]">
-              <Bot className="w-4 h-4" />
-              <span className="absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#10B981] border border-white dark:border-slate-900" />
-            </div>
-            <span className="text-xs font-medium text-[#0F172A] dark:text-white">
+            <span className="text-sm sm:text-base animate-bounce">{profile.avatar}</span>
+            <span className="text-[11px] sm:text-xs font-black text-slate-700 dark:text-slate-200">
               {profile.name}
             </span>
-          </button>
-
-          {/* Quick Actions Floating Toolbar on Hover */}
-          <div className="absolute -top-8 right-0 hidden group-hover:flex items-center gap-1 bg-white dark:bg-slate-900 p-1 rounded-lg shadow-sm border border-[#E2E8F0] dark:border-slate-800">
-            <button
-              type="button"
-              onClick={handleToggleQuietMode}
-              className="p-1 rounded text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              title={settings.focusCompanionMode === 'quiet' ? 'Bật động viên' : 'Chế độ yên tĩnh'}
-            >
-              {settings.focusCompanionMode === 'quiet' ? <Moon className="w-3.5 h-3.5 text-amber-500" /> : <Sparkles className="w-3.5 h-3.5" />}
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowSettingsModal(true);
-              }}
-              className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-              title="Cài đặt"
-            >
-              <Settings2 className="w-3.5 h-3.5" />
-            </button>
+            <Maximize2 className="w-3 h-3 text-slate-400 group-hover:text-emerald-500 transition-colors" />
           </div>
-        </div>
+        ) : (
+          /* Full Living Mascot Character Widget */
+          <div className="relative group">
+            <CompanionAvatar
+              profile={profile}
+              mood={currentMood}
+              size={settings.size}
+              equippedAccessoryId={settings.equippedAccessoryId}
+              onClick={handleAvatarClick}
+            />
+
+            {/* Quick Actions Floating Toolbar (Visible on touch mobile and desktop hover) */}
+            <div className="absolute -top-2.5 right-0 flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-20 bg-white/95 dark:bg-slate-900/95 p-0.5 rounded-full shadow-md border border-slate-200/80 dark:border-slate-800 backdrop-blur-xs">
+              {/* Chat Button */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowChatModal(true);
+                }}
+                className="p-1 rounded-full text-slate-500 hover:text-emerald-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Hỏi đáp cùng AI"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Quiet Mode Quick Toggle */}
+              <button
+                type="button"
+                onClick={handleToggleQuietMode}
+                className="p-1 rounded-full text-slate-500 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                title={settings.focusCompanionMode === 'quiet' ? 'Bật động viên 2-3 phút' : 'Chuyển Chế độ Yên tĩnh'}
+              >
+                {settings.focusCompanionMode === 'quiet' ? <Moon className="w-3.5 h-3.5 text-amber-500" /> : <Sparkles className="w-3.5 h-3.5" />}
+              </button>
+
+              {/* Minimize Pill Button */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsCollapsed(true);
+                }}
+                className="p-1 rounded-full text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Thu gọn"
+              >
+                <Minimize2 className="w-3.5 h-3.5" />
+              </button>
+
+              {/* Settings Gear Button */}
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowSettingsModal(true);
+                }}
+                className="p-1 rounded-full text-slate-500 hover:text-emerald-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Cài đặt Companion"
+              >
+                <Settings2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Interactive Chat Assistant Modal */}
