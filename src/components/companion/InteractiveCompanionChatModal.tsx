@@ -283,10 +283,10 @@ export const InteractiveCompanionChatModal: React.FC<InteractiveCompanionChatMod
                 )}
 
                 <div 
-                  className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 py-3 text-xs sm:text-sm leading-relaxed ${
+                  className={`max-w-[85%] sm:max-w-[80%] rounded-xl px-4 py-2.5 text-xs sm:text-sm leading-relaxed ${
                     isUser
-                      ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white rounded-br-xs font-semibold shadow-md shadow-purple-500/20'
-                      : 'bg-white/95 dark:bg-slate-800 border border-purple-100/80 dark:border-purple-900/40 text-slate-800 dark:text-slate-100 rounded-bl-xs shadow-xs'
+                      ? 'bg-[#0F172A] text-white dark:bg-emerald-600 rounded-br-xs font-medium shadow-xs'
+                      : 'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 rounded-bl-xs shadow-xs'
                   }`}
                 >
                   <div className="whitespace-pre-line">
@@ -295,13 +295,13 @@ export const InteractiveCompanionChatModal: React.FC<InteractiveCompanionChatMod
 
                   {/* Message Footer: Feedback & Action Pill */}
                   {!isUser && (
-                    <div className="mt-2.5 pt-2 border-t border-purple-100/50 dark:border-slate-700/60 flex items-center justify-between gap-2 text-[11px] text-slate-400">
+                    <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-2 text-[11px] text-slate-400">
                       <div className="flex items-center gap-1">
                         <button
                           type="button"
                           onClick={() => handleFeedback(msg.id, 'up')}
                           className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                            msg.feedback === 'up' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 font-bold' : 'text-slate-400 hover:text-slate-600'
+                            msg.feedback === 'up' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 font-semibold' : 'text-slate-400 hover:text-slate-600'
                           }`}
                           title="Hữu ích"
                         >
@@ -311,7 +311,7 @@ export const InteractiveCompanionChatModal: React.FC<InteractiveCompanionChatMod
                           type="button"
                           onClick={() => handleFeedback(msg.id, 'down')}
                           className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
-                            msg.feedback === 'down' ? 'text-rose-500 bg-rose-50 dark:bg-rose-950/40 font-bold' : 'text-slate-400 hover:text-slate-600'
+                            msg.feedback === 'down' ? 'text-rose-500 bg-rose-50 dark:bg-rose-950/40 font-semibold' : 'text-slate-400 hover:text-slate-600'
                           }`}
                           title="Chưa hài lòng"
                         >
@@ -326,9 +326,9 @@ export const InteractiveCompanionChatModal: React.FC<InteractiveCompanionChatMod
                             onNavigateView(msg.actionView!);
                             onClose();
                           }}
-                          className="btn-squishy inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950/40 hover:bg-purple-100 dark:hover:bg-purple-900/40 text-purple-600 dark:text-purple-300 font-extrabold text-xs transition-colors cursor-pointer shadow-xs border border-purple-200/50"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 font-semibold text-xs transition-colors cursor-pointer shadow-2xs border border-emerald-200 dark:border-emerald-800"
                         >
-                          <span>{msg.actionLabel || 'Xem ngay ✨'}</span>
+                          <span>{msg.actionLabel || 'Xem ngay'}</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </button>
                       )}
@@ -344,7 +344,7 @@ export const InteractiveCompanionChatModal: React.FC<InteractiveCompanionChatMod
               <div className="w-7 h-7 rounded-full flex items-center justify-center text-sm shadow-xs border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
                 {character.avatarIcon}
               </div>
-              <div className="px-3 py-2 rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-400 flex items-center gap-1.5">
+              <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-400 flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></span>
                 <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
                 <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
@@ -357,9 +357,8 @@ export const InteractiveCompanionChatModal: React.FC<InteractiveCompanionChatMod
         </div>
 
         {/* Quick Contextual Question Pills */}
-        <div className="px-3.5 py-2.5 border-t border-purple-100/60 dark:border-slate-800/80 bg-white/80 dark:bg-slate-900/80 overflow-x-auto no-scrollbar flex gap-1.5 items-center">
-          <span className="text-[10px] font-black text-purple-600 dark:text-purple-400 shrink-0 flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5 text-pink-500 animate-wiggle" />
+        <div className="px-3.5 py-2 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-x-auto no-scrollbar flex gap-1.5 items-center">
+          <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider shrink-0 flex items-center gap-1">
             Gợi ý:
           </span>
           {screenContext.suggestedQuestions.map((q, idx) => (
@@ -367,7 +366,7 @@ export const InteractiveCompanionChatModal: React.FC<InteractiveCompanionChatMod
               key={idx}
               type="button"
               onClick={() => handleSendMessage(q)}
-              className="btn-squishy text-[11px] px-3 py-1.5 rounded-2xl bg-purple-50/70 dark:bg-slate-800 hover:bg-purple-100/80 text-purple-700 dark:text-purple-300 border border-purple-100 dark:border-purple-800/70 whitespace-nowrap transition-all cursor-pointer font-bold shadow-2xs"
+              className="text-[11px] px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 whitespace-nowrap transition-colors cursor-pointer font-medium shadow-2xs"
             >
               {q}
             </button>
@@ -380,23 +379,23 @@ export const InteractiveCompanionChatModal: React.FC<InteractiveCompanionChatMod
             e.preventDefault();
             handleSendMessage();
           }}
-          className="p-3 sm:p-4 border-t border-purple-100/60 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center gap-2"
+          className="p-3 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 flex items-center gap-2"
         >
           <input
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder={`Hỏi ${character.name} về tính năng app hoặc bài học chill chill ✨...`}
-            className="flex-1 px-4 py-2.5 bg-purple-50/30 dark:bg-slate-800 border border-purple-100 dark:border-purple-800/60 rounded-2xl text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-purple-400 font-medium"
+            placeholder={`Hỏi ${character.name} về tính năng hoặc công việc...`}
+            className="flex-1 px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-emerald-500 font-normal"
           />
 
           <button
             type="submit"
             disabled={!inputValue.trim() || isTyping}
-            className="btn-squishy p-3 rounded-2xl bg-gradient-to-r from-violet-600 to-pink-500 hover:opacity-95 text-white font-extrabold transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-purple-500/25 cursor-pointer shrink-0"
+            className="p-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-xs cursor-pointer shrink-0"
             title="Gửi câu hỏi"
           >
-            <Send className="w-4 h-4 stroke-[2.5]" />
+            <Send className="w-4 h-4 stroke-[2.2]" />
           </button>
         </form>
       </div>

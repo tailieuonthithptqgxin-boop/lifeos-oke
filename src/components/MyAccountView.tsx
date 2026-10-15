@@ -795,14 +795,14 @@ export function MyAccountView() {
       </div>
 
       {/* DATA BACKUP & RESTORE (PORTABILITY) */}
-      <div className="card-cute bg-white/90 dark:bg-slate-900/90 border border-purple-150/70 dark:border-purple-900/40 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xs">
+      <div className="bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-xl p-5 sm:p-6 space-y-4 shadow-2xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h4 className="font-black text-slate-900 dark:text-white text-base flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-300">
-                <FileJson className="w-5 h-5 stroke-[2.2]" />
+            <h4 className="font-semibold text-slate-900 dark:text-white text-sm sm:text-base flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60">
+                <FileJson className="w-4 h-4 stroke-[2]" />
               </div>
-              <span>Sao lưu & Khôi phục Dữ liệu Cá nhân (1-Click .lifeos) ✨</span>
+              <span>Sao lưu & Khôi phục Dữ liệu Cá nhân (.lifeos)</span>
             </h4>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
               Xuất toàn bộ công việc, dự án, ghi chú, giao dịch tài chính, thói quen và mục tiêu ra file sao lưu tiêu chuẩn để bảo toàn dữ liệu trọn đời hoặc chuyển đổi thiết bị nhanh chóng.
@@ -814,7 +814,7 @@ export function MyAccountView() {
               type="button"
               onClick={handleExportBackup}
               disabled={isExportingBackup}
-              className="btn-squishy px-4 py-2.5 rounded-2xl bg-gradient-to-r from-violet-600 via-pink-500 to-rose-400 hover:from-violet-500 hover:to-pink-500 disabled:opacity-50 text-white font-black text-xs flex items-center gap-1.5 transition-all shadow-md shadow-pink-500/20 cursor-pointer"
+              className="px-3.5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white font-medium text-xs flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
             >
               {isExportingBackup ? (
                 <>
@@ -823,7 +823,7 @@ export function MyAccountView() {
                 </>
               ) : (
                 <>
-                  <Download className="w-4 h-4 stroke-[2.5]" />
+                  <Download className="w-4 h-4 stroke-[2]" />
                   <span>Xuất Bản Sao Lưu (.lifeos)</span>
                 </>
               )}
@@ -839,9 +839,9 @@ export function MyAccountView() {
             <button
               type="button"
               onClick={() => backupInputRef.current?.click()}
-              className="btn-squishy px-4 py-2.5 rounded-2xl bg-white/80 dark:bg-slate-800/80 border border-purple-200/60 dark:border-purple-800/60 hover:bg-violet-50/70 text-purple-700 dark:text-purple-300 font-black text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+              className="px-3.5 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
             >
-              <Upload className="w-4 h-4 stroke-[2.5]" />
+              <Upload className="w-4 h-4 stroke-[2]" />
               <span>Phục Hồi Dữ Liệu</span>
             </button>
           </div>

@@ -251,10 +251,10 @@ export function StudyView() {
           {activeTab === 'vocabulary' && (
             <React.Suspense
               fallback={
-                <div className="flex flex-col items-center justify-center p-16 min-h-[350px] text-slate-500 card-cute rounded-3xl bg-white/70 dark:bg-slate-900/70 border border-purple-100/60 dark:border-purple-900/40">
-                  <div className="w-10 h-10 border-3 border-purple-500 border-t-pink-400 rounded-full animate-spin mb-3"></div>
-                  <span className="text-sm font-bold text-purple-600 dark:text-purple-300">
-                    {isVi ? 'Đang tải kho 10.000+ từ vựng... ✨' : 'Loading 10,000+ vocabulary database... ✨'}
+                <div className="flex flex-col items-center justify-center p-16 min-h-[350px] text-slate-500 rounded-xl bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 shadow-2xs">
+                  <div className="w-7 h-7 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-3"></div>
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-400">
+                    {isVi ? 'Đang tải kho từ vựng...' : 'Loading vocabulary database...'}
                   </span>
                 </div>
               }

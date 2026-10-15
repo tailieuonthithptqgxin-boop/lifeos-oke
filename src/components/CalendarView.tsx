@@ -493,14 +493,14 @@ function EventModal({ event, onClose, onSave, onDelete }: any) {
             </select>
           </div>
         </div>
-        <div className="p-5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex justify-between gap-3 shrink-0">
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex justify-between gap-3 shrink-0">
           <div>
             {event && (
-              <button type="button" onClick={() => onDelete(event.id)} className="px-4 py-2 text-rose-600 dark:text-rose-400 font-bold hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl btn-squishy cursor-pointer">{isVi ? 'Xóa' : 'Delete'}</button>
+              <button type="button" onClick={() => onDelete(event.id)} className="px-4 py-2 text-rose-600 dark:text-rose-400 font-medium hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer text-xs">{isVi ? 'Xóa' : 'Delete'}</button>
             )}
           </div>
-          <div className="flex gap-3">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl btn-squishy cursor-pointer">{isVi ? 'Hủy' : 'Cancel'}</button>
+          <div className="flex gap-2">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 dark:text-slate-400 font-medium hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer text-xs">{isVi ? 'Hủy' : 'Cancel'}</button>
             <button 
               type="button" 
               onClick={() => {
@@ -510,7 +510,7 @@ function EventModal({ event, onClose, onSave, onDelete }: any) {
                 }
                 onSave({...formData, ...(event?.id ? { id: event.id } : {})});
               }} 
-              className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl btn-squishy cursor-pointer shadow-md shadow-emerald-500/20"
+              className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-lg transition-colors cursor-pointer shadow-xs text-xs"
             >
               {isVi ? 'Lưu sự kiện' : 'Save Event'}
             </button>

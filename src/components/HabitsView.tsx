@@ -142,10 +142,9 @@ export function HabitsView() {
                     {habit.category || 'Personal'}
                   </span>
 
-                  {/* Delicate Light Orange Streak Badge */}
                   <div className="flex items-center gap-1 text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-0.5 rounded border border-amber-200/60 dark:border-amber-800/60">
                     <Flame className="w-3.5 h-3.5 text-amber-500" />
-                    <span>{habit.streak || 0} {isVi ? 'ngày' : 'd'}</span>
+                    <span className="font-mono tabular-nums">{habit.streak || 0}</span> <span>{isVi ? 'ngày' : 'd'}</span>
                   </div>
 
                   <button

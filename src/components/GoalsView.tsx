@@ -1369,10 +1369,10 @@ function GoalDetailDrawer({ goal, onClose, onEdit, updateGoal, addGoalReview, to
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mt-0.5">{goal.title}</h3>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={onEdit} className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl btn-squishy cursor-pointer">
+            <button type="button" onClick={onEdit} className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer">
               <Edit2 className="w-4 h-4" />
             </button>
-            <button type="button" onClick={onClose} className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl btn-squishy cursor-pointer">
+            <button type="button" onClick={onClose} className="p-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer">
               <X className="w-4 h-4" />
             </button>
           </div>
@@ -1381,13 +1381,13 @@ function GoalDetailDrawer({ goal, onClose, onEdit, updateGoal, addGoalReview, to
         {/* Scrollable Body */}
         <div className="p-6 overflow-y-auto space-y-6 flex-1">
           {/* Progress */}
-          <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
-            <div className="flex justify-between text-xs font-bold text-slate-700 dark:text-slate-300">
+          <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+            <div className="flex justify-between text-xs font-medium text-slate-700 dark:text-slate-300">
               <span>Goal Progress</span>
-              <span className="text-purple-600 dark:text-purple-400 font-black">{goal.progress}%</span>
+              <span className="text-emerald-600 dark:text-emerald-400 font-mono tabular-nums font-semibold">{goal.progress}%</span>
             </div>
-            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2.5 overflow-hidden">
-              <div className="bg-gradient-to-r from-violet-600 to-pink-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${goal.progress}%` }}></div>
+            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
+              <div className="bg-emerald-500 h-2 rounded-full transition-all duration-500" style={{ width: `${goal.progress}%` }}></div>
             </div>
           </div>
 
@@ -1441,7 +1441,7 @@ function GoalModal({ goal, onClose, onSave, onDelete }: any) {
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 animate-modal-enter">
         <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white">{goal ? 'Edit Goal' : 'New Goal'}</h3>
-          <button type="button" onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 btn-squishy cursor-pointer"><X className="w-5 h-5" /></button>
+          <button type="button" onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"><X className="w-5 h-5" /></button>
         </div>
 
         <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
@@ -1533,13 +1533,13 @@ function GoalModal({ goal, onClose, onSave, onDelete }: any) {
           </div>
         </div>
 
-        <div className="p-5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex justify-between gap-3">
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex justify-between gap-3">
           {goal ? (
-            <button type="button" onClick={() => onDelete(goal.id)} className="px-4 py-2 text-rose-600 dark:text-rose-400 text-xs font-bold hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl btn-squishy cursor-pointer">Delete</button>
+            <button type="button" onClick={() => onDelete(goal.id)} className="px-4 py-2 text-rose-600 dark:text-rose-400 text-xs font-medium hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer">Delete</button>
           ) : <div />}
           <div className="flex gap-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 dark:text-slate-400 text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl btn-squishy cursor-pointer">Cancel</button>
-            <button type="button" onClick={() => onSave(formData)} className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-xl btn-squishy cursor-pointer shadow-md shadow-emerald-500/20">Save Goal</button>
+            <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 dark:text-slate-400 text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer">Cancel</button>
+            <button type="button" onClick={() => onSave(formData)} className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer shadow-xs">Save Goal</button>
           </div>
         </div>
       </div>

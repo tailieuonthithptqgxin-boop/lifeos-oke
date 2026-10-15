@@ -189,9 +189,9 @@ export function FinanceView() {
         </div>
         <button type="button" 
           onClick={() => setShowTxModal(true)}
-          className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 sm:px-5 py-2 sm:py-2.5 rounded-2xl text-xs sm:text-sm font-black btn-squishy shadow-md shadow-emerald-500/20 cursor-pointer shrink-0"
+          className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-[#10B981] hover:bg-[#059669] text-white px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium shadow-xs transition-colors cursor-pointer shrink-0"
         >
-          <Plus className="w-4 h-4 stroke-[3]" /> {t('Add Transaction')}
+          <Plus className="w-4 h-4 stroke-[2.5]" /> {t('Add Transaction')}
         </button>
       </div>
 

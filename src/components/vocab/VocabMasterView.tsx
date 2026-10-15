@@ -560,24 +560,24 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
     <div className="space-y-6 max-w-7xl mx-auto px-2 sm:px-4 pb-12">
       
       {/* 1. TOP HEADER & WORKSPACE SWITCHER */}
-      <div className="card-cute bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-3xl border border-purple-100/80 dark:border-purple-900/40 p-5 sm:p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="text-4xl p-2.5 rounded-2xl bg-purple-50 dark:bg-purple-950/60 shadow-xs animate-wiggle">
+          <span className="text-3xl p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700">
             {activeLang.flag}
           </span>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
                 Vocabulary Master
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50">
-                {activeLang.name} ✨
+              <span className="px-2 py-0.5 rounded-md text-[11px] font-mono font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                {activeLang.name}
               </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-medium">
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-normal">
               {isVi 
-                ? 'Hệ thống học từ vựng thông minh, đa nguồn & Spaced Repetition (SM-2) cá nhân hóa chill chill 🌸' 
-                : 'Intelligent, multi-source vocabulary engine & personalized Spaced Repetition (SM-2) 🌸'}
+                ? 'Hệ thống học từ vựng thông minh, đa nguồn & Spaced Repetition (SM-2) cá nhân hóa' 
+                : 'Intelligent, multi-source vocabulary engine & personalized Spaced Repetition (SM-2)'}
             </p>
           </div>
         </div>
@@ -588,10 +588,10 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
           <button
             type="button"
             onClick={() => setShowUniversalSearchModal(true)}
-            className="btn-squishy px-3 py-2 rounded-2xl bg-white/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all cursor-pointer border border-purple-100/60 dark:border-slate-700 flex items-center gap-1.5"
+            className="px-3 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-medium transition-colors cursor-pointer border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-1.5 shadow-2xs"
             title={isVi ? 'Tìm kiếm từ vựng toàn năng' : 'Universal Vocabulary Search'}
           >
-            <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
             <span className="hidden sm:inline">{isVi ? 'Tra từ' : 'Search'}</span>
           </button>
 
@@ -600,10 +600,10 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
               key={lang.id}
               type="button"
               onClick={() => handleSwitchLanguage(lang.id)}
-              className={`btn-squishy px-3.5 py-2 rounded-2xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer shadow-2xs ${
                 lang.id === activeLang?.id
-                  ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/25'
-                  : 'bg-white/80 hover:bg-purple-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-purple-100/60 dark:border-slate-700'
+                  ? 'bg-[#ECFDF5] text-[#059669] dark:bg-emerald-950/40 dark:text-emerald-300 font-semibold border border-emerald-200 dark:border-emerald-800'
+                  : 'bg-white hover:bg-slate-50 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
               }`}
             >
               <span>{lang.flag}</span>
@@ -614,10 +614,10 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
           <button
             type="button"
             onClick={() => setShowLanguageOnboarding(true)}
-            className="btn-squishy p-2.5 rounded-2xl bg-purple-50 hover:bg-purple-100 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 text-xs font-bold transition-all cursor-pointer border border-purple-200/50"
+            className="p-2 rounded-lg bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium transition-colors cursor-pointer border border-slate-200 dark:border-slate-700"
             title={isVi ? 'Thêm ngôn ngữ học mới' : 'Add new learning language'}
           >
-            <Plus className="w-4 h-4 stroke-[3]" />
+            <Plus className="w-4 h-4 stroke-[2.5]" />
           </button>
         </div>
       </div>
@@ -631,22 +631,20 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         <button
           type="button"
           onClick={() => { setActiveTab('study'); setStudySessionActive(false); }}
-          className={`h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-all cursor-pointer ${
+          className={`h-9 px-3.5 rounded-lg font-medium text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-colors cursor-pointer ${
             activeTab === 'study' && !studySessionActive
-              ? 'bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300 shadow-xs border border-purple-200/80 dark:border-purple-800/60 font-black'
+              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs border border-slate-200 dark:border-slate-700 font-semibold'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/50'
           }`}
         >
-          <Brain className="w-4 h-4 text-emerald-500 shrink-0" />
+          <Brain className="w-4 h-4 text-emerald-600 shrink-0" />
           <span>{isVi ? 'Tự chọn bài học' : 'Custom Lesson'}</span>
           {combinedAnalytics.dueTodayCount > 0 ? (
-            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-rose-500 text-white font-black">
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-rose-500 text-white font-mono font-bold">
               {combinedAnalytics.dueTodayCount}
             </span>
           ) : (
-            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-400">
-              🎯
-            </span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
           )}
         </button>
 
@@ -654,16 +652,16 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         <button
           type="button"
           onClick={() => { setActiveTab('today'); setStudySessionActive(false); }}
-          className={`h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-all cursor-pointer ${
+          className={`h-9 px-3.5 rounded-lg font-medium text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-colors cursor-pointer ${
             activeTab === 'today' && !studySessionActive
-              ? 'bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300 shadow-xs border border-purple-200/80 dark:border-purple-800/60 font-black'
+              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs border border-slate-200 dark:border-slate-700 font-semibold'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/50'
           }`}
         >
-          <Calendar className="w-4 h-4 text-purple-500 shrink-0" />
+          <Calendar className="w-4 h-4 text-slate-500 shrink-0" />
           <span>{isVi ? 'Học hôm nay' : "Today's Study"}</span>
           {todayStudyPlan.totalToStudy > 0 && (
-            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-white">
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-rose-500 text-white">
               {todayStudyPlan.totalToStudy}
             </span>
           )}
@@ -673,15 +671,15 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         <button
           type="button"
           onClick={() => { setActiveTab('focus'); setStudySessionActive(false); }}
-          className={`h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-all cursor-pointer ${
+          className={`h-9 px-3.5 rounded-lg font-medium text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-colors cursor-pointer ${
             activeTab === 'focus' && !studySessionActive
-              ? 'bg-white dark:bg-slate-800 text-indigo-700 dark:text-indigo-300 shadow-xs border border-indigo-200/80 dark:border-indigo-800/60 font-black'
+              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs border border-slate-200 dark:border-slate-700 font-semibold'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/50'
           }`}
         >
           <Headphones className="w-4 h-4 text-indigo-500 shrink-0" />
           <span>{isVi ? 'Phòng Focus + Nhạc' : 'Focus + Music'}</span>
-          <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-red-500 text-white flex items-center gap-0.5">
+          <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 flex items-center gap-0.5">
             <Music className="w-2.5 h-2.5" /> YT
           </span>
         </button>
@@ -690,9 +688,9 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         <button
           type="button"
           onClick={() => { setActiveTab('memory'); setStudySessionActive(false); }}
-          className={`h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-all cursor-pointer ${
+          className={`h-9 px-3.5 rounded-lg font-medium text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-colors cursor-pointer ${
             activeTab === 'memory' && !studySessionActive
-              ? 'bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300 shadow-xs border border-purple-200/80 dark:border-purple-800/60 font-black'
+              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs border border-slate-200 dark:border-slate-700 font-semibold'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/50'
           }`}
         >
@@ -710,15 +708,15 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
           <button
             type="button"
             onClick={() => { setActiveTab('oxford3000'); setStudySessionActive(false); }}
-            className={`h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-all cursor-pointer ${
+            className={`h-9 px-3.5 rounded-lg font-medium text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-colors cursor-pointer ${
               activeTab === 'oxford3000' && !studySessionActive
-                ? 'bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300 shadow-xs border border-purple-200/80 dark:border-purple-800/60 font-black'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs border border-slate-200 dark:border-slate-700 font-semibold'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/50'
             }`}
           >
             <BookOpen className="w-4 h-4 text-blue-500 shrink-0" />
             <span>Oxford 3000</span>
-            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300">
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
               3,522
             </span>
           </button>
@@ -728,15 +726,15 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
           <button
             type="button"
             onClick={() => { setActiveTab('chineseHsk'); setStudySessionActive(false); }}
-            className={`h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-all cursor-pointer ${
+            className={`h-9 px-3.5 rounded-lg font-medium text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-colors cursor-pointer ${
               activeTab === 'chineseHsk' && !studySessionActive
-                ? 'bg-white dark:bg-slate-800 text-rose-700 dark:text-rose-300 shadow-xs border border-rose-200/80 dark:border-rose-800/60 font-black'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs border border-slate-200 dark:border-slate-700 font-semibold'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/50'
             }`}
           >
             <BookOpen className="w-4 h-4 text-rose-500 shrink-0" />
             <span>HSK 1-6</span>
-            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300">
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
               10,240
             </span>
           </button>
@@ -746,15 +744,15 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
           <button
             type="button"
             onClick={() => { setActiveTab('japaneseJlpt'); setStudySessionActive(false); }}
-            className={`h-9 sm:h-10 px-3 sm:px-3.5 rounded-xl font-bold text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-all cursor-pointer ${
+            className={`h-9 px-3.5 rounded-lg font-medium text-xs sm:text-sm whitespace-nowrap shrink-0 flex items-center gap-2 transition-colors cursor-pointer ${
               activeTab === 'japaneseJlpt' && !studySessionActive
-                ? 'bg-white dark:bg-slate-800 text-emerald-700 dark:text-emerald-300 shadow-xs border border-emerald-200/80 dark:border-emerald-800/60 font-black'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs border border-slate-200 dark:border-slate-700 font-semibold'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/60 dark:hover:bg-slate-800/50'
             }`}
           >
             <BookOpen className="w-4 h-4 text-emerald-500 shrink-0" />
             <span>JLPT N5-N1</span>
-            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+            <span className="px-1.5 py-0.5 rounded-full text-[10px] font-mono font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
               7,847
             </span>
           </button>

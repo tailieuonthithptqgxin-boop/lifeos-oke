@@ -69,25 +69,22 @@ export const LifeHarmonyRadarWidget: React.FC<LifeHarmonyRadarWidgetProps> = ({
 
   return (
     <>
-      <div className={`card-cute rounded-3xl p-5 sm:p-6 bg-white/95 dark:bg-slate-900/90 border border-purple-100/80 dark:border-purple-950/40 shadow-sm relative overflow-hidden ${className}`}>
-        {/* Ambient background glow */}
-        <div className="absolute -top-12 -right-12 w-48 h-48 bg-purple-200/30 dark:bg-purple-900/20 rounded-full blur-2xl pointer-events-none" />
-
+      <div className={`rounded-xl p-5 sm:p-6 bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 shadow-2xs relative overflow-hidden ${className}`}>
         {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3 relative z-10 border-b border-purple-50 dark:border-slate-800 pb-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-3 relative z-10 border-b border-slate-100 dark:border-slate-800 pb-3.5">
           <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-500 to-indigo-500 flex items-center justify-center text-white shadow-xs">
-              <Trophy className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 flex items-center justify-center shadow-2xs">
+              <Trophy className="w-4 h-4 stroke-[2]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-black text-slate-800 dark:text-white tracking-tight">
+                <h3 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-white tracking-tight">
                   Chỉ Số Cân Bằng Cuộc Sống
                 </h3>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60">
                   5D Harmony
                 </span>
-                <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
+                <span className="text-[9px] font-normal px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
                   Dữ liệu thực tế
                 </span>
               </div>
@@ -105,7 +102,7 @@ export const LifeHarmonyRadarWidget: React.FC<LifeHarmonyRadarWidgetProps> = ({
                 setSelectedDimForTrace(null);
                 setShowTraceModal(true);
               }}
-              className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-slate-200/80 dark:border-slate-700"
+              className="px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-normal transition-colors flex items-center gap-1.5 cursor-pointer border border-slate-200 dark:border-slate-700"
               title="Xem chi tiết nguồn gốc và công thức tính điểm thực tế"
             >
               <Info className="w-3.5 h-3.5" />
@@ -113,10 +110,10 @@ export const LifeHarmonyRadarWidget: React.FC<LifeHarmonyRadarWidgetProps> = ({
             </button>
 
             {/* Score Badge */}
-            <div className={`px-3 py-1.5 rounded-2xl bg-gradient-to-r ${getScoreBadgeColor(harmony.overallScore)} font-black text-sm shadow-xs flex items-center gap-1.5`}>
-              <Sparkles className="w-4 h-4" />
+            <div className="px-2.5 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 dark:border-emerald-800/60 font-semibold text-xs flex items-center gap-1.5">
+              <Sparkles className="w-3.5 h-3.5" />
               <span>
-                {harmony.overallScore !== null ? `${harmony.overallScore}/100` : 'Chưa có điểm'}
+                {harmony.overallScore !== null ? <span className="font-mono tabular-nums">{harmony.overallScore}/100</span> : 'Chưa có điểm'}
               </span>
             </div>
           </div>

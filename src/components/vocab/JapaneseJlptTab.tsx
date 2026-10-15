@@ -231,19 +231,19 @@ export function JapaneseJlptTab({
           <div className="grid grid-cols-4 gap-3 bg-slate-950/50 p-3.5 rounded-2xl border border-emerald-500/20 backdrop-blur-md">
             <div className="text-center px-2">
               <span className="text-xs text-slate-400 font-medium block">Tổng số</span>
-              <span className="text-base sm:text-lg font-black text-white">{stats.total.toLocaleString()}</span>
+              <span className="text-base sm:text-lg font-black text-white font-mono tabular-nums">{stats.total.toLocaleString()}</span>
             </div>
             <div className="text-center px-2 border-l border-slate-800">
               <span className="text-xs text-emerald-400 font-medium block">Thuộc vững</span>
-              <span className="text-base sm:text-lg font-black text-emerald-400">{stats.mastered}</span>
+              <span className="text-base sm:text-lg font-black text-emerald-400 font-mono tabular-nums">{stats.mastered}</span>
             </div>
             <div className="text-center px-2 border-l border-slate-800">
               <span className="text-xs text-amber-400 font-medium block">Đang học</span>
-              <span className="text-base sm:text-lg font-black text-amber-400">{stats.learning}</span>
+              <span className="text-base sm:text-lg font-black text-amber-400 font-mono tabular-nums">{stats.learning}</span>
             </div>
             <div className="text-center px-2 border-l border-slate-800">
               <span className="text-xs text-rose-400 font-medium block">Cần ôn</span>
-              <span className="text-base sm:text-lg font-black text-rose-400">{stats.due}</span>
+              <span className="text-base sm:text-lg font-black text-rose-400 font-mono tabular-nums">{stats.due}</span>
             </div>
           </div>
         </div>
@@ -253,7 +253,7 @@ export function JapaneseJlptTab({
           <button
             type="button"
             onClick={handleOpenFlashcards}
-            className="btn-squishy px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-500/20 cursor-pointer"
+            className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm flex items-center gap-2 shadow-sm transition-all cursor-pointer"
           >
             <Brain className="w-4 h-4 text-slate-950" />
             <span>Luyện Thẻ Ghi Nhớ (Flashcards)</span>
@@ -262,7 +262,7 @@ export function JapaneseJlptTab({
           <button
             type="button"
             onClick={handleStartStudySelected}
-            className="btn-squishy px-4 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-emerald-300 font-bold text-xs sm:text-sm flex items-center gap-2 border border-emerald-500/30 cursor-pointer"
+            className="px-4 py-2 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-emerald-300 font-semibold text-xs sm:text-sm flex items-center gap-2 border border-emerald-500/30 transition-all cursor-pointer"
           >
             <Play className="w-4 h-4 text-emerald-400" />
             <span>Học ngay {selectedWordIds.size > 0 ? `(${selectedWordIds.size} từ đã chọn)` : `(Trang hiện tại)`}</span>
@@ -272,7 +272,7 @@ export function JapaneseJlptTab({
             <button
               type="button"
               onClick={() => onOpenAddToCollection(Array.from(selectedWordIds))}
-              className="btn-squishy px-4 py-2 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 font-bold text-xs sm:text-sm flex items-center gap-2 border border-purple-500/30 cursor-pointer"
+              className="px-4 py-2 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 font-semibold text-xs sm:text-sm flex items-center gap-2 border border-purple-500/30 transition-all cursor-pointer"
             >
               <Bookmark className="w-4 h-4 text-purple-400" />
               <span>Thêm {selectedWordIds.size} từ vào Bộ sưu tập</span>
@@ -288,9 +288,9 @@ export function JapaneseJlptTab({
             key={lvl.value}
             type="button"
             onClick={() => { setSelectedLevel(lvl.value); setCurrentPage(1); }}
-            className={`btn-squishy px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-black whitespace-nowrap transition-all cursor-pointer ${
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all cursor-pointer ${
               selectedLevel === lvl.value
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 shadow-md shadow-emerald-500/25'
+                ? 'bg-emerald-500 text-slate-950 shadow-sm'
                 : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-800'
             }`}
           >
@@ -525,20 +525,20 @@ export function JapaneseJlptTab({
             type="button"
             disabled={currentPage <= 1}
             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-            className="btn-squishy px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold text-slate-300 flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-slate-300 flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" /> Trước
           </button>
 
           <span className="text-xs text-slate-400 font-medium">
-            Trang <span className="font-bold text-white">{currentPage}</span> / <span className="text-white">{totalPages}</span>
+            Trang <span className="font-bold text-white font-mono tabular-nums">{currentPage}</span> / <span className="text-white font-mono tabular-nums">{totalPages}</span>
           </span>
 
           <button
             type="button"
             disabled={currentPage >= totalPages}
             onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-            className="btn-squishy px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold text-slate-300 flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-slate-300 flex items-center gap-1.5 transition-all cursor-pointer"
           >
             Tiếp <ChevronRight className="w-4 h-4" />
           </button>

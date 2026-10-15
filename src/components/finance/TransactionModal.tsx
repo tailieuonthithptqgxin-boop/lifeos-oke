@@ -42,9 +42,9 @@ export function TransactionModal({ onClose, onSave, accounts = [], initialData }
                 type="button"
                 key={item.id}
                 onClick={() => setFormData({...formData, type: item.id})}
-                className={`flex-1 py-1.5 text-sm font-bold rounded-lg btn-squishy cursor-pointer ${
+                className={`flex-1 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-colors cursor-pointer ${
                   formData.type === item.id 
-                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs' 
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs font-semibold' 
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-900'
                 }`}
               >
@@ -155,8 +155,8 @@ export function TransactionModal({ onClose, onSave, accounts = [], initialData }
             />
           </div>
         </div>
-        <div className="p-5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 shrink-0">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl btn-squishy cursor-pointer">
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2.5 shrink-0">
+          <button type="button" onClick={onClose} className="px-3.5 py-2 text-slate-600 dark:text-slate-400 font-medium hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer text-xs sm:text-sm">
             {isVi ? 'Hủy bỏ' : 'Cancel'}
           </button>
           <button 
@@ -191,7 +191,7 @@ export function TransactionModal({ onClose, onSave, accounts = [], initialData }
 
               onSave(cleanPayload);
             }} 
-            className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl btn-squishy cursor-pointer shadow-md shadow-emerald-500/20"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-lg shadow-xs transition-colors cursor-pointer text-xs sm:text-sm"
           >
             {isVi ? 'Lưu giao dịch' : 'Save Transaction'}
           </button>

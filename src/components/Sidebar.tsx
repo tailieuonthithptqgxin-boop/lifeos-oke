@@ -165,8 +165,8 @@ export function Sidebar() {
         {/* Brand header with Minimalist Logo */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-[#E2E8F0] dark:border-slate-800 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-6 h-6 rounded-md bg-[#10B981] flex items-center justify-center text-white text-xs font-bold">
-              ⚡
+            <div className="w-6 h-6 rounded-md bg-[#10B981] flex items-center justify-center text-white">
+              <Zap className="w-3.5 h-3.5 stroke-[2.5]" />
             </div>
             <div className="flex items-center gap-1.5">
               <span className="font-semibold text-sm text-[#0F172A] dark:text-white tracking-tight">LifeOS</span>
@@ -240,18 +240,14 @@ export function Sidebar() {
                       setCurrentView(modView as ViewState);
                       if (isMobileMenuOpen) toggleMobileMenu();
                     }}
-                    className={`w-full group flex items-center gap-3 px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm font-semibold transition-all duration-200 text-left btn-squishy ${
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors text-left cursor-pointer ${
                       isModActive
-                        ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 text-white shadow-md shadow-emerald-500/25 scale-[1.02]'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-emerald-50/70 dark:hover:bg-emerald-950/30 hover:text-emerald-700 dark:hover:text-emerald-300'
+                        ? 'bg-[#ECFDF5] dark:bg-emerald-950/40 text-[#059669] dark:text-emerald-400'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-[#0F172A] dark:hover:text-slate-100'
                     }`}
                   >
-                    <div className={`p-1 rounded-xl transition-all ${
-                      isModActive ? 'bg-white/20 text-white' : 'text-teal-500 group-hover:scale-110'
-                    }`}>
-                      <Layers className="w-4 h-4 shrink-0" />
-                    </div>
-                    <span className="truncate flex-1 font-bold">{mod.name}</span>
+                    <Layers className={`w-4 h-4 shrink-0 ${isModActive ? 'text-[#059669] dark:text-emerald-400' : 'text-slate-400'}`} />
+                    <span className="truncate flex-1">{mod.name}</span>
                   </button>
                 );
               })}

@@ -834,18 +834,18 @@ export function FocusView() {
       
       {/* Interruption Modal */}
       {showInterruptionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-purple-100 dark:border-purple-900 w-full max-w-sm overflow-hidden p-6 animate-in fade-in zoom-in-95">
-            <h3 className="text-lg font-black text-slate-900 dark:text-white mb-1">{isVi ? 'Ghi nhận Gián đoạn 💭' : 'Log Interruption 💭'}</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 font-medium">{isVi ? 'Lý do bạn tạm dừng phiên này là gì?' : 'What caused you to pause this session?'}</p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-sm overflow-hidden p-6 animate-in fade-in zoom-in-95">
+            <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-1">{isVi ? 'Ghi nhận Gián đoạn' : 'Log Interruption'}</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4 font-normal">{isVi ? 'Lý do bạn tạm dừng phiên này là gì?' : 'What caused you to pause this session?'}</p>
             
             <div className="space-y-2 mb-6">
               {(isVi ? ['Điện thoại/Mạng xã hội', 'Có người gọi/Họp đột xuất', 'Nhu cầu cá nhân', 'Nghỉ giải lao', 'Khác'] : ['Phone/Social media', 'Incoming call/Urgent meeting', 'Personal needs', 'Break', 'Other']).map(reason => (
                 <button type="button"
                   key={reason}
                   onClick={() => setInterruptionReason(reason)}
-                  className={`btn-squishy w-full text-left px-4 py-3 rounded-2xl text-xs font-bold transition-all border
-                    ${interruptionReason === reason ? 'bg-purple-50 dark:bg-purple-950/50 border-purple-400 text-purple-700 dark:text-purple-300' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-purple-50/50'}`}
+                  className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-medium transition-colors border cursor-pointer
+                    ${interruptionReason === reason ? 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-500 text-emerald-700 dark:text-emerald-300' : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50'}`}
                 >
                   {reason}
                 </button>
@@ -855,15 +855,15 @@ export function FocusView() {
             <div className="flex items-center gap-2">
               <button type="button" 
                 onClick={() => setShowInterruptionModal(false)}
-                className="btn-squishy flex-1 py-3 text-slate-600 dark:text-slate-300 font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl hover:bg-slate-50 cursor-pointer text-xs"
+                className="flex-1 py-2.5 text-slate-600 dark:text-slate-300 font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors cursor-pointer text-xs"
               >
                 {isVi ? 'Để sau (Giữ tạm dừng)' : 'Dismiss (Keep Paused)'}
               </button>
               <button type="button" 
                 onClick={resumeFocus}
-                className="btn-squishy flex-1 py-3 bg-gradient-to-r from-violet-600 to-pink-500 text-white rounded-2xl font-extrabold hover:opacity-95 transition-all shadow-md cursor-pointer text-xs"
+                className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition-colors shadow-xs cursor-pointer text-xs"
               >
-                {isVi ? 'Tiếp tục Focus ✨' : 'Resume Focus ✨'}
+                {isVi ? 'Tiếp tục Focus' : 'Resume Focus'}
               </button>
             </div>
           </div>
@@ -872,37 +872,37 @@ export function FocusView() {
 
       {/* Finish Session Modal */}
       {showFinishModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-purple-100 dark:border-purple-900 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95">
-            <div className="p-6 border-b border-purple-100/60 dark:border-slate-800 text-center">
-              <div className="w-16 h-16 bg-gradient-to-tr from-emerald-400 to-teal-400 text-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-lg shadow-emerald-500/25 animate-wiggle">
-                <CheckCircle2 className="w-8 h-8" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95">
+            <div className="p-6 border-b border-slate-100 dark:border-slate-800 text-center">
+              <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60 rounded-full flex items-center justify-center mx-auto mb-3">
+                <CheckCircle2 className="w-6 h-6 stroke-[2]" />
               </div>
-              <h3 className="text-xl font-black text-slate-900 dark:text-white">{isVi ? 'Hoàn thành xuất sắc! 🎉' : 'Awesome Completion! 🎉'}</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{isVi ? <>Bạn đã focus chăm chỉ được <strong className="text-purple-600 dark:text-purple-400 font-extrabold">{Math.floor(elapsedSeconds / 60)} phút</strong>.</> : <>You focused diligently for <strong className="text-purple-600 dark:text-purple-400 font-extrabold">{Math.floor(elapsedSeconds / 60)} minutes</strong>.</>}</p>
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{isVi ? 'Hoàn thành phiên làm việc' : 'Session Completed'}</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{isVi ? <>Bạn đã focus được <strong className="text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">{Math.floor(elapsedSeconds / 60)} phút</strong>.</> : <>You focused for <strong className="text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">{Math.floor(elapsedSeconds / 60)} minutes</strong>.</>}</p>
             </div>
             
             <div className="p-6">
-              <label className="block text-xs font-extrabold text-purple-600 dark:text-purple-400 mb-2 uppercase tracking-wider">{isVi ? 'Ghi chú / Kết quả đạt được (Tùy chọn) 📝' : 'Reflection / Key Outcomes (Optional) 📝'}</label>
+              <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">{isVi ? 'Ghi chú / Kết quả đạt được (Tùy chọn)' : 'Reflection / Key Outcomes (Optional)'}</label>
               <textarea 
                 value={reflection} onChange={e => setReflection(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-purple-100 dark:border-purple-900/50 rounded-2xl text-sm font-medium focus:outline-hidden focus:ring-2 focus:ring-purple-400 min-h-[100px] text-slate-800 dark:text-slate-100"
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-normal focus:outline-hidden focus:ring-1 focus:ring-emerald-500 min-h-[100px] text-slate-800 dark:text-slate-100"
                 placeholder={isVi ? "Tôi đã hoàn thành phần 1, phát hiện thêm lỗi ở module user..." : "Completed section 1, discovered edge case in user module..."}
               ></textarea>
             </div>
 
-            <div className="p-6 bg-slate-50/60 dark:bg-slate-800/40 border-t border-purple-100/60 dark:border-slate-800 flex gap-3">
+            <div className="p-4 bg-slate-50/60 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800 flex gap-3">
               <button type="button" 
                 onClick={() => setShowFinishModal(false)}
-                className="btn-squishy flex-1 py-3 text-slate-600 dark:text-slate-300 font-bold bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl hover:bg-slate-50 cursor-pointer text-xs"
+                className="flex-1 py-2 text-slate-600 dark:text-slate-300 font-medium bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-colors cursor-pointer text-xs"
               >
                 {isVi ? 'Hủy' : 'Cancel'}
               </button>
               <button type="button" 
                 onClick={saveFinishedSession}
-                className="btn-squishy flex-1 py-3 bg-gradient-to-r from-violet-600 to-pink-500 text-white font-extrabold rounded-2xl hover:opacity-95 transition-all shadow-md cursor-pointer text-xs"
+                className="flex-1 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-medium rounded-xl transition-colors shadow-xs cursor-pointer text-xs"
               >
-                {isVi ? 'Lưu kết quả ✨' : 'Save Results ✨'}
+                {isVi ? 'Lưu kết quả' : 'Save Results'}
               </button>
             </div>
           </div>

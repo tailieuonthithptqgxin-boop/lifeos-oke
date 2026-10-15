@@ -95,8 +95,8 @@ export function SavingGoalModal({ goal, onClose, onSave, onDelete }: SavingGoalM
             />
           </div>
         </div>
-        <div className="p-5 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-3 shrink-0">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 dark:text-slate-300 font-bold hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl btn-squishy cursor-pointer">
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-2.5 shrink-0">
+          <button type="button" onClick={onClose} className="px-3.5 py-2 text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer text-xs sm:text-sm">
             {isVi ? 'Hủy bỏ' : 'Cancel'}
           </button>
           <button 
@@ -105,7 +105,7 @@ export function SavingGoalModal({ goal, onClose, onSave, onDelete }: SavingGoalM
               if (!formData.title.trim()) return;
               onSave(formData);
             }} 
-            className="px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-xl btn-squishy cursor-pointer shadow-md shadow-emerald-500/20"
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-lg shadow-xs transition-colors cursor-pointer text-xs sm:text-sm"
           >
             {isVi ? 'Lưu mục tiêu' : 'Save Goal'}
           </button>

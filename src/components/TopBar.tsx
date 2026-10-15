@@ -156,8 +156,10 @@ export function TopBar() {
           className="md:hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-[#E2E8F0] dark:border-slate-800 font-semibold text-[10px] shadow-2xs shrink-0 cursor-pointer"
         >
           <span className="text-amber-600 dark:text-amber-400 font-bold">LV.{realLevel}</span>
-          <span className="text-emerald-600 dark:text-emerald-400 font-mono font-medium">⚡{realCp > 999 ? `${(realCp/1000).toFixed(1)}k` : realCp}</span>
-          <span className="text-rose-500 dark:text-rose-400 font-mono font-medium">🔥{realStreak}</span>
+          <span className="text-slate-300 dark:text-slate-700">·</span>
+          <span className="text-emerald-600 dark:text-emerald-400 font-mono tabular-nums font-medium">{realCp > 999 ? `${(realCp/1000).toFixed(1)}k` : realCp} CP</span>
+          <span className="text-slate-300 dark:text-slate-700">·</span>
+          <span className="text-rose-500 dark:text-rose-400 font-mono tabular-nums font-medium">{realStreak}d</span>
         </button>
 
         {/* Desktop Modern Gamification HUD Pill */}
@@ -173,17 +175,17 @@ export function TopBar() {
           <span className="text-slate-200 dark:text-slate-700">|</span>
           <div className="flex items-center gap-1 text-emerald-600">
             <Zap className="w-3.5 h-3.5" />
-            <span className="font-mono text-[11px] font-medium">{realCp.toLocaleString()} CP</span>
+            <span className="font-mono tabular-nums text-[11px] font-medium">{realCp.toLocaleString()} CP</span>
           </div>
           <span className="text-slate-200 dark:text-slate-700">|</span>
           <div className="flex items-center gap-1 text-amber-500">
             <Award className="w-3.5 h-3.5" />
-            <span className="font-mono text-[11px] font-medium">{realCoins}</span>
+            <span className="font-mono tabular-nums text-[11px] font-medium">{realCoins}</span>
           </div>
           <span className="text-slate-200 dark:text-slate-700">|</span>
           <div className="flex items-center gap-1 text-rose-500">
             <Flame className="w-3.5 h-3.5" />
-            <span className="font-mono text-[11px] font-medium">{realStreak}d</span>
+            <span className="font-mono tabular-nums text-[11px] font-medium">{realStreak}d</span>
           </div>
         </button>
 

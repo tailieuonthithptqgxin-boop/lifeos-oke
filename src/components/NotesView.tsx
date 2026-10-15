@@ -1326,25 +1326,25 @@ function NoteDetailModal({
           <div className="flex items-center gap-2">
             <button type="button" 
               onClick={onTogglePin}
-              className={`p-2 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 btn-squishy cursor-pointer ${note.pinned ? 'text-amber-500' : 'text-slate-400'}`}
+              className={`p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer ${note.pinned ? 'text-amber-500' : 'text-slate-400'}`}
               title="Pin note"
             >
               <Pin className="w-5 h-5 fill-current" />
             </button>
             <button type="button" 
               onClick={onToggleFav}
-              className={`p-2 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-800 btn-squishy cursor-pointer ${note.favorite ? 'text-rose-500' : 'text-slate-400'}`}
+              className={`p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors cursor-pointer ${note.favorite ? 'text-rose-500' : 'text-slate-400'}`}
               title="Favorite note"
             >
               <Star className="w-5 h-5 fill-current" />
             </button>
             <button type="button" 
               onClick={onEdit}
-              className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black px-3.5 py-2 rounded-xl flex items-center gap-1.5 btn-squishy cursor-pointer shadow-sm shadow-emerald-500/20"
+              className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
             >
               <Edit3 className="w-4 h-4" /> Edit Note
             </button>
-            <button type="button" onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl btn-squishy cursor-pointer">
+            <button type="button" onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors cursor-pointer">
               <X className="w-5 h-5" />
             </button>
           </div>
@@ -1561,7 +1561,7 @@ function NoteEditorModal({
           <h3 className="font-bold text-slate-800 dark:text-white text-lg">
             {note.id ? 'Edit Note' : 'Create New Note'}
           </h3>
-          <button type="button" onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl btn-squishy cursor-pointer">
+          <button type="button" onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -1711,7 +1711,7 @@ function NoteEditorModal({
               }
               onSave(formData);
             }}
-            className="px-5 py-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-sm cursor-pointer"
+            className="px-5 py-2.5 text-xs font-medium bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg shadow-xs transition-colors cursor-pointer"
           >
             Lưu Ghi chú
           </button>

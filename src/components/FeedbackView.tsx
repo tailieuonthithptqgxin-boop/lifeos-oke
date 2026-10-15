@@ -125,7 +125,7 @@ export function FeedbackView() {
       case 'In Progress':
         return <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">Đang phát triển</span>;
       case 'Completed':
-        return <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">Đã hoàn thành ✨</span>;
+        return <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">Đã hoàn thành</span>;
       case 'Rejected':
         return <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">Chưa phù hợp</span>;
       default:
@@ -136,27 +136,26 @@ export function FeedbackView() {
   return (
     <div className="w-full min-w-0 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 pb-28 overflow-x-hidden">
       {/* 1. Hero Header Fresh Green Unisex */}
-      <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl bg-gradient-to-br from-emerald-700 via-teal-700 to-emerald-600 p-4 sm:p-8 text-white shadow-xl border border-emerald-500/30 w-full min-w-0">
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-2xl bg-[#0F172A] p-4 sm:p-8 text-white shadow-xs border border-slate-800 w-full min-w-0">
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md border border-white/20 text-white text-xs font-bold">
-              <MessageSquare className="w-3.5 h-3.5 text-amber-300" />
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-white/10 border border-white/10 text-white text-xs font-medium">
+              <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
               <span>Cùng Xây Dựng LifeOS Tốt Hơn Mỗi Ngày</span>
             </div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-white">
               Góp Ý & Đề Xuất Tính Năng
             </h1>
-            <p className="text-sm sm:text-base text-emerald-100 font-medium">
+            <p className="text-xs sm:text-sm text-slate-400 font-normal">
               Tiếng nói của bạn định hình tương lai LifeOS. Hãy báo lỗi, chia sẻ ý tưởng hay bình chọn các tính năng bạn muốn thấy nhất!
             </p>
           </div>
 
           <button
             onClick={() => setActiveTab('submit')}
-            className="px-6 py-3 rounded-2xl bg-white text-emerald-800 hover:bg-emerald-50 font-black text-sm shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer btn-squishy shrink-0"
+            className="px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-medium text-xs sm:text-sm shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shrink-0"
           >
-            <Sparkles className="w-4 h-4 text-emerald-600" />
+            <Sparkles className="w-4 h-4 text-white" />
             <span>Gửi Góp Ý Mới</span>
           </button>
         </div>
@@ -222,9 +221,9 @@ export function FeedbackView() {
       {activeTab === 'community' && (
         <div className="space-y-3">
           {filteredFeedbacks.length === 0 ? (
-            <div className="card-cute rounded-3xl p-12 text-center text-slate-400 bg-white dark:bg-slate-900 border border-purple-100 dark:border-slate-800 space-y-2">
-              <Lightbulb className="w-10 h-10 mx-auto text-purple-300 animate-pulse" />
-              <p className="font-bold text-sm text-slate-700 dark:text-slate-200">Chưa có góp ý nào trong mục này</p>
+            <div className="rounded-xl p-12 text-center text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+              <Lightbulb className="w-10 h-10 mx-auto text-emerald-500/70" />
+              <p className="font-semibold text-sm text-slate-700 dark:text-slate-200">Chưa có góp ý nào trong mục này</p>
               <p className="text-xs">Hãy là người đầu tiên gửi ý tưởng đóng góp cho LifeOS!</p>
             </div>
           ) : (
@@ -232,10 +231,10 @@ export function FeedbackView() {
               {filteredFeedbacks.map((f) => (
                 <div 
                   key={f.id} 
-                  className={`card-cute rounded-3xl p-5 bg-white dark:bg-slate-900 border transition-all flex flex-col justify-between gap-4 ${
+                  className={`rounded-xl p-5 bg-white dark:bg-slate-900 border transition-colors flex flex-col justify-between gap-4 ${
                     f.isImportant 
-                      ? 'border-purple-300 dark:border-purple-800 shadow-md ring-1 ring-purple-200 dark:ring-purple-900/50' 
-                      : 'border-purple-100/70 dark:border-slate-800 shadow-xs'
+                      ? 'border-emerald-300 dark:border-emerald-800 shadow-xs' 
+                      : 'border-slate-200 dark:border-slate-800 shadow-2xs'
                   }`}
                 >
                   <div className="space-y-3">
@@ -245,8 +244,8 @@ export function FeedbackView() {
                           {getTypeBadge(f.type)}
                           {getStatusBadge(f.status)}
                           {f.isImportant && (
-                            <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
-                              🔥 Ưu tiên cao
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300 border border-rose-200/60">
+                              Ưu tiên cao
                             </span>
                           )}
                         </div>
@@ -258,14 +257,14 @@ export function FeedbackView() {
                       {/* Upvote Pill Button */}
                       <button
                         onClick={() => handleVote(f.id)}
-                        className={`flex flex-col items-center justify-center p-2 rounded-2xl min-w-[3.25rem] transition-all cursor-pointer border ${
+                        className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-[3.25rem] transition-colors cursor-pointer border ${
                           f.hasVoted
-                            ? 'bg-purple-600 text-white border-purple-600 shadow-sm'
-                            : 'bg-purple-50 dark:bg-slate-800 text-purple-600 dark:text-purple-300 border-purple-100 dark:border-slate-700 hover:bg-purple-100'
-                        } btn-squishy`}
+                            ? 'bg-emerald-500 text-white border-emerald-500 shadow-2xs'
+                            : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+                        }`}
                       >
-                        <ThumbsUp className="w-4 h-4" />
-                        <span className="text-xs font-black mt-0.5">{f.upvotes || 0}</span>
+                        <ThumbsUp className="w-3.5 h-3.5" />
+                        <span className="text-xs font-bold font-mono tabular-nums mt-0.5">{f.upvotes || 0}</span>
                       </button>
                     </div>
 
@@ -302,10 +301,10 @@ export function FeedbackView() {
 
       {/* TAB 2: SUBMIT FORM */}
       {activeTab === 'submit' && (
-        <div className="card-cute rounded-3xl p-6 sm:p-8 bg-white dark:bg-slate-900 border border-purple-100 dark:border-slate-800 shadow-sm max-w-2xl mx-auto space-y-6">
-          <div className="space-y-1 border-b border-purple-50 dark:border-slate-800 pb-4">
-            <h2 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-purple-600" />
+        <div className="rounded-xl p-6 sm:p-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs max-w-2xl mx-auto space-y-6">
+          <div className="space-y-1 border-b border-slate-100 dark:border-slate-800 pb-4">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-emerald-600" />
               <span>Gửi Góp Ý Cho Đội Ngũ Phát Triển</span>
             </h2>
             <p className="text-xs text-slate-500">
@@ -314,9 +313,9 @@ export function FeedbackView() {
           </div>
 
           {submitSuccess ? (
-            <div className="p-8 text-center space-y-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-3xl border border-emerald-200 text-emerald-700 dark:text-emerald-300">
-              <CheckCircle2 className="w-12 h-12 mx-auto text-emerald-500 animate-bounce" />
-              <h3 className="text-lg font-black">Cảm ơn bạn rất nhiều!</h3>
+            <div className="p-8 text-center space-y-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 text-emerald-700 dark:text-emerald-300">
+              <CheckCircle2 className="w-10 h-10 mx-auto text-emerald-500" />
+              <h3 className="text-base font-bold">Cảm ơn bạn rất nhiều!</h3>
               <p className="text-xs">Góp ý của bạn đã được ghi nhận vào hệ thống.</p>
             </div>
           ) : (
@@ -340,11 +339,11 @@ export function FeedbackView() {
                         type="button"
                         key={item.id}
                         onClick={() => setType(item.id as any)}
-                        className={`p-3 rounded-2xl border text-xs font-bold flex flex-col items-center gap-1.5 transition-all cursor-pointer ${
+                        className={`p-3 rounded-lg border text-xs font-medium flex flex-col items-center gap-1.5 transition-colors cursor-pointer ${
                           isSelected
-                            ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
-                            : 'bg-purple-50/50 dark:bg-slate-800/50 border-purple-100/60 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-purple-100/60'
-                        } btn-squishy`}
+                            ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 border-slate-900 dark:border-white shadow-2xs'
+                            : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                        }`}
                       >
                         <Icon className="w-4 h-4" />
                         <span>{item.label}</span>
@@ -400,8 +399,8 @@ export function FeedbackView() {
                       <Star className={`w-6 h-6 ${star <= rating ? 'fill-amber-400' : 'text-slate-300'}`} />
                     </button>
                   ))}
-                  <span className="text-xs font-bold text-slate-500 ml-2">
-                    {rating === 5 ? 'Tuyệt vời (5/5) 🌟' : rating === 4 ? 'Hài lòng (4/5) 😊' : `${rating}/5 sao`}
+                  <span className="text-xs font-medium text-slate-500 ml-2">
+                    {rating === 5 ? 'Tuyệt vời (5/5)' : rating === 4 ? 'Hài lòng (4/5)' : `${rating}/5 sao`}
                   </span>
                 </div>
               </div>
@@ -409,10 +408,10 @@ export function FeedbackView() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-black text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer btn-squishy disabled:opacity-50"
+                className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-medium text-sm shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />
-                <span>{submitting ? 'Đang gửi góp ý...' : 'Gửi góp ý ngay ✨'}</span>
+                <span>{submitting ? 'Đang gửi góp ý...' : 'Gửi góp ý ngay'}</span>
               </button>
             </form>
           )}
@@ -423,12 +422,12 @@ export function FeedbackView() {
       {activeTab === 'my' && (
         <div className="space-y-3">
           {myFeedbacks.length === 0 ? (
-            <div className="card-cute rounded-3xl p-12 text-center text-slate-400 bg-white dark:bg-slate-900 border border-purple-100 dark:border-slate-800 space-y-2">
-              <MessageSquare className="w-10 h-10 mx-auto text-purple-300" />
-              <p className="font-bold text-sm text-slate-700 dark:text-slate-200">Bạn chưa gửi góp ý nào</p>
+            <div className="rounded-xl p-12 text-center text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
+              <MessageSquare className="w-10 h-10 mx-auto text-slate-400" />
+              <p className="font-semibold text-sm text-slate-700 dark:text-slate-200">Bạn chưa gửi góp ý nào</p>
               <button
                 onClick={() => setActiveTab('submit')}
-                className="text-xs font-bold text-purple-600 hover:underline cursor-pointer"
+                className="text-xs font-medium text-emerald-600 hover:underline cursor-pointer"
               >
                 Gửi góp ý đầu tiên của bạn ngay
               </button>
@@ -436,15 +435,15 @@ export function FeedbackView() {
           ) : (
             <div className="space-y-3">
               {myFeedbacks.map((f) => (
-                <div key={f.id} className="card-cute rounded-3xl p-5 bg-white dark:bg-slate-900 border border-purple-100/70 dark:border-slate-800 shadow-xs space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-purple-50 dark:border-slate-800 pb-2.5">
+                <div key={f.id} className="rounded-xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-2.5">
                     <div className="flex items-center gap-2">
                       {getTypeBadge(f.type)}
-                      <h4 className="font-black text-slate-900 dark:text-white text-sm">{f.title}</h4>
+                      <h4 className="font-semibold text-slate-900 dark:text-white text-sm">{f.title}</h4>
                     </div>
                     <div className="flex items-center gap-2">
                       {getStatusBadge(f.status)}
-                      <span className="text-[11px] text-slate-400">{new Date(f.createdAt).toLocaleDateString('vi-VN')}</span>
+                      <span className="text-[11px] text-slate-400 font-mono tabular-nums">{new Date(f.createdAt).toLocaleDateString('vi-VN')}</span>
                     </div>
                   </div>
 
@@ -453,7 +452,7 @@ export function FeedbackView() {
                   </p>
 
                   {f.adminReply && (
-                    <div className="p-3.5 rounded-2xl bg-purple-50/80 dark:bg-slate-800/80 border border-purple-200/60 dark:border-purple-900/40 text-xs space-y-1">
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs space-y-1">
                       <div className="flex items-center gap-1.5 font-bold text-purple-700 dark:text-purple-300">
                         <Sparkles className="w-3.5 h-3.5 text-amber-500" />
                         <span>Phản hồi từ Admin ({f.repliedBy || 'LifeOS'}):</span>

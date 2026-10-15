@@ -277,9 +277,9 @@ export function TasksView() {
           <button 
             type="button"
             onClick={openNewTask}
-            className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-sm shadow-emerald-500/20 cursor-pointer"
+            className="flex items-center justify-center gap-2 bg-[#10B981] hover:bg-[#059669] text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors shadow-xs cursor-pointer"
           >
-            <Plus className="w-4 h-4 stroke-[3]" />
+            <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>{t('Thêm công việc')}</span>
           </button>
         </div>
@@ -659,10 +659,10 @@ function StatCard({ title, value, desc, icon: Icon, iconColor, iconBg, active, o
           <Icon className={`w-3.5 h-3.5 ${iconColor}`} />
         </div>
       </div>
-      <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+      <div className="text-xl sm:text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white tracking-tight">
         {value}
       </div>
-      <p className="text-[11px] mt-0.5 text-slate-400 dark:text-slate-500 font-medium truncate">
+      <p className="text-[11px] mt-0.5 text-slate-400 dark:text-slate-500 font-normal truncate">
         {desc}
       </p>
     </button>

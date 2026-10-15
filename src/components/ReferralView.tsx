@@ -224,17 +224,17 @@ export function ReferralView() {
           </div>
 
           {/* Quick Share Pill */}
-          <div className="shrink-0 flex flex-col sm:flex-row items-center gap-2.5 bg-white/10 backdrop-blur-md p-3 rounded-2xl border border-white/20">
+          <div className="shrink-0 flex flex-col sm:flex-row items-center gap-2.5 bg-white/10 backdrop-blur-md p-3 rounded-xl border border-white/20">
             <button
               onClick={handleCopyLink}
-              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 font-black text-xs sm:text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer btn-squishy"
+              className="w-full sm:w-auto px-4 py-2 rounded-lg bg-white text-emerald-800 hover:bg-emerald-50 font-medium text-xs sm:text-sm shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
               {copiedLink ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-emerald-600" />}
               <span>{copiedLink ? 'Đã sao chép link!' : 'Copy Link giới thiệu'}</span>
             </button>
             <button
               onClick={handleShare}
-              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-900/60 hover:bg-emerald-900/80 text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer btn-squishy"
+              className="w-full sm:w-auto px-4 py-2 rounded-lg bg-emerald-900/60 hover:bg-emerald-900/80 text-white font-medium text-xs sm:text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
             >
               <Share2 className="w-4 h-4" />
               <span>Chia sẻ</span>
@@ -246,16 +246,16 @@ export function ReferralView() {
       {/* 2. Referral Code & Link Box */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Box Code */}
-        <div className="card-cute rounded-3xl p-5 bg-white dark:bg-slate-900 border border-purple-100 dark:border-purple-950/40 shadow-xs flex flex-col justify-between">
+        <div className="rounded-xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
           <div className="space-y-1">
-            <span className="text-xs font-bold text-purple-600 dark:text-purple-400 uppercase tracking-wider">Mã Giới Thiệu Của Bạn</span>
-            <div className="flex items-center justify-between gap-3 p-3 bg-purple-50/70 dark:bg-slate-800/80 rounded-2xl border border-purple-100/60 dark:border-purple-900/30 mt-2">
-              <span className="text-xl sm:text-2xl font-black font-mono tracking-wider text-slate-800 dark:text-white">
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Mã Giới Thiệu Của Bạn</span>
+            <div className="flex items-center justify-between gap-3 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 mt-2">
+              <span className="text-xl sm:text-2xl font-bold font-mono tabular-nums tracking-wider text-slate-800 dark:text-white">
                 {data?.referralCode || '...'}
               </span>
               <button
                 onClick={handleCopyCode}
-                className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-xs btn-squishy"
+                className="px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
               >
                 {copiedCode ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copiedCode ? 'Đã copy' : 'Sao chép'}</span>
@@ -268,16 +268,16 @@ export function ReferralView() {
         </div>
 
         {/* Box Link */}
-        <div className="card-cute rounded-3xl p-5 bg-white dark:bg-slate-900 border border-purple-100 dark:border-purple-950/40 shadow-xs flex flex-col justify-between">
+        <div className="rounded-xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs flex flex-col justify-between">
           <div className="space-y-1">
-            <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Đường Dẫn Giới Thiệu Trực Tiếp</span>
-            <div className="flex items-center justify-between gap-3 p-3 bg-indigo-50/70 dark:bg-slate-800/80 rounded-2xl border border-indigo-100/60 dark:border-indigo-900/30 mt-2">
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">Đường Dẫn Giới Thiệu Trực Tiếp</span>
+            <div className="flex items-center justify-between gap-3 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700 mt-2">
               <span className="text-xs font-medium font-mono text-slate-600 dark:text-slate-300 truncate">
                 {data?.referralLink || '...'}
               </span>
               <button
                 onClick={handleCopyLink}
-                className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-xs shrink-0 btn-squishy"
+                className="px-3.5 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-medium text-xs transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs shrink-0"
               >
                 {copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{copiedLink ? 'Đã copy' : 'Sao chép link'}</span>
@@ -317,9 +317,9 @@ export function ReferralView() {
               setShowWithdrawModal(true);
             }}
             disabled={!data || data.approvedReward < 50000}
-            className={`px-6 py-3 rounded-2xl font-black text-sm shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer btn-squishy ${
+            className={`px-4 py-2.5 rounded-lg font-medium text-xs sm:text-sm shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer ${
               data && data.approvedReward >= 50000
-                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white'
+                ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
                 : 'bg-slate-200 text-slate-400 dark:bg-slate-800 dark:text-slate-600 cursor-not-allowed'
             }`}
           >
@@ -377,56 +377,56 @@ export function ReferralView() {
       {/* 4. Stat Metrics Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Stat 1 */}
-        <div className="card-cute rounded-3xl p-5 bg-white dark:bg-slate-900 border border-purple-100 dark:border-purple-950/40 shadow-xs space-y-1">
+        <div className="rounded-xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">Đã giới thiệu</span>
-            <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-950/50 text-purple-600">
+            <span className="text-xs font-medium text-slate-500">Đã giới thiệu</span>
+            <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 border border-emerald-200/60">
               <Users className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tabular-nums">
+          <div className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
             {data?.totalReferred || 0}
           </div>
           <p className="text-[11px] text-slate-400">Bạn bè đã tạo tài khoản</p>
         </div>
 
         {/* Stat 2 */}
-        <div className="card-cute rounded-3xl p-5 bg-white dark:bg-slate-900 border border-purple-100 dark:border-purple-950/40 shadow-xs space-y-1">
+        <div className="rounded-xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">Tổng doanh thu phát sinh</span>
-            <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600">
+            <span className="text-xs font-medium text-slate-500">Tổng doanh thu phát sinh</span>
+            <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-600 border border-slate-200 dark:border-slate-700">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tabular-nums">
+          <div className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
             {formatCurrency(data?.totalSales || 0)}
           </div>
           <p className="text-[11px] text-slate-400">Từ các đơn hàng thành công</p>
         </div>
 
         {/* Stat 3 */}
-        <div className="card-cute rounded-3xl p-5 bg-white dark:bg-slate-900 border border-purple-100 dark:border-purple-950/40 shadow-xs space-y-1">
+        <div className="rounded-xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">Tổng tiền thưởng (20%)</span>
-            <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600">
+            <span className="text-xs font-medium text-slate-500">Tổng tiền thưởng (20%)</span>
+            <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 border border-emerald-200/60">
               <Award className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-emerald-600 dark:text-emerald-400 tabular-nums">
+          <div className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
             {formatCurrency(data?.totalCommission || 0)}
           </div>
           <p className="text-[11px] text-slate-400">Đã tích lũy toàn thời gian</p>
         </div>
 
         {/* Stat 4 */}
-        <div className="card-cute rounded-3xl p-5 bg-white dark:bg-slate-900 border border-purple-100 dark:border-purple-950/40 shadow-xs space-y-1">
+        <div className="rounded-xl p-5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-1">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500">Số dư khả dụng</span>
-            <div className="p-2 rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600">
+            <span className="text-xs font-medium text-slate-500">Số dư khả dụng</span>
+            <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-600 border border-slate-200 dark:border-slate-700">
               <DollarSign className="w-4 h-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-black text-amber-500 tabular-nums">
+          <div className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white font-mono tabular-nums">
             {formatCurrency(data?.approvedReward || 0)}
           </div>
           <p className="text-[11px] text-slate-400">Sẵn sàng để rút / đổi gói</p>
@@ -479,13 +479,13 @@ export function ReferralView() {
       </div>
 
       {/* 5. Tab Navigation & Tables */}
-      <div className="card-cute rounded-3xl p-5 sm:p-6 bg-white dark:bg-slate-900 border border-purple-100 dark:border-purple-950/40 shadow-xs space-y-5">
-        <div className="flex flex-wrap items-center gap-2 border-b border-purple-50 dark:border-slate-800 pb-3">
+      <div className="rounded-xl p-5 sm:p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xs space-y-5">
+        <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
               activeTab === 'overview'
-                ? 'bg-purple-600 text-white shadow-xs'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-2xs'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
             }`}
           >
@@ -494,9 +494,9 @@ export function ReferralView() {
 
           <button
             onClick={() => setActiveTab('qr')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'qr'
-                ? 'bg-purple-600 text-white shadow-xs'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-2xs'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
             }`}
           >
@@ -511,9 +511,9 @@ export function ReferralView() {
 
           <button
             onClick={() => setActiveTab('withdrawals')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
               activeTab === 'withdrawals'
-                ? 'bg-purple-600 text-white shadow-xs'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-2xs'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
             }`}
           >
@@ -522,9 +522,9 @@ export function ReferralView() {
 
           <button
             onClick={() => setActiveTab('history')}
-            className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors cursor-pointer ${
               activeTab === 'history'
-                ? 'bg-purple-600 text-white shadow-xs'
+                ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-2xs'
                 : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'
             }`}
           >
@@ -940,7 +940,7 @@ export function ReferralView() {
                 <button
                   type="submit"
                   disabled={submittingWithdraw}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black shadow-md transition-all flex items-center gap-2 cursor-pointer btn-squishy disabled:opacity-50"
+                  className="px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-medium text-xs sm:text-sm shadow-xs transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {submittingWithdraw ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                   <span>{submittingWithdraw ? 'Đang gửi...' : 'Xác Nhận Rút Tiền'}</span>
