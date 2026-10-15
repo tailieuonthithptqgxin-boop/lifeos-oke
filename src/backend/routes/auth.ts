@@ -12,6 +12,8 @@ import {
   RegisterSchema,
   ForgotPasswordSchema,
   ResetPasswordSchema,
+  PasswordResetRequestSchema,
+  PasswordResetConfirmSchema,
   ChangePasswordSchema,
   validateBody
 } from '../validation.js';
@@ -745,4 +747,412 @@ authRouter.post('/sessions/revoke-others', requireAuth, async (req: AuthRequest,
     res.status(500).json({ success: false, message: err.message });
   }
 });
+
+// --------------------------------------------------------------------------
+// ADMIN-APPROVED PASSWORD RESET FLOW (No SMTP Required)
+// --------------------------------------------------------------------------
+
+// Helper to generate a unique short ticket code like RST-8392
+async function generateUniqueTicketCode(prisma: any): Promise<string> {
+  for (let i = 0; i < 10; i++) {
+    const num = Math.floor(1000 + Math.random() * 9000);
+    const code = `RST-${num}`;
+    const exists = await prisma.passwordResetRequest.findUnique({
+      where: { ticketCode: code }
+    });
+    if (!exists) return code;
+  }
+  return `RST-${Math.floor(10000 + Math.random() * 90000)}`;
+}
+
+// 1. Submit or Resume a Password Reset Request
+authRouter.post('/reset-request', passwordResetRateLimiter, validateBody(PasswordResetRequestSchema), async (req: Request, res: Response) => {
+  try {
+    const { email, verificationNote, claimToken } = req.body;
+    const cleanEmail = email.toLowerCase().trim();
+    const prisma = getPrisma();
+
+    // Verify user exists
+    const user = await dbService.findUserByEmail(cleanEmail);
+    if (!user) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'USER_NOT_FOUND', message: 'Không tìm thấy tài khoản với email này trong hệ thống.' },
+        message: 'Không tìm thấy tài khoản với email này trong hệ thống.'
+      });
+      return;
+    }
+
+    if (user.status !== 'ACTIVE') {
+      res.status(403).json({
+        success: false,
+        error: { code: 'ACCOUNT_DISABLED', message: 'Tài khoản của bạn đang bị khóa hoặc vô hiệu hóa. Vui lòng liên hệ Quản trị viên.' },
+        message: 'Tài khoản của bạn đang bị khóa hoặc vô hiệu hóa. Vui lòng liên hệ Quản trị viên.'
+      });
+      return;
+    }
+
+    // Check for existing active (PENDING or APPROVED) requests for this user
+    const existingRequest = await prisma.passwordResetRequest.findFirst({
+      where: {
+        userId: user.id,
+        status: { in: ['PENDING', 'APPROVED'] }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (existingRequest) {
+      // Check if existing APPROVED request has expired
+      if (existingRequest.status === 'APPROVED' && existingRequest.expiresAt && new Date(existingRequest.expiresAt).getTime() < Date.now()) {
+        await prisma.passwordResetRequest.update({
+          where: { id: existingRequest.id },
+          data: { status: 'EXPIRED' }
+        });
+      } else {
+        // If user already holds the claim token for this active session, resume it
+        if (claimToken) {
+          const sentHash = crypto.createHash('sha256').update(String(claimToken).trim()).digest('hex');
+          if (sentHash === existingRequest.claimTokenHash) {
+            res.json({
+              success: true,
+              resumed: true,
+              ticketCode: existingRequest.ticketCode,
+              claimToken: String(claimToken).trim(),
+              status: existingRequest.status,
+              expiresAt: existingRequest.expiresAt,
+              message: 'Đã khôi phục phiên yêu cầu khôi phục mật khẩu đang hoạt động của bạn.'
+            });
+            return;
+          }
+        }
+
+        // If user is opening a new request on another device or overwriting, expire the previous pending request
+        await prisma.passwordResetRequest.update({
+          where: { id: existingRequest.id },
+          data: { status: 'EXPIRED' }
+        });
+      }
+    }
+
+    // Generate new Session-Bound Claim Token
+    const rawClaimToken = crypto.randomBytes(32).toString('hex');
+    const claimTokenHash = crypto.createHash('sha256').update(rawClaimToken).digest('hex');
+    const ticketCode = await generateUniqueTicketCode(prisma);
+
+    const newRequest = await prisma.passwordResetRequest.create({
+      data: {
+        ticketCode,
+        userId: user.id,
+        email: cleanEmail,
+        verificationNote: verificationNote ? String(verificationNote).trim().slice(0, 500) : null,
+        claimTokenHash,
+        status: 'PENDING'
+      }
+    });
+
+    // Notify admins of new pending reset request
+    try {
+      const admins = await prisma.user.findMany({
+        where: { role: { in: ['ADMIN', 'SUPERADMIN'] } },
+        select: { id: true }
+      });
+      for (const admin of admins) {
+        await prisma.notification.create({
+          data: {
+            userId: admin.id,
+            title: `Yêu cầu khôi phục mật khẩu: ${ticketCode}`,
+            message: `Người dùng ${cleanEmail} vừa gửi yêu cầu khôi phục mật khẩu (${ticketCode}). Vui lòng vào trang Quản trị để duyệt.`,
+            type: 'Info',
+            read: false
+          }
+        });
+      }
+    } catch (notifErr) {
+      console.warn('Admin notification creation warning:', notifErr);
+    }
+
+    await dbService.createAuditLog(
+      user.id,
+      'PASSWORD_RESET_REQUEST_CREATED',
+      'password_reset_requests',
+      newRequest.id,
+      null,
+      { ticketCode, email: cleanEmail }
+    );
+
+    res.json({
+      success: true,
+      ticketCode,
+      claimToken: rawClaimToken,
+      status: 'PENDING',
+      message: 'Yêu cầu khôi phục mật khẩu đã được gửi thành công. Vui lòng giữ màn hình hoặc ghi nhớ mã yêu cầu để chờ Admin phê duyệt.'
+    });
+  } catch (err: any) {
+    console.error('POST /api/auth/reset-request error:', err);
+    res.status(500).json({ success: false, message: err.message || 'Lỗi khi gửi yêu cầu khôi phục mật khẩu' });
+  }
+});
+
+// 2. Poll Status or Verify Session / Backup PIN
+authRouter.post('/reset-status', async (req: Request, res: Response) => {
+  try {
+    const { ticketCode, email, claimToken, backupPin } = req.body;
+    const prisma = getPrisma();
+
+    let request = null;
+    if (ticketCode) {
+      request = await prisma.passwordResetRequest.findUnique({
+        where: { ticketCode: String(ticketCode).trim().toUpperCase() }
+      });
+    } else if (email) {
+      request = await prisma.passwordResetRequest.findFirst({
+        where: {
+          email: String(email).toLowerCase().trim(),
+          status: { in: ['PENDING', 'APPROVED'] }
+        },
+        orderBy: { createdAt: 'desc' }
+      });
+    }
+
+    if (!request) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'REQUEST_NOT_FOUND', message: 'Không tìm thấy thông tin yêu cầu khôi phục mật khẩu.' },
+        message: 'Không tìm thấy thông tin yêu cầu khôi phục mật khẩu.'
+      });
+      return;
+    }
+
+    // Check expiration on APPROVED requests (30-minute window)
+    if (request.status === 'APPROVED' && request.expiresAt && new Date(request.expiresAt).getTime() < Date.now()) {
+      request = await prisma.passwordResetRequest.update({
+        where: { id: request.id },
+        data: { status: 'EXPIRED' }
+      });
+    }
+
+    // Security check: Verify Claim Token (browser bound) or Backup PIN (admin provided)
+    let isAuthorized = false;
+    let authMethod: 'CLAIM_TOKEN' | 'BACKUP_PIN' | null = null;
+
+    if (claimToken) {
+      const hash = crypto.createHash('sha256').update(String(claimToken).trim()).digest('hex');
+      if (hash === request.claimTokenHash) {
+        isAuthorized = true;
+        authMethod = 'CLAIM_TOKEN';
+      }
+    }
+
+    if (!isAuthorized && backupPin && request.backupPin) {
+      if (String(backupPin).trim() === request.backupPin.trim()) {
+        isAuthorized = true;
+        authMethod = 'BACKUP_PIN';
+      }
+    }
+
+    const isExpired = request.status === 'EXPIRED' || (request.expiresAt && new Date(request.expiresAt).getTime() < Date.now());
+    const canSetNewPassword = isAuthorized && request.status === 'APPROVED' && !isExpired;
+
+    res.json({
+      success: true,
+      ticketCode: request.ticketCode,
+      email: request.email,
+      status: request.status,
+      isAuthorized,
+      authMethod,
+      canSetNewPassword,
+      expiresAt: request.expiresAt,
+      approvedAt: request.approvedAt,
+      createdAt: request.createdAt,
+      message: canSetNewPassword
+        ? 'Yêu cầu đã được phê duyệt! Bạn có thể đặt mật khẩu mới ngay.'
+        : request.status === 'PENDING'
+        ? 'Đang chờ Quản trị viên phê duyệt...'
+        : request.status === 'REJECTED'
+        ? 'Yêu cầu khôi phục của bạn đã bị từ chối bởi Quản trị viên.'
+        : isExpired
+        ? 'Phiên phê duyệt đã hết hạn sau 30 phút. Vui lòng tạo yêu cầu mới.'
+        : !isAuthorized
+        ? 'Bạn chưa được xác thực trên thiết bị này. Vui lòng sử dụng đúng trình duyệt đã gửi yêu cầu hoặc nhập Mã PIN 6 số do Admin cung cấp.'
+        : 'Trạng thái yêu cầu: ' + request.status
+    });
+  } catch (err: any) {
+    console.error('POST /api/auth/reset-status error:', err);
+    res.status(500).json({ success: false, message: err.message || 'Lỗi khi kiểm tra trạng thái' });
+  }
+});
+
+// 3. User cancels pending request
+authRouter.post('/reset-cancel', async (req: Request, res: Response) => {
+  try {
+    const { ticketCode, claimToken } = req.body;
+    const prisma = getPrisma();
+
+    if (!ticketCode) {
+      res.status(400).json({ success: false, message: 'Thiếu mã yêu cầu' });
+      return;
+    }
+
+    const request = await prisma.passwordResetRequest.findUnique({
+      where: { ticketCode: String(ticketCode).trim().toUpperCase() }
+    });
+
+    if (!request) {
+      res.status(404).json({ success: false, message: 'Không tìm thấy yêu cầu' });
+      return;
+    }
+
+    // Verify token
+    if (claimToken) {
+      const hash = crypto.createHash('sha256').update(String(claimToken).trim()).digest('hex');
+      if (hash !== request.claimTokenHash) {
+        res.status(403).json({ success: false, message: 'Token xác thực không hợp lệ' });
+        return;
+      }
+    }
+
+    await prisma.passwordResetRequest.update({
+      where: { id: request.id },
+      data: { status: 'EXPIRED' }
+    });
+
+    res.json({
+      success: true,
+      message: 'Đã hủy yêu cầu khôi phục mật khẩu thành công.'
+    });
+  } catch (err: any) {
+    console.error('POST /api/auth/reset-cancel error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 4. Confirm Reset & Set New Password
+authRouter.post('/reset-confirm', passwordResetRateLimiter, validateBody(PasswordResetConfirmSchema), async (req: Request, res: Response) => {
+  try {
+    const { ticketCode, claimToken, backupPin, newPassword } = req.body;
+    const prisma = getPrisma();
+
+    const request = await prisma.passwordResetRequest.findUnique({
+      where: { ticketCode: String(ticketCode).trim().toUpperCase() }
+    });
+
+    if (!request) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'REQUEST_NOT_FOUND', message: 'Không tìm thấy yêu cầu khôi phục mật khẩu.' },
+        message: 'Không tìm thấy yêu cầu khôi phục mật khẩu.'
+      });
+      return;
+    }
+
+    if (request.status === 'COMPLETED') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'ALREADY_COMPLETED', message: 'Yêu cầu khôi phục này đã được sử dụng thành công trước đó.' },
+        message: 'Yêu cầu khôi phục này đã được sử dụng thành công trước đó.'
+      });
+      return;
+    }
+
+    if (request.status === 'REJECTED') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'REQUEST_REJECTED', message: 'Yêu cầu này đã bị Quản trị viên từ chối.' },
+        message: 'Yêu cầu này đã bị Quản trị viên từ chối.'
+      });
+      return;
+    }
+
+    if (request.status !== 'APPROVED') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'NOT_APPROVED', message: 'Yêu cầu này chưa được Quản trị viên phê duyệt.' },
+        message: 'Yêu cầu này chưa được Quản trị viên phê duyệt.'
+      });
+      return;
+    }
+
+    // Check expiration (30 minutes window)
+    if (request.expiresAt && new Date(request.expiresAt).getTime() < Date.now()) {
+      await prisma.passwordResetRequest.update({
+        where: { id: request.id },
+        data: { status: 'EXPIRED' }
+      });
+      res.status(400).json({
+        success: false,
+        error: { code: 'REQUEST_EXPIRED', message: 'Phiên phê duyệt đã quá thời hạn 30 phút. Vui lòng tạo yêu cầu mới.' },
+        message: 'Phiên phê duyệt đã quá thời hạn 30 phút. Vui lòng tạo yêu cầu mới.'
+      });
+      return;
+    }
+
+    // Security Verification: Claim Token OR Backup PIN
+    let isAuthorized = false;
+    let authMethod = 'CLAIM_TOKEN';
+
+    if (claimToken) {
+      const hash = crypto.createHash('sha256').update(String(claimToken).trim()).digest('hex');
+      if (hash === request.claimTokenHash) {
+        isAuthorized = true;
+      }
+    }
+
+    if (!isAuthorized && backupPin && request.backupPin) {
+      if (String(backupPin).trim() === request.backupPin.trim()) {
+        isAuthorized = true;
+        authMethod = 'BACKUP_PIN';
+      }
+    }
+
+    if (!isAuthorized) {
+      res.status(403).json({
+        success: false,
+        error: { code: 'UNAUTHORIZED_DEVICE', message: 'Xác thực bảo mật thất bại! Trình duyệt này không khớp với yêu cầu hoặc mã PIN không chính xác.' },
+        message: 'Xác thực bảo mật thất bại! Trình duyệt này không khớp với yêu cầu hoặc mã PIN không chính xác.'
+      });
+      return;
+    }
+
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(String(newPassword), salt);
+
+    // Atomically update user password, mark request COMPLETED, and invalidate all existing sessions
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: request.userId },
+        data: { passwordHash }
+      }),
+      prisma.passwordResetRequest.update({
+        where: { id: request.id },
+        data: {
+          status: 'COMPLETED',
+          updatedAt: new Date()
+        }
+      }),
+      // Revoke all active sessions for security
+      prisma.session.deleteMany({
+        where: { userId: request.userId }
+      })
+    ]);
+
+    await dbService.createAuditLog(
+      request.userId,
+      'ADMIN_APPROVED_PASSWORD_RESET_COMPLETED',
+      'users',
+      request.userId,
+      null,
+      { ticketCode: request.ticketCode, email: request.email, authMethod }
+    );
+
+    res.json({
+      success: true,
+      message: 'Đặt lại mật khẩu thành công! Bạn có thể sử dụng mật khẩu mới để đăng nhập ngay.'
+    });
+  } catch (err: any) {
+    console.error('POST /api/auth/reset-confirm error:', err);
+    res.status(500).json({ success: false, message: err.message || 'Lỗi khi cập nhật mật khẩu mới' });
+  }
+});
+
 

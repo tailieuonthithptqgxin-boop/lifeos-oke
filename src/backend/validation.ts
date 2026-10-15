@@ -25,6 +25,21 @@ export const ResetPasswordSchema = z.object({
   newPassword: z.string().min(6, 'Mật khẩu mới tối thiểu 6 ký tự')
 });
 
+export const PasswordResetRequestSchema = z.object({
+  email: z.string().email('Địa chỉ email không hợp lệ'),
+  verificationNote: z.string().max(500).optional().nullable(),
+  claimToken: z.string().optional().nullable()
+});
+
+export const PasswordResetConfirmSchema = z.object({
+  ticketCode: z.string().min(1, 'Mã yêu cầu không hợp lệ'),
+  claimToken: z.string().optional().nullable(),
+  backupPin: z.string().optional().nullable(),
+  newPassword: z.string().min(6, 'Mật khẩu mới tối thiểu 6 ký tự').max(100)
+}).refine(data => !!(data.claimToken || data.backupPin), {
+  message: 'Vui lòng cung cấp mã phiên xác thực hoặc mã PIN 6 số từ Admin'
+});
+
 export const ChangePasswordSchema = z.object({
   oldPassword: z.string().min(1, 'Vui lòng nhập mật khẩu hiện tại'),
   newPassword: z.string().min(6, 'Mật khẩu mới tối thiểu 6 ký tự')

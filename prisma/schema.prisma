@@ -42,6 +42,8 @@ model User {
 
   sessions            Session[]
   passwordResetTokens PasswordResetToken[]
+  passwordResetRequests PasswordResetRequest[] @relation("UserResetRequests")
+  approvedResetRequests PasswordResetRequest[] @relation("ResetApprover")
   loginAttempts       LoginAttempt[]
   securityEvents      SecurityEvent[]
   tasks               Task[]
@@ -132,6 +134,39 @@ model PasswordResetToken {
   @@index([token])
   @@map("password_reset_tokens")
 }
+
+enum PasswordResetRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+  EXPIRED
+}
+
+model PasswordResetRequest {
+  id               String                     @id @default(uuid())
+  ticketCode       String                     @unique @map("ticket_code")
+  userId           String                     @map("user_id")
+  user             User                       @relation("UserResetRequests", fields: [userId], references: [id], onDelete: Cascade)
+  email            String
+  verificationNote String?                    @map("verification_note")
+  claimTokenHash   String                     @map("claim_token_hash")
+  backupPin        String?                    @map("backup_pin")
+  status           PasswordResetRequestStatus @default(PENDING)
+  expiresAt        DateTime?                  @map("expires_at")
+  approvedAt       DateTime?                  @map("approved_at")
+  approvedBy       String?                    @map("approved_by")
+  approvedByUser   User?                      @relation("ResetApprover", fields: [approvedBy], references: [id], onDelete: SetNull)
+  createdAt        DateTime                   @default(now()) @map("created_at")
+  updatedAt        DateTime                   @updatedAt @map("updated_at")
+
+  @@index([email])
+  @@index([status])
+  @@index([ticketCode])
+  @@index([userId])
+  @@map("password_reset_requests")
+}
+
 
 model LoginAttempt {
   id        String   @id @default(uuid())

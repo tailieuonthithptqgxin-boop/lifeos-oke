@@ -3376,6 +3376,249 @@ apiRouter.put('/admin/users/:id/admin-notes', requireAdmin, async (req: AuthRequ
 });
 
 // --------------------------------------------------------------------------
+// ADMIN: PASSWORD RESET REQUESTS MANAGEMENT
+// --------------------------------------------------------------------------
+
+// 21. Admin List Password Reset Requests with Counts and Search
+apiRouter.get('/admin/reset-requests', requireAdmin, async (req: AuthRequest, res: Response) => {
+  const prisma = getPrisma();
+  const { status, search } = req.query;
+
+  try {
+    // Proactively update expired APPROVED requests (older than 30 mins)
+    await prisma.passwordResetRequest.updateMany({
+      where: {
+        status: 'APPROVED',
+        expiresAt: { lt: new Date() }
+      },
+      data: {
+        status: 'EXPIRED'
+      }
+    });
+
+    const whereClause: any = {};
+
+    if (status && status !== 'ALL') {
+      whereClause.status = String(status);
+    }
+
+    if (search && String(search).trim()) {
+      const q = String(search).trim();
+      whereClause.OR = [
+        { ticketCode: { contains: q, mode: 'insensitive' } },
+        { email: { contains: q, mode: 'insensitive' } },
+        { user: { name: { contains: q, mode: 'insensitive' } } }
+      ];
+    }
+
+    const requests = await prisma.passwordResetRequest.findMany({
+      where: whereClause,
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+            status: true,
+            avatar: true
+          }
+        },
+        approvedByUser: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      },
+      orderBy: [
+        { createdAt: 'desc' }
+      ],
+      take: 100
+    });
+
+    // Compute metrics
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    const [pendingCount, approvedTodayCount, completedCount, totalCount] = await Promise.all([
+      prisma.passwordResetRequest.count({ where: { status: 'PENDING' } }),
+      prisma.passwordResetRequest.count({
+        where: {
+          status: 'APPROVED',
+          approvedAt: { gte: startOfToday }
+        }
+      }),
+      prisma.passwordResetRequest.count({ where: { status: 'COMPLETED' } }),
+      prisma.passwordResetRequest.count()
+    ]);
+
+    res.json({
+      success: true,
+      requests,
+      counts: {
+        pending: pendingCount,
+        approvedToday: approvedTodayCount,
+        completed: completedCount,
+        total: totalCount
+      }
+    });
+  } catch (err: any) {
+    console.error('GET /api/admin/reset-requests error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 22. Admin Approve / Reject / Revoke Password Reset Request
+apiRouter.post('/admin/reset-requests/:id/action', requireAdmin, async (req: AuthRequest, res: Response) => {
+  const adminId = req.userId!;
+  const adminEmail = req.user.email;
+  const requestId = req.params.id;
+  const { action, rejectionReason } = req.body; // 'APPROVE' | 'REJECT' | 'REVOKE'
+  const prisma = getPrisma();
+
+  try {
+    const existing = await prisma.passwordResetRequest.findUnique({
+      where: { id: requestId },
+      include: { user: true }
+    });
+
+    if (!existing) {
+      res.status(404).json({
+        success: false,
+        error: { code: 'REQUEST_NOT_FOUND', message: 'Không tìm thấy yêu cầu khôi phục mật khẩu này.' },
+        message: 'Không tìm thấy yêu cầu khôi phục mật khẩu này.'
+      });
+      return;
+    }
+
+    if (existing.status === 'COMPLETED') {
+      res.status(400).json({
+        success: false,
+        error: { code: 'ALREADY_COMPLETED', message: 'Yêu cầu này đã được hoàn tất đặt lại mật khẩu.' },
+        message: 'Yêu cầu này đã được hoàn tất đặt lại mật khẩu.'
+      });
+      return;
+    }
+
+    if (action === 'APPROVE') {
+      // Generate a secure 6-digit numeric backup PIN for manual / out-of-band communication
+      const backupPin = Math.floor(100000 + Math.random() * 900000).toString();
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes from approval
+      const approvedAt = new Date();
+
+      const updated = await prisma.passwordResetRequest.update({
+        where: { id: requestId },
+        data: {
+          status: 'APPROVED',
+          backupPin,
+          expiresAt,
+          approvedAt,
+          approvedBy: adminId
+        },
+        include: {
+          user: {
+            select: { id: true, name: true, email: true, role: true, avatar: true }
+          },
+          approvedByUser: {
+            select: { id: true, name: true, email: true }
+          }
+        }
+      });
+
+      await dbService.createAuditLog(
+        adminId,
+        'ADMIN_APPROVE_PASSWORD_RESET',
+        'password_reset_requests',
+        requestId,
+        { status: existing.status },
+        { status: 'APPROVED', ticketCode: existing.ticketCode, email: existing.email, approvedBy: adminEmail }
+      );
+
+      res.json({
+        success: true,
+        message: `Đã phê duyệt yêu cầu ${existing.ticketCode}! Mã PIN dự phòng: ${backupPin} (Hiệu lực 30 phút).`,
+        request: updated,
+        backupPin
+      });
+      return;
+    }
+
+    if (action === 'REJECT') {
+      const updated = await prisma.passwordResetRequest.update({
+        where: { id: requestId },
+        data: {
+          status: 'REJECTED',
+          updatedAt: new Date()
+        },
+        include: {
+          user: {
+            select: { id: true, name: true, email: true, role: true, avatar: true }
+          }
+        }
+      });
+
+      await dbService.createAuditLog(
+        adminId,
+        'ADMIN_REJECT_PASSWORD_RESET',
+        'password_reset_requests',
+        requestId,
+        { status: existing.status },
+        { status: 'REJECTED', ticketCode: existing.ticketCode, email: existing.email, reason: rejectionReason }
+      );
+
+      res.json({
+        success: true,
+        message: `Đã từ chối yêu cầu ${existing.ticketCode}.`,
+        request: updated
+      });
+      return;
+    }
+
+    if (action === 'REVOKE') {
+      const updated = await prisma.passwordResetRequest.update({
+        where: { id: requestId },
+        data: {
+          status: 'EXPIRED',
+          updatedAt: new Date()
+        },
+        include: {
+          user: {
+            select: { id: true, name: true, email: true, role: true, avatar: true }
+          }
+        }
+      });
+
+      await dbService.createAuditLog(
+        adminId,
+        'ADMIN_REVOKE_PASSWORD_RESET',
+        'password_reset_requests',
+        requestId,
+        { status: existing.status },
+        { status: 'EXPIRED', ticketCode: existing.ticketCode, email: existing.email }
+      );
+
+      res.json({
+        success: true,
+        message: `Đã thu hồi hiệu lực yêu cầu ${existing.ticketCode}.`,
+        request: updated
+      });
+      return;
+    }
+
+    res.status(400).json({
+      success: false,
+      message: 'Hành động không hợp lệ. Chỉ chấp nhận APPROVE, REJECT, hoặc REVOKE.'
+    });
+  } catch (err: any) {
+    console.error('POST /api/admin/reset-requests/:id/action error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+
+// --------------------------------------------------------------------------
 // 5D HARMONY METRICS ENGINE (REAL DATA ONLY - NO MOCK, NO FAKE DEFAULTS)
 // --------------------------------------------------------------------------
 apiRouter.get('/life-harmony', requireAuth, async (req: AuthRequest, res: Response) => {

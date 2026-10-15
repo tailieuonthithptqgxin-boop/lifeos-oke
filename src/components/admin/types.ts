@@ -4,6 +4,7 @@ export type AdminTab =
   | 'plans' 
   | 'languages' 
   | 'users' 
+  | 'password_resets'
   | 'bank_config' 
   | 'storage' 
   | 'custom_modules' 
@@ -11,6 +12,34 @@ export type AdminTab =
   | 'referrals'
   | 'feedback'
   | 'announcements';
+
+export interface PasswordResetRequestItem {
+  id: string;
+  ticketCode: string;
+  userId: string;
+  email: string;
+  verificationNote?: string | null;
+  backupPin?: string | null;
+  status: 'PENDING' | 'APPROVED' | 'REJECTED' | 'COMPLETED' | 'EXPIRED';
+  expiresAt?: string | null;
+  approvedAt?: string | null;
+  approvedBy?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+    role: string;
+    status: string;
+    avatar?: string | null;
+  };
+  approvedByUser?: {
+    id: string;
+    name: string;
+    email: string;
+  } | null;
+}
 
 export interface AnnouncementItem {
   id: string;

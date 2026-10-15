@@ -14,6 +14,7 @@ import {
   MessageSquare,
   CreditCard,
   Megaphone,
+  KeyRound,
   X
 } from 'lucide-react';
 import { apiCall } from '../lib/apiClient';
@@ -35,6 +36,7 @@ import { AdminSubscriptionsTab } from './admin/AdminSubscriptionsTab';
 import { AdminPlansTab } from './admin/AdminPlansTab';
 import { AdminLanguagesTab } from './admin/AdminLanguagesTab';
 import { AdminUsersTab } from './admin/AdminUsersTab';
+import { AdminPasswordResetsTab } from './admin/AdminPasswordResetsTab';
 import { AdminBankConfigTab } from './admin/AdminBankConfigTab';
 import { AdminGmailConfigTab } from './admin/AdminGmailConfigTab';
 import { AdminReferralsTab } from './admin/AdminReferralsTab';
@@ -47,6 +49,22 @@ export function AdminView() {
   const { refreshLanguages } = useAppStore();
   const [activeTab, setActiveTab] = useState<AdminTab>('requests');
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [pendingResetCount, setPendingResetCount] = useState(0);
+
+  const fetchPendingResetCount = async () => {
+    try {
+      const res = await apiCall('/api/admin/reset-requests');
+      if (res && res.success && res.counts) {
+        setPendingResetCount(res.counts.pending || 0);
+      }
+    } catch (e) {
+      // silently catch
+    }
+  };
+
+  useEffect(() => {
+    fetchPendingResetCount();
+  }, [activeTab]);
 
   // -------------------------------------------------------------
   // TAB 1: PAYMENT REQUESTS STATE
@@ -755,6 +773,24 @@ export function AdminView() {
 
           <button
             type="button"
+            onClick={() => setActiveTab('password_resets')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'password_resets'
+                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            <span>Duyệt Đổi Mật Khẩu</span>
+            {pendingResetCount > 0 && (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-500 text-white animate-pulse">
+                {pendingResetCount}
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('bank_config')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'bank_config'
@@ -870,6 +906,30 @@ export function AdminView() {
         </div>
       )}
 
+      {/* Admin Action Center: Pending password resets alert */}
+      {pendingResetCount > 0 && activeTab !== 'password_resets' && (
+        <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-300 dark:border-amber-700/60 flex items-center justify-between gap-4 animate-in fade-in">
+          <div className="flex items-center gap-3">
+            <span className="p-2 rounded-xl bg-amber-500 text-white text-base">🔑</span>
+            <div>
+              <span className="text-xs font-black text-amber-900 dark:text-amber-200">
+                Có {pendingResetCount} yêu cầu khôi phục mật khẩu đang chờ phê duyệt
+              </span>
+              <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                Người dùng đang chờ xác nhận hoặc cấp mã PIN 6 số để đặt lại mật khẩu mới.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab('password_resets')}
+            className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black transition-all shadow-sm shrink-0 cursor-pointer"
+          >
+            Duyệt ngay 🔑
+          </button>
+        </div>
+      )}
+
       {/* Global Status Message Toast */}
       {message && (
         <div
@@ -973,6 +1033,13 @@ export function AdminView() {
           handleRevokeSubscription={handleRevokeSubscription}
           isRevoking={isRevoking}
           formatCurrency={formatCurrency}
+        />
+      )}
+
+      {/* Tab: Password Reset Requests */}
+      {activeTab === 'password_resets' && (
+        <AdminPasswordResetsTab
+          onShowMessage={setMessage}
         />
       )}
 
