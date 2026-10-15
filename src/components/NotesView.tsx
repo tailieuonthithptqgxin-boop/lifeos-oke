@@ -267,47 +267,51 @@ export function NotesView() {
   return (
     <div className="w-full min-w-0 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 overflow-x-hidden">
       {/* HEADER BAR */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-purple-100/80 dark:border-purple-900/40 shadow-sm card-cute w-full min-w-0">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs w-full min-w-0">
         <div className="min-w-0">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-gradient-to-tr from-violet-600 to-pink-500 text-white rounded-2xl flex items-center justify-center shadow-md shadow-purple-500/20 shrink-0">
-              <FileText className="w-5 h-5 sm:w-6 sm:h-6" />
+            <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-[#4F46E5] dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-center shrink-0">
+              <BookOpen className="w-5 h-5" />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight truncate">{t('Notes & Knowledge Hub')}</h1>
-                <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200/50 shrink-0">
-                  {t('Notes Hub')}
+                <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight truncate">
+                  {language === 'vi' ? 'Sổ tay & Trung tâm Tri thức' : t('Notes & Knowledge Hub')}
+                </h1>
+                <span className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200/80 dark:border-slate-700 shrink-0">
+                  {language === 'vi' ? 'Tri thức' : 'Hub'}
                 </span>
               </div>
-              <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm mt-0.5 font-medium line-clamp-1 sm:line-clamp-none break-words">
-                {t('Organize thoughts, link concepts, manage meetings, and build your personal Knowledge Graph')}
+              <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5 font-normal line-clamp-1 sm:line-clamp-none break-words">
+                {language === 'vi' 
+                  ? 'Quản lý ghi chú, liên kết tri thức, biên bản cuộc họp và sơ đồ kiến thức cá nhân.'
+                  : t('Organize thoughts, link concepts, manage meetings, and build your personal Knowledge Graph')}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <button type="button"
             onClick={() => handleCreateNewNote('Normal')}
-            className="btn-squishy flex items-center gap-2 bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 hover:from-violet-500 hover:to-pink-400 text-white font-extrabold px-5 py-3 rounded-2xl shadow-md shadow-purple-500/25 transition-all text-xs sm:text-sm cursor-pointer"
+            className="flex items-center gap-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold px-4 py-2.5 rounded-xl shadow-xs transition-colors text-xs sm:text-sm cursor-pointer active:scale-95"
           >
-            <Plus className="w-4 h-4 stroke-[3]" /> {t('Create New Note')}
+            <Plus className="w-4 h-4 stroke-[2.5]" /> {language === 'vi' ? '+ Tạo ghi chú mới' : t('Create New Note')}
           </button>
         </div>
       </div>
 
       {/* SUB-TABS NAVIGATION */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar border-b border-slate-200/80 dark:border-slate-800">
         {[
-          { id: 'dashboard', label: 'Dashboard', icon: BarChart2 },
-          { id: 'all', label: 'All Notes', icon: FileText, count: activeNotes.length },
-          { id: 'daily', label: 'Daily Notes', icon: Calendar },
-          { id: 'meetings', label: 'Meetings & Decisions', icon: Users },
-          { id: 'graph', label: 'Knowledge Graph', icon: Network },
-          { id: 'templates', label: 'Templates Library', icon: Sparkles },
-          { id: 'analytics', label: 'Analytics', icon: TrendingUp },
-          { id: 'archive', label: 'Archive & Trash', icon: Archive, count: archivedNotes.length + trashNotes.length },
+          { id: 'dashboard', label: language === 'vi' ? 'Bảng điều khiển' : 'Dashboard', icon: BarChart2 },
+          { id: 'all', label: language === 'vi' ? 'Tất cả ghi chú' : 'All Notes', icon: FileText, count: activeNotes.length },
+          { id: 'daily', label: language === 'vi' ? 'Nhật ký' : 'Daily Notes', icon: Calendar },
+          { id: 'meetings', label: language === 'vi' ? 'Cuộc họp & Quyết định' : 'Meetings & Decisions', icon: Users },
+          { id: 'graph', label: language === 'vi' ? 'Sơ đồ tri thức' : 'Knowledge Graph', icon: Network },
+          { id: 'templates', label: language === 'vi' ? 'Thư viện mẫu' : 'Templates Library', icon: Sparkles },
+          { id: 'analytics', label: language === 'vi' ? 'Phân tích' : 'Analytics', icon: TrendingUp },
+          { id: 'archive', label: language === 'vi' ? 'Lưu trữ & Thùng rác' : 'Archive & Trash', icon: Archive, count: archivedNotes.length + trashNotes.length },
         ].map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -315,17 +319,17 @@ export function NotesView() {
             <button type="button"
               key={tab.id}
               onClick={() => setActiveTab(tab.id as ActiveTab)}
-              className={`btn-squishy flex items-center gap-2 px-4 py-2.5 rounded-2xl font-extrabold text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-medium text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer ${
                 isActive 
-                  ? 'bg-gradient-to-r from-violet-600 via-purple-600 to-pink-500 text-white shadow-md shadow-purple-500/20' 
-                  : 'text-slate-600 dark:text-slate-400 hover:bg-purple-50/70 dark:hover:bg-slate-800 hover:text-purple-700 dark:hover:text-purple-300'
+                  ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs' 
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800/60'
               }`}
             >
-              <Icon className="w-4 h-4" />
-              <span>{t(tab.label)}</span>
+              <Icon className="w-3.5 h-3.5" />
+              <span>{tab.label}</span>
               {tab.count !== undefined && (
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-black ${
-                  isActive ? 'bg-white/25 text-white' : 'bg-purple-100 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300'
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
+                  isActive ? 'bg-white/20 text-white dark:bg-slate-900/20 dark:text-slate-900' : 'bg-slate-100 dark:bg-slate-800 text-slate-500'
                 }`}>
                   {tab.count}
                 </span>
@@ -495,45 +499,41 @@ function NotesDashboardView({
   return (
     <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-full">
       {/* QUICK METRICS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4 w-full min-w-0">
-        <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center gap-3 sm:gap-4 min-w-0">
-          <div className="w-9 h-9 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 rounded-xl flex items-center justify-center font-bold shrink-0">
-            <FileText className="w-4 h-4 sm:w-6 sm:h-6" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full min-w-0">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between min-w-0">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Hoạt động</span>
+            <FileText className="w-4 h-4 text-slate-400" />
           </div>
-          <div className="min-w-0">
-            <div className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white truncate">{notes.length}</div>
-            <div className="text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 truncate">Hoạt động</div>
-          </div>
+          <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white">{notes.length}</div>
+          <span className="text-[10px] text-slate-400 font-normal mt-1">Tổng ghi chú</span>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center gap-3 sm:gap-4 min-w-0">
-          <div className="w-9 h-9 sm:w-12 sm:h-12 bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 rounded-xl flex items-center justify-center font-bold shrink-0">
-            <Pin className="w-4 h-4 sm:w-6 sm:h-6" />
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between min-w-0">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Đã ghim</span>
+            <Pin className="w-4 h-4 text-slate-400" />
           </div>
-          <div className="min-w-0">
-            <div className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white truncate">{pinnedNotes.length}</div>
-            <div className="text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 truncate">Đã ghim</div>
-          </div>
+          <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white">{pinnedNotes.length}</div>
+          <span className="text-[10px] text-slate-400 font-normal mt-1">Ưu tiên truy cập nhanh</span>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center gap-3 sm:gap-4 min-w-0">
-          <div className="w-9 h-9 sm:w-12 sm:h-12 bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 rounded-xl flex items-center justify-center font-bold shrink-0">
-            <Star className="w-4 h-4 sm:w-6 sm:h-6" />
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between min-w-0">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Yêu thích</span>
+            <Star className="w-4 h-4 text-slate-400" />
           </div>
-          <div className="min-w-0">
-            <div className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white truncate">{favoriteNotes.length}</div>
-            <div className="text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 truncate">Yêu thích</div>
-          </div>
+          <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white">{favoriteNotes.length}</div>
+          <span className="text-[10px] text-slate-400 font-normal mt-1">Đánh dấu quan trọng</span>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-3.5 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm flex items-center gap-3 sm:gap-4 min-w-0">
-          <div className="w-9 h-9 sm:w-12 sm:h-12 bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 rounded-xl flex items-center justify-center font-bold shrink-0">
-            <ListCheck className="w-4 h-4 sm:w-6 sm:h-6" />
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between min-w-0">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Chờ xử lý</span>
+            <ListCheck className="w-4 h-4 text-slate-400" />
           </div>
-          <div className="min-w-0">
-            <div className="text-xl sm:text-2xl font-black text-slate-800 dark:text-white truncate">{pendingChecklistNotes.length}</div>
-            <div className="text-[10px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 truncate">Chờ xử lý</div>
-          </div>
+          <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white">{pendingChecklistNotes.length}</div>
+          <span className="text-[10px] text-slate-400 font-normal mt-1">Checklist chưa hoàn thành</span>
         </div>
       </div>
 
@@ -562,12 +562,12 @@ function NotesDashboardView({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 w-full min-w-0">
         <div className="lg:col-span-2 space-y-4 min-w-0 w-full">
           <div className="flex items-center justify-between">
-            <h3 className="text-base sm:text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 truncate">
-              <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 shrink-0" /> Cập nhật gần đây
+            <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2 truncate">
+              <Clock className="w-4 h-4 text-slate-400 shrink-0" /> Cập nhật gần đây
             </h3>
             <button type="button" 
               onClick={() => onCreateNote()} 
-              className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 flex items-center gap-1 shrink-0"
+              className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
             >
               + Tạo nhanh
             </button>
@@ -588,51 +588,59 @@ function NotesDashboardView({
         </div>
 
         {/* RIGHT COLUMN: QUICK CREATION & TAGS */}
-        <div className="space-y-4 sm:space-y-6 min-w-0 w-full">
-          <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-4 sm:p-6 rounded-2xl shadow-sm space-y-3 sm:space-y-4 w-full min-w-0 max-w-full overflow-hidden">
-            <div className="flex items-center gap-2 font-bold text-base sm:text-lg text-amber-400">
-              <Sparkles className="w-5 h-5 shrink-0" /> Quick Note Templates
+        <div className="space-y-4 sm:space-y-5 min-w-0 w-full">
+          {/* Quick Note Templates (Clean White SaaS Card) */}
+          <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3.5 w-full min-w-0">
+            <div>
+              <div className="flex items-center gap-2 font-bold text-sm sm:text-base text-slate-900 dark:text-white">
+                <Sparkles className="w-4 h-4 text-indigo-500 shrink-0" /> Quick Note Templates
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                Tạo nhanh ghi chú theo định dạng chuẩn hóa để tích hợp với hệ thống công việc.
+              </p>
             </div>
-            <p className="text-xs text-slate-300 break-words">
-              Tạo nhanh ghi chú theo định dạng chuẩn hóa để tích hợp với hệ thống công việc.
-            </p>
-            <div className="grid grid-cols-2 gap-2 w-full min-w-0">
+
+            <div className="grid grid-cols-2 gap-2.5 w-full min-w-0">
               <button type="button" 
                 onClick={() => onCreateNote('Meeting')}
-                className="bg-slate-700/80 hover:bg-slate-700 text-xs font-medium p-2.5 rounded-xl border border-slate-600 flex items-center gap-2 truncate"
+                className="bg-[#F1F5F9] hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 border border-slate-200/60 dark:border-slate-700 text-xs font-semibold p-3 rounded-xl flex items-center gap-2.5 transition-colors cursor-pointer group"
               >
-                <Users className="w-4 h-4 text-blue-400 shrink-0" /> <span className="truncate">Cuộc họp</span>
+                <Users className="w-4 h-4 text-slate-500 group-hover:text-indigo-600 dark:text-slate-400 dark:group-hover:text-indigo-400 shrink-0 transition-colors" />
+                <span className="truncate">Cuộc họp</span>
               </button>
               <button type="button" 
                 onClick={() => onCreateNote('Decision')}
-                className="bg-slate-700/80 hover:bg-slate-700 text-xs font-medium p-2.5 rounded-xl border border-slate-600 flex items-center gap-2 truncate"
+                className="bg-[#F1F5F9] hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 border border-slate-200/60 dark:border-slate-700 text-xs font-semibold p-3 rounded-xl flex items-center gap-2.5 transition-colors cursor-pointer group"
               >
-                <Scale className="w-4 h-4 text-amber-400 shrink-0" /> <span className="truncate">Quyết định</span>
+                <Scale className="w-4 h-4 text-slate-500 group-hover:text-indigo-600 dark:text-slate-400 dark:group-hover:text-indigo-400 shrink-0 transition-colors" />
+                <span className="truncate">Quyết định</span>
               </button>
               <button type="button" 
                 onClick={() => onCreateNote('Daily')}
-                className="bg-slate-700/80 hover:bg-slate-700 text-xs font-medium p-2.5 rounded-xl border border-slate-600 flex items-center gap-2 truncate"
+                className="bg-[#F1F5F9] hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 border border-slate-200/60 dark:border-slate-700 text-xs font-semibold p-3 rounded-xl flex items-center gap-2.5 transition-colors cursor-pointer group"
               >
-                <Calendar className="w-4 h-4 text-purple-400 shrink-0" /> <span className="truncate">Daily Note</span>
+                <Calendar className="w-4 h-4 text-slate-500 group-hover:text-indigo-600 dark:text-slate-400 dark:group-hover:text-indigo-400 shrink-0 transition-colors" />
+                <span className="truncate">Daily Note</span>
               </button>
               <button type="button" 
                 onClick={() => onCreateNote('Checklist')}
-                className="bg-slate-700/80 hover:bg-slate-700 text-xs font-medium p-2.5 rounded-xl border border-slate-600 flex items-center gap-2 truncate"
+                className="bg-[#F1F5F9] hover:bg-slate-200/80 dark:bg-slate-800 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 border border-slate-200/60 dark:border-slate-700 text-xs font-semibold p-3 rounded-xl flex items-center gap-2.5 transition-colors cursor-pointer group"
               >
-                <ListCheck className="w-4 h-4 text-emerald-400 shrink-0" /> <span className="truncate">Checklist</span>
+                <ListCheck className="w-4 h-4 text-slate-500 group-hover:text-indigo-600 dark:text-slate-400 dark:group-hover:text-indigo-400 shrink-0 transition-colors" />
+                <span className="truncate">Checklist</span>
               </button>
             </div>
           </div>
 
           {/* TAG CLOUD */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm space-y-3">
-            <h4 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-              <Tag className="w-4 h-4 text-blue-600" /> Tags Nổi bật
+          <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+            <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
+              <Tag className="w-3.5 h-3.5 text-slate-400" /> Tags Nổi bật
             </h4>
             <div className="flex flex-wrap gap-1.5">
               {tags.map(([tag, count]) => (
-                <span key={tag} className="bg-slate-100 hover:bg-blue-50 hover:text-blue-600 text-slate-600 text-xs font-medium px-2.5 py-1 rounded-lg border border-slate-200 cursor-pointer transition-all flex items-center gap-1">
-                  #{tag} <span className="text-[10px] text-slate-400 font-bold">({count})</span>
+                <span key={tag} className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium px-2.5 py-1 rounded-lg border border-slate-200/60 dark:border-slate-700 cursor-pointer transition-colors flex items-center gap-1">
+                  #{tag} <span className="text-[10px] text-slate-400 font-mono">({count})</span>
                 </span>
               ))}
             </div>
