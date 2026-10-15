@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, Pause, Volume2, VolumeX, Youtube, Star, Trash2, 
-  ExternalLink, ChevronDown, ChevronUp, Music, Sparkles, AlertCircle, Plus 
+  ExternalLink, ChevronDown, ChevronUp, Music, Sparkles, AlertCircle, Plus,
+  Disc, Radio, Headphones
 } from 'lucide-react';
 import { 
   YouTubeTrack, 
@@ -16,6 +17,26 @@ interface YouTubeFocusPlayerProps {
   onTrackChange?: (track: YouTubeTrack | null) => void;
   className?: string;
   defaultExpanded?: boolean;
+}
+
+function TrackIconBadge({ category, isSelected }: { category?: string; isSelected?: boolean }) {
+  const Icon = category === 'ambient' 
+    ? Radio 
+    : category === 'classical' 
+      ? Headphones 
+      : category === 'piano' 
+        ? Music 
+        : Disc;
+
+  return (
+    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+      isSelected 
+        ? 'bg-emerald-600 text-white shadow-xs' 
+        : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60'
+    }`}>
+      <Icon className={`w-5 h-5 ${isSelected ? 'animate-spin' : ''}`} style={isSelected ? { animationDuration: '4s' } : undefined} />
+    </div>
+  );
 }
 
 export function YouTubeFocusPlayer({
@@ -42,7 +63,7 @@ export function YouTubeFocusPlayer({
     {
       id: currentVideoId,
       url: `https://www.youtube.com/watch?v=${currentVideoId}`,
-      title: 'Nhạc tập trung YouTube',
+      title: 'Đài phát Lofi & Ambient',
       thumbnailUrl: getYouTubeThumbnail(currentVideoId),
       category: 'custom' as const
     };
@@ -110,13 +131,23 @@ export function YouTubeFocusPlayer({
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
               )}
             </div>
-            <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate max-w-[180px] sm:max-w-xs">
-              {activeTrack.title}
+            <p className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate max-w-[170px] sm:max-w-xs">
+              {activeTrack.title || 'Đài phát Lofi & Ambient'}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0">
+          {/* Quick Play/Pause button on mini bar */}
+          <button
+            type="button"
+            onClick={() => setIsPlaying(!isPlaying)}
+            title={isPlaying ? 'Tạm dừng nhạc' : 'Phát nhạc'}
+            className="p-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white transition-colors cursor-pointer shadow-xs"
+          >
+            {isPlaying ? <Pause className="w-3.5 h-3.5 fill-current" /> : <Play className="w-3.5 h-3.5 fill-current ml-0.5" />}
+          </button>
+
           <button
             type="button"
             onClick={() => toggleFavorite(activeTrack)}
@@ -201,28 +232,30 @@ export function YouTubeFocusPlayer({
                   <div
                     key={track.id}
                     onClick={() => handleLoadTrack(track)}
-                    className={`flex items-center justify-between p-2 rounded-xl text-xs cursor-pointer transition-all ${
+                    className={`flex items-center justify-between p-2.5 rounded-xl text-xs cursor-pointer transition-all ${
                       isSelected
-                        ? 'bg-emerald-500/10 border border-emerald-500/30 font-bold text-emerald-600 dark:text-emerald-400 shadow-2xs'
-                        : 'hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300'
+                        ? 'bg-emerald-500/10 border border-emerald-500/30 font-bold text-emerald-700 dark:text-emerald-300 shadow-2xs'
+                        : 'hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300 border border-transparent'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <img
-                        src={track.thumbnailUrl}
-                        alt={track.title}
-                        className="w-9 h-9 rounded-xl object-cover shrink-0 shadow-xs"
-                      />
-                      <div className="min-w-0">
-                        <p className="truncate font-bold text-slate-800 dark:text-slate-200">{track.title}</p>
-                        <p className="text-[10px] text-slate-400 font-medium">{track.channel}</p>
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                      <TrackIconBadge category={track.category} isSelected={isSelected} />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-bold text-slate-900 dark:text-slate-100">{track.title}</p>
+                        <p className="text-[10px] text-slate-400 font-medium">{track.channel || 'Đài phát Lofi & Ambient'}</p>
                       </div>
                     </div>
-                    {isSelected && (
-                      <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-gradient-to-r from-violet-500 to-pink-500 text-white font-extrabold shrink-0 ml-2 shadow-xs">
-                        Đang phát ✨
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                      {isSelected ? (
+                        <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-600 text-white font-extrabold shadow-2xs">
+                          Đang phát
+                        </span>
+                      ) : (
+                        <span className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-emerald-600 transition-colors">
+                          <Play className="w-3.5 h-3.5 fill-current ml-0.5" />
+                        </span>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -243,34 +276,32 @@ export function YouTubeFocusPlayer({
                   return (
                     <div
                       key={track.id}
-                      className={`btn-squishy flex items-center justify-between p-2 rounded-2xl text-xs transition-all ${
+                      className={`flex items-center justify-between p-2.5 rounded-xl text-xs transition-all ${
                         isSelected
-                          ? 'bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 font-extrabold text-amber-700 dark:text-amber-300 shadow-xs'
-                          : 'hover:bg-purple-50/40 dark:hover:bg-slate-800/40 text-slate-700 dark:text-slate-300'
+                          ? 'bg-amber-500/10 border border-amber-500/30 font-bold text-amber-700 dark:text-amber-300 shadow-xs'
+                          : 'hover:bg-slate-100 dark:hover:bg-slate-800/60 text-slate-700 dark:text-slate-300 border border-transparent'
                       }`}
                     >
                       <div 
                         onClick={() => handleLoadTrack(track)}
                         className="flex items-center gap-2.5 min-w-0 flex-1 cursor-pointer"
                       >
-                        <img
-                          src={track.thumbnailUrl}
-                          alt={track.title}
-                          className="w-9 h-9 rounded-xl object-cover shrink-0 shadow-xs"
-                        />
-                        <div className="min-w-0">
-                          <p className="truncate font-bold text-slate-800 dark:text-slate-200">{track.title}</p>
+                        <TrackIconBadge category={track.category} isSelected={isSelected} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-bold text-slate-900 dark:text-slate-100">{track.title}</p>
                           <p className="text-[10px] text-amber-500 font-semibold">Đã lưu ⭐</p>
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => toggleFavorite(track)}
-                        className="p-1.5 text-slate-400 hover:text-rose-500 rounded-xl transition-colors ml-2 cursor-pointer hover:bg-rose-50 dark:hover:bg-rose-950/40"
-                        title="Xóa khỏi yêu thích"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleFavorite(track)}
+                          className="p-1.5 text-slate-400 hover:text-rose-500 rounded-lg transition-colors cursor-pointer hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                          title="Xóa khỏi yêu thích"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   );
                 })
