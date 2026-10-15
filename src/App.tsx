@@ -367,26 +367,6 @@ function AppContent() {
       </div>
       <GlobalCompanionOverlay />
       <PwaPromptBanner />
-
-      {/* Floating Action Button for Omni Quick-Capture (Desktop only to prevent obstructing mobile cards) */}
-      <div className="hidden md:flex fixed bottom-7 right-6 md:right-28 z-40 items-center group">
-        <button
-          type="button"
-          id="btn-omni-quick-capture"
-          onClick={() => toggleCommand()}
-          title={t('Mở bảng Lệnh nhanh & Tìm kiếm (Phím tắt: Ctrl + K)')}
-          aria-label={t('Lệnh nhanh 1-chạm (Ctrl + K)')}
-          className="h-10 sm:h-12 px-3 sm:px-4 rounded-full bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 hover:from-emerald-500 hover:to-teal-400 text-slate-950 font-black shadow-xl shadow-emerald-500/25 flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer border border-emerald-300/40"
-        >
-          <div className="w-6 h-6 rounded-full bg-slate-950/20 flex items-center justify-center">
-            <Zap className="w-3.5 h-3.5 fill-slate-950 stroke-slate-950" />
-          </div>
-          <span className="text-xs font-black tracking-tight hidden sm:inline">{t('Lệnh nhanh')}</span>
-          <kbd className="hidden lg:inline-block px-1.5 py-0.5 rounded-md bg-slate-950/25 text-[10px] font-mono font-bold text-slate-950">
-            Ctrl K
-          </kbd>
-        </button>
-      </div>
     </div>
   );
 }

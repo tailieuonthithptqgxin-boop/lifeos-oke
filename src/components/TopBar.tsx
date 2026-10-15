@@ -3,7 +3,7 @@ import {
   Menu, Moon, Sun, Search, Bell, Plus, Inbox, ShoppingCart, 
   Shield, CheckSquare, DollarSign, Calendar, Target, Zap, 
   User, LogOut, ChevronDown, CheckCircle2, Globe, Sparkles, Lock, Flame, Award, Volume2, VolumeX, Bot,
-  ExternalLink, AlertTriangle
+  ExternalLink, AlertTriangle, FileText
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { useTranslation } from '../lib/i18n';
@@ -167,18 +167,6 @@ export function TopBar() {
           </div>
         </button>
 
-        {/* Zen Focus Mode Button */}
-        <button
-          type="button"
-          onClick={() => setShowZenFocus(true)}
-          title={isVi ? "Chế độ Tập trung Zen (Shift + F)" : "Zen Focus Mode (Shift + F)"}
-          className="hidden md:inline-flex p-2 sm:px-3 sm:py-1.5 rounded-full bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition-all items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95 shadow-xs"
-        >
-          <Sparkles className="w-3.5 h-3.5 text-emerald-500 fill-emerald-500 animate-pulse" />
-          <span className="hidden md:inline text-xs font-black">{isVi ? 'Tập trung Zen' : 'Zen Focus'}</span>
-          <kbd className="hidden lg:inline text-[9px] font-mono font-bold opacity-75 bg-emerald-500/15 px-1 rounded">⇧F</kbd>
-        </button>
-
         {/* Primary Action Button: + Tạo mới */}
         <div className="relative">
           <button 
@@ -218,7 +206,7 @@ export function TopBar() {
                         setCurrentView('subscription');
                         setShowCreateMenu(false);
                       }}
-                      className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
+                      className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
                     >
                       {t('Mở khóa bản quyền')}
                     </button>
@@ -233,7 +221,7 @@ export function TopBar() {
                       }}
                       className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
                     >
-                      <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400">
+                      <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
                         <CheckSquare className="w-4 h-4" />
                       </div>
                       <span>{t('Công việc mới')}</span>
@@ -247,10 +235,24 @@ export function TopBar() {
                       }}
                       className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
                     >
-                      <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                      <div className="p-1.5 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400">
                         <DollarSign className="w-4 h-4" />
                       </div>
                       <span>{t('Khoản thu / chi tiêu')}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCurrentView('notes');
+                        setShowCreateMenu(false);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
+                    >
+                      <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
+                        <FileText className="w-4 h-4" />
+                      </div>
+                      <span>{isVi ? 'Tạo ghi chú mới' : 'New Note'}</span>
                     </button>
 
                     <button

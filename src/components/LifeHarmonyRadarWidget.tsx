@@ -84,11 +84,11 @@ export const LifeHarmonyRadarWidget: React.FC<LifeHarmonyRadarWidgetProps> = ({
                 <h3 className="text-base font-black text-slate-800 dark:text-white tracking-tight">
                   Chỉ Số Cân Bằng Cuộc Sống
                 </h3>
-                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-600 dark:text-purple-300">
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
                   5D Harmony
                 </span>
                 <span className="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500">
-                  Real Data Only
+                  Dữ liệu thực tế
                 </span>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
@@ -105,7 +105,7 @@ export const LifeHarmonyRadarWidget: React.FC<LifeHarmonyRadarWidgetProps> = ({
                 setSelectedDimForTrace(null);
                 setShowTraceModal(true);
               }}
-              className="px-2.5 py-1.5 rounded-xl bg-purple-50 dark:bg-slate-800 hover:bg-purple-100 dark:hover:bg-slate-700 text-purple-700 dark:text-purple-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-purple-100 dark:border-slate-700"
+              className="px-2.5 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-slate-200/80 dark:border-slate-700"
               title="Xem chi tiết nguồn gốc và công thức tính điểm thực tế"
             >
               <Info className="w-3.5 h-3.5" />
@@ -124,45 +124,59 @@ export const LifeHarmonyRadarWidget: React.FC<LifeHarmonyRadarWidgetProps> = ({
 
         {/* BODY AREA */}
         {isAllEmpty ? (
-          /* TRƯỜNG HỢP 1: TOÀN BỘ 5 CHIỀU CHƯA CÓ HOẠT ĐỘNG THỰC TẾ */
-          <div className="mt-4 p-5 sm:p-6 rounded-2xl bg-purple-50/40 dark:bg-slate-800/40 border border-dashed border-purple-200 dark:border-slate-700 relative z-10 text-center space-y-4">
-            <div className="max-w-md mx-auto space-y-2">
-              <div className="w-12 h-12 mx-auto rounded-2xl bg-purple-100 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-                <Layers className="w-6 h-6" />
-              </div>
-              <h4 className="font-bold text-slate-800 dark:text-white text-sm">
-                Chưa đủ dữ liệu để đánh giá Chỉ số Cân bằng
-              </h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                Hệ thống tuân thủ nghiêm ngặt nguyên tắc <strong>Real Data Only</strong>: Không sử dụng điểm số giả định, không dùng mock data hoặc random score. Hãy bắt đầu ghi nhận các hoạt động thực tế để hệ thống bắt đầu đo lường:
-              </p>
+          /* TRƯỜNG HỢP 1: TOÀN BỘ 5 CHIỀU CHƯA CÓ HOẠT ĐỘNG THỰC TẾ (COMPACT RADAR PLACEHOLDER) */
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center mt-3 relative z-10">
+            {/* Aesthetic Radar Placeholder on Left (7 cols) */}
+            <div className="md:col-span-7 h-56 w-full flex flex-col items-center justify-center relative p-2">
+              <svg viewBox="0 0 200 200" className="w-48 h-48 mx-auto overflow-visible opacity-75">
+                {/* 3 Concentric Polygons */}
+                <polygon points="100,20 176,75 147,165 53,165 24,75" fill="none" stroke="#e2e8f0" strokeWidth="1.2" className="dark:stroke-slate-800" />
+                <polygon points="100,45 152,83 132,144 68,144 48,83" fill="none" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="3 3" className="dark:stroke-slate-800" />
+                <polygon points="100,70 128,90 117,122 83,122 72,90" fill="none" stroke="#e2e8f0" strokeWidth="0.8" className="dark:stroke-slate-800" />
+                {/* Axes */}
+                <line x1="100" y1="100" x2="100" y2="20" stroke="#cbd5e1" strokeWidth="1" className="dark:stroke-slate-700" />
+                <line x1="100" y1="100" x2="176" y2="75" stroke="#cbd5e1" strokeWidth="1" className="dark:stroke-slate-700" />
+                <line x1="100" y1="100" x2="147" y2="165" stroke="#cbd5e1" strokeWidth="1" className="dark:stroke-slate-700" />
+                <line x1="100" y1="100" x2="53" y2="165" stroke="#cbd5e1" strokeWidth="1" className="dark:stroke-slate-700" />
+                <line x1="100" y1="100" x2="24" y2="75" stroke="#cbd5e1" strokeWidth="1" className="dark:stroke-slate-700" />
+                {/* Translucent Active Area Placeholder */}
+                <polygon points="100,60 135,92 110,135 70,128 65,85" fill="#10b981" fillOpacity="0.12" stroke="#10b981" strokeWidth="1.5" strokeDasharray="4 2" />
+                {/* Labels */}
+                <text x="100" y="12" textAnchor="middle" fill="#64748b" fontSize="8" fontWeight="bold">Năng suất</text>
+                <text x="182" y="77" textAnchor="start" fill="#64748b" fontSize="8" fontWeight="bold">Kỷ luật</text>
+                <text x="150" y="178" textAnchor="start" fill="#64748b" fontSize="8" fontWeight="bold">Phát triển</text>
+                <text x="50" y="178" textAnchor="end" fill="#64748b" fontSize="8" fontWeight="bold">Tài chính</text>
+                <text x="18" y="77" textAnchor="end" fill="#64748b" fontSize="8" fontWeight="bold">Mục tiêu</text>
+              </svg>
+              <span className="text-[10px] text-slate-400 font-medium mt-1">
+                Ghi nhận hoạt động đầu tiên để hệ thống bắt đầu vẽ biểu đồ
+              </span>
             </div>
 
-            {/* 5 Hướng dẫn hành động cụ thể */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 max-w-4xl mx-auto text-left">
-              {harmony.dimensions.map((dim, idx) => (
+            {/* 5-Dimension Cards on Right (5 cols) */}
+            <div className="md:col-span-5 space-y-2">
+              <div className="flex items-center justify-between text-[11px] text-slate-500 font-medium px-1">
+                <span>5 Khía cạnh đời sống</span>
+                <span className="text-amber-500 font-bold">Chờ số liệu</span>
+              </div>
+              {harmony.dimensions.map((dim) => (
                 <div 
                   key={dim.dimension} 
-                  className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-purple-100/70 dark:border-slate-800 text-xs space-y-1 hover:border-purple-300 transition-colors"
+                  className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/40 text-xs space-y-1.5"
                 >
                   <div className="flex items-center justify-between">
-                    <span className="font-black text-slate-700 dark:text-slate-200">
-                      {idx + 1}. {dim.name}
+                    <span className="font-bold text-slate-700 dark:text-slate-200">
+                      {dim.name}
                     </span>
-                    <span className="text-[10px] font-bold text-amber-500 bg-amber-50 dark:bg-amber-950/50 px-1.5 py-0.2 rounded">
-                      Chưa có
+                    <span className="text-[10px] font-bold text-slate-400">
+                      0/100
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                    {dim.sufficiencyReason || 'Cần bổ sung hoạt động để bắt đầu tính.'}
-                  </p>
+                  <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                    <div className="h-full bg-slate-300 dark:bg-slate-600 rounded-full w-0 transition-all duration-300" />
+                  </div>
                 </div>
               ))}
-            </div>
-
-            <div className="text-[11px] text-slate-400 flex items-center justify-center gap-1.5 pt-1">
-              <Calendar className="w-3.5 h-3.5" />
-              <span>Dữ liệu cập nhật: {formatDateTime(harmony.lastUpdated)}</span>
             </div>
           </div>
         ) : (

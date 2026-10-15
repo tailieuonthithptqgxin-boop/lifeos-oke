@@ -1,16 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAppStore } from '../lib/store';
 import { useTranslation } from '../lib/i18n';
 import { 
   CheckSquare, Calendar, Wallet, Target, Activity, Clock, 
   Zap, ArrowRight, BookOpen, Flame, X, Check, Play, Pause, Square, AlertTriangle, Plus,
   FolderKanban, TrendingUp, TrendingDown, PiggyBank, ArrowUpRight, ChevronRight, ChevronLeft,
-  PieChart, Building, MoreHorizontal, FileEdit, RotateCcw, ChevronDown, ChevronUp, Sparkles, Award
+  PieChart, Building, MoreHorizontal, FileEdit, RotateCcw, ChevronDown, ChevronUp, Sparkles, Award,
+  Trophy, CheckCircle2, Circle, Coins, Star, Layers, Info, ExternalLink, RefreshCw
 } from 'lucide-react';
 import { formatCurrency, formatDate } from '../lib/utils';
-import { ResponsiveContainer, RadialBarChart, RadialBar, Cell } from 'recharts';
-import { retentionEngine } from '../lib/retentionEngine';
-import { RetentionWidget } from './RetentionWidget';
+import { retentionEngine, RetentionProfile } from '../lib/retentionEngine';
 import { CelebrationModal } from './CelebrationModal';
 import { EmptyState } from './EmptyState';
 import { soundEngine } from '../lib/soundEngine';
@@ -19,9 +18,7 @@ import { ShareStoryModal } from './ShareStoryModal';
 import { compute5DHarmony } from '../lib/lifeHarmonyEngine';
 import { LifeHarmonyRadarWidget } from './LifeHarmonyRadarWidget';
 import { loadVocabData, buildTodayStudyPlan } from '../lib/vocabEngine';
-import { DailyTrifectaWidget } from './dashboard/DailyTrifectaWidget';
 import { ZenFocusOverlay } from './focus/ZenFocusOverlay';
-import { DopaminePetWidget } from './companion/DopaminePetWidget';
 import { SundayWeeklyResetModal } from './dashboard/SundayWeeklyResetModal';
 import { streakFreezeEngine } from '../lib/streakFreezeEngine';
 import { vibeThemeEngine } from '../lib/vibeThemeEngine';
@@ -31,29 +28,53 @@ import { AiLifeBuddyCopilotModal } from './companion/AiLifeBuddyCopilotModal';
 import { QuickPersonaQuizModal } from './onboarding/QuickPersonaQuizModal';
 import { StreakResurrectionModal } from './dashboard/StreakResurrectionModal';
 import { WeeklyLeaderboardModal } from './dashboard/WeeklyLeaderboardModal';
+import { apiCall } from '../lib/apiClient';
+import { triggerConfetti } from '../lib/confetti';
+import { LiveMascotCharacter } from './companion/LiveMascotCharacter';
+import { companionEngine, CompanionMood } from '../lib/companionEngine';
+import { getEvolutionStage } from './companion/DopaminePetWidget';
+
+const GENZ_PET_QUOTES = [
+  "Cố lên bạn ơi, bạn đang gánh cả ngày hôm nay đấy! ✨",
+  "Một việc nữa thôi là thăng hạng rồi, chiến thôi! 🔥",
+  "Hôm nay bạn siêu ngầu! 10 điểm không có nhưng! 💯",
+  "Uống một ngụm nước rồi tiếp tục bứt phá nhé! 🥤",
+  "Chuỗi kỉ luật cháy rực rỡ! Giữ vững phong độ nha! 🚀",
+  "Tập trung sâu một chút, tối nay thảnh thơi ngủ ngon! 🌙"
+];
 
 export function DashboardView() {
   const { 
-    tasks, events, transactions, goals, habits, habitRecords, subjects,
-    focusSessions, focusGoals, studyAssignments, projects = [], financeAccounts = [],
-    budgets = [],
-    addTask, updateTask, addTransaction, updateHabit, addHabitRecord, lifeScore, dailyCapacity,
-    setCurrentView, clearWorkspace, workspaceMode, onboardingPreferences, language, currentUser,
-    subscriptionStatus
+    tasks = [], events = [], transactions = [], goals = [], habits = [], habitRecords = [],
+    focusSessions = [], focusGoals = [], projects = [], financeAccounts = [], budgets = [],
+    addTask, updateTask, updateHabit, addHabitRecord, dailyCapacity = 8,
+    setCurrentView, clearWorkspace, language, currentUser
   } = useAppStore();
 
-  const t = useTranslation(language);
   const isVi = language === 'vi';
+  const t = useTranslation(language);
 
+  // Time & Date states
   const [currentTime, setCurrentTime] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const dateStr = selectedDate.toISOString().split('T')[0];
+  const todayStr = new Date().toISOString().split('T')[0];
 
-  // Modals & Menu States
+  // Modals & Interactivity states
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [showQuickTaskModal, setShowQuickTaskModal] = useState(false);
-  const [showMoreActions, setShowMoreActions] = useState(false);
-  const [showExtendedMetrics, setShowExtendedMetrics] = useState(false);
+  const [todayMood, setTodayMoodState] = useState<GenZMood>(() => getTodayMood());
+  const [showMoodPicker, setShowMoodPicker] = useState(false);
+  const [showShareStory, setShowShareStory] = useState(false);
+  const [showSundayReset, setShowSundayReset] = useState(false);
+  const [showVibeThemeModal, setShowVibeThemeModal] = useState(false);
+  const [showWrappedModal, setShowWrappedModal] = useState(false);
+  const [showAiBuddyModal, setShowAiBuddyModal] = useState(false);
+  const [showPersonaQuizModal, setShowPersonaQuizModal] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showResurrectionModal, setShowResurrectionModal] = useState(false);
+  const [zenFocusOpen, setZenFocusOpen] = useState(false);
+  const [zenFocusTaskId, setZenFocusTaskId] = useState<string | undefined>(undefined);
   const [celebration, setCelebration] = useState<{
     title: string;
     subtitle: string;
@@ -61,32 +82,102 @@ export function DashboardView() {
     streakCount?: number;
     badgeName?: string;
   } | null>(null);
-  const [todayMood, setTodayMoodState] = useState<GenZMood>(() => getTodayMood());
-  const [showShareStory, setShowShareStory] = useState(false);
-  const [showMoodPicker, setShowMoodPicker] = useState(false);
-  const [showSundayReset, setShowSundayReset] = useState(false);
-  const [showVibeThemeModal, setShowVibeThemeModal] = useState(false);
-  const [showWrappedModal, setShowWrappedModal] = useState(false);
-  const [showAiBuddyModal, setShowAiBuddyModal] = useState(false);
-  const [showPersonaQuizModal, setShowPersonaQuizModal] = useState(false);
-  const [showLeaderboard, setShowLeaderboard] = useState(false);
-  const [streakShield, setStreakShield] = useState(() => streakFreezeEngine.getStatus(currentUser?.id));
-  const [resurrectionStatus, setResurrectionStatus] = useState(() => streakFreezeEngine.getResurrectionStatus(currentUser?.id));
-  const [showResurrectionModal, setShowResurrectionModal] = useState(false);
-  const [showQuickToolsSheet, setShowQuickToolsSheet] = useState(false);
-  const [zenFocusOpen, setZenFocusOpen] = useState(false);
-  const [zenFocusTaskId, setZenFocusTaskId] = useState<string | undefined>(undefined);
+
+  // Quick Task Form
   const [quickTaskTitle, setQuickTaskTitle] = useState('');
-  const [quickTaskPriority, setQuickTaskPriority] = useState<any>('Trung bình');
+  const [quickTaskPriority, setQuickTaskPriority] = useState<string>('Trung bình');
   const [quickTaskHours, setQuickTaskHours] = useState<number>(1);
 
-  // Sync streak shield & resurrection when user changes
-  useEffect(() => {
-    setStreakShield(streakFreezeEngine.getStatus(currentUser?.id));
-    setResurrectionStatus(streakFreezeEngine.getResurrectionStatus(currentUser?.id));
-  }, [currentUser]);
+  // Timer state for in-line task deep work
+  const [activeTimerTask, setActiveTimerTask] = useState<string | null>(null);
+  const [timerSeconds, setTimerSeconds] = useState(0);
 
-  // Global lifeos event triggers from Spotlight / Command palette
+  // Dismissed Smart Action Pills (by id: 'sunday_reset', 'ebbinghaus', 'resurrection')
+  const [dismissedPills, setDismissedPills] = useState<Record<string, boolean>>({});
+
+  // Mascot Lumi state
+  const userId = currentUser?.id;
+  const [profile, setProfile] = useState<RetentionProfile>(() => retentionEngine.getProfile(userId));
+  const [mascotSettings, setMascotSettings] = useState(() => companionEngine.getSettings(userId));
+  const [petMood, setPetMood] = useState<CompanionMood>('idle');
+  const [speechBubble, setSpeechBubble] = useState<string>('');
+  const [isPoking, setIsPoking] = useState(false);
+
+  // Gamification progression data (Level, XP, Quests)
+  const [progressionData, setProgressionData] = useState<{
+    level: number;
+    levelTitle: string;
+    totalXp: number;
+    xpNeededForNextLevel: number;
+    levelProgressPercent: number;
+    coins: number;
+    currentStreak: number;
+    dailyQuests: Array<{
+      id: string;
+      key: string;
+      title: string;
+      current: number;
+      target: number;
+      unit: string;
+      rewardXp: number;
+      rewardCoins: number;
+      isCompleted: boolean;
+      isClaimed: boolean;
+    }>;
+  } | null>(null);
+
+  // The Rule of 3 (Tam Hợp) Slots persistent state
+  const [slotTaskIds, setSlotTaskIds] = useState<[string, string, string]>(() => {
+    try {
+      const saved = localStorage.getItem(`lifeos_trifecta_${todayStr}`);
+      return saved ? JSON.parse(saved) : ['', '', ''];
+    } catch {
+      return ['', '', ''];
+    }
+  });
+  const [pickingSlotIndex, setPickingSlotIndex] = useState<number | null>(null);
+  const [inlineSlotTitle, setInlineSlotTitle] = useState('');
+
+  // Streak Shield & Resurrection
+  const [streakShield, setStreakShield] = useState(() => streakFreezeEngine.getStatus(userId));
+  const [resurrectionStatus, setResurrectionStatus] = useState(() => streakFreezeEngine.getResurrectionStatus(userId));
+
+  // Sync profile & progression
+  const fetchProgression = async () => {
+    try {
+      const res = await apiCall('/api/progression');
+      if (res && res.data) {
+        setProgressionData(res.data);
+      }
+    } catch {
+      // Fallback to local retentionEngine
+    }
+  };
+
+  useEffect(() => {
+    setProfile(retentionEngine.getProfile(userId));
+    setMascotSettings(companionEngine.getSettings(userId));
+    setStreakShield(streakFreezeEngine.getStatus(userId));
+    setResurrectionStatus(streakFreezeEngine.getResurrectionStatus(userId));
+    fetchProgression();
+  }, [userId, currentUser]);
+
+  // Update clock every minute
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Timer loop for active deep work task
+  useEffect(() => {
+    let interval: any = null;
+    if (activeTimerTask) {
+      interval = setInterval(() => setTimerSeconds(s => s + 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [activeTimerTask]);
+
+  // Global event listeners (Spotlight, shortcuts)
   useEffect(() => {
     const handleOpenZen = () => setZenFocusOpen(true);
     const handleOpenReset = () => setShowSundayReset(true);
@@ -97,10 +188,6 @@ export function DashboardView() {
     const handleOpenAi = () => setShowAiBuddyModal(true);
     const handleOpenQuiz = () => setShowPersonaQuizModal(true);
     const handleOpenLeaderboard = () => setShowLeaderboard(true);
-    const handleToggleRestDay = () => {
-      streakFreezeEngine.toggleRestDay(currentUser?.id);
-      setStreakShield(streakFreezeEngine.getStatus(currentUser?.id));
-    };
 
     window.addEventListener('lifeos:open-zen-focus', handleOpenZen);
     window.addEventListener('lifeos:open-sunday-reset', handleOpenReset);
@@ -111,7 +198,6 @@ export function DashboardView() {
     window.addEventListener('lifeos:open-ai-buddy', handleOpenAi);
     window.addEventListener('lifeos:open-persona-quiz', handleOpenQuiz);
     window.addEventListener('lifeos:open-leaderboard', handleOpenLeaderboard);
-    window.addEventListener('lifeos:toggle-rest-day', handleToggleRestDay);
 
     return () => {
       window.removeEventListener('lifeos:open-zen-focus', handleOpenZen);
@@ -123,51 +209,83 @@ export function DashboardView() {
       window.removeEventListener('lifeos:open-ai-buddy', handleOpenAi);
       window.removeEventListener('lifeos:open-persona-quiz', handleOpenQuiz);
       window.removeEventListener('lifeos:open-leaderboard', handleOpenLeaderboard);
-      window.removeEventListener('lifeos:toggle-rest-day', handleToggleRestDay);
     };
-  }, [currentUser]);
-  
-  // Routine persistence by date
-  const [routineState, setRoutineState] = useState<Record<number, boolean>>(() => {
-    try {
-      const saved = localStorage.getItem(`lifeos_routine_${dateStr}`);
-      return saved ? JSON.parse(saved) : {};
-    } catch {
-      return {};
-    }
-  });
-
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(`lifeos_routine_${dateStr}`);
-      setRoutineState(saved ? JSON.parse(saved) : {});
-    } catch {
-      setRoutineState({});
-    }
-  }, [dateStr]);
-
-  const toggleRoutine = (index: number, val: boolean) => {
-    setRoutineState(prev => {
-      const updated = { ...prev, [index]: val };
-      try {
-        localStorage.setItem(`lifeos_routine_${dateStr}`, JSON.stringify(updated));
-      } catch {}
-      return updated;
-    });
-  };
-
-  useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 60000);
-    return () => clearInterval(timer);
   }, []);
 
-  // Data Filters for Selected Date
+  // Filter Tasks for Selected Date
   const todayTasks = (tasks || []).filter(t => t.dueDate && t.dueDate.startsWith(dateStr) && t.status !== 'Hủy' && t.status !== 'Cancelled');
   const pendingTasks = todayTasks.filter(t => t.status !== 'Hoàn thành' && t.status !== 'Completed');
   const completedTasks = todayTasks.filter(t => t.status === 'Hoàn thành' || t.status === 'Completed');
-  
-  const todayEvents = (events || []).filter(e => e.date && e.date.startsWith(dateStr));
-  
+
+  // Auto-fill empty slots for Rule of 3 if available
+  useEffect(() => {
+    if (tasks.length === 0) return;
+    setSlotTaskIds(prev => {
+      const current = [...prev] as [string, string, string];
+      let hasChange = false;
+      const available = tasks.filter(t => 
+        t.status !== 'Hoàn thành' && 
+        t.status !== 'Completed' && 
+        t.status !== 'Hủy' && 
+        !current.includes(t.id)
+      );
+
+      for (let i = 0; i < 3; i++) {
+        if (current[i] && !tasks.some(t => t.id === current[i])) {
+          current[i] = '';
+          hasChange = true;
+        }
+        if (!current[i] && available.length > 0) {
+          const next = available.shift();
+          if (next) {
+            current[i] = next.id;
+            hasChange = true;
+          }
+        }
+      }
+      if (hasChange) {
+        try {
+          localStorage.setItem(`lifeos_trifecta_${todayStr}`, JSON.stringify(current));
+        } catch {}
+      }
+      return current;
+    });
+  }, [tasks, todayStr]);
+
+  const updateSlotTask = (index: number, taskId: string) => {
+    const next = [...slotTaskIds] as [string, string, string];
+    next[index] = taskId;
+    setSlotTaskIds(next);
+    try {
+      localStorage.setItem(`lifeos_trifecta_${todayStr}`, JSON.stringify(next));
+    } catch {}
+  };
+
+  const handleCreateInlineSlotTask = async (slotIdx: number) => {
+    if (!inlineSlotTitle.trim()) {
+      setPickingSlotIndex(null);
+      return;
+    }
+    try {
+      const created = await addTask({
+        title: inlineSlotTitle.trim(),
+        priority: slotIdx === 0 ? 'Cao' : slotIdx === 1 ? 'Trung bình' : 'Thấp',
+        dueDate: dateStr,
+        status: 'Chưa làm',
+        estimatedHours: 1,
+        actualHours: 0
+      });
+      if (created && created.id) {
+        updateSlotTask(slotIdx, created.id);
+      }
+    } catch (e) {
+      console.warn('Failed to add inline task:', e);
+    }
+    setInlineSlotTitle('');
+    setPickingSlotIndex(null);
+  };
+
+  // Finance metrics for selected date
   const todayExpenses = (transactions || [])
     .filter(t => (t.type === 'Chi tiêu' || t.type === 'Expense') && t.date && t.date.startsWith(dateStr))
     .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
@@ -176,13 +294,30 @@ export function DashboardView() {
     .filter(t => (t.type === 'Thu nhập' || t.type === 'Income') && t.date && t.date.startsWith(dateStr))
     .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
-  // Time & Capacity
-  const plannedTaskHours = todayTasks.reduce((sum, t) => sum + (t.estimatedHours || 1), 0);
-  const actualTaskHours = todayTasks.reduce((sum, t) => sum + (t.actualHours || 0), 0);
-  const utilization = dailyCapacity > 0 ? Math.min((plannedTaskHours / dailyCapacity) * 100, 100) : 0;
-  const isOverload = plannedTaskHours > dailyCapacity;
+  const totalBalance = (financeAccounts || []).reduce((sum: number, a: any) => sum + (a.balance || 0), 0);
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  const daysRemainingInMonth = Math.max(1, daysInMonth - now.getDate() + 1);
 
-  // Study & Focus Metrics for Selected Date
+  const monthlyTx = (transactions || []).filter(t => {
+    if (!t.date) return false;
+    const d = new Date(t.date);
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  });
+  const monthlyIncome = monthlyTx.filter(t => t.type === 'Thu nhập' || t.type === 'Income').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  const monthlyExpense = monthlyTx.filter(t => t.type === 'Chi tiêu' || t.type === 'Expense').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  const netMonthly = monthlyIncome - monthlyExpense;
+
+  const totalConfiguredBudget = (budgets || []).reduce((sum: number, b: any) => sum + (Number(b.limit) || Number(b.amount) || 0), 0);
+  const hasBudgetBaseline = totalConfiguredBudget > 0 || monthlyIncome > 0;
+  const userMonthlyBudget = totalConfiguredBudget > 0 ? totalConfiguredBudget : (monthlyIncome > 0 ? monthlyIncome : 0);
+  const remainingBudgetMonth = Math.max(0, userMonthlyBudget - monthlyExpense);
+  const dailySafeToSpendBudget = hasBudgetBaseline ? Math.round(remainingBudgetMonth / daysRemainingInMonth) : 0;
+  const safeToSpendTodayRemaining = hasBudgetBaseline ? (dailySafeToSpendBudget - todayExpenses) : -todayExpenses;
+
+  // Focus & Study metrics
   const todayFocusSessions = (focusSessions || []).filter(s => 
     s.status === 'Completed' && (s.createdAt?.startsWith(dateStr) || s.startTime?.startsWith(dateStr))
   );
@@ -193,29 +328,21 @@ export function DashboardView() {
   const studyHours = Math.floor(todayFocusMinutes / 60);
   const studyMinutes = todayFocusMinutes % 60;
   const studyDisplayValue = todayFocusMinutes > 0 
-    ? (studyHours > 0 ? `${studyHours}h ${studyMinutes > 0 ? `${studyMinutes}m` : ''}` : `${studyMinutes}m`) 
-    : '0m';
-  const studySubtext = `/ ${targetStudyHours}h target`;
+    ? (studyHours > 0 ? `${studyHours}h ${studyMinutes > 0 ? `${studyMinutes}m` : ''}` : `${studyMinutes} phút`) 
+    : '0 phút';
+  const studySubtext = `/ ${targetStudyHours} giờ mục tiêu`;
+  const focusProgressPercent = Math.min(100, Math.round((todayFocusMinutes / (targetStudyMinutes || 180)) * 100));
 
-  // Goals Metrics (Dynamic average progress of active goals)
-  const activeGoals = (goals || []).filter(g => g.status !== 'Archived');
-  const avgGoalProgress = activeGoals.length > 0 
-    ? Math.round(activeGoals.reduce((sum, g) => sum + (g.progress || 0), 0) / activeGoals.length)
-    : 0;
-  const completedGoalsCount = activeGoals.filter(g => g.status === 'Completed' || g.progress >= 100).length;
-  const goalsDisplayValue = `${avgGoalProgress}%`;
-  const goalsSubtext = activeGoals.length > 0 ? `${completedGoalsCount}/${activeGoals.length} completed` : 'No goals yet';
-
-  // Habits completed for selected date
+  // Habits metrics
   const completedHabitsToday = (habits || []).filter(h => 
     h.completedDates?.includes(dateStr) || 
     (habitRecords || []).some(r => r.habitId === h.id && r.date === dateStr && r.status === 'Completed')
   );
 
-  // Due Vocabulary Words count based on Spaced Repetition (Real Data)
-  const dueVocabCount = React.useMemo(() => {
+  // Spaced Repetition Due Vocab
+  const dueVocabCount = useMemo(() => {
     try {
-      const vocab = loadVocabData(currentUser?.id || 'current_user');
+      const vocab = loadVocabData(userId || 'current_user');
       const activeLang = (vocab?.languages || []).find(l => l.id === vocab?.activeLanguageId) || vocab?.languages?.[0];
       const langId = activeLang?.id || 'en';
       const words = (vocab?.words && vocab.words[langId]) || [];
@@ -224,158 +351,14 @@ export function DashboardView() {
     } catch {
       return 0;
     }
-  }, [currentUser?.id]);
+  }, [userId]);
 
-  // Daily Score Calculation (0 - 100 points) - STRICT REAL DATA ONLY
-  // Tasks: 30 pts max
-  const taskScore = todayTasks.length > 0 
-    ? (completedTasks.length / todayTasks.length) * 30 
-    : (tasks.length > 0 ? (tasks.filter(t => t.status === 'Hoàn thành' || t.status === 'Completed').length / tasks.length) * 20 : 0);
-  // Habits: 25 pts max
-  const habitScore = habits.length > 0 
-    ? (completedHabitsToday.length / habits.length) * 25 
-    : 0;
-  // Study/Focus: 25 pts max
-  const focusScore = targetStudyMinutes > 0 && todayFocusMinutes > 0
-    ? Math.min(25, (todayFocusMinutes / targetStudyMinutes) * 25) 
-    : 0;
-  // Goals progress: 20 pts max
-  const goalScore = activeGoals.length > 0 
-    ? (avgGoalProgress / 100) * 20 
-    : 0;
-  const dailyScore = Math.min(100, Math.round(taskScore + habitScore + focusScore + goalScore));
-
-  // Finance Summary Calculations
-  const totalBalance = (financeAccounts || []).reduce((sum: number, a: any) => sum + (a.balance || 0), 0);
-  const currentMonth = new Date().getMonth();
-  const currentYear = new Date().getFullYear();
-  const monthlyTx = (transactions || []).filter(t => {
-    if (!t.date) return false;
-    const d = new Date(t.date);
-    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-  });
-  const monthlyIncome = monthlyTx.filter(t => t.type === 'Thu nhập' || t.type === 'Income').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-  const monthlyExpense = monthlyTx.filter(t => t.type === 'Chi tiêu' || t.type === 'Expense').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-  const netMonthly = monthlyIncome - monthlyExpense;
-  const recentTransactions = [...(transactions || [])]
-    .sort((a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime())
-    .slice(0, 3);
-
-  // 3-Second Rule Cockpit Calculations
-  const now = new Date();
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const daysRemainingInMonth = Math.max(1, daysInMonth - now.getDate() + 1);
-  
-  // Real budget calculation - support limit or amount properties, no fake 10M fallback
-  const totalConfiguredBudget = (budgets || []).reduce((sum: number, b: any) => sum + (Number(b.limit) || Number(b.amount) || 0), 0);
-  const hasBudgetBaseline = totalConfiguredBudget > 0 || monthlyIncome > 0;
-  const userMonthlyBudget = totalConfiguredBudget > 0 ? totalConfiguredBudget : (monthlyIncome > 0 ? monthlyIncome : 0);
-  const remainingBudgetMonth = Math.max(0, userMonthlyBudget - monthlyExpense);
-  const dailySafeToSpendBudget = hasBudgetBaseline ? Math.round(remainingBudgetMonth / daysRemainingInMonth) : 0;
-  const safeToSpendTodayRemaining = hasBudgetBaseline ? (dailySafeToSpendBudget - todayExpenses) : -todayExpenses;
-  
-  // Real discipline streak calculation
-  const maxHabitStreak = (habits || []).length > 0 
-    ? Math.max(0, ...(habits || []).map((h: any) => Number(h.streak) || 0)) 
-    : 0;
-
-  // Cockpit 3-Second Priority Tasks
-  const cockpitTrifectaTasks = [...pendingTasks]
-    .sort((a, b) => {
-      const prioOrder: Record<string, number> = { 'Nghiêm trọng': 0, 'Cao': 1, 'Trung bình': 2, 'Thấp': 3 };
-      return (prioOrder[a.priority || 'Trung bình'] ?? 2) - (prioOrder[b.priority || 'Trung bình'] ?? 2);
-    })
-    .slice(0, 3);
-
-  // Projects Summary Calculations
-  const activeProjects = (projects || []).filter(p => p.status !== 'Hoàn thành' && p.status !== 'Tạm dừng');
+  // Projects summary
   const recentProjects = [...(projects || [])]
     .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime())
     .slice(0, 3);
-  const totalProjectsCount = (projects || []).length;
 
-  // Risk Detection
-  const risks = [];
-  if (isOverload) risks.push({ type: 'Capacity Risk', message: `Capacity overload: Planned (${plannedTaskHours}h) exceeds daily capacity (${dailyCapacity}h)` });
-  if (pendingTasks.some(t => t.priority === 'Cao' || t.priority === 'Nghiêm trọng' || t.priority === 'High' || t.priority === 'Critical')) risks.push({ type: 'Deadline Risk', message: 'High-priority pending tasks require attention' });
-  if (todayExpenses > 500000) risks.push({ type: 'Finance Risk', message: `Spending today (${formatCurrency(todayExpenses)}) is higher than daily baseline` });
-
-  // Timer State
-  const [activeTimerTask, setActiveTimerTask] = useState<string | null>(null);
-  const [timerSeconds, setTimerSeconds] = useState(0);
-
-  useEffect(() => {
-    let interval: any = null;
-    if (activeTimerTask) {
-      interval = setInterval(() => setTimerSeconds(s => s + 1), 1000);
-    }
-    return () => clearInterval(interval);
-  }, [activeTimerTask]);
-
-  const toggleTimer = (taskId: string) => {
-    if (activeTimerTask === taskId) {
-      // Stop timer and save
-      const task = (tasks || []).find(t => t.id === taskId);
-      if (task) {
-        const hoursToAdd = Number((timerSeconds / 3600).toFixed(2));
-        updateTask(taskId, { actualHours: (task.actualHours || 0) + hoursToAdd });
-      }
-      setActiveTimerTask(null);
-      setTimerSeconds(0);
-    } else {
-      if (activeTimerTask) {
-        // Save previous timer before starting new
-        const prevTask = (tasks || []).find(t => t.id === activeTimerTask);
-        if (prevTask) {
-          const hoursToAdd = Number((timerSeconds / 3600).toFixed(2));
-          updateTask(activeTimerTask, { actualHours: (prevTask.actualHours || 0) + hoursToAdd });
-        }
-      }
-      setActiveTimerTask(taskId);
-      setTimerSeconds(0);
-    }
-  };
-
-  const formatTimer = (secs: number) => {
-    const h = Math.floor(secs / 3600);
-    const m = Math.floor((secs % 3600) / 60);
-    const s = secs % 60;
-    if (h > 0) return `${h}h ${m}m`;
-    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
-  };
-
-  const getGreeting = () => {
-    const hour = currentTime.getHours();
-    if (hour >= 5 && hour < 12) {
-      return { 
-        text: isVi ? 'Chào buổi sáng' : 'Good morning', 
-        sub: isVi ? 'Chúc bạn một ngày mới tràn đầy năng lượng!' : 'Ready to kickstart an energetic new day!' 
-      };
-    }
-    if (hour >= 12 && hour < 18) {
-      return { 
-        text: isVi ? 'Chào buổi chiều' : 'Good afternoon', 
-        sub: isVi ? 'Giữ vững phong độ và chinh phục mục tiêu hôm nay nhé!' : 'Maintain momentum and conquer your goals today!' 
-      };
-    }
-    if (hour >= 18 && hour < 22) {
-      return { 
-        text: isVi ? 'Chào buổi tối' : 'Good evening', 
-        sub: isVi ? 'Hãy điểm lại thành quả và thư giãn nhé.' : 'Review your progress and wind down smoothly.' 
-      };
-    }
-    return { 
-      text: isVi ? 'Đêm muộn' : 'Late night', 
-      sub: isVi ? 'Nghỉ ngơi sớm để hồi phục năng lượng cho ngày mai.' : 'Wrap up your focus and get some restful sleep.' 
-    };
-  };
-  const greeting = getGreeting();
-
-  const scoreData = [
-    { name: 'Score', value: dailyScore, fill: dailyScore >= 75 ? '#10b981' : dailyScore >= 40 ? '#f59e0b' : '#ef4444' },
-    { name: 'Remaining', value: 100 - dailyScore, fill: '#f1f5f9' }
-  ];
-
+  // 5D Harmony calculation
   const harmonyOverview = compute5DHarmony({
     tasks: tasks || [],
     habits: habits || [],
@@ -389,1060 +372,699 @@ export function DashboardView() {
     selectedDate: dateStr
   });
 
+  // Dynamic Greeting based on time
+  const getGreeting = () => {
+    const hour = currentTime.getHours();
+    if (hour >= 5 && hour < 12) {
+      return { 
+        text: 'Chào buổi sáng', 
+        sub: 'Chúc bạn một ngày mới ngập tràn năng lượng và tập trung cao độ!' 
+      };
+    }
+    if (hour >= 12 && hour < 18) {
+      return { 
+        text: 'Chào buổi chiều', 
+        sub: 'Giữ vững nhịp độ làm việc và chinh phục trọn vẹn mục tiêu hôm nay nhé!' 
+      };
+    }
+    if (hour >= 18 && hour < 22) {
+      return { 
+        text: 'Chào buổi tối', 
+        sub: 'Điểm lại các thành tựu trong ngày và thư giãn tinh thần nhé.' 
+      };
+    }
+    return { 
+      text: 'Đêm muộn', 
+      sub: 'Nghỉ ngơi sớm để hồi phục thể lực và trí lực cho ngày mai.' 
+    };
+  };
+  const greeting = getGreeting();
+
+  // Evolution & Level details
+  const currentLevel = progressionData?.level ?? profile.level ?? 1;
+  const evolution = getEvolutionStage(currentLevel);
+  const currentXp = progressionData?.totalXp ?? profile.totalXp ?? 0;
+  const xpNeeded = progressionData?.xpNeededForNextLevel ?? 100;
+  const currentStreak = progressionData?.currentStreak ?? profile.streak ?? 0;
+
+  // Mascot poke interaction
+  const handlePokeMascot = () => {
+    soundEngine.playPop();
+    setIsPoking(true);
+    setPetMood('happy');
+    const randomQuote = GENZ_PET_QUOTES[Math.floor(Math.random() * GENZ_PET_QUOTES.length)];
+    setSpeechBubble(randomQuote);
+    setTimeout(() => setIsPoking(false), 800);
+    setTimeout(() => {
+      setSpeechBubble('');
+      setPetMood('idle');
+    }, 4500);
+  };
+
+  // Toggle timer helper
+  const toggleTimer = (taskId: string) => {
+    if (activeTimerTask === taskId) {
+      const task = tasks.find(t => t.id === taskId);
+      if (task) {
+        const hoursToAdd = Number((timerSeconds / 3600).toFixed(2));
+        updateTask(taskId, { actualHours: (task.actualHours || 0) + hoursToAdd });
+      }
+      setActiveTimerTask(null);
+      setTimerSeconds(0);
+    } else {
+      if (activeTimerTask) {
+        const prevTask = tasks.find(t => t.id === activeTimerTask);
+        if (prevTask) {
+          const hoursToAdd = Number((timerSeconds / 3600).toFixed(2));
+          updateTask(activeTimerTask, { actualHours: (prevTask.actualHours || 0) + hoursToAdd });
+        }
+      }
+      setActiveTimerTask(taskId);
+      setTimerSeconds(0);
+    }
+  };
+
+  const formatTimer = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  // Claim Daily Quest
+  const handleClaimQuest = async (questKey: string) => {
+    try {
+      const res = await apiCall('/api/progression/quest/claim', 'POST', { questKey });
+      if (res && res.success) {
+        soundEngine.playSuccess();
+        triggerConfetti();
+        await fetchProgression();
+      }
+    } catch {
+      retentionEngine.addXp(20, 'Hoàn thành nhiệm vụ ngày', userId);
+      soundEngine.playSuccess();
+    }
+  };
+
   return (
-    <div className="w-full min-w-0 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 overflow-x-hidden">
-      {/* Streak Resurrection 24h Second Chance Alert Banner */}
-      {resurrectionStatus.isPending && (
-        <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-950/70 via-rose-950/50 to-amber-950/70 border border-amber-500/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl animate-in slide-in-from-top-2 duration-300">
-          <div className="flex items-center gap-3.5">
-            <div className="w-11 h-11 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/30">
-              <Flame className="w-6 h-6 animate-pulse" />
-            </div>
-            <div>
+    <div className="w-full min-w-0 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 overflow-x-hidden">
+      
+      {/* ========================================================================= */}
+      {/* TẦNG 2: COMPACT HERO & GAMIFICATION HUB (GRID 12 CỘT)                     */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        
+        {/* CỘT TRÁI (8/12 CỘT): GREETING & SMART NUDGE CARD */}
+        <div className="lg:col-span-8 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-950 border border-emerald-200/70 dark:border-slate-800 rounded-2xl p-6 sm:p-7 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-hidden">
+          {/* Subtle ambient blur */}
+          <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-400/10 dark:bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+
+          <div className="relative z-10 space-y-4">
+            {/* Top row: Date & Time, Mood Selector, Date Navigation */}
+            <div className="flex flex-wrap items-center justify-between gap-2.5">
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-black uppercase tracking-wider text-amber-300">
-                  {t("24h Streak Rescue Challenge")} 🛡️
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono font-bold animate-pulse">
-                  {t("Counting down")}
-                </span>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100/70 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-300 text-xs font-semibold">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <span>{formatDate(selectedDate, language)} · {currentTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+
+                {/* Gen Z Mood of the day button */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowMoodPicker(prev => !prev)}
+                    className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-bold transition-all cursor-pointer hover:scale-105 active:scale-95 ${MOOD_PRESETS[todayMood].badgeBg}`}
+                  >
+                    <span>{MOOD_PRESETS[todayMood].emoji}</span>
+                    <span className="hidden sm:inline">{t(MOOD_PRESETS[todayMood].label)}</span>
+                  </button>
+
+                  {showMoodPicker && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setShowMoodPicker(false)} />
+                      <div className="absolute left-0 top-full mt-2 w-60 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-2 shadow-xl z-40 space-y-1 text-xs animate-in fade-in zoom-in-95">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 px-2 tracking-wider block">Tâm trạng hôm nay</span>
+                        {(Object.keys(MOOD_PRESETS) as GenZMood[]).map(key => {
+                          const m = MOOD_PRESETS[key];
+                          return (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => {
+                                soundEngine.playPop();
+                                setTodayMood(key);
+                                setTodayMoodState(key);
+                                setShowMoodPicker(false);
+                              }}
+                              className={`w-full flex items-center gap-2.5 p-2 rounded-xl text-left transition-colors cursor-pointer ${todayMood === key ? 'bg-emerald-600 text-white font-bold' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                            >
+                              <span className="text-base">{m.emoji}</span>
+                              <div className="min-w-0">
+                                <span className="block truncate">{t(m.label)}</span>
+                                <span className="text-[10px] text-slate-400 block truncate">{t(m.vibe)}</span>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-              <p className="text-xs sm:text-sm font-bold text-white mt-0.5">
-                {t(`Your ${resurrectionStatus.lostStreak}-day streak was broken! Complete 1 challenge to resurrect it now.`)}
+
+              {/* Date Switcher */}
+              <div className="flex items-center bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl p-0.5 text-xs shadow-2xs">
+                <button 
+                  type="button"
+                  onClick={() => setSelectedDate(new Date(selectedDate.getTime() - 86400000))}
+                  aria-label="Ngày trước"
+                  className="p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-lg transition-colors cursor-pointer"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setSelectedDate(new Date())}
+                  className="px-2.5 py-1 font-bold text-slate-800 dark:text-slate-200 hover:text-emerald-600 transition-colors cursor-pointer"
+                >
+                  Hôm nay
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setSelectedDate(new Date(selectedDate.getTime() + 86400000))}
+                  aria-label="Ngày sau"
+                  className="p-1.5 text-slate-500 hover:text-slate-900 dark:hover:text-white rounded-lg transition-colors cursor-pointer"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Greeting Headline & Inspiring Subtitle */}
+            <div className="pt-1">
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2 flex-wrap">
+                <span>{greeting.text}, {currentUser?.name || 'Bạn'}!</span>
+                <span className="inline-block animate-wave text-2xl">{MOOD_PRESETS[todayMood].emoji}</span>
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 italic mt-1 font-medium">
+                "{MOOD_PRESETS[todayMood].quote}"
+              </p>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 mt-2 leading-relaxed">
+                {pendingTasks.length > 0 
+                  ? `Bạn có ${pendingTasks.length} công việc cần hoàn thành hôm nay. ${greeting.sub}`
+                  : `Tất cả công việc hôm nay đã hoàn thành! ${greeting.sub}`}
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              soundEngine.playPop();
-              setShowResurrectionModal(true);
-            }}
-            className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-400 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs shrink-0 cursor-pointer shadow-md shadow-amber-500/20 transition-all hover:scale-105 active:scale-95"
-          >
-            {t("Rescue Streak Now")}
-          </button>
-        </div>
-      )}
 
-      {/* 1. Bento Hero Banner with Dynamic Greeting, Streak & Quick Actions */}
-      <div className="relative overflow-hidden rounded-3xl bg-slate-900/95 dark:bg-slate-950/95 p-4 sm:p-7 text-white shadow-xl border border-slate-800/80 isolate transform-gpu">
-        {/* Ambient mesh background effects */}
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-20 -right-20 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
-        
-        <div className="relative z-10 flex flex-col xl:flex-row items-stretch xl:items-start justify-between gap-6">
-          <div className="space-y-4 flex-1 min-w-0">
-            {/* Top Badge Cluster */}
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-emerald-400 text-xs font-semibold">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>{formatDate(selectedDate, language)} · {currentTime.toLocaleTimeString(isVi ? 'vi-VN' : 'en-US', { hour: '2-digit', minute: '2-digit' })}</span>
-              </div>
-
-              {/* Gen Z Mood of the Day Picker */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setShowMoodPicker(prev => !prev)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold backdrop-blur-md transition-all cursor-pointer hover:scale-105 active:scale-95 ${MOOD_PRESETS[todayMood].badgeBg}`}
-                >
-                  <span>{MOOD_PRESETS[todayMood].emoji}</span>
-                  <span>{t(MOOD_PRESETS[todayMood].label)}</span>
-                </button>
-
-                {showMoodPicker && (
-                  <>
-                    <div className="fixed inset-0 z-30" onClick={() => setShowMoodPicker(false)} />
-                    <div className="absolute left-0 top-full mt-2 w-64 bg-slate-900 border border-slate-800 rounded-2xl p-2 shadow-2xl z-40 space-y-1 text-xs animate-in fade-in zoom-in-95">
-                      <span className="text-[10px] uppercase font-black text-slate-400 px-2 tracking-wider block">{isVi ? "Chọn tâm trạng hôm nay" : "Choose Today's Vibe"}</span>
-                      {(Object.keys(MOOD_PRESETS) as GenZMood[]).map(key => {
-                        const m = MOOD_PRESETS[key];
-                        return (
-                          <button
-                            key={key}
-                            type="button"
-                            onClick={() => {
-                              soundEngine.playPop();
-                              setTodayMood(key);
-                              setTodayMoodState(key);
-                              setShowMoodPicker(false);
-                            }}
-                            className={`w-full flex items-center gap-2.5 p-2 rounded-xl text-left transition-colors cursor-pointer ${todayMood === key ? 'bg-emerald-600 text-white font-bold' : 'text-slate-300 hover:bg-slate-800'}`}
-                          >
-                            <span className="text-base">{m.emoji}</span>
-                            <div className="min-w-0">
-                              <span className="block truncate">{t(m.label)}</span>
-                              <span className="text-[10px] text-slate-400 block truncate">{t(m.vibe)}</span>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Mobile Quick Tools Drawer Trigger */}
-              <div className="sm:hidden relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    soundEngine.playPop();
-                    setShowQuickToolsSheet(true);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/90 hover:bg-slate-700 border border-slate-700/80 text-amber-300 hover:text-white text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95"
-                >
-                  <span>✨</span>
-                  <span>{isVi ? 'Tiện ích (7)' : 'Tools (7)'}</span>
-                  <ChevronDown className="w-3 h-3 text-slate-400" />
-                </button>
-              </div>
-
-              {/* Tablet & Desktop Inline Badges */}
-              <div className="hidden sm:contents">
-                {/* Flex Story Modal Trigger */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    soundEngine.playPop();
-                    setShowShareStory(true);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-slate-300 hover:text-white hover:border-emerald-500/40 text-xs font-bold transition-all cursor-pointer"
-                >
-                  <span>📸</span>
-                  <span>{isVi ? 'Chia sẻ Story' : 'Share Story'}</span>
-                </button>
-
-                {/* Rest Day / Streak Freeze Shield Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    soundEngine.playPop();
-                    streakFreezeEngine.toggleRestDay(currentUser?.id);
-                    setStreakShield(streakFreezeEngine.getStatus(currentUser?.id));
-                  }}
-                  title={streakShield.isRestDayActive 
-                    ? (isVi ? 'Ngày nghỉ đang bật · Chuỗi của bạn được bảo vệ 100%' : 'Rest Day active · Your streak is 100% protected') 
-                    : (isVi ? `Bạn có ${streakShield.freezeCount} Băng bảo vệ ❄️. Nhấn để kích hoạt Ngày nghỉ` : `You have ${streakShield.freezeCount} Streak Freezes ❄️. Click to activate Rest Day mode`)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold transition-all cursor-pointer ${
-                    streakShield.isRestDayActive
-                      ? 'bg-lime-500/20 text-lime-300 border-lime-500/50 shadow-xs'
-                      : 'bg-slate-800/80 border-slate-700/80 text-slate-300 hover:text-white hover:border-lime-500/40'
-                  }`}
-                >
-                  <span>{streakShield.isRestDayActive ? '🍵' : '❄️'}</span>
-                  <span>{streakShield.isRestDayActive ? (isVi ? 'Ngày nghỉ' : 'Rest Day') : `${streakShield.freezeCount} ${isVi ? 'Băng bảo vệ' : 'Freezes'}`}</span>
-                </button>
-
-                {/* Vibe Theme Switcher */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    soundEngine.playPop();
-                    setShowVibeThemeModal(true);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-purple-300 hover:text-white hover:border-purple-400/50 text-xs font-bold transition-all cursor-pointer"
-                >
-                  <span>🎨</span>
-                  <span className="hidden sm:inline">{isVi ? 'Giao diện' : 'Vibe Theme'}</span>
-                </button>
-
-                {/* Monthly Wrapped Trigger */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    soundEngine.playPop();
-                    setShowWrappedModal(true);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-amber-300 hover:text-white hover:border-amber-400/50 text-xs font-bold transition-all cursor-pointer"
-                >
-                  <span>🎉</span>
-                  <span>{isVi ? 'Tổng kết' : 'Wrapped'}</span>
-                </button>
-
-                {/* AI Life Buddy Copilot Trigger */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    soundEngine.playPop();
-                    setShowAiBuddyModal(true);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 hover:text-white hover:bg-emerald-500/30 text-xs font-bold transition-all cursor-pointer shadow-xs shadow-emerald-500/10"
-                >
-                  <span>🤖</span>
-                  <span>{isVi ? 'Trợ lý AI' : 'AI Buddy'}</span>
-                </button>
-
-                {/* Persona Quiz Trigger */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    soundEngine.playPop();
-                    setShowPersonaQuizModal(true);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-teal-300 hover:text-white hover:border-teal-400/50 text-xs font-bold transition-all cursor-pointer"
-                >
-                  <span>🎯</span>
-                  <span>{isVi ? 'Hồ sơ cá nhân' : 'Persona'}</span>
-                </button>
-
-                {/* Weekly Hall of Fame Leaderboard Trigger */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    soundEngine.playPop();
-                    setShowLeaderboard(true);
-                  }}
-                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500/25 to-yellow-500/20 border border-amber-400/40 text-amber-300 hover:text-white hover:border-amber-300 text-xs font-black transition-all cursor-pointer shadow-xs shadow-amber-500/10 hover:scale-105 active:scale-95"
-                >
-                  <span>🏆</span>
-                  <span>{isVi ? 'Bảng xếp hạng' : 'Leaderboard'}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Greeting */}
-            <div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-black tracking-tight text-white flex items-center gap-2 flex-wrap">
-                <span>{greeting.text}, {currentUser?.name || (isVi ? 'Bạn' : 'Friend')}!</span>
-                <span className="inline-block animate-wave text-2xl">{MOOD_PRESETS[todayMood].emoji}</span>
-              </h1>
-              <p className="text-xs text-slate-400 italic mt-0.5">
-                {t(MOOD_PRESETS[todayMood].quote)}
-              </p>
-              <p className="text-xs sm:text-sm text-slate-300 mt-1 leading-relaxed">
-                {pendingTasks.length > 0 
-                  ? (isVi ? `Bạn còn ${pendingTasks.length} công việc chưa hoàn thành hôm nay. ${greeting.sub}` : `You have ${pendingTasks.length} tasks remaining today. ${greeting.sub}`)
-                  : (isVi ? `Tất cả công việc hôm nay đã hoàn thành! ${greeting.sub}` : `All tasks for today are completed! ${greeting.sub}`)}
-              </p>
-            </div>
-
-            {/* THE 3-SECOND RULE COCKPIT: TRẠM CHỈ HUY 3 GIÂY CHO GEN Z */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 py-1">
-              {/* Pillar 1: 3 Việc Quyết Định Hôm Nay (Daily Trifecta 1-Touch Complete) */}
-              <div className="p-4 rounded-2xl bg-slate-800/90 border border-slate-700/80 flex flex-col justify-between shadow-xs min-h-[160px]">
-                <div className="flex items-center justify-between pb-2.5 border-b border-slate-700/50 gap-2">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-xs font-black text-emerald-400 uppercase tracking-wider truncate">🎯 {isVi ? "Top 3 Cốt Lõi" : "Today's Big 3"}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 font-bold shrink-0">{isVi ? "1-Chạm" : "1-Tap"}</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowQuickTaskModal(true)}
-                    className="text-xs font-bold text-slate-300 hover:text-white px-2 py-0.5 rounded-lg hover:bg-slate-700 transition-colors cursor-pointer shrink-0"
-                  >
-                    + {isVi ? "Thêm" : "Add"}
-                  </button>
-                </div>
-
-                <div className="my-2.5 space-y-2 flex-1 flex flex-col justify-center">
-                  {cockpitTrifectaTasks.length > 0 ? (
-                    cockpitTrifectaTasks.map((task) => (
-                      <div
-                        key={task.id}
-                        className="group flex items-center justify-between gap-2 p-1.5 rounded-xl hover:bg-slate-700/40 transition-colors"
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              soundEngine.playSuccess();
-                              updateTask(task.id, { status: 'Completed' });
-                              setCelebration({
-                                title: isVi ? 'Tuyệt vời!' : 'Awesome!',
-                                subtitle: `${isVi ? 'Đã hoàn thành' : 'Completed'}: "${task.title}"`,
-                                xpAwarded: 30
-                              });
-                            }}
-                            title={isVi ? "Đánh dấu hoàn thành" : "Mark completed"}
-                            className="w-4 h-4 rounded-full border-2 border-emerald-500/60 hover:bg-emerald-500 hover:border-emerald-500 transition-all shrink-0 cursor-pointer flex items-center justify-center text-slate-950 font-black text-[9px]"
-                          />
-                          <span className="text-xs font-bold text-slate-200 truncate group-hover:text-white">
-                            {task.title}
-                          </span>
-                        </div>
-                        <span className={`text-[9px] px-1.5 py-0.2 rounded-full font-bold shrink-0 ${
-                          task.priority === 'Cao' || task.priority === 'High' || task.priority === 'Nghiêm trọng' || task.priority === 'Urgent'
-                            ? 'bg-rose-500/20 text-rose-300'
-                            : 'bg-slate-700 text-slate-300'
-                        }`}>
-                          {t(task.priority || 'Medium')}
-                        </span>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="py-2.5 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
-                      <span className="text-base">🏆</span>
-                      <span className="font-bold text-emerald-400">{isVi ? "Đã hoàn thành toàn bộ việc trọng tâm hôm nay!" : "All daily priorities done!"}</span>
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setCurrentView('tasks')}
-                  className="text-xs font-bold text-slate-400 hover:text-emerald-400 flex items-center gap-1 transition-colors cursor-pointer self-start pt-1"
-                >
-                  {isVi ? "Xem tất cả" : "View all"} ({pendingTasks.length} {isVi ? "công việc" : "tasks"}) <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Pillar 2: Hạn Mức An Toàn Hôm Nay (Daily Safe-to-Spend) */}
-              <div className="p-4 rounded-2xl bg-slate-800/90 border border-slate-700/80 flex flex-col justify-between shadow-xs min-h-[160px]">
-                <div className="flex items-center justify-between pb-2.5 border-b border-slate-700/50 gap-2">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-xs font-black text-teal-400 uppercase tracking-wider truncate">💳 {isVi ? "Hạn Mức An Toàn" : "Safe-to-Spend"}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-300 font-bold shrink-0">Auto</span>
-                  </div>
-                  <span className="text-xs text-slate-400 shrink-0">{daysRemainingInMonth} {isVi ? "ngày còn lại" : "days left"}</span>
-                </div>
-
-                <div className="my-2.5 flex-1 flex flex-col justify-center">
-                  {hasBudgetBaseline ? (
-                    <>
-                      <div className="flex items-baseline gap-2 flex-wrap">
-                        <span className={`text-xl sm:text-2xl font-black tracking-tight ${
-                          safeToSpendTodayRemaining >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                        }`}>
-                          {safeToSpendTodayRemaining >= 0 
-                            ? formatCurrency(safeToSpendTodayRemaining)
-                            : `-${formatCurrency(Math.abs(safeToSpendTodayRemaining))}`}
-                        </span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                          safeToSpendTodayRemaining >= 0
-                            ? 'bg-emerald-500/20 text-emerald-300'
-                            : 'bg-rose-500/20 text-rose-300 animate-pulse'
-                        }`}>
-                          {safeToSpendTodayRemaining >= 0 ? (isVi ? 'An toàn' : 'Safe') : (isVi ? 'Vượt hạn mức' : 'Over Limit')}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-400 mt-1 leading-snug">
-                        {isVi ? "Hạn mức" : "Limit"}: {formatCurrency(dailySafeToSpendBudget)}/{isVi ? "ngày" : "day"} · {isVi ? "Đã chi" : "Spent"}: {formatCurrency(todayExpenses)}
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex items-baseline gap-2 flex-wrap">
-                        <span className="text-xl sm:text-2xl font-black tracking-tight text-slate-300">
-                          {todayExpenses > 0 ? `-${formatCurrency(todayExpenses)}` : '0 ₫'}
-                        </span>
-                        <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-300">
-                          {isVi ? "Chưa đặt ngân sách" : "No Budget Set"}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-slate-400 mt-1 leading-snug">
-                        {todayExpenses > 0 ? `${isVi ? "Chi tiêu hôm nay" : "Spent today"}: ${formatCurrency(todayExpenses)}` : (isVi ? "Chưa cấu hình ngân sách tháng hoặc chưa có thu nhập" : "No monthly budget configured or no income yet")}
-                      </p>
-                    </>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => setCurrentView('finance')}
-                  className="text-xs font-bold text-teal-400 hover:text-teal-300 flex items-center gap-1 transition-colors cursor-pointer self-start pt-1"
-                >
-                  {hasBudgetBaseline ? (isVi ? "Sổ thu chi & Ví tài chính" : "Finance ledger & wallets") : `+ ${isVi ? "Cài đặt ngân sách ngay" : "Set up budget now"}`} <ChevronRight className="w-3.5 h-3.5" />
-                </button>
-              </div>
-
-              {/* Pillar 3: Kỷ Luật & Nút Vào Việc Siêu Tốc (Focus Launcher) */}
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/60 to-slate-900 border border-emerald-500/30 flex flex-col justify-between shadow-xs min-h-[160px]">
-                <div className="flex items-center justify-between pb-2.5 border-b border-emerald-500/20 gap-2">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-xs font-black text-amber-400 uppercase tracking-wider truncate">🔥 {isVi ? "Chuỗi Kỷ Luật" : "Discipline Streak"}</span>
-                    <span className="text-[11px] font-black text-amber-300 px-1.5 py-0.2 rounded-md bg-amber-500/20 shrink-0">
-                      {maxHabitStreak} {isVi ? "ngày" : "days"}
+          {/* NHẮC NHỞ THÔNG MINH (SMART ACTION PILLS) - Gom gọn & có nút X */}
+          <div className="relative z-10 pt-5 space-y-2">
+            {/* Pill 1: Sunday Weekly Reset */}
+            {!dismissedPills['sunday_reset'] && (
+              <div className="p-2.5 sm:px-3 sm:py-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-950/40 border border-emerald-300/80 dark:border-emerald-800/60 flex items-center justify-between gap-3 text-xs animate-in fade-in duration-200">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-base shrink-0">🌿</span>
+                  <div className="min-w-0">
+                    <span className="font-bold text-emerald-900 dark:text-emerald-200 truncate block">
+                      Nghi thức tuần · Tái thiết lập Chủ nhật (+100 XP)
+                    </span>
+                    <span className="text-[11px] text-emerald-700 dark:text-emerald-400 truncate block">
+                      Tổng kết tuần qua và căn chỉnh mục tiêu tuần mới để tâm trí thảnh thơi.
                     </span>
                   </div>
-                  <span className="text-xs font-bold text-emerald-400 shrink-0">
-                    {streakShield.isRestDayActive ? (isVi ? "Ngày nghỉ" : "Rest Day") : `${streakShield.freezeCount} ${isVi ? "Băng bảo vệ" : "Freeze"} ❄️`}
-                  </span>
                 </div>
-
-                <div className="my-2 flex-1 flex flex-col justify-center">
-                  <p className="text-xs text-slate-300 leading-snug">
-                    {todayFocusMinutes > 0 
-                      ? `${isVi ? "Đã tập trung" : "Focused for"} ${todayFocusMinutes} ${isVi ? "phút làm việc sâu hôm nay." : "mins of deep work today."}`
-                      : (isVi ? "Hôm nay chưa có phiên tập trung nào. Bắt đầu ngay!" : "No focus sessions yet today. Start right now!")}
-                  </p>
+                <div className="flex items-center gap-1.5 shrink-0">
                   <button
                     type="button"
                     onClick={() => {
                       soundEngine.playPop();
-                      setZenFocusTaskId(cockpitTrifectaTasks[0]?.id);
-                      setZenFocusOpen(true);
+                      setShowSundayReset(true);
                     }}
-                    className="w-full mt-2.5 py-2 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+                    className="px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
                   >
-                    <Zap className="w-3.5 h-3.5 fill-slate-950" />
-                    <span>{isVi ? "Bắt đầu Tập trung 25p (Zen)" : "Start Focus 25m (Zen)"}</span>
+                    Bắt đầu
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDismissedPills(prev => ({ ...prev, sunday_reset: true }))}
+                    title="Ẩn thông báo này"
+                    className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
+              </div>
+            )}
 
-                <button
-                  type="button"
-                  onClick={() => setCurrentView('focus')}
-                  className="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1 transition-colors cursor-pointer self-start pt-1"
-                >
-                  {isVi ? "Mở Pomodoro" : "Open Pomodoro"} <ChevronRight className="w-3.5 h-3.5" />
-                </button>
+            {/* Pill 2: Spaced Repetition Due Vocab */}
+            {dueVocabCount > 0 && !dismissedPills['ebbinghaus'] && (
+              <div className="p-2.5 sm:px-3 sm:py-2 rounded-xl bg-teal-500/10 dark:bg-teal-950/40 border border-teal-300/80 dark:border-teal-800/60 flex items-center justify-between gap-3 text-xs animate-in fade-in duration-200">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-base shrink-0">📚</span>
+                  <div className="min-w-0">
+                    <span className="font-bold text-teal-900 dark:text-teal-200 truncate block">
+                      Đến hạn ôn tập Ebbinghaus ({dueVocabCount} từ vựng)
+                    </span>
+                    <span className="text-[11px] text-teal-700 dark:text-teal-400 truncate block">
+                      Từ vựng đã chạm điểm rơi trí nhớ, hãy củng cố để nhớ bền vững.
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setCurrentView('study')}
+                    className="px-3 py-1 rounded-lg bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                  >
+                    Ôn tập ngay
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDismissedPills(prev => ({ ...prev, ebbinghaus: true }))}
+                    title="Ẩn thông báo này"
+                    className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Pill 3: Streak Resurrection Challenge */}
+            {resurrectionStatus.isPending && !dismissedPills['resurrection'] && (
+              <div className="p-2.5 sm:px-3 sm:py-2 rounded-xl bg-amber-500/10 dark:bg-amber-950/40 border border-amber-300/80 dark:border-amber-800/60 flex items-center justify-between gap-3 text-xs animate-in fade-in duration-200">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-base shrink-0">🔥</span>
+                  <div className="min-w-0">
+                    <span className="font-bold text-amber-900 dark:text-amber-200 truncate block">
+                      Cứu chuỗi kỉ luật ({resurrectionStatus.lostStreak} ngày bị đứt)
+                    </span>
+                    <span className="text-[11px] text-amber-700 dark:text-amber-400 truncate block">
+                      Hoàn thành thử thách tập trung trong 24h để hồi sinh toàn bộ chuỗi.
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowResurrectionModal(true)}
+                    className="px-3 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+                  >
+                    Hồi sinh ngay
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDismissedPills(prev => ({ ...prev, resurrection: true }))}
+                    title="Ẩn thông báo này"
+                    className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* CỘT PHẢI (4/12 CỘT): LUMI & LEVEL PROGRESS CARD (GỘP CHUNG 1 CARD) */}
+        <div className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-4">
+          {/* Header: Mascot Character & Level info */}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div 
+                onClick={handlePokeMascot}
+                className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center cursor-pointer hover:scale-105 active:scale-95 transition-all shadow-xs relative"
+                title="Bấm để tương tác cùng bé Lumi!"
+              >
+                <LiveMascotCharacter mascotId={mascotSettings.mascotId} mood={petMood} size="compact" isPoking={isPoking} />
+              </div>
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <h3 className="font-black text-slate-900 dark:text-white text-sm">
+                    {mascotSettings.customName || 'Bé Lumi'}
+                  </h3>
+                  <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                    Cấp {currentLevel}
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium block mt-0.5">
+                  {evolution.badge}
+                </span>
               </div>
             </div>
 
-            {/* Quick Actions Cluster (1-click workflows) */}
-            <div className="flex flex-wrap items-center gap-2.5 pt-1">
-              <button
-                type="button"
-                onClick={() => {
-                  soundEngine.playPop();
-                  setShowQuickTaskModal(true);
-                }}
-                className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>+ {isVi ? "Thêm công việc" : "Add Task"}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentView('finance')}
-                className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs border border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
-              >
-                <Wallet className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{isVi ? "Ghi chép chi tiêu" : "Log Expense"}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentView('focus')}
-                className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs border border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
-              >
-                <Clock className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{isVi ? "Tập trung" : "Focus"}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentView('study')}
-                className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-bold text-xs border border-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
-              >
-                <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{dueVocabCount > 0 ? (isVi ? `Ôn từ vựng (${dueVocabCount})` : `Review Vocab (${dueVocabCount})`) : (isVi ? "Học từ vựng" : "Study Vocab")}</span>
-              </button>
+            {/* Streak & Coin Pill */}
+            <div className="flex flex-col items-end gap-1">
+              <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-700 dark:text-amber-300 font-black text-xs">
+                <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500 animate-pulse" />
+                <span>{currentStreak} ngày</span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-mono font-bold">
+                🪙 {progressionData?.coins ?? profile.coins ?? 0} xu
+              </span>
             </div>
           </div>
 
-          {/* Right Hero Cluster: Date Switcher & Embedded Retention Widget */}
-          <div className="flex flex-col sm:flex-row xl:flex-col items-start xl:items-end justify-between gap-4 border-t xl:border-t-0 border-white/10 pt-4 xl:pt-0 shrink-0">
-            {/* Date Selector Segmented Control */}
-            <div className="flex items-center bg-white/10 backdrop-blur-md p-1 rounded-2xl border border-white/15 text-xs">
-              <button 
-                type="button"
-                onClick={() => setSelectedDate(new Date(selectedDate.getTime() - 86400000))}
-                aria-label={t('Ngày trước')}
-                className="p-1.5 text-slate-300 hover:text-white rounded-xl transition-colors cursor-pointer"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button 
-                type="button"
-                onClick={() => setSelectedDate(new Date())}
-                className="px-3 py-1 font-bold text-white hover:bg-white/20 rounded-xl transition-colors cursor-pointer"
-              >
-                {t('Hôm nay')}
-              </button>
-              <button 
-                type="button"
-                onClick={() => setSelectedDate(new Date(selectedDate.getTime() + 86400000))}
-                aria-label={t('Ngày sau')}
-                className="p-1.5 text-slate-300 hover:text-white rounded-xl transition-colors cursor-pointer"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+          {/* Interactive Speech Bubble */}
+          <div 
+            onClick={handlePokeMascot}
+            className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-xs text-slate-700 dark:text-slate-300 font-medium cursor-pointer hover:bg-slate-100/80 transition-colors leading-relaxed"
+          >
+            {speechBubble || GENZ_PET_QUOTES[0]}
+          </div>
 
-            {/* Retention Widget: Streak & Daily Quests */}
-            <div className="w-full sm:w-auto xl:w-[280px]">
-              <RetentionWidget onQuestClick={(cat) => {
-                if (cat === 'task') setShowQuickTaskModal(true);
-                else if (cat === 'vocab') setCurrentView('study');
-                else if (cat === 'finance') setCurrentView('finance');
-                else if (cat === 'focus') setCurrentView('focus');
-              }} />
+          {/* Level XP Progress Bar */}
+          <div className="space-y-1.5">
+            <div className="flex justify-between text-xs">
+              <span className="font-semibold text-slate-500 dark:text-slate-400">Tiến trình Level {currentLevel}</span>
+              <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                {currentXp} XP / Còn {xpNeeded} XP
+              </span>
+            </div>
+            <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+              <div 
+                className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-300"
+                style={{ width: `${Math.min(100, Math.max(10, ((currentXp % 200) / 200) * 100))}%` }}
+              />
+            </div>
+          </div>
+
+          {/* 3 Daily Quests (+XP) */}
+          <div className="space-y-1.5 pt-1 border-t border-slate-100 dark:border-slate-800/80">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              Nhiệm vụ ngày nhận thưởng
+            </span>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 text-xs">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className={`w-4 h-4 ${completedTasks.length > 0 ? 'text-emerald-500' : 'text-slate-300'}`} />
+                  <span className={`font-medium ${completedTasks.length > 0 ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-300'}`}>
+                    Hoàn thành 1 việc hôm nay
+                  </span>
+                </div>
+                <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400">
+                  +20 XP
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 text-xs">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className={`w-4 h-4 ${todayFocusMinutes >= 25 ? 'text-emerald-500' : 'text-slate-300'}`} />
+                  <span className={`font-medium ${todayFocusMinutes >= 25 ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-300'}`}>
+                    Tập trung sâu 25 phút
+                  </span>
+                </div>
+                <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-teal-50 dark:bg-teal-950 text-teal-600 dark:text-teal-400">
+                  +25 XP
+                </span>
+              </div>
+
+              <div className="flex items-center justify-between p-2 rounded-lg bg-slate-50 dark:bg-slate-800/40 text-xs">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className={`w-4 h-4 ${completedHabitsToday.length > 0 ? 'text-emerald-500' : 'text-slate-300'}`} />
+                  <span className={`font-medium ${completedHabitsToday.length > 0 ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-300'}`}>
+                    Duy trì 1 thói quen tốt
+                  </span>
+                </div>
+                <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400">
+                  +15 XP
+                </span>
+              </div>
             </div>
           </div>
         </div>
+
       </div>
 
-      {/* 1.05 Sunday Weekly Reset Ritual Trigger Card */}
-      <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-950/60 via-teal-950/40 to-slate-900 border border-emerald-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-1/3 w-60 h-60 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+      {/* ========================================================================= */}
+      {/* TẦNG 3: KHU VỰC THỰC THI TRỌNG TÂM - CORE EXECUTION (GRID 12 CỘT)         */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        <div className="relative z-10 flex items-center gap-3.5">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-slate-950 font-black flex items-center justify-center shrink-0 shadow-md shadow-emerald-500/20">
-            <Calendar className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">
-                {isVi ? 'Nghi thức tuần · Tái thiết lập Chủ nhật' : 'Weekly Ritual · Sunday Weekly Reset'} 🌿
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-black flex items-center gap-1">
-                <Sparkles className="w-3 h-3 text-amber-400" /> +100 XP {isVi ? 'Thưởng' : 'Bonus'}
-              </span>
-            </div>
-            <h3 className="font-bold text-sm text-white mt-0.5">
-              {isVi ? 'Nhìn lại 7 ngày qua, giải tỏa áp lực tinh thần và căn chỉnh top 3 mục tiêu tuần mới.' : 'Reflect on the past 7 days, clear your mental load & align top 3 weekly goals.'}
-            </h3>
-          </div>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => {
-            soundEngine.playPop();
-            setShowSundayReset(true);
-          }}
-          className="relative z-10 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs flex items-center gap-1.5 transition-all shadow-md shadow-emerald-500/20 cursor-pointer shrink-0 self-end sm:self-center hover:scale-105 active:scale-95"
-        >
-          <Sparkles className="w-3.5 h-3.5 fill-slate-950" />
-          <span>{isVi ? 'Bắt đầu Reset' : 'Start Reset'}</span>
-        </button>
-      </div>
-
-      {/* 1.1 The Daily Trifecta Widget & Dopamine Pet Evolution Widget (Bento Grid) */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-stretch">
-        <div className="lg:col-span-2">
-          <DailyTrifectaWidget
-            onStartZenFocus={(taskId) => {
-              setZenFocusTaskId(taskId);
-              setZenFocusOpen(true);
-            }}
-            onOpenQuickTask={() => setShowQuickTaskModal(true)}
-          />
-        </div>
-        <div className="lg:col-span-1 flex flex-col">
-          <DopaminePetWidget />
-        </div>
-      </div>
-
-      {/* 1.4. Due Vocabulary High Priority Alert Card (Spaced Repetition) */}
-      {dueVocabCount > 0 && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-indigo-500/10 border border-emerald-300 dark:border-emerald-900/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-600 text-white flex items-center justify-center shrink-0 shadow-md">
-              <BookOpen className="w-5 h-5" />
-            </div>
+        {/* CỘT TRÁI (8/12 CỘT): QUY TẮC TAM HỢP (THE RULE OF 3) & CÔNG VIỆC HÔM NAY  */}
+        <div className="lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-200 space-y-6">
+          
+          {/* Section Header */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800/80 gap-3">
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                  {isVi ? 'Đến hạn ôn tập · Lặp lại ngắt quãng (Ebbinghaus)' : 'Due for Review · Spaced Repetition (Ebbinghaus)'}
-                </span>
-                <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400 animate-pulse">
-                  {dueVocabCount} {isVi ? 'từ cần ôn' : 'cards due'}
-                </span>
-              </div>
-              <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white mt-0.5">
-                {isVi ? 'Từ vựng đã chạm ngưỡng suy giảm trí nhớ. Hãy củng cố ngay để ghi nhớ lâu dài.' : 'Vocabulary words reached memory decay point. Reinforce now for long-term retention.'}
-              </h3>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-            <button
-              type="button"
-              onClick={() => setCurrentView('study')}
-              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs transition-all shadow-md shadow-emerald-600/20 flex items-center gap-1.5 cursor-pointer"
-            >
-              <span>{isVi ? 'Ôn tập ngay' : 'Review Now'} ({dueVocabCount}) 🚀</span>
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 1.5. Continue Where You Left Off / Recommended Next Action */}
-      {pendingTasks.length > 0 && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-blue-500/10 border border-indigo-200 dark:border-indigo-900/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-md">
-              <Zap className="w-5 h-5 fill-current" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">
-                  {isVi ? 'Tiếp tục việc quan trọng nhất (Next Focus)' : 'Continue Most Important Task (Next Focus)'}
-                </span>
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                  pendingTasks[0].priority === 'Cao' || pendingTasks[0].priority === 'Nghiêm trọng'
-                    ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400'
-                    : 'bg-indigo-100 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-400'
-                }`}>
-                  {isVi ? (pendingTasks[0].priority || 'Trung bình') : t(pendingTasks[0].priority || 'Trung bình')}
+                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 tracking-tight">
+                  Quy Tắc Tam Hợp & Công việc hôm nay
+                </h2>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300">
+                  Rule of 3
                 </span>
               </div>
-              <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white mt-0.5">
-                {pendingTasks[0].title}
-              </h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Tập trung giải quyết 3 nhiệm vụ quan trọng nhất để làm chủ hoàn toàn ngày hôm nay.
+              </p>
             </div>
-          </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-center shrink-0">
-            <button
-              type="button"
-              onClick={() => toggleTimer(pendingTasks[0].id)}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                activeTimerTask === pendingTasks[0].id
-                  ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
-                  : 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm'
-              }`}
-            >
-              {activeTimerTask === pendingTasks[0].id ? (
-                <>
-                  <Square className="w-3.5 h-3.5 fill-current" />
-                  <span>{isVi ? `Dừng (${formatTimer(timerSeconds)})` : `Stop (${formatTimer(timerSeconds)})`}</span>
-                </>
-              ) : (
-                <>
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>{isVi ? 'Bắt đầu Deep Work' : 'Start Deep Work'}</span>
-                </>
-              )}
-            </button>
             <button
               type="button"
               onClick={() => {
-                updateTask(pendingTasks[0].id, { status: 'Hoàn thành' });
-                retentionEngine.addXp(20, 'Hoàn thành công việc', currentUser?.id);
-                retentionEngine.completeQuest('task', currentUser?.id);
-                if (pendingTasks.length <= 1) {
-                  setCelebration({
-                    title: isVi ? 'Đỉnh cao kỷ luật! Bạn đã hoàn thành hết mục tiêu!' : 'Peak Discipline! All goals completed!',
-                    subtitle: isVi ? 'Tất cả công việc đã xong xuôi. Giờ hãy nghỉ ngơi hoặc ôn một chút từ vựng nhé.' : 'All tasks are completed. Rest or review some vocabulary.',
-                    xpAwarded: 50
-                  });
-                }
+                soundEngine.playPop();
+                setShowQuickTaskModal(true);
               }}
-              className="p-2 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-emerald-600 border border-slate-200 dark:border-slate-700 rounded-xl transition-colors cursor-pointer"
-              title={isVi ? "Đánh dấu hoàn thành" : "Mark completed"}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-medium rounded-xl px-4 py-2 text-xs shadow-sm flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0 self-start sm:self-auto"
             >
-              <Check className="w-4 h-4" />
+              <Plus className="w-4 h-4 stroke-[2.5]" />
+              <span>Thêm công việc</span>
             </button>
           </div>
-        </div>
-      )}
 
-      {/* 2. Core 4 Key Metrics Grid */}
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-          <SummaryCard 
-            icon={CheckSquare} 
-            title={t('Công việc')} 
-            value={`${completedTasks.length}/${todayTasks.length}`} 
-            subtext={todayTasks.length > 0 ? `${Math.round((completedTasks.length / todayTasks.length) * 100)}% ${t('hoàn thành')}` : t('0 việc hôm nay')}
-            color="text-blue-600" 
-            bg="bg-blue-50" 
-          />
-          <SummaryCard 
-            icon={Wallet} 
-            title={t('Tài chính')} 
-            value={formatCurrency(todayExpenses)} 
-            subtext={todayIncome > 0 ? `${t('Thu:')} ${formatCurrency(todayIncome)}` : t('Chi tiêu hôm nay')} 
-            color="text-emerald-600" 
-            bg="bg-emerald-50" 
-          />
-          <SummaryCard 
-            icon={Clock} 
-            title={t('Tập trung')} 
-            value={studyDisplayValue} 
-            subtext={studySubtext} 
-            color="text-violet-600" 
-            bg="bg-violet-50" 
-          />
-          <SummaryCard 
-            icon={Flame} 
-            title={t('Thói quen')} 
-            value={`${completedHabitsToday.length}/${habits.length}`} 
-            subtext={habits.length > 0 ? `${Math.round((completedHabitsToday.length / habits.length) * 100)}% ${t('kỷ luật')}` : t('0 thói quen')}
-            color="text-amber-600" 
-            bg="bg-amber-50" 
-          />
-        </div>
-
-        {/* Secondary Extended Metrics (Collapsible Toggle) */}
-        <div className="flex items-center justify-between pt-1">
-          <button
-            type="button"
-            onClick={() => setShowExtendedMetrics(!showExtendedMetrics)}
-            className="text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 flex items-center gap-1 transition-colors"
-          >
-            <span>{showExtendedMetrics ? (isVi ? 'Thu gọn chỉ số phụ' : 'Collapse extra metrics') : (isVi ? 'Xem thêm chỉ số (Sự kiện, Mục tiêu, Kế hoạch giờ)' : 'View more metrics (Events, Goals, Time Plan)')}</span>
-            {showExtendedMetrics ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          </button>
-        </div>
-
-        {showExtendedMetrics && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 animate-in fade-in duration-150">
-            <SummaryCard 
-              icon={Calendar} 
-              title={isVi ? "Sự kiện lịch" : "Calendar Events"} 
-              value={`${todayEvents.length}`} 
-              subtext={todayEvents.length > 0 ? (isVi ? `${todayEvents.filter(e => e.status === 'Hoàn thành').length} đã hoàn tất` : `${todayEvents.filter(e => e.status === 'Hoàn thành').length} completed`) : (isVi ? 'Không có sự kiện' : 'No events')}
-              color="text-indigo-600" 
-              bg="bg-indigo-50" 
-            />
-            <SummaryCard 
-              icon={Target} 
-              title={isVi ? "Tiến độ mục tiêu" : "Goals Progress"} 
-              value={goalsDisplayValue} 
-              subtext={goalsSubtext} 
-              color="text-rose-600" 
-              bg="bg-rose-50" 
-            />
-            <SummaryCard 
-              icon={Activity} 
-              title={isVi ? "Kế hoạch thời gian" : "Time Plan"} 
-              value={`${actualTaskHours.toFixed(1)}h`} 
-              subtext={isVi ? `/ ${plannedTaskHours.toFixed(1)}h dự kiến` : `/ ${plannedTaskHours.toFixed(1)}h planned`} 
-              color="text-cyan-600" 
-              bg="bg-cyan-50" 
-            />
-          </div>
-        )}
-      </div>
-
-      {/* 5-Dimension Life Harmony Radar Widget */}
-      <LifeHarmonyRadarWidget 
-        harmony={harmonyOverview} 
-        onExploreGoals={() => setCurrentView('goals')}
-      />
-
-      {/* Financial Summary & Latest Projects Progress Widgets */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        
-        {/* Widget 1: Tóm tắt Tài chính (Financial Summary Widget) */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4 flex flex-col justify-between">
+          {/* 3 SLOTS QUAN TRỌNG NHẤT (THE RULE OF 3 - KHÔNG CẮT CHỮ) */}
           <div>
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-900/40 shrink-0">
-                  <Wallet className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 dark:text-white text-base">{isVi ? 'Tóm tắt Tài chính' : 'Financial Summary'}</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{isVi ? 'Thu nhập, chi tiêu & số dư tổng quan' : 'Income, expenses & overall balance'}</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setCurrentView('finance')}
-                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 flex items-center gap-1 transition-colors shrink-0"
-              >
-                {isVi ? 'Chi tiết' : 'Details'} <ArrowUpRight className="w-3.5 h-3.5" />
-              </button>
+            <div className="flex items-center justify-between text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">
+              <span>🎯 3 Việc Quan Trọng Nhất (Daily Trifecta)</span>
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold lowercase">
+                1-chạm hoàn tất
+              </span>
             </div>
 
-            {/* Total Balance Card */}
-            <div className="mt-4 p-4 rounded-xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white shadow-sm flex items-center justify-between gap-3">
-              <div>
-                <span className="text-xs font-medium text-slate-300">{isVi ? 'Tổng số dư khả dụng' : 'Total Available Balance'}</span>
-                <div className="text-xl sm:text-2xl font-black tracking-tight mt-0.5 font-mono tabular-nums">
-                  {formatCurrency(totalBalance)}
-                </div>
-              </div>
-              <div className="text-right shrink-0">
-                <span className="text-[11px] text-slate-400 block">{isVi ? 'Tài khoản' : 'Accounts'}</span>
-                <span className="text-xs font-bold text-emerald-400">
-                  {(financeAccounts || []).length} {isVi ? 'tài khoản' : 'accounts'}
-                </span>
-              </div>
-            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              {[0, 1, 2].map((slotIdx) => {
+                const taskId = slotTaskIds[slotIdx];
+                const task = tasks.find(t => t.id === taskId);
+                const isCompleted = task?.status === 'Hoàn thành' || task?.status === 'Completed';
+                const slotTitles = [
+                  'Việc #1 · Quan trọng nhất',
+                  'Việc #2 · Đòi hỏi tập trung',
+                  'Việc #3 · Giải quyết dứt điểm'
+                ];
 
-            {/* Income / Expense Stats */}
-            <div className="grid grid-cols-2 gap-3 mt-3">
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-1">
-                  <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-                  <span>{isVi ? 'Thu tháng này' : 'Income this month'}</span>
-                </div>
-                <div className="text-sm font-bold text-emerald-600 dark:text-emerald-400 font-mono tabular-nums">
-                  +{formatCurrency(monthlyIncome)}
-                </div>
-              </div>
-              <div className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mb-1">
-                  <TrendingDown className="w-3.5 h-3.5 text-rose-500" />
-                  <span>{isVi ? 'Chi tháng này' : 'Expense this month'}</span>
-                </div>
-                <div className="text-sm font-bold text-rose-600 dark:text-rose-400 font-mono tabular-nums">
-                  -{formatCurrency(monthlyExpense)}
-                </div>
-              </div>
-            </div>
-
-            {/* Net Cashflow Progress Bar */}
-            <div className="mt-3 space-y-1.5">
-              <div className="flex justify-between text-xs">
-                <span className="text-slate-500">{isVi ? 'Dòng tiền ròng' : 'Net Cashflow'}</span>
-                <span className={`font-bold font-mono tabular-nums ${netMonthly >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                  {netMonthly >= 0 ? '+' : ''}{formatCurrency(netMonthly)}
-                </span>
-              </div>
-              <div className="w-full bg-slate-100 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full transition-all rounded-full ${netMonthly >= 0 ? 'bg-emerald-500' : 'bg-rose-500'}`}
-                  style={{ 
-                    width: monthlyIncome > 0 
-                      ? `${Math.min(100, Math.max(8, (monthlyExpense / monthlyIncome) * 100))}%` 
-                      : '50%' 
-                  }}
-                ></div>
-              </div>
-            </div>
-
-            {/* Recent Transactions preview */}
-            <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80">
-              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">{isVi ? 'Giao dịch gần đây' : 'Recent Transactions'}</span>
-              {recentTransactions.length === 0 ? (
-                <p className="text-xs text-slate-400 italic py-1">{isVi ? 'Chưa có giao dịch nào được ghi nhận tháng này.' : 'No transactions recorded this month.'}</p>
-              ) : (
-                <div className="space-y-2">
-                  {recentTransactions.map((tx) => (
-                    <div key={tx.id} className="flex items-center justify-between text-xs p-2 rounded-lg bg-slate-50/80 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className={`w-2 h-2 rounded-full shrink-0 ${tx.type === 'Thu nhập' ? 'bg-emerald-500' : tx.type === 'Chi tiêu' ? 'bg-rose-500' : 'bg-blue-500'}`}></span>
-                        <div className="truncate">
-                          <span className="font-semibold text-slate-800 dark:text-slate-200 block truncate">{t(tx.category || 'Khác')}</span>
-                          <span className="text-[10px] text-slate-400">{tx.date}</span>
-                        </div>
-                      </div>
-                      <span className={`font-mono font-bold shrink-0 ml-2 ${tx.type === 'Thu nhập' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                        {tx.type === 'Thu nhập' ? '+' : '-'}{formatCurrency(tx.amount)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <button 
-            onClick={() => setCurrentView('finance')}
-            className="w-full mt-2 py-2 px-3 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-700 dark:bg-slate-800/60 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 transition-colors flex items-center justify-center gap-1.5"
-          >
-            {isVi ? 'Quản lý Tài chính & Ví' : 'Manage Finance & Wallets'} <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* Widget 2: Tiến độ Dự án Mới nhất (Latest Project Progress Widget) */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-200/60 dark:border-blue-900/40 shrink-0">
-                  <FolderKanban className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-slate-900 dark:text-white text-base">{isVi ? 'Tiến độ Dự án Mới nhất' : 'Latest Projects Progress'}</h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">{isVi ? 'Các mục tiêu & dự án trọng điểm đang thực hiện' : 'Key goals and active priority projects'}</p>
-                </div>
-              </div>
-              <button 
-                onClick={() => setCurrentView('projects')}
-                className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 transition-colors shrink-0"
-              >
-                {isVi ? `Xem tất cả (${totalProjectsCount})` : `View All (${totalProjectsCount})`} <ArrowUpRight className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* Active Projects List */}
-            <div className="mt-4 space-y-3">
-              {recentProjects.length === 0 ? (
-                <div className="text-center py-8 space-y-3">
-                  <p className="text-xs text-slate-500">{isVi ? 'Chưa có dự án nào được tạo.' : 'No projects created yet.'}</p>
-                  <button 
-                    onClick={() => setCurrentView('projects')}
-                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-colors inline-flex items-center gap-1.5 shadow-xs"
+                return (
+                  <div
+                    key={slotIdx}
+                    className={`rounded-xl border p-4 flex flex-col justify-between min-h-[140px] transition-all relative ${
+                      task
+                        ? isCompleted
+                          ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800'
+                          : 'bg-slate-50/70 dark:bg-slate-800/40 border-slate-200/80 dark:border-slate-700/80 hover:border-emerald-400'
+                        : 'bg-slate-50/40 dark:bg-slate-800/20 border-dashed border-slate-300 dark:border-slate-700 hover:border-emerald-400'
+                    }`}
                   >
-                    <Plus className="w-3.5 h-3.5" /> {isVi ? 'Tạo dự án đầu tiên' : 'Create First Project'}
-                  </button>
-                </div>
-              ) : (
-                recentProjects.map((p) => {
-                  const healthColor = p.health === 'Tốt' 
-                    ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' 
-                    : p.health === 'Cảnh báo' 
-                    ? 'bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-400 border-amber-200 dark:border-amber-800' 
-                    : 'bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-400 border-rose-200 dark:border-rose-800';
+                    <div>
+                      {/* Slot Label */}
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider block mb-2">
+                        {slotTitles[slotIdx]}
+                      </span>
 
-                  return (
-                    <div 
-                      key={p.id}
-                      className="p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-all space-y-2.5"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <h4 className="font-bold text-sm text-slate-900 dark:text-white truncate">
-                            {p.name}
-                          </h4>
-                          {p.description && (
-                            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">
-                              {p.description}
-                            </p>
-                          )}
+                      {task ? (
+                        <div className="space-y-2">
+                          <p className={`font-bold text-sm text-slate-900 dark:text-white leading-snug break-words ${isCompleted ? 'line-through text-slate-400 dark:text-slate-500' : ''}`}>
+                            {task.title}
+                          </p>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                              task.priority === 'Cao' || task.priority === 'Nghiêm trọng'
+                                ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400'
+                                : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-300'
+                            }`}>
+                              {task.priority || 'Trung bình'}
+                            </span>
+                          </div>
                         </div>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border shrink-0 ${healthColor}`}>
-                          {isVi ? (p.health || 'Tốt') : (p.health === 'Tốt' ? 'Healthy' : p.health === 'Cảnh báo' ? 'At Risk' : 'Critical')}
-                        </span>
-                      </div>
+                      ) : pickingSlotIndex === slotIdx ? (
+                        <div className="space-y-2">
+                          <input
+                            type="text"
+                            autoFocus
+                            value={inlineSlotTitle}
+                            onChange={(e) => setInlineSlotTitle(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleCreateInlineSlotTask(slotIdx);
+                              if (e.key === 'Escape') setPickingSlotIndex(null);
+                            }}
+                            placeholder="Nhập tên việc..."
+                            className="w-full px-2.5 py-1 text-xs bg-white dark:bg-slate-900 border border-emerald-400 rounded-lg outline-none text-slate-900 dark:text-white"
+                          />
+                          <div className="flex gap-1 justify-end">
+                            <button
+                              type="button"
+                              onClick={() => setPickingSlotIndex(null)}
+                              className="px-2 py-0.5 text-[10px] text-slate-400 hover:text-slate-600 rounded"
+                            >
+                              Hủy
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleCreateInlineSlotTask(slotIdx)}
+                              className="px-2 py-0.5 text-[10px] bg-emerald-600 text-white rounded font-bold"
+                            >
+                              Lưu
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setPickingSlotIndex(slotIdx)}
+                          className="w-full text-left py-4 text-xs text-slate-400 hover:text-emerald-600 transition-colors flex flex-col items-center justify-center gap-1 cursor-pointer"
+                        >
+                          <Plus className="w-5 h-5 text-slate-300 hover:text-emerald-500" />
+                          <span>+ Gán việc vào ô này</span>
+                        </button>
+                      )}
+                    </div>
 
-                      {/* Progress Bar */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs">
-                          <span className="text-slate-500 text-[11px]">{isVi ? 'Tiến độ thực hiện' : 'Progress'}</span>
-                          <span className="font-bold text-slate-900 dark:text-white font-mono tabular-nums">{p.progress || 0}%</span>
-                        </div>
-                        <div className="w-full bg-slate-200 dark:bg-slate-700 h-2 rounded-full overflow-hidden">
-                          <div 
-                            className="bg-blue-600 dark:bg-blue-500 h-full rounded-full transition-all"
-                            style={{ width: `${Math.min(100, p.progress || 0)}%` }}
-                          ></div>
-                        </div>
-                      </div>
+                    {/* Slot Actions */}
+                    {task && (
+                      <div className="flex items-center justify-between pt-3 mt-2 border-t border-slate-200/50 dark:border-slate-700/50">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = isCompleted ? 'Chưa làm' : 'Hoàn thành';
+                            updateTask(task.id, { status: next });
+                            if (!isCompleted) {
+                              soundEngine.playSuccess();
+                              retentionEngine.addXp(30, 'Hoàn thành việc cốt lõi', userId);
+                              setCelebration({
+                                title: 'Tuyệt vời!',
+                                subtitle: `Đã hoàn thành việc quan trọng: "${task.title}"`,
+                                xpAwarded: 30
+                              });
+                            }
+                          }}
+                          className={`text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer ${
+                            isCompleted ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 hover:text-emerald-600'
+                          }`}
+                        >
+                          <Check className={`w-3.5 h-3.5 ${isCompleted ? 'stroke-[3]' : ''}`} />
+                          <span>{isCompleted ? 'Đã xong' : 'Hoàn tất'}</span>
+                        </button>
 
-                      {/* Footer metadata */}
-                      <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-200/50 dark:border-slate-700/50">
-                        <span>{isVi ? `Hạn chót: ${p.deadline ? p.deadline : 'Không hạn'}` : `Deadline: ${p.deadline ? p.deadline : 'No deadline'}`}</span>
-                        {p.budget > 0 && (
-                          <span className="font-mono font-medium">{isVi ? 'Ngân sách:' : 'Budget:'} {formatCurrency(p.budget)}</span>
+                        {!isCompleted && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setZenFocusTaskId(task.id);
+                              setZenFocusOpen(true);
+                            }}
+                            title="Bắt đầu phiên tập trung Zen cho công việc này"
+                            className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <Zap className="w-3 h-3 fill-current" />
+                            <span>Tập trung</span>
+                          </button>
                         )}
                       </div>
-                    </div>
-                  );
-                })
-              )}
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          <button 
-            onClick={() => setCurrentView('projects')}
-            className="w-full mt-2 py-2 px-3 bg-slate-50 hover:bg-blue-50 hover:text-blue-700 dark:bg-slate-800/60 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 transition-colors flex items-center justify-center gap-1.5"
-          >
-            {isVi ? 'Quản trị & Lên kế hoạch Dự án' : 'Project Management & Planning'} <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* Left Column: Tasks & Timeline */}
-        <div className="lg:col-span-2 space-y-6">
-          
-          {/* Risks Banner */}
-          {risks.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-              <div>
-                <h4 className="font-bold text-red-800 text-sm mb-1">{isVi ? `Phát hiện rủi ro trong ngày (${risks.length})` : `Daily Risks Detected (${risks.length})`}</h4>
-                <ul className="text-sm text-red-700 space-y-1 list-disc list-inside">
-                  {risks.map((r, i) => (
-                    <li key={i}><span className="font-medium">{t(r.type)}:</span> {t(r.message)}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-          )}
-
-          {/* Today's Tasks */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
-            <div className="p-5 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 dark:text-white text-lg">{t("Today's Tasks")}</h3>
-              <button 
-                onClick={() => setShowQuickTaskModal(true)}
-                className="text-sm text-blue-600 font-medium hover:underline flex items-center gap-1"
+          {/* DANH SÁCH CÔNG VIỆC PHỤ TRONG NGÀY (TO-DO LIST) */}
+          <div className="pt-2">
+            <div className="flex items-center justify-between pb-3 text-xs font-bold text-slate-500 uppercase tracking-wider">
+              <span>📋 Danh sách công việc hôm nay ({pendingTasks.length} chưa xong)</span>
+              <button
+                type="button"
+                onClick={() => setCurrentView('tasks')}
+                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 lowercase"
               >
-                <Plus className="w-4 h-4" /> {t('Thêm việc')}
+                <span>mở bảng kanban</span>
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
-            
+
             {todayTasks.length === 0 ? (
-              <div className="p-6">
-                <EmptyState
-                  icon={CheckSquare}
-                  title={isVi ? "Chưa có công việc nào hôm nay" : "No tasks scheduled for today"}
-                  description={isVi ? "Hãy lên kế hoạch cho 3 nhiệm vụ quan trọng nhất (Top 3 Priority) để giữ vững hiệu suất làm việc đỉnh cao." : "Plan your top 3 priority tasks to maintain peak performance and focus."}
-                  actionLabel={isVi ? "Thêm việc mới" : "Add New Task"}
-                  onAction={() => setShowQuickTaskModal(true)}
-                  secondaryActionLabel={isVi ? "Mở To-do List" : "Open Task List"}
-                  onSecondaryAction={() => setCurrentView('tasks')}
-                />
+              <div className="p-4 rounded-xl bg-slate-50/50 dark:bg-slate-800/20 border border-dashed border-slate-200 dark:border-slate-800 text-center py-8">
+                <CheckSquare className="w-8 h-8 text-slate-300 dark:text-slate-600 mx-auto mb-2" />
+                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">Chưa có công việc nào hôm nay</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">Bấm nút "Thêm công việc" phía trên để lên kế hoạch.</p>
               </div>
             ) : (
               <div className="divide-y divide-slate-100 dark:divide-slate-800">
                 {todayTasks.map(task => {
+                  const isCompleted = task.status === 'Hoàn thành' || task.status === 'Completed';
                   const isTimerActive = activeTimerTask === task.id;
-                  const isCompleted = task.status === 'Hoàn thành';
+
                   return (
-                    <div key={task.id} className={`p-4 flex items-center gap-4 hover:bg-slate-50 dark:bg-slate-800/50 transition-colors ${isCompleted ? 'bg-slate-50 dark:bg-slate-800/50/50' : ''}`}>
-                      <button 
-                        onClick={() => {
-                          const nextStatus = isCompleted ? 'Chưa làm' : 'Hoàn thành';
-                          updateTask(task.id, { status: nextStatus });
-                          if (!isCompleted) {
-                            soundEngine.playPop();
-                            retentionEngine.addXp(20, 'Hoàn thành công việc', currentUser?.id);
-                            retentionEngine.completeQuest('task', currentUser?.id);
-                            
-                            // Check if this was the last pending task
-                            if (pendingTasks.length <= 1) {
-                              soundEngine.playSuccess();
-                              setCelebration({
-                                title: isVi ? 'Tuyệt vời! Hoàn thành toàn bộ mục tiêu hôm nay!' : 'Awesome! All daily goals completed!',
-                                subtitle: isVi ? 'Bạn đã hoàn tất tất cả các công việc dự kiến trong ngày. Đỉnh cao của sự kỷ luật!' : 'You have completed all scheduled tasks for today. Peak discipline!',
-                                xpAwarded: 50,
-                                streakCount: retentionEngine.getProfile(currentUser?.id)?.streak ?? 0
-                              });
+                    <div 
+                      key={task.id} 
+                      className={`py-3 px-2 flex items-center justify-between gap-3 hover:bg-slate-50/80 dark:hover:bg-slate-800/40 rounded-xl transition-colors ${isCompleted ? 'opacity-60' : ''}`}
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const next = isCompleted ? 'Chưa làm' : 'Hoàn thành';
+                            updateTask(task.id, { status: next });
+                            if (!isCompleted) {
+                              soundEngine.playPop();
+                              retentionEngine.addXp(20, 'Hoàn thành công việc', userId);
                             }
-                          }
-                        }}
-                        className={`w-5 h-5 rounded flex items-center justify-center border transition-colors shrink-0 cursor-pointer
-                          ${isCompleted ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300 dark:border-slate-600 text-transparent hover:border-indigo-500'}`}
-                      >
-                        <Check className="w-3.5 h-3.5 stroke-[3]" />
-                      </button>
-                      
-                      <div className="flex-1 min-w-0">
-                        <p className={`font-medium truncate ${isCompleted ? 'text-slate-400 line-through' : 'text-slate-800 dark:text-slate-200'}`}>
-                          {t(task.title)}
-                        </p>
-                        <div className="flex items-center gap-3 mt-1">
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold
-                            ${task.priority === 'Cao' || task.priority === 'Nghiêm trọng' ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-600 dark:text-slate-400'}`}>
-                            {t(task.priority || 'Trung bình')}
-                          </span>
-                          {(task.estimatedHours || task.actualHours) && (
-                            <span className="text-xs text-slate-500 flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {task.actualHours || 0}h / {task.estimatedHours || 1}h
+                          }}
+                          className={`w-5 h-5 rounded-md flex items-center justify-center border-2 transition-all shrink-0 cursor-pointer ${
+                            isCompleted ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 dark:border-slate-600 hover:border-emerald-500'
+                          }`}
+                        >
+                          {isCompleted && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                        </button>
+
+                        <div className="min-w-0">
+                          <p className={`text-xs sm:text-sm font-semibold truncate ${isCompleted ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-200'}`}>
+                            {task.title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className={`text-[10px] px-2 py-0.2 rounded-full font-bold ${
+                              task.priority === 'Cao' || task.priority === 'Nghiêm trọng'
+                                ? 'bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-400'
+                                : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                            }`}>
+                              {task.priority || 'Trung bình'}
                             </span>
-                          )}
+                            {task.estimatedHours && (
+                              <span className="text-[11px] text-slate-400 flex items-center gap-1 font-mono">
+                                <Clock className="w-3 h-3" /> {task.estimatedHours}h
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
+                      {/* Right timer / action */}
                       {!isCompleted && (
-                        <button 
+                        <button
+                          type="button"
                           onClick={() => toggleTimer(task.id)}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all w-24 justify-center
-                            ${isTimerActive 
-                              ? 'bg-red-100 text-red-700 ring-2 ring-red-100 animate-pulse' 
-                              : 'bg-slate-100 text-slate-600 dark:text-slate-400 hover:bg-slate-200'}`}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
+                            isTimerActive
+                              ? 'bg-rose-500 text-white animate-pulse'
+                              : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
+                          }`}
                         >
                           {isTimerActive ? (
                             <>
-                              <Square className="w-3.5 h-3.5 fill-current" />
-                              {formatTimer(timerSeconds)}
+                              <Square className="w-3 h-3 fill-current" />
+                              <span>{formatTimer(timerSeconds)}</span>
                             </>
                           ) : (
                             <>
-                              <Play className="w-3.5 h-3.5 fill-current" /> {t('Bắt đầu')}
+                              <Play className="w-3 h-3 fill-current" />
+                              <span>Tập trung</span>
                             </>
                           )}
                         </button>
@@ -1453,198 +1075,305 @@ export function DashboardView() {
               </div>
             )}
           </div>
+        </div>
 
-          {/* Timeline View */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
-            <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-4">{isVi ? 'Dòng thời gian trong ngày' : 'Daily Timeline'}</h3>
-            <div className="space-y-4 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
-              {todayEvents.length === 0 && (
-                <p className="text-sm text-slate-500 text-center py-4">{isVi ? 'Không có sự kiện lịch nào hôm nay.' : 'No calendar events scheduled for today.'}</p>
-              )}
-              {todayEvents.map(event => (
-                <div key={event.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
-                  <div className="flex items-center justify-center w-10 h-10 rounded-full border border-white bg-indigo-100 text-indigo-600 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2 z-10">
-                    <Calendar className="w-4 h-4" />
-                  </div>
-                  <div className="w-[calc(100%-4rem)] md:w-[calc(50%-2.5rem)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-4 rounded-xl shadow-sm">
-                    <div className="flex items-center justify-between mb-1">
-                      <h4 className="font-bold text-slate-800 dark:text-slate-200 text-sm">{event.title}</h4>
-                      <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">{event.startTime} - {event.endTime}</span>
+        {/* CỘT PHẢI (4/12 CỘT): TRẠM TẬP TRUNG (FOCUS STATION) + THÓI QUEN              */}
+        <div className="lg:col-span-4 space-y-6">
+          
+          {/* Card 1: Trạm Tập Trung (Focus & Pomodoro Station) */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3">
+              <div>
+                <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm">
+                  Trạm Tập Trung (Zen / Pomodoro)
+                </h3>
+                <p className="text-xs text-slate-500">Làm việc sâu, không xao nhãng</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCurrentView('focus')}
+                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+              >
+                Mở Pomodoro <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Focus Big Metric */}
+            <div className="p-4 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/40 text-center space-y-2">
+              <span className="text-xs text-emerald-800 dark:text-emerald-300 font-bold block">
+                Thời gian tập trung hôm nay
+              </span>
+              <div className="text-3xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
+                {studyDisplayValue}
+              </div>
+              <span className="text-xs text-slate-500 block">
+                {studySubtext}
+              </span>
+              <div className="w-full bg-emerald-200/60 dark:bg-emerald-900/60 h-2 rounded-full overflow-hidden mt-2">
+                <div 
+                  className="h-full bg-emerald-600 dark:bg-emerald-400 rounded-full transition-all duration-300"
+                  style={{ width: `${focusProgressPercent}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Big Launch Button in Emerald */}
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playPop();
+                setZenFocusTaskId(slotTaskIds[0] || pendingTasks[0]?.id);
+                setZenFocusOpen(true);
+              }}
+              className="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm shadow-emerald-600/20 transition-all cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Zap className="w-4 h-4 fill-white" />
+              <span>⚡ Bắt đầu Tập trung 25p</span>
+            </button>
+          </div>
+
+          {/* Card 2: Thói quen hôm nay (Daily Habits) */}
+          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3">
+              <div>
+                <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm">
+                  Thói quen hôm nay ({completedHabitsToday.length}/{habits.length})
+                </h3>
+                <p className="text-xs text-slate-500">Giữ chuỗi kỉ luật mỗi ngày</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCurrentView('habits')}
+                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+              >
+                Quản lý <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {habits.length === 0 ? (
+                <p className="text-xs text-slate-400 py-3 text-center">Chưa có thói quen nào. Bấm Quản lý để thêm.</p>
+              ) : (
+                habits.map(habit => {
+                  const isCompleted = habit.completedDates?.includes(dateStr) || 
+                    (habitRecords || []).some(r => r.habitId === habit.id && r.date === dateStr && r.status === 'Completed');
+
+                  return (
+                    <div 
+                      key={habit.id}
+                      className="flex items-center justify-between p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const dates = isCompleted 
+                              ? (habit.completedDates || []).filter(d => d !== dateStr)
+                              : [...(habit.completedDates || []), dateStr];
+                            updateHabit(habit.id, { 
+                              completedDates: dates,
+                              streak: isCompleted ? Math.max(0, (habit.streak ?? 0) - 1) : (habit.streak ?? 0) + 1
+                            });
+                            addHabitRecord({
+                              habitId: habit.id,
+                              date: dateStr,
+                              status: isCompleted ? 'Missed' : 'Completed',
+                              actualValue: isCompleted ? 0 : (habit.target || 1)
+                            });
+                            if (!isCompleted) {
+                              soundEngine.playPop();
+                              retentionEngine.addXp(15, `Duy trì thói quen: ${habit.name}`, userId);
+                            }
+                          }}
+                          className={`w-5 h-5 rounded-md flex items-center justify-center border-2 transition-all shrink-0 cursor-pointer ${
+                            isCompleted ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-300 dark:border-slate-600 hover:border-amber-400'
+                          }`}
+                        >
+                          {isCompleted && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                        </button>
+                        <span className={`text-xs font-semibold truncate ${isCompleted ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-200'}`}>
+                          {habit.name}
+                        </span>
+                      </div>
+
+                      <span className="text-[11px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2 py-0.5 rounded-md flex items-center gap-1 font-mono shrink-0">
+                        <Flame className="w-3 h-3 fill-current" /> {habit.streak || 0}
+                      </span>
                     </div>
-                    <p className="text-xs text-slate-500">{t(event.type)}</p>
-                  </div>
-                </div>
-              ))}
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
 
-        {/* Right Column: Score, Habits, Notes */}
-        <div className="space-y-6">
+      </div>
+
+      {/* ========================================================================= */}
+      {/* TẦNG 4: CHỈ SỐ ĐỜI SỐNG & TÀI CHÍNH - INSIGHTS & METRICS (GRID 12 CỘT)     */}
+      {/* ========================================================================= */}
+      
+      {/* 4 THẺ QUICK STATS (MỖI THẺ 3/12 CỘT) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <SummaryCard 
+          icon={CheckSquare} 
+          title="Công việc" 
+          value={`${completedTasks.length}/${todayTasks.length}`} 
+          subtext={todayTasks.length > 0 ? `${Math.round((completedTasks.length / todayTasks.length) * 100)}% hoàn thành` : '0 việc hôm nay'}
+          color="text-emerald-600 dark:text-emerald-400" 
+          bg="bg-emerald-50 dark:bg-emerald-950/50" 
+        />
+        <SummaryCard 
+          icon={Wallet} 
+          title="Chi tiêu hôm nay" 
+          value={formatCurrency(todayExpenses)} 
+          subtext={hasBudgetBaseline ? `Hạn mức: ${formatCurrency(dailySafeToSpendBudget)}/ngày` : 'Chưa đặt ngân sách'} 
+          color="text-teal-600 dark:text-teal-400" 
+          bg="bg-teal-50 dark:bg-teal-950/50" 
+        />
+        <SummaryCard 
+          icon={Clock} 
+          title="Thời gian tập trung" 
+          value={studyDisplayValue} 
+          subtext={studySubtext} 
+          color="text-violet-600 dark:text-violet-400" 
+          bg="bg-violet-50 dark:bg-violet-950/50" 
+        />
+        <SummaryCard 
+          icon={Flame} 
+          title="Thói quen" 
+          value={`${completedHabitsToday.length}/${habits.length}`} 
+          subtext={habits.length > 0 ? `${Math.round((completedHabitsToday.length / habits.length) * 100)}% kỷ luật` : '0 thói quen'}
+          color="text-amber-600 dark:text-amber-400" 
+          bg="bg-amber-50 dark:bg-amber-950/50" 
+        />
+      </div>
+
+      {/* SECOND ROW: 5D HARMONY RADAR (7 COLS) & TÀI CHÍNH + TIẾN ĐỘ DỰ ÁN (5 COLS) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        
+        {/* CỘT TRÁI (7/12 CỘT): CHỈ SỐ CÂN BẰNG CUỘC SỐNG (5D HARMONY RADAR CHART) */}
+        <div className="lg:col-span-7 flex flex-col">
+          <LifeHarmonyRadarWidget 
+            harmony={harmonyOverview} 
+            onExploreGoals={() => setCurrentView('goals')}
+            className="flex-1"
+          />
+        </div>
+
+        {/* CỘT PHẢI (5/12 CỘT): TÓM TẮT TÀI CHÍNH & TIẾN ĐỘ DỰ ÁN P.A.R.A */}
+        <div className="lg:col-span-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-5">
           
-          {/* Daily Score */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 flex flex-col items-center relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2 -z-10"></div>
-            <h3 className="font-bold text-slate-900 dark:text-white mb-2">{isVi ? 'Điểm Hiệu Suất' : 'Daily Score'}</h3>
-            <div className="relative w-40 h-40">
-              <ResponsiveContainer width="100%" height="100%">
-                <RadialBarChart 
-                  innerRadius="70%" 
-                  outerRadius="100%" 
-                  data={scoreData} 
-                  startAngle={90} 
-                  endAngle={-270}
-                  barSize={12}
-                >
-                  <RadialBar dataKey="value" cornerRadius={10} />
-                </RadialBarChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-4xl font-black text-slate-900 dark:text-white">{dailyScore}</span>
-                <span className="text-xs font-medium text-slate-500">
-                  {dailyScore >= 90 ? (isVi ? 'Xuất sắc' : 'Excellent') : dailyScore >= 75 ? (isVi ? 'Tốt' : 'Good') : dailyScore >= 40 ? (isVi ? 'Bình thường' : 'Normal') : dailyScore > 0 ? (isVi ? 'Cần cố gắng' : 'Needs Effort') : (isVi ? 'Chưa có hoạt động' : 'No Activity')}
+          {/* PHẦN 1: TÓM TẮT TÀI CHÍNH */}
+          <div className="space-y-3.5">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-2.5">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400">
+                  <Wallet className="w-4 h-4" />
+                </div>
+                <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm">
+                  Tài chính & Hạn mức
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCurrentView('finance')}
+                className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+              >
+                Sổ thu chi <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Total Balance Card (Light mode gradient, no hardcoded black!) */}
+            <div className="p-3.5 rounded-xl bg-gradient-to-r from-emerald-50/80 via-white to-teal-50/60 dark:from-slate-800/80 dark:to-slate-800/40 border border-emerald-200/60 dark:border-slate-700 flex items-center justify-between">
+              <div>
+                <span className="text-[11px] text-slate-500 font-semibold block">Số dư khả dụng</span>
+                <span className="text-xl font-black text-slate-900 dark:text-white font-mono tracking-tight">
+                  {formatCurrency(totalBalance)}
+                </span>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] text-slate-400 block">Dòng tiền tháng</span>
+                <span className={`text-xs font-bold font-mono ${netMonthly >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {netMonthly >= 0 ? '+' : ''}{formatCurrency(netMonthly)}
                 </span>
               </div>
             </div>
-            
-            <div className="w-full mt-6 space-y-2">
-              <div className="flex justify-between text-xs font-medium">
-                <span className="text-slate-600 dark:text-slate-400">{isVi ? 'Hiệu suất công suất' : 'Capacity Utilization'}</span>
-                <span className={isOverload ? 'text-red-600' : 'text-slate-900 dark:text-white'}>{utilization.toFixed(0)}%</span>
-              </div>
-              <div className="w-full bg-slate-100 rounded-full h-1.5">
-                <div 
-                  className={`h-1.5 rounded-full ${isOverload ? 'bg-red-500' : 'bg-blue-500'}`} 
-                  style={{ width: `${utilization}%` }}
-                ></div>
-              </div>
+
+            {/* Daily Safe-to-Spend Status */}
+            <div className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-100 dark:border-slate-800">
+              <span className="text-slate-600 dark:text-slate-400 font-medium">Hạn mức an toàn hôm nay:</span>
+              <span className={`font-mono font-bold ${safeToSpendTodayRemaining >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600'}`}>
+                {safeToSpendTodayRemaining >= 0 ? formatCurrency(safeToSpendTodayRemaining) : `-${formatCurrency(Math.abs(safeToSpendTodayRemaining))}`}
+              </span>
             </div>
           </div>
 
-          {/* Today's Habits */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
-            <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-4">{isVi ? 'Thói quen hôm nay' : "Today's Habits"}</h3>
-            <div className="space-y-3">
-              {(habits || []).map(habit => {
-                const isCompleted = habit.completedDates?.includes(dateStr) || 
-                  (habitRecords || []).some(r => r.habitId === habit.id && r.date === dateStr && r.status === 'Completed');
-                return (
-                  <div key={habit.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 hover:bg-slate-50 dark:bg-slate-800/50 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <button 
-                        onClick={() => {
-                          const dates = isCompleted 
-                            ? (habit.completedDates || []).filter(d => d !== dateStr)
-                            : [...(habit.completedDates || []), dateStr];
-                          updateHabit(habit.id, { 
-                            completedDates: dates,
-                            streak: isCompleted ? Math.max(0, (habit.streak ?? 0) - 1) : (habit.streak ?? 0) + 1
-                          });
-                          addHabitRecord({
-                            habitId: habit.id,
-                            date: dateStr,
-                            status: isCompleted ? 'Missed' : 'Completed',
-                            actualValue: isCompleted ? 0 : (habit.target || 1)
-                          });
+          {/* PHẦN 2: TIẾN ĐỘ DỰ ÁN P.A.R.A */}
+          <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800/80">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 rounded-lg bg-teal-50 dark:bg-teal-950/50 text-teal-600 dark:text-teal-400">
+                  <FolderKanban className="w-4 h-4" />
+                </div>
+                <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm">
+                  Tiến độ Dự án (P.A.R.A)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCurrentView('projects')}
+                className="text-xs font-bold text-teal-600 dark:text-teal-400 hover:underline flex items-center gap-1"
+              >
+                Tất cả ({projects.length}) <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
 
-                          if (!isCompleted) {
-                            retentionEngine.addXp(15, `Duy trì thói quen: ${habit.name}`, currentUser?.id);
-                            retentionEngine.completeQuest('habit', currentUser?.id);
-                          }
-                        }}
-                        className={`w-6 h-6 rounded-md flex items-center justify-center border-2 transition-colors cursor-pointer
-                          ${isCompleted ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-300 dark:border-slate-600 hover:border-amber-400'}`}
-                      >
-                        {isCompleted && <Check className="w-4 h-4 stroke-[3]" />}
-                      </button>
-                      <span className={`text-sm font-medium ${isCompleted ? 'text-slate-500 line-through' : 'text-slate-800 dark:text-slate-200'}`}>
-                        {habit.name}
+            <div className="space-y-2">
+              {recentProjects.length === 0 ? (
+                <p className="text-xs text-slate-400 py-2 text-center">Chưa có dự án nào được khởi tạo.</p>
+              ) : (
+                recentProjects.map(proj => (
+                  <div 
+                    key={proj.id}
+                    className="p-2.5 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 space-y-1.5"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate">
+                        {proj.name}
+                      </span>
+                      <span className="text-[10px] font-bold text-slate-500 font-mono shrink-0">
+                        {proj.progress || 0}%
                       </span>
                     </div>
-                    <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded flex items-center gap-1">
-                      <Flame className="w-3 h-3" /> {habit.streak || 0}
-                    </span>
+                    <div className="w-full bg-slate-200 dark:bg-slate-700 h-1.5 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-teal-500 rounded-full transition-all duration-300"
+                        style={{ width: `${Math.min(100, proj.progress || 0)}%` }}
+                      />
+                    </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Daily Checklist (Quick) */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-5">
-            <h3 className="font-bold text-slate-900 dark:text-white text-lg mb-4">{isVi ? 'Thói quen buổi tối' : 'Evening Routine'}</h3>
-            <div className="space-y-2">
-              {(isVi 
-                ? ['Đánh giá mục tiêu', 'Lên kế hoạch ngày mai', 'Ghi chép chi tiêu', 'Đọc 10 trang sách'] 
-                : ['Review goals', 'Plan tomorrow', 'Record expenses', 'Read 10 pages']
-              ).map((item, i) => (
-                <label key={i} className="flex items-center gap-3 p-2 hover:bg-slate-50 dark:bg-slate-800/50 rounded cursor-pointer">
-                  <input 
-                    type="checkbox" 
-                    checked={!!routineState[i]}
-                    onChange={(e) => toggleRoutine(i, e.target.checked)}
-                    className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500" 
-                  />
-                  <span className={`text-sm ${routineState[i] ? 'text-slate-400 line-through' : 'text-slate-700 dark:text-slate-300'}`}>
-                    {item}
-                  </span>
-                </label>
-              ))}
+                ))
+              )}
             </div>
           </div>
 
         </div>
+
       </div>
 
-      {/* Confirmation Modal for Clearing Workspace */}
-      {showClearConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md p-6 border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center gap-3 text-red-600 mb-4">
-              <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-xl">
-                <AlertTriangle className="w-6 h-6" />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{isVi ? 'Làm sạch dữ liệu' : 'Clear Workspace Data'}</h3>
-                <p className="text-xs text-slate-500">{isVi ? 'Khởi tạo trang trắng cho số liệu thực tế' : 'Initialize clean slate for real data'}</p>
-              </div>
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-              {isVi 
-                ? 'Thao tác này sẽ làm sạch các bản ghi trong không gian làm việc của bạn để bắt đầu chu kỳ ghi nhận mới từ đầu. Các cấu hình tài khoản và phân quyền sẽ được giữ nguyên. Bạn có chắc chắn muốn tiếp tục không?' 
-                : 'This action will clear records in your workspace to begin a new tracking cycle. Account configurations and permissions will remain intact. Are you sure you want to proceed?'}
-            </p>
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setShowClearConfirm(false)}
-                className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-              >
-                {isVi ? 'Hủy bỏ' : 'Cancel'}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  clearWorkspace();
-                  setShowClearConfirm(false);
-                }}
-                className="px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-700 text-white transition-colors shadow-sm"
-              >
-                {isVi ? 'Xác nhận làm sạch' : 'Confirm Clear'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ========================================================================= */}
+      {/* MODALS & OVERLAYS                                                         */}
+      {/* ========================================================================= */}
 
       {/* Quick Task Creation Modal */}
       {showQuickTaskModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md p-6 border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Plus className="w-5 h-5 text-blue-600" />
-                {isVi ? 'Thêm Công việc Thực tế' : 'Add Real Task'}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md p-6 border border-slate-200 dark:border-slate-800">
+            <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                <Plus className="w-5 h-5 text-emerald-600" />
+                <span>Thêm Công việc mới</span>
               </h3>
               <button 
                 type="button" 
@@ -1669,12 +1398,13 @@ export function DashboardView() {
                 setQuickTaskTitle('');
                 setQuickTaskHours(1);
                 setShowQuickTaskModal(false);
+                soundEngine.playPop();
               }}
               className="space-y-4"
             >
               <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  {isVi ? 'Tên công việc' : 'Task title'} <span className="text-red-500">*</span>
+                  Tên công việc <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -1682,30 +1412,30 @@ export function DashboardView() {
                   autoFocus
                   value={quickTaskTitle}
                   onChange={(e) => setQuickTaskTitle(e.target.value)}
-                  placeholder={isVi ? 'VD: Soạn tài liệu tuần, gọi điện đối tác...' : 'E.g., Prepare weekly doc, call partner...'}
-                  className="w-full px-3.5 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
+                  placeholder="VD: Soạn tài liệu tuần, gọi điện đối tác..."
+                  className="w-full px-3.5 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    {isVi ? 'Mức độ ưu tiên' : 'Priority'}
+                    Mức độ ưu tiên
                   </label>
                   <select
                     value={quickTaskPriority}
-                    onChange={(e) => setQuickTaskPriority(e.target.value as any)}
-                    className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
+                    onChange={(e) => setQuickTaskPriority(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
                   >
-                    <option value="Thấp">{isVi ? 'Thấp' : 'Low'}</option>
-                    <option value="Trung bình">{isVi ? 'Trung bình' : 'Medium'}</option>
-                    <option value="Cao">{isVi ? 'Cao' : 'High'}</option>
-                    <option value="Nghiêm trọng">{isVi ? 'Khẩn cấp' : 'Urgent'}</option>
+                    <option value="Thấp">Thấp</option>
+                    <option value="Trung bình">Trung bình</option>
+                    <option value="Cao">Cao</option>
+                    <option value="Nghiêm trọng">Khẩn cấp</option>
                   </select>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    {isVi ? 'Thời lượng dự kiến (Giờ)' : 'Estimated Duration (Hours)'}
+                    Thời lượng dự kiến (Giờ)
                   </label>
                   <input
                     type="number"
@@ -1713,7 +1443,7 @@ export function DashboardView() {
                     step="0.25"
                     value={quickTaskHours}
                     onChange={(e) => setQuickTaskHours(Number(e.target.value))}
-                    className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
+                    className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
                   />
                 </div>
               </div>
@@ -1722,15 +1452,15 @@ export function DashboardView() {
                 <button
                   type="button"
                   onClick={() => setShowQuickTaskModal(false)}
-                  className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
-                  {isVi ? 'Hủy' : 'Cancel'}
+                  Hủy
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 rounded-xl text-sm font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-sm"
+                  className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors shadow-sm"
                 >
-                  {isVi ? 'Tạo công việc ngay' : 'Create Task Now'}
+                  Tạo công việc ngay
                 </button>
               </div>
             </form>
@@ -1738,7 +1468,7 @@ export function DashboardView() {
         </div>
       )}
 
-      {/* Celebration Modal for Wow moments */}
+      {/* Celebration Modal for Level up / Quests */}
       {celebration && (
         <CelebrationModal
           title={celebration.title}
@@ -1750,18 +1480,7 @@ export function DashboardView() {
         />
       )}
 
-      {/* Gen Z Viral Share Story Modal */}
-      <ShareStoryModal
-        isOpen={showShareStory}
-        onClose={() => setShowShareStory(false)}
-        profile={retentionEngine.getProfile(currentUser?.id)}
-        userName={currentUser?.name || 'Life OS Member'}
-        todayCompletedTasks={completedTasks.length}
-        moodEmoji={MOOD_PRESETS[todayMood].emoji}
-        moodLabel={MOOD_PRESETS[todayMood].label}
-      />
-
-      {/* Zen Focus Mode Overlay launched from Trifecta */}
+      {/* Zen Focus Mode Overlay */}
       <ZenFocusOverlay
         isOpen={zenFocusOpen}
         onClose={() => setZenFocusOpen(false)}
@@ -1773,6 +1492,17 @@ export function DashboardView() {
         isOpen={showSundayReset}
         onClose={() => setShowSundayReset(false)}
         onOpenStoryShare={() => setShowShareStory(true)}
+      />
+
+      {/* Share Story Modal */}
+      <ShareStoryModal
+        isOpen={showShareStory}
+        onClose={() => setShowShareStory(false)}
+        profile={profile}
+        userName={currentUser?.name || 'LifeOS Member'}
+        todayCompletedTasks={completedTasks.length}
+        moodEmoji={MOOD_PRESETS[todayMood].emoji}
+        moodLabel={MOOD_PRESETS[todayMood].label}
       />
 
       {/* Aesthetic Vibe Theme Selector Modal */}
@@ -1802,17 +1532,13 @@ export function DashboardView() {
 
       {/* Streak Resurrection 24h Challenge Modal */}
       <StreakResurrectionModal
-        userId={currentUser?.id}
+        userId={userId}
         isOpen={showResurrectionModal}
         onClose={() => setShowResurrectionModal(false)}
-        onResurrected={(restored) => {
-          setStreakShield(streakFreezeEngine.getStatus(currentUser?.id));
-          setResurrectionStatus(streakFreezeEngine.getResurrectionStatus(currentUser?.id));
-          setCelebration({
-            title: isVi ? 'Hồi Sinh Thành Công!' : 'Resurrection Successful!',
-            subtitle: isVi ? `Chuỗi kỉ luật của bạn đã được nối tiếp ${restored} ngày! 🔥` : `Your discipline streak has been restored for ${restored} days! 🔥`,
-            xpAwarded: 50
-          });
+        onResurrected={() => {
+          setStreakShield(streakFreezeEngine.getStatus(userId));
+          setResurrectionStatus(streakFreezeEngine.getResurrectionStatus(userId));
+          soundEngine.playSuccess();
         }}
         onStartFocus={() => setZenFocusOpen(true)}
       />
@@ -1826,209 +1552,29 @@ export function DashboardView() {
           setShowShareStory(true);
         }}
       />
-
-      {/* Mobile Quick Tools Bottom Sheet Modal */}
-      {showQuickToolsSheet && (
-        <div className="fixed inset-0 z-50 flex flex-col justify-end sm:hidden animate-in fade-in duration-200">
-          <div 
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity" 
-            onClick={() => setShowQuickToolsSheet(false)} 
-          />
-          <div className="relative z-10 bg-slate-900 border-t border-slate-800 rounded-t-3xl p-5 shadow-2xl max-h-[85vh] overflow-y-auto space-y-4 animate-in slide-in-from-bottom duration-300">
-            {/* Grab Handle */}
-            <div className="w-12 h-1.5 bg-slate-700 rounded-full mx-auto" />
-            
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-black text-white flex items-center gap-2">
-                  <span>✨</span>
-                  <span>{isVi ? 'Tiện ích & Tính năng nhanh' : 'Quick Tools & Actions'}</span>
-                </h3>
-                <p className="text-xs text-slate-400 mt-0.5 font-medium">
-                  {isVi ? 'Truy cập 1-chạm vào các tính năng Gen Z của LifeOS' : '1-tap access to Gen Z LifeOS features'}
-                </p>
-              </div>
-              <button 
-                type="button" 
-                onClick={() => setShowQuickToolsSheet(false)}
-                className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2.5 pt-1">
-              {/* 1. Share Story */}
-              <button
-                type="button"
-                onClick={() => {
-                  soundEngine.playPop();
-                  setShowQuickToolsSheet(false);
-                  setShowShareStory(true);
-                }}
-                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition-all active:scale-[0.98] cursor-pointer"
-              >
-                <div className="w-10 h-10 rounded-xl bg-slate-700/60 flex items-center justify-center text-lg shrink-0">
-                  📸
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-xs text-white truncate">{isVi ? 'Chia sẻ Flex Story' : 'Share Story'}</div>
-                  <div className="text-[11px] text-slate-400 truncate">{isVi ? 'Tạo ảnh story aesthetic khoe tiến độ' : 'Generate aesthetic progress card'}</div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
-              </button>
-
-              {/* 2. Rest Day / Streak Freeze */}
-              <button
-                type="button"
-                onClick={() => {
-                  soundEngine.playPop();
-                  streakFreezeEngine.toggleRestDay(currentUser?.id);
-                  setStreakShield(streakFreezeEngine.getStatus(currentUser?.id));
-                }}
-                className={`w-full flex items-center gap-3 p-3 rounded-2xl border text-left transition-all active:scale-[0.98] cursor-pointer ${
-                  streakShield.isRestDayActive
-                    ? 'bg-lime-500/15 border-lime-500/40'
-                    : 'bg-slate-800/80 border-slate-700/80 hover:bg-slate-800'
-                }`}
-              >
-                <div className="w-10 h-10 rounded-xl bg-slate-700/60 flex items-center justify-center text-lg shrink-0">
-                  {streakShield.isRestDayActive ? '🍵' : '❄️'}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-xs text-white truncate">
-                    {streakShield.isRestDayActive ? (isVi ? 'Ngày nghỉ: Đang BẬT' : 'Rest Day: Active') : (isVi ? 'Bảo vệ chuỗi (Streak Freeze)' : 'Streak Freeze')}
-                  </div>
-                  <div className="text-[11px] text-slate-400 truncate">
-                    {streakShield.isRestDayActive 
-                      ? (isVi ? 'Chuỗi hôm nay được bảo vệ an toàn 100%' : 'Your streak is 100% protected') 
-                      : (isVi ? `Bạn có ${streakShield.freezeCount} lượt băng. Nhấn để bật Ngày nghỉ` : `${streakShield.freezeCount} freezes available. Tap to toggle`)}
-                  </div>
-                </div>
-                <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${streakShield.isRestDayActive ? 'bg-lime-500/20 text-lime-300' : 'bg-slate-700 text-slate-300'}`}>
-                  {streakShield.isRestDayActive ? (isVi ? 'Đang bật' : 'ON') : `${streakShield.freezeCount} ❄️`}
-                </span>
-              </button>
-
-              {/* 3. Vibe Theme */}
-              <button
-                type="button"
-                onClick={() => {
-                  soundEngine.playPop();
-                  setShowQuickToolsSheet(false);
-                  setShowVibeThemeModal(true);
-                }}
-                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition-all active:scale-[0.98] cursor-pointer"
-              >
-                <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-300 flex items-center justify-center text-lg shrink-0">
-                  🎨
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-xs text-white truncate">{isVi ? 'Đổi Tone Màu Vibe Theme' : 'Vibe Theme'}</div>
-                  <div className="text-[11px] text-slate-400 truncate">{isVi ? 'Matcha Latte, Cyber Emerald, Midnight Neon' : 'Switch aesthetic color vibes'}</div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
-              </button>
-
-              {/* 4. Monthly Wrapped */}
-              <button
-                type="button"
-                onClick={() => {
-                  soundEngine.playPop();
-                  setShowQuickToolsSheet(false);
-                  setShowWrappedModal(true);
-                }}
-                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition-all active:scale-[0.98] cursor-pointer"
-              >
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center text-lg shrink-0">
-                  🎉
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-xs text-white truncate">{isVi ? 'Bản tin Tổng kết LifeOS Wrapped' : 'LifeOS Wrapped'}</div>
-                  <div className="text-[11px] text-slate-400 truncate">{isVi ? 'Xem lại toàn bộ thành tựu và chỉ số tháng' : 'Monthly achievements recap'}</div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
-              </button>
-
-              {/* 5. AI Life Buddy Copilot */}
-              <button
-                type="button"
-                onClick={() => {
-                  soundEngine.playPop();
-                  setShowQuickToolsSheet(false);
-                  setShowAiBuddyModal(true);
-                }}
-                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-left transition-all active:scale-[0.98] cursor-pointer"
-              >
-                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-lg shrink-0">
-                  🤖
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-xs text-emerald-300 truncate">{isVi ? 'Trợ lý AI Life Buddy Copilot' : 'AI Life Buddy'}</div>
-                  <div className="text-[11px] text-slate-400 truncate">{isVi ? 'Tâm sự, hỏi đáp chiến lược học tập & thói quen' : 'Chat & get smart life insights'}</div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-emerald-500/60 shrink-0" />
-              </button>
-
-              {/* 6. Persona Quiz */}
-              <button
-                type="button"
-                onClick={() => {
-                  soundEngine.playPop();
-                  setShowQuickToolsSheet(false);
-                  setShowPersonaQuizModal(true);
-                }}
-                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 text-left transition-all active:scale-[0.98] cursor-pointer"
-              >
-                <div className="w-10 h-10 rounded-xl bg-teal-500/20 text-teal-300 flex items-center justify-center text-lg shrink-0">
-                  🎯
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-xs text-white truncate">{isVi ? 'Trắc nghiệm Phong cách Persona' : 'Persona Quiz'}</div>
-                  <div className="text-[11px] text-slate-400 truncate">{isVi ? 'Khám phá kiểu tính cách làm việc & năng lượng' : 'Discover productivity archetype'}</div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-slate-500 shrink-0" />
-              </button>
-
-              {/* 7. Weekly Leaderboard */}
-              <button
-                type="button"
-                onClick={() => {
-                  soundEngine.playPop();
-                  setShowQuickToolsSheet(false);
-                  setShowLeaderboard(true);
-                }}
-                className="w-full flex items-center gap-3 p-3 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-400/30 text-left transition-all active:scale-[0.98] cursor-pointer"
-              >
-                <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center text-lg shrink-0">
-                  🏆
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-xs text-amber-300 truncate">{isVi ? 'Bảng Phong Thần Kỷ Luật Tuần' : 'Discipline Leaderboard'}</div>
-                  <div className="text-[11px] text-slate-400 truncate">{isVi ? 'Vinh danh Top thành viên có streak và focus cao nhất' : 'Hall of Fame weekly rankings'}</div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-amber-500/60 shrink-0" />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
 
-function SummaryCard({ icon: Icon, title, value, subtext, color, bg }: any) {
+function SummaryCard({ icon: Icon, title, value, subtext, color, bg }: {
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  value: string;
+  subtext?: string;
+  color: string;
+  bg: string;
+}) {
   return (
-    <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-4 sm:p-5 rounded-3xl border border-purple-100/60 dark:border-purple-900/40 shadow-xs hover:shadow-xl hover:shadow-purple-500/10 flex flex-col justify-between card-cute transition-all">
-      <div className="flex items-center gap-2.5 mb-3">
-        <div className={`p-2 rounded-2xl ${bg} ${color} shadow-2xs`}>
+    <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+      <div className="flex items-center gap-2.5 mb-2.5">
+        <div className={`p-2 rounded-xl ${bg} ${color}`}>
           <Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
         </div>
-        <h4 className="text-[11px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider">{title}</h4>
+        <h4 className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{title}</h4>
       </div>
       <div>
-        <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">{value}</div>
-        {subtext && <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 truncate">{subtext}</div>}
+        <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight font-mono">{value}</div>
+        {subtext && <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 truncate">{subtext}</div>}
       </div>
     </div>
   );
