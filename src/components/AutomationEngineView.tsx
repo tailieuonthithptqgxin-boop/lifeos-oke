@@ -776,62 +776,62 @@ export function AutomationEngineView() {
   };
 
   return (
-    <div className="flex-1 bg-slate-950 text-slate-100 min-h-screen flex flex-col overflow-x-hidden w-full min-w-0 max-w-full">
+    <div className="flex-1 bg-[#090D16] text-slate-100 min-h-screen flex flex-col overflow-x-hidden w-full min-w-0 max-w-full font-sans antialiased">
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-5 right-5 z-50 bg-indigo-600 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-indigo-400/30 animate-bounce">
-          <Zap className="w-5 h-5 text-amber-300" />
-          <span className="text-sm font-medium">{toastMessage}</span>
+        <div className="fixed top-5 right-5 z-50 bg-[#1E293B] text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-white/10 animate-fade-in backdrop-blur-md">
+          <Zap className="w-4 h-4 text-indigo-400" />
+          <span className="text-xs font-medium text-slate-200">{toastMessage}</span>
         </div>
       )}
 
       {/* HEADER BAR */}
-      <div className="border-b border-slate-800 bg-slate-900/90 backdrop-blur px-3.5 sm:px-6 py-3.5 sm:py-4 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 sticky top-0 z-20 w-full min-w-0">
+      <div className="border-b border-white/10 bg-[#090D16]/95 backdrop-blur-md px-4 sm:px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 z-20 w-full min-w-0">
         <div>
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-tr from-indigo-600 to-violet-500 rounded-xl shadow-md">
-              <Workflow className="w-6 h-6 text-white" />
+            <div className="p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400 flex items-center justify-center">
+              <Workflow className="w-5 h-5 stroke-[1.8]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-white tracking-tight">⚙️ Automation Rules Engine</h1>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-semibold border border-indigo-500/30">
-                  Rule System v2.0
+                <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight">Automation Rules Engine</h1>
+                <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 font-semibold border border-indigo-500/20">
+                  v2.4 PRO
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Cấu trúc WHEN [Trigger] → IF [Condition] → THEN [Action] | Minh bạch • Không cần AI • Phân tầng Bảo mật Safe-Guard
+              <p className="text-xs text-slate-400 mt-0.5 font-normal">
+                Deterministic WHEN-IF-THEN workflow engine • Multi-tier safe guard security
               </p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2.5 flex-wrap">
           {pendingApprovalsCount > 0 && (
             <button type="button"
               onClick={() => setActiveTab('approvals')}
-              className="px-3 py-2 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-semibold rounded-lg border border-rose-500/40 flex items-center gap-2 transition-all animate-pulse"
+              className="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-medium rounded-lg border border-rose-500/30 flex items-center gap-2 transition-all cursor-pointer"
             >
-              <AlertTriangle className="w-4 h-4 text-rose-400" />
-              <span>Chờ phê duyệt Level 3 ({pendingApprovalsCount})</span>
+              <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+              <span>Chờ duyệt Level 3 ({pendingApprovalsCount})</span>
             </button>
           )}
 
           <button type="button"
             onClick={handleExecuteLiveAutomation}
-            className="px-3.5 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 hover:text-white text-xs font-bold rounded-lg border border-emerald-500/40 transition-all flex items-center gap-2 shadow-xs cursor-pointer"
+            className="px-3.5 py-2 bg-transparent hover:bg-white/5 text-slate-300 hover:text-white text-xs font-medium rounded-lg border border-white/10 transition-all flex items-center gap-2 cursor-pointer"
             title="Quét và thực thi ngay các luật đang bật trên dữ liệu thực tế"
           >
-            <Zap className="w-4 h-4 text-emerald-400" />
-            <span>Chạy Quét Tự Động Ngay</span>
+            <Zap className="w-3.5 h-3.5 text-slate-400" />
+            <span>Chạy Quét Tự Động</span>
           </button>
 
           <button type="button"
             onClick={() => setActiveTab('templates')}
-            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-lg border border-slate-700 transition-all flex items-center gap-2"
+            className="px-3.5 py-2 bg-transparent hover:bg-white/5 text-slate-300 hover:text-white text-xs font-medium rounded-lg border border-white/10 transition-all flex items-center gap-2 cursor-pointer"
           >
-            <Sparkles className="w-4 h-4 text-amber-400" />
-            <span>Thư viện Mẫu (16 Mẫu)</span>
+            <Sparkles className="w-3.5 h-3.5 text-slate-400" />
+            <span>Thư viện Mẫu</span>
           </button>
 
           <button type="button"
@@ -839,27 +839,27 @@ export function AutomationEngineView() {
               resetBuilderForm();
               setActiveTab('builder');
             }}
-            className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white text-xs font-semibold rounded-lg shadow-lg shadow-indigo-600/20 transition-all flex items-center gap-2"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg shadow-sm shadow-indigo-600/30 transition-all flex items-center gap-2 cursor-pointer"
           >
-            <Plus className="w-4 h-4" />
+            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>Tạo Luật Mới</span>
           </button>
         </div>
       </div>
 
       {/* NAVIGATION TABS */}
-      <div className="border-b border-slate-800 bg-slate-900/50 px-6 py-2 flex items-center gap-1 overflow-x-auto custom-scrollbar">
+      <div className="border-b border-white/10 bg-[#090D16]/60 px-4 sm:px-6 py-1.5 flex items-center gap-1 overflow-x-auto custom-scrollbar">
         {[
           { id: 'dashboard', label: 'Dashboard Engine', icon: LayoutTemplate },
           { id: 'rules', label: `Danh sách Luật (${automationRules.length})`, icon: Workflow },
-          { id: 'builder', label: 'Trình dựng Luật (WHEN-IF-THEN)', icon: Sliders },
+          { id: 'builder', label: 'Trình dựng Luật', icon: Sliders },
           { id: 'templates', label: 'Thư viện Mẫu', icon: Sparkles },
           { id: 'approvals', label: `Phê duyệt Level 3 (${pendingApprovalsCount})`, icon: ShieldAlert, badge: pendingApprovalsCount },
-          { id: 'simulation', label: 'Kiểm thử Luật (Test)', icon: Play },
-          { id: 'scheduled', label: 'Luật Lịch trình', icon: Calendar },
+          { id: 'simulation', label: 'Kiểm thử Luật', icon: Play },
+          { id: 'scheduled', label: 'Lịch trình', icon: Calendar },
           { id: 'analytics', label: 'Thống kê', icon: BarChart3 },
           { id: 'history', label: 'Lịch sử & Audit Log', icon: History },
-          { id: 'conflicts', label: `Kiểm tra Xung đột (${automationConflicts.length})`, icon: GitCompare, badge: automationConflicts.length }
+          { id: 'conflicts', label: `Xung đột (${automationConflicts.length})`, icon: GitCompare, badge: automationConflicts.length }
         ].map(tab => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -868,18 +868,21 @@ export function AutomationEngineView() {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all",
+                "relative flex items-center gap-2 px-3 py-2 text-xs font-medium whitespace-nowrap transition-all rounded-lg",
                 isActive
-                  ? "bg-indigo-600/20 text-indigo-300 border border-indigo-500/40 shadow-sm font-semibold"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                  ? "text-white bg-white/5 font-semibold"
+                  : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
               )}
             >
-              <Icon className="w-3.5 h-3.5" />
+              <Icon className="w-3.5 h-3.5 stroke-[1.8]" />
               <span>{tab.label}</span>
               {!!tab.badge && tab.badge > 0 && (
-                <span className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-rose-500 text-white font-bold">
+                <span className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-rose-500/80 text-white font-mono font-bold">
                   {tab.badge}
                 </span>
+              )}
+              {isActive && (
+                <span className="absolute bottom-0 left-2 right-2 h-[2px] bg-indigo-500 rounded-full" />
               )}
             </button>
           );
@@ -887,86 +890,79 @@ export function AutomationEngineView() {
       </div>
 
       {/* MAIN VIEW CONTENT AREA */}
-      <div className="flex-1 p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 max-w-7xl mx-auto w-full min-w-0 max-w-full overflow-x-hidden">
+      <div className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full min-w-0 max-w-full overflow-x-hidden">
         {/* ================================================================== */}
         {/* TAB 1: DASHBOARD ENGINE */}
         {/* ================================================================== */}
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
-            {/* KPI METRICS */}
+            {/* KPI METRICS (4 BENTO CARDS) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="card-cute bg-white/90 dark:bg-slate-900/90 border border-purple-100/70 dark:border-slate-800 p-5 rounded-3xl relative overflow-hidden shadow-xs">
+              <div className="bg-[#1E293B]/70 hover:bg-[#1E293B] border border-white/10 p-5 rounded-2xl relative overflow-hidden transition-all shadow-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Tổng số Luật Tự động</span>
-                  <div className="p-2 bg-indigo-50 dark:bg-indigo-950/50 text-indigo-500 rounded-xl">
-                    <Workflow className="w-5 h-5 stroke-[2.2]" />
-                  </div>
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider font-mono">TỔNG SỐ LUẬT</span>
+                  <Workflow className="w-4 h-4 text-slate-400 stroke-[1.7]" />
                 </div>
                 <div className="mt-3 flex items-baseline justify-between">
-                  <span className="text-2xl font-black text-slate-900 dark:text-white">{totalRulesCount}</span>
-                  <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> {activeRulesCount} Bật ({Math.round((activeRulesCount / (totalRulesCount || 1)) * 100)}%)
+                  <span className="text-2xl font-bold font-mono tabular-nums text-white">{totalRulesCount}</span>
+                  <span className="text-xs font-mono text-emerald-400 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
+                    {activeRulesCount} Hoạt động ({Math.round((activeRulesCount / (totalRulesCount || 1)) * 100)}%)
                   </span>
                 </div>
-                <div className="mt-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                  {disabledRulesCount} luật đang tạm tắt
+                <div className="mt-2 text-[11px] text-slate-500">
+                  {disabledRulesCount} quy tắc tạm dừng
                 </div>
               </div>
 
-              <div className="card-cute bg-white/90 dark:bg-slate-900/90 border border-purple-100/70 dark:border-slate-800 p-5 rounded-3xl relative overflow-hidden shadow-xs">
+              <div className="bg-[#1E293B]/70 hover:bg-[#1E293B] border border-white/10 p-5 rounded-2xl relative overflow-hidden transition-all shadow-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-blue-600 dark:text-blue-400 uppercase tracking-wider">Số lượt Chạy Hôm nay</span>
-                  <div className="p-2 bg-blue-50 dark:bg-blue-950/50 text-blue-500 rounded-xl">
-                    <Zap className="w-5 h-5 stroke-[2.2]" />
-                  </div>
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider font-mono">LƯỢT THỰC THI (24H)</span>
+                  <Zap className="w-4 h-4 text-slate-400 stroke-[1.7]" />
                 </div>
                 <div className="mt-3 flex items-baseline justify-between">
-                  <span className="text-2xl font-black text-slate-900 dark:text-white">{totalExecutionsToday}</span>
-                  <span className="text-xs font-black text-blue-600 dark:text-blue-400">100% Thành công</span>
+                  <span className="text-2xl font-bold font-mono tabular-nums text-white">{totalExecutionsToday}</span>
+                  <span className="text-xs font-mono text-indigo-400">100% Thành công</span>
                 </div>
-                <div className="mt-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                  Tự động xử lý trong 24h qua ⚡
+                <div className="mt-2 text-[11px] text-slate-500">
+                  Tự động hóa thông suốt 24h qua
                 </div>
               </div>
 
-              <div className="card-cute bg-white/90 dark:bg-slate-900/90 border border-purple-100/70 dark:border-slate-800 p-5 rounded-3xl relative overflow-hidden shadow-xs">
+              <div className="bg-[#1E293B]/70 hover:bg-[#1E293B] border border-white/10 p-5 rounded-2xl relative overflow-hidden transition-all shadow-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider">Yêu cầu Duyệt Level 3</span>
-                  <div className="p-2 bg-rose-50 dark:bg-rose-950/50 text-rose-500 rounded-xl">
-                    <ShieldAlert className="w-5 h-5 stroke-[2.2]" />
-                  </div>
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider font-mono">YÊU CẦU DUYỆT (LEVEL 3)</span>
+                  <ShieldAlert className="w-4 h-4 text-slate-400 stroke-[1.7]" />
                 </div>
                 <div className="mt-3 flex items-baseline justify-between">
-                  <span className="text-2xl font-black text-slate-900 dark:text-white">{pendingApprovalsCount}</span>
-                  <span className="text-xs font-black text-rose-600 dark:text-rose-400">Chờ người dùng</span>
+                  <span className="text-2xl font-bold font-mono tabular-nums text-white">{pendingApprovalsCount}</span>
+                  <span className="text-xs font-mono text-rose-400">Chờ xác nhận</span>
                 </div>
-                <div className="mt-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                  Bảo vệ khoản chi & tác vụ nhạy cảm 🛡️
+                <div className="mt-2 text-[11px] text-slate-500">
+                  Bảo vệ tác vụ ngân sách & dữ liệu nhạy cảm
                 </div>
               </div>
 
-              <div className="card-cute bg-white/90 dark:bg-slate-900/90 border border-purple-100/70 dark:border-slate-800 p-5 rounded-3xl relative overflow-hidden shadow-xs">
+              <div className="bg-[#1E293B]/70 hover:bg-[#1E293B] border border-white/10 p-5 rounded-2xl relative overflow-hidden transition-all shadow-sm">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Ước tính Tiết kiệm</span>
-                  <div className="p-2 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-500 rounded-xl">
-                    <Clock className="w-5 h-5 stroke-[2.2]" />
-                  </div>
+                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider font-mono">TIẾT KIỆM THỜI GIAN</span>
+                  <Clock className="w-4 h-4 text-slate-400 stroke-[1.7]" />
                 </div>
                 <div className="mt-3 flex items-baseline justify-between">
-                  <span className="text-2xl font-black text-slate-900 dark:text-white">{(totalTimeSavedMinutes / 60).toFixed(1)} giờ</span>
-                  <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">+{totalTimeSavedMinutes} phút</span>
+                  <span className="text-2xl font-bold font-mono tabular-nums text-white">{(totalTimeSavedMinutes / 60).toFixed(1)}h</span>
+                  <span className="text-xs font-mono text-emerald-400">+{totalTimeSavedMinutes}m</span>
                 </div>
-                <div className="mt-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                  Thời gian thao tác thủ công giảm bớt ✨
+                <div className="mt-2 text-[11px] text-slate-500">
+                  Giảm thiểu thao tác thủ công định kỳ
                 </div>
               </div>
             </div>
 
-            {/* MODULE CATEGORY CHIPS */}
-            <div className="bg-slate-900/60 border border-slate-800 p-4 rounded-2xl flex items-center justify-between gap-4 flex-wrap">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 custom-scrollbar">
-                <span className="text-xs font-semibold text-slate-400 mr-2 flex items-center gap-1">
-                  <Filter className="w-3.5 h-3.5" /> Module:
+            {/* MODULE CATEGORY CHIPS & SEARCH */}
+            <div className="bg-[#1E293B]/40 border border-white/10 p-3 sm:p-4 rounded-2xl flex items-center justify-between gap-4 flex-wrap">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
+                <span className="text-xs font-medium text-slate-400 mr-1 flex items-center gap-1 shrink-0">
+                  <Filter className="w-3.5 h-3.5 text-slate-500" /> Module:
                 </span>
                 {[
                   'All', 'Task', 'Schedule', 'Project', 'Goal', 'Study', 'Habit', 'Finance', 'Focus', 'Daily', 'Notification', 'Notes', 'System'
@@ -977,8 +973,8 @@ export function AutomationEngineView() {
                     className={cn(
                       "px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap",
                       selectedCategory === cat
-                        ? "bg-indigo-600 text-white shadow-md"
-                        : "bg-slate-800 text-slate-400 hover:text-white hover:bg-slate-700"
+                        ? "bg-indigo-600 text-white font-semibold shadow-sm"
+                        : "bg-[#0F172A] text-slate-400 hover:text-white hover:bg-slate-800 border border-white/5"
                     )}
                   >
                     {cat === 'All' ? 'Tất cả Module' : cat}
@@ -987,13 +983,13 @@ export function AutomationEngineView() {
               </div>
 
               <div className="relative w-full sm:w-64">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                 <input
                   type="text"
                   placeholder="Tìm kiếm luật tự động..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  className="w-full bg-[#0F172A] border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono transition-colors"
                 />
               </div>
             </div>
@@ -1001,18 +997,18 @@ export function AutomationEngineView() {
             {/* RULE CARDS GRID */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Workflow className="w-4 h-4 text-indigo-400" /> Các Luật Tự Động Đang Hoạt Động ({filteredRules.length})
+                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                  <Workflow className="w-4 h-4 text-indigo-400 stroke-[1.8]" /> CÁC LUẬT TỰ ĐỘNG ĐANG HOẠT ĐỘNG ({filteredRules.length})
                 </h2>
-                <span className="text-xs text-slate-500">
-                  Hiển thị theo module: <strong className="text-indigo-300">{selectedCategory}</strong>
+                <span className="text-xs text-slate-500 font-mono">
+                  Module: <strong className="text-indigo-400 font-medium">{selectedCategory}</strong>
                 </span>
               </div>
 
               {filteredRules.length === 0 ? (
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-500 space-y-3">
-                  <div className="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center mx-auto text-slate-400">
-                    <Workflow className="w-6 h-6" />
+                <div className="bg-[#1E293B]/40 border border-white/10 rounded-2xl p-12 text-center text-slate-500 space-y-3">
+                  <div className="w-12 h-12 bg-[#0F172A] border border-white/5 rounded-2xl flex items-center justify-center mx-auto text-slate-400">
+                    <Workflow className="w-6 h-6 stroke-[1.5]" />
                   </div>
                   <p className="text-sm font-medium text-slate-400">Không tìm thấy luật tự động nào phù hợp</p>
                   <button type="button"
@@ -1020,7 +1016,7 @@ export function AutomationEngineView() {
                       setSelectedCategory('All');
                       setSearchQuery('');
                     }}
-                    className="text-xs text-indigo-400 hover:underline font-medium"
+                    className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors cursor-pointer"
                   >
                     Xóa bộ lọc
                   </button>
@@ -1031,21 +1027,21 @@ export function AutomationEngineView() {
                     <div
                       key={rule.id}
                       className={cn(
-                        "bg-slate-900 border p-5 rounded-2xl space-y-4 transition-all relative overflow-hidden group hover:border-slate-700",
-                        rule.enabled ? "border-slate-800" : "border-slate-800/50 opacity-70"
+                        "bg-[#1E293B]/70 hover:bg-[#1E293B] border p-5 rounded-2xl space-y-4 transition-all relative overflow-hidden group shadow-sm",
+                        rule.enabled ? "border-white/10" : "border-white/5 opacity-60"
                       )}
                     >
                       {/* Top Header */}
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-indigo-300 border border-slate-700">
+                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#0F172A] text-indigo-300 border border-white/10">
                               {rule.category}
                             </span>
                             {renderPriorityBadge(rule.priority)}
                             {renderSensitivityBadge(rule.sensitivityLevel)}
                           </div>
-                          <h3 className="text-base font-semibold text-white group-hover:text-indigo-300 transition-colors">
+                          <h3 className="text-sm sm:text-base font-semibold text-white group-hover:text-indigo-300 transition-colors tracking-tight">
                             {rule.title}
                           </h3>
                         </div>
@@ -1055,51 +1051,51 @@ export function AutomationEngineView() {
                           onClick={() => toggleAutomationRule(rule.id)}
                           className={cn(
                             "w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 flex-shrink-0 cursor-pointer",
-                            rule.enabled ? "bg-emerald-600" : "bg-slate-700"
+                            rule.enabled ? "bg-indigo-600" : "bg-slate-700"
                           )}
                           title={rule.enabled ? "Đang Bật - Bấm để Tắt" : "Đang Tắt - Bấm để Bật"}
                         >
                           <div
                             className={cn(
-                              "w-5 h-5 bg-white rounded-full transition-transform shadow-md",
+                              "w-5 h-5 bg-white rounded-full transition-transform shadow-sm",
                               rule.enabled ? "translate-x-5" : "translate-x-0"
                             )}
                           />
                         </button>
                       </div>
 
-                      <p className="text-xs text-slate-400 line-clamp-2">
+                      <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
                         {rule.description}
                       </p>
 
                       {/* WHEN - IF - THEN Flow Summary */}
-                      <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-1.5 text-xs font-mono">
-                        <div className="flex items-center gap-2 text-indigo-300">
-                          <span className="font-bold text-amber-400">WHEN</span>
-                          <span className="text-slate-300">{rule.trigger.type} ({rule.trigger.targetModule})</span>
+                      <div className="bg-[#090D16]/90 p-3.5 rounded-xl border border-white/5 space-y-2 text-xs font-mono">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-amber-400/90 text-[11px] uppercase tracking-wider w-12 shrink-0">WHEN</span>
+                          <span className="text-slate-300 truncate">{rule.trigger.type} ({rule.trigger.targetModule})</span>
                         </div>
-                        <div className="flex items-center gap-2 text-slate-400">
-                          <span className="font-bold text-blue-400">IF</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-indigo-400/90 text-[11px] uppercase tracking-wider w-12 shrink-0">IF</span>
                           <span className="text-slate-300 truncate">
                             {rule.conditionGroups[0]?.conditions.map(c => `${c.field} ${c.operator} ${c.value}`).join(' AND ') || 'Tất cả điều kiện'}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-emerald-300">
-                          <span className="font-bold text-emerald-400">THEN</span>
-                          <span className="text-slate-300">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-emerald-400/90 text-[11px] uppercase tracking-wider w-12 shrink-0">THEN</span>
+                          <span className="text-slate-300 truncate">
                             {rule.actions.map(a => a.type).join(', ')}
                           </span>
                         </div>
                       </div>
 
                       {/* Footer Stats & Controls */}
-                      <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-500">
-                        <div className="flex items-center gap-3">
-                          <span className="flex items-center gap-1">
+                      <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-500 font-mono">
+                        <div className="flex items-center gap-4">
+                          <span className="flex items-center gap-1.5 text-slate-400">
                             <Zap className="w-3.5 h-3.5 text-amber-400" /> {rule.executionCount} lượt
                           </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 text-blue-400" /> {rule.timeSavedMinutes}m tiết kiệm
+                          <span className="flex items-center gap-1.5 text-slate-400">
+                            <Clock className="w-3.5 h-3.5 text-indigo-400" /> {rule.timeSavedMinutes}m tiết kiệm
                           </span>
                         </div>
 
@@ -1110,14 +1106,14 @@ export function AutomationEngineView() {
                               handleRunSimulation(rule.id);
                               setActiveTab('simulation');
                             }}
-                            className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-indigo-400 transition-colors"
+                            className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-indigo-400 transition-colors cursor-pointer"
                             title="Chạy Mô phỏng Test"
                           >
                             <Play className="w-3.5 h-3.5" />
                           </button>
                           <button type="button"
                             onClick={() => loadRuleIntoBuilder(rule)}
-                            className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors"
+                            className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
                             title="Sửa Cấu hình Luật"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
@@ -1127,7 +1123,7 @@ export function AutomationEngineView() {
                               deleteAutomationRule(rule.id);
                               showToast('Đã xóa luật tự động');
                             }}
-                            className="p-1.5 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-rose-400 transition-colors"
+                            className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
                             title="Xóa Luật"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
