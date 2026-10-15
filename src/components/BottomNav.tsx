@@ -19,8 +19,16 @@ export function BottomNav() {
     t => t.status !== 'Hoàn thành' && t.status !== 'Hủy' && t.status !== 'Completed' && t.status !== 'Cancelled'
   ).length;
 
+  const handleTabPress = (view: ViewState) => {
+    try { soundEngine.playPop(); } catch {}
+    setShowQuickActionSheet(false);
+    if (currentView !== view) {
+      setCurrentView(view);
+    }
+  };
+
   const handleOpenAction = (view: ViewState) => {
-    soundEngine.playPop();
+    try { soundEngine.playPop(); } catch {}
     setShowQuickActionSheet(false);
     setCurrentView(view);
   };
@@ -38,10 +46,7 @@ export function BottomNav() {
           <button
             id="mobile-tab-dashboard"
             type="button"
-            onClick={() => {
-              soundEngine.playPop();
-              setCurrentView('dashboard');
-            }}
+            onClick={() => handleTabPress('dashboard')}
             className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer min-h-[44px] ${
               currentView === 'dashboard'
                 ? 'text-emerald-600 dark:text-emerald-400 font-black'
@@ -61,10 +66,7 @@ export function BottomNav() {
           <button
             id="mobile-tab-tasks"
             type="button"
-            onClick={() => {
-              soundEngine.playPop();
-              setCurrentView('tasks');
-            }}
+            onClick={() => handleTabPress('tasks')}
             className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer min-h-[44px] ${
               currentView === 'tasks'
                 ? 'text-emerald-600 dark:text-emerald-400 font-black'
@@ -109,10 +111,7 @@ export function BottomNav() {
           <button
             id="mobile-tab-focus"
             type="button"
-            onClick={() => {
-              soundEngine.playPop();
-              setCurrentView('focus');
-            }}
+            onClick={() => handleTabPress('focus')}
             className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer min-h-[44px] ${
               currentView === 'focus'
                 ? 'text-emerald-600 dark:text-emerald-400 font-black'
@@ -133,7 +132,8 @@ export function BottomNav() {
             id="mobile-tab-menu"
             type="button"
             onClick={() => {
-              soundEngine.playPop();
+              try { soundEngine.playPop(); } catch {}
+              setShowQuickActionSheet(false);
               toggleMobileMenu();
             }}
             className="flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl text-slate-500 dark:text-slate-400 hover:text-emerald-600 font-semibold transition-all cursor-pointer min-h-[44px]"

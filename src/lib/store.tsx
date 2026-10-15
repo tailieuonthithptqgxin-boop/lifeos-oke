@@ -466,7 +466,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       console.warn('Failed to reset onboarding status:', err);
     }
   };
-  const setCurrentView = (view: ViewState) => setState(s => ({ ...s, currentView: view }));
+
+  const setCurrentView = (view: ViewState) => {
+    setState(s => ({ ...s, currentView: view, isMobileMenuOpen: false }));
+    try {
+      if (typeof window !== 'undefined' && window.history && window.history.replaceState) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('tab', view);
+        window.history.replaceState({ tab: view }, '', url.toString());
+      }
+    } catch {}
+  };
   const setWorkspaceMode = (mode: WorkspaceMode) => setState(s => ({ ...s, workspaceMode: mode }));
   const toggleCommand = () => setState(s => ({ ...s, isCommandOpen: !s.isCommandOpen }));
   

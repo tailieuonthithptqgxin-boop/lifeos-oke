@@ -67,12 +67,10 @@ body {
 /* Micro-interaction & Keyframe Animations */
 @keyframes pageFadeIn {
   from {
-    opacity: 0;
-    transform: translateY(4px);
+    opacity: 0.95;
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 

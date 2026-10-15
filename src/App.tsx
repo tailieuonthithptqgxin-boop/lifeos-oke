@@ -341,7 +341,7 @@ function AppContent() {
       currentView === 'admin';
 
     return (
-      <div key={currentView} className="relative min-h-full flex flex-col flex-1 animate-page-enter">
+      <div className="relative min-h-full flex flex-col flex-1">
         {renderView()}
         {!hasSubAccess && !isUnrestrictedView && (
           <LockedWorkspaceOverlay />
