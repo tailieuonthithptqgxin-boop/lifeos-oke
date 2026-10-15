@@ -65,10 +65,17 @@ export const PRESET_MODES = [
 
 export function getVisibleNavModules(): string[] {
   try {
+    const validIds = new Set(NAV_MODULE_METADATA.map(m => m.id as string));
     const raw = localStorage.getItem('lifeos_visible_modules');
     if (!raw) return NAV_MODULE_METADATA.map(m => m.id);
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      const filtered = parsed.filter((id: string) => validIds.has(id));
+      if (filtered.length !== parsed.length) {
+        localStorage.setItem('lifeos_visible_modules', JSON.stringify(filtered.length > 0 ? filtered : NAV_MODULE_METADATA.map(m => m.id)));
+      }
+      return filtered.length > 0 ? filtered : NAV_MODULE_METADATA.map(m => m.id);
+    }
     return NAV_MODULE_METADATA.map(m => m.id);
   } catch {
     return NAV_MODULE_METADATA.map(m => m.id);

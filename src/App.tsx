@@ -96,6 +96,12 @@ function AppContent() {
     else document.documentElement.classList.remove("dark");
   }, [theme]);
 
+  React.useEffect(() => {
+    if ((currentView as string) === 'notifications' || (currentView as string) === 'notification_settings') {
+      setCurrentView('dashboard');
+    }
+  }, [currentView, setCurrentView]);
+
   const t = useTranslation(language);
 
   // Global I18n Observer: Ensures 100% of rendered DOM text and placeholders match the active language

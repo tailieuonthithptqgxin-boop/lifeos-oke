@@ -5,6 +5,18 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import './index.css';
 import { registerPwaServiceWorker } from './lib/pwa';
 
+// Clean up deprecated notification entries from localStorage if present
+try {
+  const visible = localStorage.getItem('lifeos_visible_modules');
+  if (visible && visible.includes('notification')) {
+    const parsed = JSON.parse(visible);
+    if (Array.isArray(parsed)) {
+      const cleaned = parsed.filter((id: string) => !id.includes('notification'));
+      localStorage.setItem('lifeos_visible_modules', JSON.stringify(cleaned));
+    }
+  }
+} catch (e) {}
+
 // Initialize PWA Service Worker for offline capability & desktop/mobile installation
 registerPwaServiceWorker();
 

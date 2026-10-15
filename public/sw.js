@@ -8,7 +8,7 @@
  * 4. Cache Versioning & Self-Cleanup: Tự động dọn dẹp các cache cũ khi triển khai bản mới.
  */
 
-const CACHE_VERSION = 'quan-li-ca-nhan-v1.0.0';
+const CACHE_VERSION = 'quan-li-ca-nhan-v2.0.0-clean';
 const STATIC_CACHE_NAME = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE_NAME = `runtime-${CACHE_VERSION}`;
 
