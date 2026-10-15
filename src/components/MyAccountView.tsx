@@ -25,7 +25,8 @@ import {
   Smartphone,
   LogOut,
   FileJson,
-  Loader2
+  Loader2,
+  Bell
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { apiCall } from '../lib/apiClient';
@@ -481,6 +482,37 @@ export function MyAccountView() {
             {isSaving ? 'Đang lưu...' : 'Lưu Thay Đổi'}
           </button>
         </form>
+      </div>
+
+      {/* Multi-Channel Notification Settings Card */}
+      <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-cyan-50 dark:from-emerald-950/30 dark:via-teal-950/30 dark:to-cyan-950/30 border border-emerald-200 dark:border-emerald-800/60 rounded-3xl p-6 sm:p-7 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center gap-4">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-bold shrink-0 shadow-md shadow-emerald-600/20">
+            <Bell className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg">
+                Thông Báo Đa Kênh (Web Push PWA, Lịch .ics & Messenger)
+              </h3>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+                HTTPS 443
+              </span>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-xl">
+              Nhận thông báo nổ trên màn hình khóa điện thoại, đồng bộ lịch vào iPhone/Google Calendar và tin nhắn Messenger không lo bị chặn SMTP.
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setCurrentView('notifications')}
+          className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all self-start sm:self-auto shadow-xs cursor-pointer shrink-0"
+        >
+          <span>Thiết lập ngay</span>
+          <ArrowRight className="w-4 h-4" />
+        </button>
       </div>
 
       {/* Pending Payment Request Notification Banner */}

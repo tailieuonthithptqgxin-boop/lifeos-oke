@@ -12,6 +12,7 @@ export type ViewState =
   | 'decision'
   | 'automation'
   | 'account'
+  | 'notifications'
   | 'marketplace'
   | 'cart'
   | 'checkout'

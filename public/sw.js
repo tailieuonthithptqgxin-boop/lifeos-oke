@@ -181,3 +181,77 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   }
 });
+
+// 5. PUSH EVENT: Nổ thông báo màn hình khóa (Lock screen push notification)
+self.addEventListener('push', (event) => {
+  let payload = {
+    title: 'Life OS Notification',
+    body: 'Bạn có thông báo mới từ hệ thống Life OS!',
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/icon-192x192.png',
+    url: '/',
+    tag: 'lifeos-push-' + Date.now(),
+    vibrate: [200, 100, 200, 100, 200]
+  };
+
+  try {
+    if (event.data) {
+      const json = event.data.json();
+      payload = { ...payload, ...json };
+    }
+  } catch (e) {
+    if (event.data) {
+      payload.body = event.data.text();
+    }
+  }
+
+  const options = {
+    body: payload.body,
+    icon: payload.icon || '/icons/icon-192x192.png',
+    badge: payload.badge || '/icons/icon-192x192.png',
+    vibrate: payload.vibrate || [200, 100, 200, 100, 200],
+    tag: payload.tag || 'lifeos-alert',
+    renotify: true,
+    data: {
+      url: payload.url || (payload.data && payload.data.url) || '/'
+    },
+    actions: [
+      { action: 'open', title: 'Xem chi tiết' },
+      { action: 'close', title: 'Đóng' }
+    ]
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title, options)
+  );
+});
+
+// 6. NOTIFICATION CLICK EVENT: Xử lý bấm vào thông báo mở đúng URL
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'close') {
+    return;
+  }
+
+  const targetUrl = (event.notification.data && event.notification.data.url) 
+    ? event.notification.data.url 
+    : '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // 1. Nếu có tab Life OS đang mở, navigate và focus vào tab đó
+      for (const client of windowClients) {
+        if (client.url && 'focus' in client) {
+          client.navigate(targetUrl);
+          return client.focus();
+        }
+      }
+      // 2. Nếu chưa có tab nào mở, mở cửa sổ mới
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+

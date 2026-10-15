@@ -8,6 +8,7 @@ export type AdminTab =
   | 'storage' 
   | 'custom_modules' 
   | 'gmail_config'
+  | 'notification_center'
   | 'referrals'
   | 'feedback'
   | 'announcements';

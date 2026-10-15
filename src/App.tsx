@@ -46,6 +46,7 @@ const ReferralView = lazyWithRetry(() => import('./components/ReferralView'), 'R
 const FeedbackView = lazyWithRetry(() => import('./components/FeedbackView'), 'FeedbackView');
 const DynamicModuleView = lazyWithRetry(() => import('./components/DynamicModuleView'), 'DynamicModuleView');
 const JourneyView = lazyWithRetry(() => import('./components/JourneyView'), 'JourneyView');
+const NotificationSettings = lazyWithRetry(() => import('./components/NotificationSettings'), 'NotificationSettings');
 
 
 
@@ -309,6 +310,8 @@ function AppContent() {
       case 'automation_engine': return <AutomationEngineView />;
       case 'marketplace': return <MarketplaceView />;
       case 'cart': return <CartView />;
+      case 'notifications':
+      case 'notification_settings': return <NotificationSettings />;
       case 'account':
       case 'my_account': return <MyAccountView />;
       case 'subscription': return <SubscriptionManagementView />;
@@ -332,6 +335,8 @@ function AppContent() {
       currentView === 'subscription' ||
       currentView === 'checkout' ||
       currentView === 'account' ||
+      currentView === 'notifications' ||
+      currentView === 'notification_settings' ||
       currentView === 'admin';
 
     return (

@@ -27,7 +27,8 @@ import {
   Layers,
   Gift,
   MessageSquare,
-  Compass
+  Compass,
+  Bell
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { useTranslation } from '../lib/i18n';
@@ -67,6 +68,7 @@ const SPACES_ITEMS: NavItem[] = [
 const SYSTEM_ITEMS: NavItem[] = [
   { id: 'marketplace', label: 'Templates Marketplace', icon: ShoppingBag },
   { id: 'automation', label: 'Automation Rules', icon: Cpu },
+  { id: 'notifications', label: 'Notifications & Sync', icon: Bell },
   { id: 'decision', label: 'Decision Engine', icon: GitBranch },
   { id: 'subscription', label: 'Plans & Team', icon: CreditCard },
   { id: 'referral', label: 'Referral 20%', icon: Gift },

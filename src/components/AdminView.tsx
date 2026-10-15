@@ -14,6 +14,7 @@ import {
   MessageSquare,
   CreditCard,
   Megaphone,
+  BellRing,
   X
 } from 'lucide-react';
 import { apiCall } from '../lib/apiClient';
@@ -40,6 +41,7 @@ import { AdminGmailConfigTab } from './admin/AdminGmailConfigTab';
 import { AdminReferralsTab } from './admin/AdminReferralsTab';
 import { AdminFeedbackTab } from './admin/AdminFeedbackTab';
 import { AdminAnnouncementsTab } from './admin/AdminAnnouncementsTab';
+import { AdminNotificationCenter } from './admin/AdminNotificationCenter';
 
 export type { ServicePlan, LanguageItem };
 
@@ -843,6 +845,19 @@ export function AdminView() {
             <Megaphone className="w-3.5 h-3.5" />
             <span>Thông Báo & Broadcast</span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('notification_center')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'notification_center'
+                ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs ring-1 ring-emerald-100 dark:ring-emerald-900'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <BellRing className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+            <span>Kênh Thông Báo (Push/Lịch/FB - 443)</span>
+          </button>
         </div>
       </div>
 
@@ -1022,6 +1037,13 @@ export function AdminView() {
       {activeTab === 'announcements' && (
         <div className="space-y-6 animate-in fade-in duration-150">
           <AdminAnnouncementsTab onShowMessage={setMessage} />
+        </div>
+      )}
+
+      {/* Tab 12: 3-Channel Notification Center (HTTPS 443 Web Push, Calendar .ics, Messenger) */}
+      {activeTab === 'notification_center' && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <AdminNotificationCenter />
         </div>
       )}
     </div>
