@@ -105,7 +105,8 @@ export function NotificationSettings() {
       setLoading(true);
       const res = await apiCall('/api/notifications/settings');
       if (res && res.success) {
-        setVapidPublicKey(res.vapidPublicKey || '');
+        const envKey = (import.meta as any).env?.VITE_VAPID_PUBLIC_KEY || '';
+        setVapidPublicKey(res.vapidPublicKey || envKey);
         setCalendarToken(res.calendarToken || '');
         setCalendarFeedUrl(res.calendarFeedUrl || '');
         setWebcalUrl(res.webcalUrl || '');
@@ -189,11 +190,12 @@ export function NotificationSettings() {
         }
         await navigator.serviceWorker.ready;
 
-        if (!vapidPublicKey) {
+        const effectiveVapidKey = vapidPublicKey || (import.meta as any).env?.VITE_VAPID_PUBLIC_KEY || '';
+        if (!effectiveVapidKey) {
           throw new Error('Chưa nhận được khóa mã hóa VAPID từ máy chủ.');
         }
 
-        const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+        const applicationServerKey = urlBase64ToUint8Array(effectiveVapidKey);
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey
