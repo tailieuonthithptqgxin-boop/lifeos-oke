@@ -186,21 +186,21 @@ export function StudyView() {
   return (
     <div className="flex-1 flex flex-col h-full bg-transparent overflow-hidden w-full min-w-0 max-w-full">
       {/* Top Header & Navigation Tabs */}
-      <div className="bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl border-b border-purple-100/60 dark:border-purple-900/30 px-3.5 sm:px-6 pt-3.5 sm:pt-4 pb-2 shrink-0 w-full min-w-0 max-w-full overflow-hidden">
+      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 px-3.5 sm:px-6 pt-3.5 sm:pt-4 pb-2 shrink-0 w-full min-w-0 max-w-full overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-3 w-full min-w-0">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-gradient-to-tr from-violet-600 to-pink-500 text-white rounded-2xl flex items-center justify-center shadow-md shadow-purple-500/20 animate-wiggle shrink-0">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-[#0D523F] text-white rounded-xl flex items-center justify-center shadow-xs shrink-0">
               <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-lg sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2 truncate">
+              <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2 truncate">
                 Study OS
-                <span className="text-[10px] uppercase font-black px-2.5 py-0.5 rounded-full bg-gradient-to-r from-violet-100 to-pink-100 dark:from-violet-950/60 dark:to-pink-950/60 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-800/50 shrink-0">
-                  Pro Engine ✨
+                <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-md bg-[#8387F5]/15 text-[#8387F5] border border-[#8387F5]/30 shrink-0">
+                  PRO ENGINE
                 </span>
               </h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium break-words">
-                {isVi ? 'Quản lý môn học, lịch thi, bài tập và mô phỏng điểm số thông minh chill chill 🌸' : 'Manage subjects, exams, assignments and smart GPA simulation chill chill 🌸'}
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-normal break-words">
+                {isVi ? 'Quản lý môn học, lịch thi, bài tập và mô phỏng điểm số học tập chuẩn quốc tế' : 'Manage subjects, exams, assignments and academic performance simulation'}
               </p>
             </div>
           </div>
@@ -208,13 +208,13 @@ export function StudyView() {
 
         {/* Tab Navigation */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 w-full min-w-0 max-w-full">
-          <TabButton active={activeTab === 'vocabulary'} onClick={() => setActiveTab('vocabulary')} icon={<BookOpen className="w-4 h-4 text-emerald-500" />} label={isVi ? 'Từ vựng & Ngoại ngữ 📚' : 'Vocabulary & Languages 📚'} />
+          <TabButton active={activeTab === 'vocabulary'} onClick={() => setActiveTab('vocabulary')} icon={<BookOpen className="w-4 h-4 text-emerald-500" />} label={isVi ? 'Từ vựng & Ngoại ngữ' : 'Vocabulary & Languages'} />
           <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<Activity className="w-4 h-4" />} label={isVi ? 'Tổng quan GPA' : 'GPA Overview'} />
           <TabButton active={activeTab === 'my-grades'} onClick={() => setActiveTab('my-grades')} icon={<Award className="w-4 h-4" />} label={isVi ? 'Bảng điểm' : 'Report Card'} count={subjects.length} />
           <TabButton active={activeTab === 'subjects'} onClick={() => setActiveTab('subjects')} icon={<BookOpen className="w-4 h-4" />} label={isVi ? 'Môn học' : 'Subjects'} count={subjects.length} />
           <TabButton active={activeTab === 'assignments'} onClick={() => setActiveTab('assignments')} icon={<FileCheck className="w-4 h-4" />} label={isVi ? 'Bài tập' : 'Assignments'} count={pendingAssignmentsCount} />
           <TabButton active={activeTab === 'exams'} onClick={() => setActiveTab('exams')} icon={<Target className="w-4 h-4" />} label={isVi ? 'Lịch thi' : 'Exams'} count={upcomingExamsCount} />
-          <TabButton active={activeTab === 'forecast'} onClick={() => setActiveTab('forecast')} icon={<Calculator className="w-4 h-4" />} label={isVi ? 'Dự báo GPA 🔮' : 'GPA Forecast 🔮'} />
+          <TabButton active={activeTab === 'forecast'} onClick={() => setActiveTab('forecast')} icon={<Calculator className="w-4 h-4" />} label={isVi ? 'Dự báo GPA' : 'GPA Forecast'} />
         </div>
       </div>
 

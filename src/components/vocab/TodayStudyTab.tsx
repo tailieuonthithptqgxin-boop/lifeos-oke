@@ -84,180 +84,254 @@ export function TodayStudyTab({
   const foreignLangShort = isJapanese ? 'Nhật' : isChinese ? 'Trung' : 'Anh';
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-200">
+    <div className="space-y-5 animate-in fade-in duration-200">
       
-      {/* 1. HERO HERO BANNER — TODAY'S STUDY CALLOUT */}
-      <div className="p-6 sm:p-7 rounded-3xl bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-600 text-white shadow-xl relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="space-y-2 max-w-xl">
-            <div className="flex items-center gap-2">
-              <span className="px-3 py-1 rounded-full text-xs font-black bg-white/20 backdrop-blur-xs text-white uppercase tracking-wider flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5" /> Lịch học hôm nay
-              </span>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-400 text-slate-900">
-                Ước tính: ~{plan.estimatedMinutes} phút
-              </span>
+      {/* ========================================================================= */}
+      {/* 1. UPPER SECTION (2-COLUMN GRID)                                          */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Left Card: Vocabulary Master */}
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-xs">
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">{activeLang.flag || '🇬🇧'}</span>
+                <span className="px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#8387F5]/15 text-[#8387F5] border border-[#8387F5]/30">
+                  {activeLang.name || 'Tiếng Anh'}
+                </span>
+              </div>
+              <span className="text-xs text-slate-400 font-medium">Spaced Repetition</span>
             </div>
 
-            <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
-              Kế hoạch Ôn tập & Nạp từ trong ngày
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+              Vocabulary Master
             </h2>
-            <p className="text-xs sm:text-sm text-purple-100 leading-relaxed">
-              Hệ thống tự động gom từ dựa trên <strong>Đường cong quên Ebbinghaus</strong>. Ôn đúng thời điểm nguy cơ quên bắt đầu tăng để khóa kiến thức vào trí nhớ dài hạn.
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-1">
+              Hệ thống ghi nhớ từ vựng thông minh dựa trên chu kỳ ngắt quãng, tự động tối ưu hóa lộ trình ôn tập cá nhân.
             </p>
           </div>
 
-          {/* Quick Launch CTA */}
-          <div className="w-full md:w-auto bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 text-center md:text-right shrink-0">
-            <span className="text-[11px] text-purple-200 block font-medium">Tổng từ cần học hôm nay</span>
-            <span className="text-3xl font-black text-white">{plan.totalToStudy} từ</span>
+          <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500">
+            <span>Mục tiêu: {activeLang.dailyNewWordTarget} từ mới / ngày</span>
+            <span className="font-medium text-slate-700 dark:text-slate-300">Cấp độ: {activeLang.level}</span>
+          </div>
+        </div>
+
+        {/* Right Card: Kế hoạch Ôn tập & Nạp từ trong ngày (Solid Deep Emerald Green #0D523F) */}
+        <div className="bg-[#0D523F] text-white rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col justify-between">
+          <div>
+            <span className="text-[10px] font-semibold text-emerald-200 uppercase tracking-wider block">
+              LỊCH HỌC HÔM NAY
+            </span>
+            <h2 className="text-base sm:text-lg font-bold text-white tracking-tight mt-1">
+              Kế hoạch Ôn tập & Nạp từ trong ngày
+            </h2>
+            <p className="text-xs text-emerald-100/90 leading-relaxed mt-1">
+              Ôn tập đúng thời điểm nguy cơ quên bắt đầu tăng để khóa kiến thức vào trí nhớ dài hạn.
+            </p>
+          </div>
+
+          <div className="pt-3 mt-3 border-t border-emerald-700/50 flex items-end justify-between">
+            <div>
+              <span className="text-[10px] text-emerald-200/80 uppercase tracking-wider block">Tổng cần học</span>
+              <span className="text-2xl sm:text-3xl font-black text-white">{plan.totalToStudy} từ</span>
+            </div>
+
             <button
               type="button"
               onClick={() => handleLaunchBatch(0)}
               disabled={plan.totalToStudy === 0}
-              className={`mt-2 w-full px-5 py-2.5 rounded-xl font-black text-xs transition cursor-pointer flex items-center justify-center gap-2 shadow-lg ${
+              className={`px-4 py-2 rounded-xl font-semibold text-xs transition cursor-pointer flex items-center gap-1.5 shadow-xs ${
                 plan.totalToStudy > 0
-                  ? 'bg-white hover:bg-slate-100 text-purple-900 hover:scale-[1.02]'
-                  : 'bg-white/40 text-purple-200 cursor-not-allowed'
+                  ? 'bg-white hover:bg-slate-100 text-[#0D523F] active:scale-95'
+                  : 'bg-white/30 text-emerald-200 cursor-not-allowed'
               }`}
             >
-              <Play className="w-4 h-4 fill-current" />
-              {selectedMode === 'flashcard' ? `Bắt đầu: Flashcard ${foreignLangShort} → Việt`
-               : selectedMode === 'flashcard_reverse' ? `Bắt đầu: Đảo chiều (Việt → ${foreignLangShort})`
-               : selectedMode === 'quiz' ? 'Bắt đầu: Trắc nghiệm 4 đáp án (Quiz)'
-               : selectedMode === 'spelling' ? 'Bắt đầu: Luyện gõ chính tả (Spelling)'
-               : 'Bắt đầu học'} ({Math.min(selectedBatchSize, plan.totalToStudy)} từ)
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>Bắt đầu học</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* 2. KPI METRIC PILLS & QUEUE BREAKDOWN */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {/* Overdue (Critical) */}
-        <button
-          type="button"
-          onClick={() => setViewFilter('overdue')}
-          className={`p-4 rounded-2xl border text-left transition cursor-pointer ${
-            viewFilter === 'overdue'
-              ? 'border-rose-500 bg-rose-50 dark:bg-rose-950/40 ring-2 ring-rose-500/20'
-              : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Quá hạn ôn</span>
-            <AlertTriangle className={`w-4 h-4 ${plan.overdueWords.length > 0 ? 'text-rose-500 animate-pulse' : 'text-slate-400'}`} />
-          </div>
-          <div className="text-2xl font-black text-rose-600 dark:text-rose-400">
-            {plan.overdueWords.length}
-          </div>
-          <span className="text-[11px] text-rose-500 font-medium">Cần ưu tiên cứu vãn</span>
-        </button>
+      {/* ========================================================================= */}
+      {/* 2. MIDDLE SECTION: SYMMETRICAL FILTER PILLS & 2X2 STATS GRID             */}
+      {/* ========================================================================= */}
+      <div className="space-y-3">
+        {/* Symmetrical Filter Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+          <button
+            type="button"
+            onClick={() => setViewFilter('all')}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer shrink-0 ${
+              viewFilter === 'all'
+                ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+            }`}
+          >
+            Lựa chọn bài học
+          </button>
 
-        {/* Due Today */}
-        <button
-          type="button"
-          onClick={() => setViewFilter('due')}
-          className={`p-4 rounded-2xl border text-left transition cursor-pointer ${
-            viewFilter === 'due'
-              ? 'border-purple-500 bg-purple-50 dark:bg-purple-950/40 ring-2 ring-purple-500/20'
-              : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Đến hạn hôm nay</span>
-            <Clock className="w-4 h-4 text-purple-500" />
-          </div>
-          <div className="text-2xl font-black text-purple-600 dark:text-purple-400">
-            {plan.dueTodayWords.length}
-          </div>
-          <span className="text-[11px] text-purple-500 font-medium">Đúng chu kỳ Spaced Rep</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setViewFilter('due')}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer flex items-center gap-1.5 shrink-0 ${
+              viewFilter === 'due'
+                ? 'bg-[#0D523F] text-white border-[#0D523F]'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+            }`}
+          >
+            <span>Học hôm nay</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-rose-500 text-white">
+              {plan.totalToStudy}
+            </span>
+          </button>
 
-        {/* Difficult / Lapsed */}
-        <button
-          type="button"
-          onClick={() => setViewFilter('difficult')}
-          className={`p-4 rounded-2xl border text-left transition cursor-pointer ${
-            viewFilter === 'difficult'
-              ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/40 ring-2 ring-amber-500/20'
-              : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Cần củng cố</span>
-            <Flame className="w-4 h-4 text-amber-500" />
-          </div>
-          <div className="text-2xl font-black text-amber-600 dark:text-amber-400">
-            {plan.difficultWords.length}
-          </div>
-          <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">Từng quên / Hay nhầm</span>
-        </button>
+          <button
+            type="button"
+            onClick={() => setViewFilter('new')}
+            className={`px-3.5 py-1.5 rounded-full text-xs font-medium border transition-colors cursor-pointer shrink-0 ${
+              viewFilter === 'new'
+                ? 'bg-slate-900 text-white border-slate-900 dark:bg-white dark:text-slate-900 dark:border-white'
+                : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+            }`}
+          >
+            Phòng học
+          </button>
+        </div>
 
-        {/* New Words */}
-        <button
-          type="button"
-          onClick={() => setViewFilter('new')}
-          className={`p-4 rounded-2xl border text-left transition cursor-pointer ${
-            viewFilter === 'new'
-              ? 'border-blue-500 bg-blue-50 dark:bg-blue-950/40 ring-2 ring-blue-500/20'
-              : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Từ mới mục tiêu</span>
-            <Sparkles className="w-4 h-4 text-blue-500" />
-          </div>
-          <div className="text-2xl font-black text-blue-600 dark:text-blue-400">
-            {plan.newWords.length}
-          </div>
-          <span className="text-[11px] text-blue-500 font-medium">Chỉ tiêu: {activeLang.dailyNewWordTarget}/ngày</span>
-        </button>
+        {/* 2x2 Stats Grid: Monochromatic & Quiet with thin utility icons */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {/* 1. Quá hạn ôn */}
+          <button
+            type="button"
+            onClick={() => setViewFilter('overdue')}
+            className={`p-3.5 rounded-xl border text-left transition cursor-pointer bg-white dark:bg-slate-900 ${
+              viewFilter === 'overdue'
+                ? 'border-slate-900 dark:border-white ring-1 ring-slate-900/10'
+                : 'border-slate-200 dark:border-slate-800 hover:border-slate-300'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Quá hạn ôn</span>
+              <AlertTriangle className={`w-3.5 h-3.5 ${plan.overdueWords.length > 0 ? 'text-amber-500' : 'text-slate-400'}`} />
+            </div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-white font-mono">
+              {plan.overdueWords.length}
+            </div>
+            <span className="text-[10px] text-slate-400 font-normal">Cần ưu tiên cứu vãn</span>
+          </button>
+
+          {/* 2. Đến hạn hôm nay */}
+          <button
+            type="button"
+            onClick={() => setViewFilter('due')}
+            className={`p-3.5 rounded-xl border text-left transition cursor-pointer bg-white dark:bg-slate-900 ${
+              viewFilter === 'due'
+                ? 'border-slate-900 dark:border-white ring-1 ring-slate-900/10'
+                : 'border-slate-200 dark:border-slate-800 hover:border-slate-300'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Đến hạn hôm nay</span>
+              <Clock className="w-3.5 h-3.5 text-slate-500" />
+            </div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-white font-mono">
+              {plan.dueTodayWords.length}
+            </div>
+            <span className="text-[10px] text-slate-400 font-normal">Đúng chu kỳ Spaced Rep</span>
+          </button>
+
+          {/* 3. Cần củng cố */}
+          <button
+            type="button"
+            onClick={() => setViewFilter('difficult')}
+            className={`p-3.5 rounded-xl border text-left transition cursor-pointer bg-white dark:bg-slate-900 ${
+              viewFilter === 'difficult'
+                ? 'border-slate-900 dark:border-white ring-1 ring-slate-900/10'
+                : 'border-slate-200 dark:border-slate-800 hover:border-slate-300'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Cần củng cố</span>
+              <Flame className="w-3.5 h-3.5 text-slate-400" />
+            </div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-white font-mono">
+              {plan.difficultWords.length}
+            </div>
+            <span className="text-[10px] text-slate-400 font-normal">Từng quên / Hay nhầm</span>
+          </button>
+
+          {/* 4. Từ mới mục tiêu */}
+          <button
+            type="button"
+            onClick={() => setViewFilter('new')}
+            className={`p-3.5 rounded-xl border text-left transition cursor-pointer bg-white dark:bg-slate-900 ${
+              viewFilter === 'new'
+                ? 'border-slate-900 dark:border-white ring-1 ring-slate-900/10'
+                : 'border-slate-200 dark:border-slate-800 hover:border-slate-300'
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Từ mới mục tiêu</span>
+              <Sparkles className="w-3.5 h-3.5 text-slate-400" />
+            </div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-white font-mono">
+              {plan.newWords.length}
+            </div>
+            <span className="text-[10px] text-slate-400 font-normal">Chỉ tiêu: {activeLang.dailyNewWordTarget}/ngày</span>
+          </button>
+        </div>
       </div>
 
-      {/* 3. SMART SESSION CONFIGURATOR (BITE-SIZED BATCHES) */}
-      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+      {/* ========================================================================= */}
+      {/* 3. LOWER SECTION: CONFIGURATIONS & 2X2 ACTIVE RECALL CARDS                */}
+      {/* ========================================================================= */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
           <div>
-            <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
-              <Layers className="w-4 h-4 text-purple-600" />
+            <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Layers className="w-4 h-4 text-[#8387F5]" />
               Tùy chỉnh Phiên học Ngắn (Micro-Sessions)
             </h3>
             <p className="text-xs text-slate-500 dark:text-slate-400">
-              Chia nhỏ danh sách thành các đợt 10-20 từ để não bộ tiếp nhận hiệu quả nhất mà không bị quá tải.
+              Chia nhỏ danh sách thành các đợt ngắn để não bộ tiếp nhận hiệu quả nhất.
             </p>
           </div>
 
-          {/* Batch Size Selector */}
+          {/* Batch Size Selector (15 từ highlighted in soft lavender) */}
           <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
-            {[10, 15, 20, 25].map(size => (
-              <button
-                key={size}
-                type="button"
-                onClick={() => setSelectedBatchSize(size)}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
-                  selectedBatchSize === size
-                    ? 'bg-purple-600 text-white shadow-xs'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                }`}
-              >
-                {size} từ
-              </button>
-            ))}
+            {[10, 15, 20, 25].map(size => {
+              const isSelected = selectedBatchSize === size;
+              return (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => setSelectedBatchSize(size)}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                    isSelected
+                      ? 'bg-[#8387F5] text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  }`}
+                >
+                  {size} từ
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* Method / Active Recall Mode Picker */}
+        {/* PHƯƠNG PHÁP ACTIVE RECALL - 4 framed 2x2 cards */}
         <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-            Phương pháp Active Recall cho phiên này:
+          <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+            PHƯƠNG PHÁP ACTIVE RECALL
           </label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">
             {[
-              { id: 'flashcard', name: `Flashcard ${foreignLangShort} → Việt`, icon: '🎴', desc: 'Chủ động nhớ nghĩa' },
-              { id: 'flashcard_reverse', name: `Đảo chiều: Việt → ${foreignLangShort}`, icon: '🔄', desc: 'Nhớ từ & phát âm' },
-              { id: 'quiz', name: 'Trắc nghiệm 4 đáp án', icon: '📝', desc: 'Quiz chọn nghĩa đúng' },
-              { id: 'spelling', name: 'Luyện gõ chính tả', icon: '✍️', desc: 'Nghe phát âm gõ từ' },
+              { id: 'flashcard', name: `Flashcard ${foreignLangShort} → Việt`, desc: 'Chủ động nhớ nghĩa' },
+              { id: 'flashcard_reverse', name: `Đảo chuỗi: Việt → ${foreignLangShort}`, desc: 'Nhớ từ & phát âm' },
+              { id: 'quiz', name: 'Trắc nghiệm 4 đáp án', desc: 'Chọn nghĩa chính xác' },
+              { id: 'spelling', name: 'Luyện gõ chính tả', desc: 'Nghe phát âm gõ từ' },
             ].map(m => (
               <button
                 key={m.id}
@@ -269,19 +343,20 @@ export function TodayStudyTab({
                     onStartStudyBatch(targetBatch, m.id as any);
                   }
                 }}
-                className={`p-3 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between min-h-[85px] ${
+                className={`p-3.5 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between min-h-[90px] ${
                   selectedMode === m.id
-                    ? 'border-purple-600 bg-purple-50/70 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 ring-2 ring-purple-500/20'
-                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 text-slate-700 dark:text-slate-300'
+                    ? 'border-[#0D523F] bg-[#0D523F]/5 text-slate-900 dark:text-white ring-1 ring-[#0D523F]/30'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900'
                 }`}
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-xl">{m.icon}</span>
-                  <span className="text-[10px] font-black text-purple-600 dark:text-purple-400">▶ Bắt đầu</span>
-                </div>
                 <div>
-                  <span className="text-xs font-bold block line-clamp-1">{m.name}</span>
-                  <span className="text-[10px] text-slate-400 block">{m.desc}</span>
+                  <span className="text-xs font-bold block">{m.name}</span>
+                  <span className="text-[11px] text-slate-400 block mt-0.5">{m.desc}</span>
+                </div>
+                <div className="flex items-center justify-end pt-2">
+                  <span className="text-[11px] font-semibold text-[#0D523F] dark:text-emerald-400 flex items-center gap-1">
+                    Bắt đầu <ArrowRight className="w-3 h-3" />
+                  </span>
                 </div>
               </button>
             ))}
