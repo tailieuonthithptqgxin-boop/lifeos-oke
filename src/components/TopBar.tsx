@@ -111,7 +111,7 @@ export function TopBar() {
   const inboxCount = inbox?.length || 0;
 
   return (
-    <header className="h-14 md:h-16 bg-white dark:bg-slate-950 border-b border-[#E2E8F0] dark:border-slate-800 flex items-center justify-between px-3.5 sm:px-5 md:px-6 shrink-0 z-30 transition-colors">
+    <header className="h-14 md:h-16 bg-white dark:bg-slate-950 border-b border-[#E2E8F0] dark:border-slate-800 flex items-center justify-between px-3.5 sm:px-5 md:px-6 shrink-0 relative z-50 transition-colors">
       {/* Mobile Brand Logo */}
       <div className="flex md:hidden items-center gap-2 shrink-0">
         <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center text-white shadow-xs font-bold text-xs">
@@ -207,8 +207,8 @@ export function TopBar() {
 
           {showCreateMenu && (
             <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowCreateMenu(false)}></div>
-              <div className="absolute top-full right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-lg shadow-sm z-50 p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100">
+              <div className="fixed inset-0 z-[80] bg-slate-950/40 backdrop-blur-xs" onClick={() => setShowCreateMenu(false)}></div>
+              <div className="absolute top-full right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-[90] p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100">
                 {!hasSubAccess ? (
                   <div className="p-3 text-center space-y-2.5">
                     <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto border border-amber-500/20">
@@ -377,8 +377,8 @@ export function TopBar() {
           
           {showNotifications && (
             <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowNotifications(false)}></div>
-              <div className="absolute top-full right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-lg shadow-sm z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+              <div className="fixed inset-0 z-[80] bg-slate-950/40 backdrop-blur-xs" onClick={() => setShowNotifications(false)}></div>
+              <div className="absolute top-full right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-[90] overflow-hidden animate-in fade-in zoom-in-95 duration-100">
                 <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
                   <h3 className="font-semibold text-xs text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
                     <Bell className="w-3.5 h-3.5 text-slate-500" />
@@ -482,80 +482,89 @@ export function TopBar() {
 
           {showUserMenu && (
             <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)}></div>
-              <div className="absolute top-full right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-lg shadow-sm z-50 p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100 text-xs">
+              <div className="fixed inset-0 z-[80] bg-slate-950/40 backdrop-blur-xs" onClick={() => setShowUserMenu(false)}></div>
+              <div className="absolute top-full right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-[90] p-2.5 space-y-2 text-xs animate-in fade-in zoom-in-95 duration-100">
                 {/* Header User Info */}
-                <div className="p-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl mb-1">
-                  <div className="font-bold text-slate-900 dark:text-white truncate">{currentUser?.name || t('Người dùng')}</div>
+                <div className="p-3 bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-800 rounded-xl space-y-1">
+                  <div className="font-bold text-slate-900 dark:text-white truncate text-sm">{currentUser?.name || t('Người dùng')}</div>
                   <div className="text-[11px] text-slate-500 truncate">{currentUser?.email || ''}</div>
                   <div className="mt-1.5 flex items-center gap-1.5">
-                    <span className="px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] font-bold">
+                    <span className="px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 text-[10px] font-black uppercase tracking-wider">
                       {currentUser?.role || 'USER'}
                     </span>
-                    <span className="px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold">
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      subscriptionStatus?.hasAccess 
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' 
+                        : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                    }`}>
                       {subscriptionStatus?.hasAccess ? (subscriptionStatus?.planName || t('Đã kích hoạt')) : t('Chưa kích hoạt gói')}
                     </span>
                   </div>
                 </div>
 
-                {/* Admin Quick Switch (if Admin) */}
+                {/* Admin Section (if Admin) - clearly distinguished */}
                 {isAdmin && (
+                  <div className="p-2 rounded-xl bg-purple-50/60 dark:bg-purple-950/30 border border-purple-200/80 dark:border-purple-900/50 space-y-1">
+                    <div className="px-1 text-[10px] font-black uppercase tracking-wider text-purple-700 dark:text-purple-400 flex items-center justify-between">
+                      <span>Khu vực Quản trị Hệ thống</span>
+                      <span className="text-[9px] bg-purple-200/80 dark:bg-purple-900 px-1.5 py-0.2 rounded font-bold">Admin Only</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCurrentView('admin');
+                        setShowUserMenu(false);
+                      }}
+                      className="w-full flex items-center justify-between px-2.5 py-2 rounded-lg bg-white dark:bg-slate-800 text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-950 font-bold transition-all shadow-2xs cursor-pointer"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-purple-600 shrink-0" />
+                        <span className="text-left leading-tight">Phê duyệt Đơn hàng & Quản trị</span>
+                      </div>
+                      <span className="text-xs">→</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* SaaS Subscription Checkout link */}
+                <div className="space-y-1">
                   <button
                     type="button"
                     onClick={() => {
-                      setCurrentView('admin');
+                      setCurrentView('checkout');
                       setShowUserMenu(false);
                     }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl font-semibold transition-colors ${
-                      currentView === 'admin' 
-                        ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300' 
-                        : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800'
-                    }`}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-emerald-700 dark:text-emerald-300 bg-emerald-50/70 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-950/70 font-bold transition-colors cursor-pointer border border-emerald-200/70 dark:border-emerald-800/50"
                   >
                     <div className="flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-blue-600" />
-                      <span>{t('Bảng điều khiển Quản trị')}</span>
+                      <Zap className="w-4 h-4 fill-emerald-600 text-emerald-600 shrink-0" />
+                      <span>{t('Nâng cấp Gói dịch vụ của tôi')}</span>
                     </div>
-                  </button>
-                )}
-
-                {/* Inbox Modal Trigger */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowInboxModal(true);
-                    setShowUserMenu(false);
-                  }}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <Inbox className="w-4 h-4 text-slate-500" />
-                    <span>{t('Hộp thư nhanh')}</span>
-                  </div>
-                  {inboxCount > 0 && (
-                    <span className="px-1.5 py-0.2 bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 font-bold rounded text-[10px]">
-                      {inboxCount}
+                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-emerald-200 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200">
+                      SaaS
                     </span>
-                  )}
-                </button>
+                  </button>
 
-                {/* SaaS Subscription Checkout link */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentView('checkout');
-                    setShowUserMenu(false);
-                  }}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 font-semibold transition-colors"
-                >
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 fill-blue-600" />
-                    <span>{t('Nâng cấp Gói dịch vụ')}</span>
-                  </div>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">
-                    SaaS
-                  </span>
-                </button>
+                  {/* Inbox Modal Trigger */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowInboxModal(true);
+                      setShowUserMenu(false);
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Inbox className="w-4 h-4 text-slate-500" />
+                      <span>{t('Hộp thư nhanh')}</span>
+                    </div>
+                    {inboxCount > 0 && (
+                      <span className="px-1.5 py-0.2 bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 font-bold rounded text-[10px]">
+                        {inboxCount}
+                      </span>
+                    )}
+                  </button>
+                </div>
 
                 {/* Cart link */}
                 <button

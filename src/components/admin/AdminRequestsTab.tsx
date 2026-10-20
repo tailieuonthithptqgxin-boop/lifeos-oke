@@ -5,6 +5,8 @@ import {
 import { apiCall } from '../../lib/apiClient';
 import { formatCurrency } from '../../lib/utils';
 import { PaymentRequest } from './types';
+import { toast } from '../../lib/toast';
+import { useAppStore } from '../../lib/store';
 
 interface AdminRequestsTabProps {
   onShowMessage?: (msg: { text: string; type: 'success' | 'error' }) => void;
@@ -26,11 +28,13 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
   const [rejectReason, setRejectReason] = useState('');
   const [isRejecting, setIsRejecting] = useState(false);
 
+  const { setCurrentView } = useAppStore();
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
 
   const handleCopy = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopySuccess(id);
+    toast.info(`Đã sao chép: ${text}`, 'Đã chép vào clipboard');
     setTimeout(() => setCopySuccess(null), 2000);
   };
 
@@ -70,7 +74,7 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
 
   const handleExportCSV = () => {
     if (requests.length === 0) {
-      alert('Không có dữ liệu giao dịch để xuất.');
+      toast.warning('Không có dữ liệu giao dịch để xuất CSV.', 'Xuất dữ liệu');
       return;
     }
     const headers = ['Mã Đơn', 'Mã Giao Dịch', 'Email Khách Hàng', 'Tên Khách Hàng', 'Gói', 'Chu Kỳ', 'Số Tiền (VND)', 'Trạng Thái', 'Thời Gian Tạo', 'Người Duyệt', 'Thời Gian Duyệt', 'Ghi Chú'];
@@ -97,18 +101,22 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    toast.success('Đã xuất file báo cáo thanh toán CSV thành công!', 'Xuất báo cáo');
   };
 
   const handleApprovePayment = async () => {
-    if (!approveConfirmTarget) return;
+    if (!approveConfirmTarget || isApproving) return;
 
     try {
       setIsApproving(true);
+      toast.info(`Đang kích hoạt gói ${approveConfirmTarget.planRequested} cho ${approveConfirmTarget.customerEmail}...`, 'Đang xử lý');
       const res = await apiCall(`/api/admin/payments/${approveConfirmTarget.id}/approve`, 'POST');
 
       if (res && res.success) {
+        const msg = `Đã duyệt thanh toán thành công cho ${approveConfirmTarget.customerEmail}! Gói ${approveConfirmTarget.planRequested} đã được kích hoạt.`;
+        toast.success(msg, 'Duyệt thành công 🎉');
         onShowMessage?.({
-          text: `Đã duyệt thanh toán thành công cho ${approveConfirmTarget.customerEmail}! Gói ${approveConfirmTarget.planRequested} đã được kích hoạt.`,
+          text: msg,
           type: 'success'
         });
         setApproveConfirmTarget(null);
@@ -117,8 +125,10 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
         throw new Error(res?.message || 'Không thể duyệt thanh toán.');
       }
     } catch (err: any) {
+      const errMsg = err.message || 'Lỗi khi duyệt thanh toán';
+      toast.error(errMsg, 'Lỗi duyệt đơn');
       onShowMessage?.({
-        text: err.message || 'Lỗi khi duyệt thanh toán',
+        text: errMsg,
         type: 'error'
       });
     } finally {
@@ -128,8 +138,9 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
 
   const handleRejectPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!rejectModalTarget) return;
+    if (!rejectModalTarget || isRejecting) return;
     if (!rejectReason.trim()) {
+      toast.error('Vui lòng nhập lý do từ chối yêu cầu thanh toán!', 'Thiếu thông tin');
       onShowMessage?.({
         text: 'Vui lòng nhập lý do từ chối yêu cầu thanh toán!',
         type: 'error'
@@ -139,13 +150,16 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
 
     try {
       setIsRejecting(true);
+      toast.info(`Đang gửi phản hồi từ chối tới khách hàng...`, 'Đang xử lý');
       const res = await apiCall(`/api/admin/payments/${rejectModalTarget.id}/reject`, 'POST', {
         reason: rejectReason.trim()
       });
 
       if (res && res.success) {
+        const msg = `Đã từ chối yêu cầu thanh toán ${rejectModalTarget.txReference}. Khách hàng đã được thông báo kèm lý do.`;
+        toast.warning(msg, 'Đã từ chối');
         onShowMessage?.({
-          text: `Đã từ chối yêu cầu thanh toán ${rejectModalTarget.txReference}. Khách hàng đã được thông báo kèm lý do.`,
+          text: msg,
           type: 'success'
         });
         setRejectModalTarget(null);
@@ -155,8 +169,10 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
         throw new Error(res?.message || 'Không thể từ chối yêu cầu.');
       }
     } catch (err: any) {
+      const errMsg = err.message || 'Lỗi khi từ chối yêu cầu';
+      toast.error(errMsg, 'Lỗi');
       onShowMessage?.({
-        text: err.message || 'Lỗi khi từ chối yêu cầu',
+        text: errMsg,
         type: 'error'
       });
     } finally {
@@ -166,6 +182,36 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-150">
+      {/* Admin Notice Banner clarifying this is the Customer Approvals Queue, not User Checkout */}
+      <div className="bg-gradient-to-r from-purple-50 via-indigo-50/50 to-white dark:from-slate-900 dark:via-purple-950/20 dark:to-slate-900 border border-purple-200/80 dark:border-purple-900/60 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-xs">
+        <div className="flex items-center gap-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-purple-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-purple-600/20">
+            <Receipt className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                Bảng Phê Duyệt Thanh Toán Của Khách Hàng (Dành Riêng Cho Ban Quản Trị)
+              </h4>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-purple-100 dark:bg-purple-900/80 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
+                ADMIN CONSOLE
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
+              Đây là hàng đợi các đơn thanh toán chuyển khoản từ khách hàng. Quản trị viên đối soát với tài khoản ngân hàng và bấm "Duyệt & Nâng cấp" để kích hoạt gói. Nếu bạn muốn mua hoặc gia hạn gói bản quyền cho chính mình, hãy truy cập Cổng Đăng ký.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setCurrentView('checkout')}
+          className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-700 active:scale-95 text-white text-xs font-bold shrink-0 transition-all shadow-md shadow-purple-600/20 cursor-pointer flex items-center gap-1.5"
+        >
+          <span>Nâng cấp Gói cá nhân</span>
+          <span>→</span>
+        </button>
+      </div>
+
       {/* Top Metric Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 space-y-1">

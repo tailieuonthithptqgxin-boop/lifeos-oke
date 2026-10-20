@@ -238,7 +238,7 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
   const isLeft = settings.position === 'bottom-left';
   const posClasses = isLeft
     ? 'bottom-20 left-3 sm:bottom-6 sm:left-6 md:left-[17.5rem] items-start'
-    : 'bottom-20 right-3 sm:bottom-6 sm:right-6 items-end';
+    : 'bottom-20 left-3 sm:bottom-6 sm:right-6 items-start sm:items-end';
 
   return (
     <>

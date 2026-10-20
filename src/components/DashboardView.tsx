@@ -481,7 +481,7 @@ export function DashboardView() {
           {/* Subtle ambient blur */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-400/10 dark:bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="relative z-40 space-y-4">
+          <div className="relative z-10 space-y-4">
             {/* Top row: Date & Time, Mood Selector, Date Navigation */}
             <div className="flex flex-wrap items-center justify-between gap-2.5">
               <div className="flex items-center gap-2">

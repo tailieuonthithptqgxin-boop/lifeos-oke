@@ -28,6 +28,7 @@ import {
 import { useAppStore } from '../lib/store';
 import { apiCall } from '../lib/apiClient';
 import { formatCurrency } from '../lib/utils';
+import { toast } from '../lib/toast';
 
 type BillingCycle = 'monthly' | 'yearly';
 type ViewTab = 'checkout' | 'my_requests';
@@ -95,8 +96,10 @@ export function CheckoutView({
           });
           const url = res.file?.url || base64Data;
           setReceiptUrl(url);
+          toast.success('Đã tải ảnh biên lai chuyển khoản thành công!', 'Biên lai R2');
         } catch (uploadErr: any) {
           setReceiptUrl(base64Data);
+          toast.info('Đã đính kèm ảnh biên lai cục bộ.', 'Biên lai');
         } finally {
           setIsUploadingReceipt(false);
         }
@@ -104,6 +107,7 @@ export function CheckoutView({
       reader.readAsDataURL(file);
     } catch (err: any) {
       setIsUploadingReceipt(false);
+      toast.error(err.message || 'Lỗi khi tải ảnh biên lai', 'Tải ảnh thất bại');
       setErrorMessage(err.message || 'Lỗi khi tải ảnh biên lai');
     }
   };
@@ -218,6 +222,7 @@ export function CheckoutView({
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     setCopySuccess(label);
+    toast.info(`Đã sao chép: ${text}`, 'Đã chép vào clipboard');
     setTimeout(() => setCopySuccess(null), 2000);
   };
 
@@ -228,6 +233,7 @@ export function CheckoutView({
 
     setIsValidatingCoupon(true);
     setCouponError('');
+    toast.info(`Đang kiểm tra mã giảm giá ${couponCode.trim().toUpperCase()}...`, 'Kiểm tra');
 
     try {
       const res = await apiCall('/api/coupons/validate', 'POST', {
@@ -239,12 +245,15 @@ export function CheckoutView({
           discountPercent: res.discountPercent
         });
         setCouponError('');
+        toast.success(`Đã áp dụng mã giảm giá thành công! Giảm ${res.discountPercent}%`, 'Khuyến mãi 🎉');
       } else {
         setCouponError('Mã giảm giá không hợp lệ hoặc đã hết hạn.');
+        toast.error('Mã giảm giá không hợp lệ hoặc đã hết hạn.', 'Không hợp lệ');
       }
     } catch (err: any) {
       setCouponError(err.message || 'Mã giảm giá không hợp lệ.');
       setAppliedCoupon(null);
+      toast.error(err.message || 'Mã giảm giá không hợp lệ.', 'Không hợp lệ');
     } finally {
       setIsValidatingCoupon(false);
     }
@@ -252,8 +261,10 @@ export function CheckoutView({
 
   // Step 1 -> Step 2: Create Checkout Session & Show QR
   const handleProceedToQR = async () => {
+    if (isLoadingSession) return;
     setIsLoadingSession(true);
     setErrorMessage('');
+    toast.info('Đang khởi tạo phiên thanh toán và mã VietQR...', 'Hệ thống');
 
     try {
       const res = await apiCall('/api/payments/checkout-session', 'POST', {
@@ -266,10 +277,12 @@ export function CheckoutView({
       if (res && res.success && res.checkoutSession) {
         setCheckoutData(res.checkoutSession);
         setCheckoutStep('qr_transfer');
+        toast.success('Mã QR thanh toán đã sẵn sàng! Quý khách vui lòng quét mã chuyển khoản.', 'Bước tiếp theo');
       } else {
         throw new Error(res?.message || 'Không thể tạo phiên thanh toán.');
       }
     } catch (err: any) {
+      toast.error(err.message || 'Không thể tạo phiên thanh toán. Vui lòng thử lại.', 'Lỗi kết nối');
       setErrorMessage(err.message || 'Không thể tạo phiên thanh toán. Vui lòng thử lại.');
     } finally {
       setIsLoadingSession(false);
@@ -278,10 +291,11 @@ export function CheckoutView({
 
   // Step 2 -> Step 3: Customer clicks "Tôi đã thanh toán"
   const handleSubmitPaymentRequest = async () => {
-    if (!checkoutData?.orderId) return;
+    if (!checkoutData?.orderId || isSubmitting) return;
 
     setIsSubmitting(true);
     setErrorMessage('');
+    toast.info('Đang gửi xác nhận thanh toán tới Quản trị viên...', 'Đang xử lý');
 
     try {
       const finalNote = receiptUrl
@@ -294,6 +308,7 @@ export function CheckoutView({
       });
 
       if (res && res.success) {
+        toast.success('Yêu cầu thanh toán đã được gửi thành công! Quản trị viên sẽ phê duyệt và mở khóa gói cho bạn ngay khi nhận được tiền.', 'Gửi Thành Công 🎉');
         setCheckoutStep('submitted_waiting');
         await fetchMyRequests();
         await loadAllData();
@@ -301,6 +316,7 @@ export function CheckoutView({
         throw new Error(res?.message || 'Gửi yêu cầu thanh toán không thành công.');
       }
     } catch (err: any) {
+      toast.error(err.message || 'Lỗi khi gửi yêu cầu. Vui lòng thử lại.', 'Lỗi');
       setErrorMessage(err.message || 'Lỗi khi gửi yêu cầu. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false);
@@ -315,12 +331,14 @@ export function CheckoutView({
       setIsCancelling(orderId);
       const res = await apiCall('/api/payments/cancel-request', 'POST', { orderId });
       if (res && res.success) {
+        toast.info(`Đã hủy yêu cầu thanh toán đơn #${orderId}.`, 'Đã hủy');
         await fetchMyRequests();
         if (checkoutData?.orderId === orderId) {
           setCheckoutStep('select_plan');
         }
       }
     } catch (err: any) {
+      toast.error(err.message || 'Không thể hủy yêu cầu.', 'Lỗi');
       alert(err.message || 'Không thể hủy yêu cầu.');
     } finally {
       setIsCancelling(null);

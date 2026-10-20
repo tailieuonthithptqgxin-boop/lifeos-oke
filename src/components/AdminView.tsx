@@ -20,6 +20,7 @@ import {
 import { apiCall } from '../lib/apiClient';
 import { formatCurrency } from '../lib/utils';
 import { useAppStore } from '../lib/store';
+import { toast } from '../lib/toast';
 import { CloudflareR2View } from './CloudflareR2View';
 import { AdminCustomModulesTab } from './AdminCustomModulesTab';
 import type {
@@ -48,7 +49,14 @@ export type { ServicePlan, LanguageItem };
 export function AdminView() {
   const { refreshLanguages } = useAppStore();
   const [activeTab, setActiveTab] = useState<AdminTab>('requests');
-  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [message, _setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const setMessage = (msg: { text: string; type: 'success' | 'error' } | null) => {
+    _setMessage(msg);
+    if (msg) {
+      if (msg.type === 'success') toast.success(msg.text);
+      else toast.error(msg.text);
+    }
+  };
   const [pendingResetCount, setPendingResetCount] = useState(0);
 
   const fetchPendingResetCount = async () => {
@@ -711,7 +719,7 @@ export function AdminView() {
             }`}
           >
             <Receipt className="w-3.5 h-3.5" />
-            <span>Yêu cầu thanh toán</span>
+            <span>Phê duyệt Đơn hàng (Admin)</span>
             {requestCounts.pending > 0 && (
               <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-amber-500 text-white animate-pulse">
                 {requestCounts.pending}

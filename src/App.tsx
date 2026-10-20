@@ -22,6 +22,7 @@ import { LockedWorkspaceOverlay } from './components/LockedWorkspaceOverlay';
 import { GlobalCompanionOverlay } from './components/companion/GlobalCompanionOverlay';
 import { PwaPromptBanner } from './components/PwaPromptBanner';
 import { PageSkeleton } from './components/Skeleton';
+import { ToastContainer } from './components/ToastContainer';
 import { lazyWithRetry } from './lib/lazyWithRetry';
 import { Zap } from 'lucide-react';
 
@@ -352,6 +353,7 @@ function AppContent() {
 
   return (
     <div key={language} className="flex h-screen h-[100dvh] w-full max-w-full bg-[#F8FAFC] dark:bg-slate-950 overflow-hidden font-sans text-[#0F172A] dark:text-slate-100 transition-colors duration-150">
+      <ToastContainer />
       <CommandCenter />
       <SyncIndicator />
       <Sidebar />

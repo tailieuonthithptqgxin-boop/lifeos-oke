@@ -27,6 +27,7 @@ import { useAppStore } from '../lib/store';
 import { apiCall } from '../lib/apiClient';
 import { formatCurrency } from '../lib/utils';
 import { UserSubscriptionStatus } from '../lib/types';
+import { toast } from '../lib/toast';
 
 export function SubscriptionManagementView() {
   const {
@@ -149,27 +150,31 @@ export function SubscriptionManagementView() {
 
   // Submit payment request
   const handleSubmitPayment = async () => {
-    if (!checkoutSession) return;
+    if (!checkoutSession || isSubmittingPayment) return;
     try {
       setIsSubmittingPayment(true);
+      toast.info('Đang gửi xác nhận thanh toán tới Quản trị viên...', 'Đang xử lý');
       const res = await apiCall('/api/payments/submit-request', 'POST', {
         orderId: checkoutSession.orderId,
         note: transferNote || 'Khách hàng báo đã hoàn tất chuyển khoản'
       });
 
       if (res && res.success) {
-        setStatusMessage({
-          text: 'Yêu cầu thanh toán đã được ghi nhận thành công! Vui lòng chờ quản trị viên duyệt để kích hoạt gói.',
-          type: 'success'
-        });
+        const msg = 'Yêu cầu thanh toán đã được ghi nhận thành công! Vui lòng chờ quản trị viên duyệt để kích hoạt gói.';
+        setStatusMessage({ text: msg, type: 'success' });
+        toast.success(msg, 'Gửi Thành Công 🎉');
         setCheckoutSession(null);
         setSelectedPlanForCheckout(null);
         await loadSubscription();
       } else {
-        setStatusMessage({ text: res.message || 'Không thể gửi xác nhận', type: 'error' });
+        const errMsg = res?.message || 'Không thể gửi xác nhận';
+        setStatusMessage({ text: errMsg, type: 'error' });
+        toast.error(errMsg, 'Lỗi');
       }
     } catch (err: any) {
-      setStatusMessage({ text: err.message || 'Lỗi khi gửi xác nhận thanh toán', type: 'error' });
+      const errMsg = err.message || 'Lỗi khi gửi xác nhận thanh toán';
+      setStatusMessage({ text: errMsg, type: 'error' });
+      toast.error(errMsg, 'Thất bại');
     } finally {
       setIsSubmittingPayment(false);
     }
@@ -178,16 +183,18 @@ export function SubscriptionManagementView() {
   // Team: Update team name
   const handleSaveTeamName = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!teamNameInput.trim()) return;
+    if (!teamNameInput.trim() || isSavingTeamName) return;
     try {
       setIsSavingTeamName(true);
       const res = await apiCall('/api/team/name', 'PUT', { name: teamNameInput.trim() });
       if (res && res.success) {
         setStatusMessage({ text: 'Đã cập nhật tên nhóm thành công', type: 'success' });
+        toast.success('Đã cập nhật tên nhóm thành công!', 'Đội ngũ');
         await loadTeam();
       }
     } catch (err: any) {
       setStatusMessage({ text: err.message || 'Lỗi khi đổi tên nhóm', type: 'error' });
+      toast.error(err.message || 'Lỗi khi đổi tên nhóm', 'Lỗi');
     } finally {
       setIsSavingTeamName(false);
     }
@@ -196,21 +203,26 @@ export function SubscriptionManagementView() {
   // Team: Add member
   const handleAddMember = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMemberEmail.trim()) return;
+    if (!newMemberEmail.trim() || isAddingMember) return;
     try {
       setIsAddingMember(true);
       setStatusMessage(null);
+      toast.info(`Đang thêm ${newMemberEmail.trim()} vào nhóm...`, 'Đang xử lý');
       const res = await apiCall('/api/team/members', 'POST', { email: newMemberEmail.trim() });
       if (res && res.success) {
-        setStatusMessage({ text: res.message || 'Đã thêm thành viên thành công', type: 'success' });
+        const msg = res.message || 'Đã thêm thành viên thành công';
+        setStatusMessage({ text: msg, type: 'success' });
+        toast.success(msg, 'Thành viên mới');
         setNewMemberEmail('');
         await loadTeam();
       }
     } catch (err: any) {
+      const errMsg = err.message || 'Không thể thêm thành viên. Vui lòng kiểm tra lại.';
       setStatusMessage({
-        text: err.message || 'Không thể thêm thành viên. Vui lòng kiểm tra lại.',
+        text: errMsg,
         type: 'error'
       });
+      toast.error(errMsg, 'Lỗi');
     } finally {
       setIsAddingMember(false);
     }
@@ -226,10 +238,12 @@ export function SubscriptionManagementView() {
       const res = await apiCall(`/api/team/members/${memberUserId}`, 'DELETE');
       if (res && res.success) {
         setStatusMessage({ text: res.message || 'Đã xóa thành viên khỏi nhóm', type: 'success' });
+        toast.info(`Đã xóa thành viên ${memberName} khỏi nhóm.`, 'Đội ngũ');
         await loadTeam();
       }
     } catch (err: any) {
       setStatusMessage({ text: err.message || 'Lỗi khi xóa thành viên', type: 'error' });
+      toast.error(err.message || 'Lỗi khi xóa thành viên', 'Lỗi');
     } finally {
       setIsRemovingMember(null);
     }
@@ -238,13 +252,16 @@ export function SubscriptionManagementView() {
   // Team: Join existing team via Invite Code
   const handleJoinTeam = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!joinCodeInput.trim()) return;
+    if (!joinCodeInput.trim() || isJoiningTeam) return;
     try {
       setIsJoiningTeam(true);
       setStatusMessage(null);
+      toast.info('Đang xác thực mã mời tham gia nhóm...', 'Đang xử lý');
       const res = await apiCall('/api/team/join', 'POST', { code: joinCodeInput.trim() });
       if (res && res.success) {
-        setStatusMessage({ text: res.message || 'Tham gia nhóm thành công! Toàn bộ tính năng LifeOS đã được mở khóa.', type: 'success' });
+        const msg = res.message || 'Tham gia nhóm thành công! Toàn bộ tính năng LifeOS đã được mở khóa.';
+        setStatusMessage({ text: msg, type: 'success' });
+        toast.success(msg, 'Tham gia thành công 🎉');
         setJoinCodeInput('');
         await loadTeam();
         await loadSubscription();
@@ -254,6 +271,7 @@ export function SubscriptionManagementView() {
       }
     } catch (err: any) {
       setStatusMessage({ text: err.message || 'Lỗi khi tham gia nhóm', type: 'error' });
+      toast.error(err.message || 'Lỗi khi tham gia nhóm', 'Lỗi');
     } finally {
       setIsJoiningTeam(false);
     }
@@ -270,6 +288,7 @@ export function SubscriptionManagementView() {
       const res = await apiCall(`/api/team/members/${currentUser.id}`, 'DELETE');
       if (res && res.success) {
         setStatusMessage({ text: res.message || 'Đã rời khỏi nhóm thành công.', type: 'success' });
+        toast.info('Đã rời khỏi nhóm.', 'Đội ngũ');
         await loadTeam();
         await loadSubscription();
         await fetchSubscriptionStatus();
@@ -278,6 +297,7 @@ export function SubscriptionManagementView() {
       }
     } catch (err: any) {
       setStatusMessage({ text: err.message || 'Lỗi khi rời khỏi nhóm', type: 'error' });
+      toast.error(err.message || 'Lỗi khi rời khỏi nhóm', 'Lỗi');
     } finally {
       setIsRemovingMember(null);
     }
