@@ -31,7 +31,8 @@ export function GradeForecastTab({
   profile,
   onCommitScoreToProfile
 }: GradeForecastTabProps) {
-  const { subjects = [] } = useAppStore();
+  const { subjects = [], language = "vi" } = useAppStore();
+  const isVi = language === "vi";
   const [selectedSubId, setSelectedSubId] = useState(preselectedSubjectId || subjects[0]?.id || '');
   const [targetScore, setTargetScore] = useState<number>(8.0);
   const [newScoreInput, setNewScoreInput] = useState<{ [compId: string]: string }>({});

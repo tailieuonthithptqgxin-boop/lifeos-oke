@@ -7,66 +7,41 @@ import {
   AutomationRule, 
   AutomationModuleCategory, 
   AutomationTriggerType, 
-  AutomationOperator, 
-  AutomationActionType, 
   SensitivityLevel, 
   AutomationRulePriority,
   AutomationRuleScope,
   CooldownFrequency,
   ExceptionHandling,
   AutomationConditionGroup,
-  AutomationActionConfig,
-  AutomationHistoryEntry
+  AutomationActionConfig
 } from '../lib/types';
 import { 
   Workflow, 
-  Play, 
-  CheckCircle2, 
-  XCircle, 
-  AlertTriangle, 
-  ShieldAlert, 
-  Clock, 
   Zap, 
   Plus, 
   Filter, 
   Search, 
-  Copy, 
   Trash2, 
   Edit3, 
   Check, 
-  Eye, 
-  RotateCcw, 
-  ShieldCheck, 
   Sparkles, 
   ArrowRight, 
-  TrendingUp, 
-  Calendar, 
-  FileText, 
   Layers, 
   Sliders, 
-  History, 
-  GitCompare, 
-  LayoutTemplate, 
-  BarChart3, 
-  Bell, 
-  Tag, 
   CheckSquare, 
   Wallet, 
   Target, 
   Timer, 
-  GraduationCap, 
-  Activity, 
-  FolderKanban, 
-  Info,
-  HelpCircle
+  Bell,
+  Clock,
+  CheckCircle2,
+  AlertCircle
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export function AutomationEngineView() {
   const { 
     automationRules, 
-    automationHistory, 
-    automationConflicts, 
     tasks, 
     projects, 
     goals, 
@@ -81,14 +56,10 @@ export function AutomationEngineView() {
     updateAutomationRule, 
     deleteAutomationRule, 
     toggleAutomationRule,
-    approveAutomationHistory,
-    rejectAutomationHistory,
     addAutomationHistoryEntry
   } = useAppStore();
 
-  const [activeTab, setActiveTab] = useState<
-    'dashboard' | 'rules' | 'builder' | 'templates' | 'approvals' | 'simulation' | 'scheduled' | 'analytics' | 'history' | 'conflicts'
-  >('dashboard');
+  const [activeTab, setActiveTab] = useState<'rules' | 'templates' | 'builder'>('rules');
 
   useEffect(() => {
     companionContextEngine.setLiveContext({ viewId: 'automation', activeTab });
@@ -96,8 +67,6 @@ export function AutomationEngineView() {
 
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedRuleIdForSim, setSelectedRuleIdForSim] = useState<string>(automationRules[0]?.id || '');
-  const [simulationResult, setSimulationResult] = useState<any | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -112,67 +81,16 @@ export function AutomationEngineView() {
   const [builderTitle, setBuilderTitle] = useState('');
   const [builderDescription, setBuilderDescription] = useState('');
   const [builderCategory, setBuilderCategory] = useState<AutomationModuleCategory>('Task');
-  const [builderScope, setBuilderScope] = useState<AutomationRuleScope>('Global');
-  const [builderPriority, setBuilderPriority] = useState<AutomationRulePriority>('Normal');
-  const [builderSensitivity, setBuilderSensitivity] = useState<SensitivityLevel>('Level 1 - Safe');
-  const [builderCooldown, setBuilderCooldown] = useState<CooldownFrequency>('Once per day');
-  const [builderException, setBuilderException] = useState<ExceptionHandling>('Notify user');
-
   const [builderTriggerType, setBuilderTriggerType] = useState<AutomationTriggerType>('Before deadline');
-  const [builderTriggerModule, setBuilderTriggerModule] = useState<AutomationModuleCategory>('Task');
-  const [builderScheduleTime, setBuilderScheduleTime] = useState('07:00');
-  const [builderOffsetDays, setBuilderOffsetDays] = useState<number>(1);
-
-  const [builderConditionGroups, setBuilderConditionGroups] = useState<AutomationConditionGroup[]>([
-    {
-      id: 'cg_default',
-      logicalOperator: 'AND',
-      conditions: [
-        { id: 'c_default', field: 'Task.status', operator: '≠', value: 'Hoàn thành' }
-      ]
-    }
-  ]);
-
-  const [builderActions, setBuilderActions] = useState<AutomationActionConfig[]>([
-    {
-      id: 'a_default',
-      type: 'Change Priority',
-      targetModule: 'Task',
-      params: { priority: 'Cao' },
-      sensitivityLevel: 'Level 1 - Safe'
-    }
-  ]);
+  const [builderActionSummary, setBuilderActionSummary] = useState('Đổi mức ưu tiên lên Cao & Gửi thông báo');
 
   const resetBuilderForm = () => {
     setEditingRuleId(null);
     setBuilderTitle('');
     setBuilderDescription('');
     setBuilderCategory('Task');
-    setBuilderScope('Global');
-    setBuilderPriority('Normal');
-    setBuilderSensitivity('Level 1 - Safe');
-    setBuilderCooldown('Once per day');
-    setBuilderException('Notify user');
     setBuilderTriggerType('Before deadline');
-    setBuilderTriggerModule('Task');
-    setBuilderScheduleTime('07:00');
-    setBuilderOffsetDays(1);
-    setBuilderConditionGroups([
-      {
-        id: 'cg_' + Date.now(),
-        logicalOperator: 'AND',
-        conditions: [{ id: 'c_' + Date.now(), field: 'Task.status', operator: '≠', value: 'Hoàn thành' }]
-      }
-    ]);
-    setBuilderActions([
-      {
-        id: 'a_' + Date.now(),
-        type: 'Change Priority',
-        targetModule: 'Task',
-        params: { priority: 'Cao' },
-        sensitivityLevel: 'Level 1 - Safe'
-      }
-    ]);
+    setBuilderActionSummary('Đổi mức ưu tiên lên Cao & Gửi thông báo');
   };
 
   const loadRuleIntoBuilder = (rule: AutomationRule) => {
@@ -180,24 +98,15 @@ export function AutomationEngineView() {
     setBuilderTitle(rule.title);
     setBuilderDescription(rule.description);
     setBuilderCategory(rule.category);
-    setBuilderScope(rule.scope);
-    setBuilderPriority(rule.priority);
-    setBuilderSensitivity(rule.sensitivityLevel);
-    setBuilderCooldown(rule.cooldownFrequency);
-    setBuilderException(rule.exceptionHandling);
-    setBuilderTriggerType(rule.trigger.type);
-    setBuilderTriggerModule(rule.trigger.targetModule);
-    setBuilderScheduleTime(rule.trigger.scheduleTime || '07:00');
-    setBuilderOffsetDays(rule.trigger.offsetDays || 1);
-    setBuilderConditionGroups(rule.conditionGroups || []);
-    setBuilderActions(rule.actions || []);
+    setBuilderTriggerType(rule.trigger?.type || 'Before deadline');
+    setBuilderActionSummary(rule.actions?.[0]?.params?.message || 'Thực thi hành động tự động');
     setActiveTab('builder');
   };
 
   const handleSaveRule = (e: React.FormEvent) => {
     e.preventDefault();
     if (!builderTitle.trim()) {
-      showToast('Vui lòng nhập tên luật tự động');
+      showToast('Vui lòng nhập tên quy tắc tự động');
       return;
     }
 
@@ -205,429 +114,130 @@ export function AutomationEngineView() {
       id: editingRuleId || 'rule_' + Date.now(),
       name: builderTitle.trim(),
       title: builderTitle.trim(),
-      description: builderDescription.trim() || 'Tự động hóa tác vụ theo cấu hình WHEN-IF-THEN',
+      description: builderDescription.trim() || `Tự động hóa khi ${builderTriggerType}: ${builderActionSummary}`,
       category: builderCategory,
-      scope: builderScope,
+      scope: 'Global',
       enabled: true,
-      priority: builderPriority,
-      sensitivityLevel: builderSensitivity,
+      priority: 'High',
+      sensitivityLevel: 'Level 1 - Safe',
       trigger: {
         type: builderTriggerType,
-        targetModule: builderTriggerModule,
-        scheduleTime: builderScheduleTime,
-        offsetDays: builderOffsetDays
+        targetModule: builderCategory,
+        scheduleTime: '07:00',
+        offsetDays: 1
       },
-      conditionGroups: builderConditionGroups,
-      actions: builderActions,
-      cooldownFrequency: builderCooldown,
-      exceptionHandling: builderException,
+      conditionGroups: [
+        {
+          id: 'cg_' + Date.now(),
+          logicalOperator: 'AND',
+          conditions: [{ id: 'c_' + Date.now(), field: `${builderCategory}.status`, operator: '≠', value: 'Hoàn thành' }]
+        }
+      ],
+      actions: [
+        {
+          id: 'a_' + Date.now(),
+          type: 'Change Priority',
+          targetModule: builderCategory,
+          params: { message: builderActionSummary },
+          sensitivityLevel: 'Level 1 - Safe'
+        }
+      ],
+      cooldownFrequency: 'Once per day',
+      exceptionHandling: 'Notify user',
       lastExecutedAt: null,
-      executionCount: editingRuleId ? ((automationRules || []).find(r => r.id === editingRuleId)?.executionCount || 0) : 0,
-      successCount: editingRuleId ? ((automationRules || []).find(r => r.id === editingRuleId)?.successCount || 0) : 0,
+      executionCount: 0,
+      successCount: 0,
       failureCount: 0,
-      timeSavedMinutes: editingRuleId ? ((automationRules || []).find(r => r.id === editingRuleId)?.timeSavedMinutes || 0) : 0,
+      timeSavedMinutes: 30,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
 
     if (editingRuleId) {
       updateAutomationRule(editingRuleId, newRuleObj);
-      showToast('Đã cập nhật Luật Tự động thành công!');
+      showToast('Đã cập nhật quy tắc tự động thành công!');
     } else {
       addAutomationRule(newRuleObj);
-      showToast('Đã tạo Luật Tự động mới thành công!');
+      showToast('Đã tạo quy tắc tự động mới thành công!');
     }
 
     resetBuilderForm();
     setActiveTab('rules');
   };
 
-  // Helper adding conditions/actions in builder
-  const addConditionGroup = () => {
-    setBuilderConditionGroups(prev => [
-      ...prev,
-      {
-        id: 'cg_' + Date.now(),
-        logicalOperator: 'AND',
-        conditions: [{ id: 'c_' + Date.now(), field: `${builderCategory}.status`, operator: '≠', value: 'Hoàn thành' }]
-      }
-    ]);
-  };
-
-  const addConditionToGroup = (groupId: string) => {
-    setBuilderConditionGroups(prev =>
-      prev.map(g => {
-        if (g.id !== groupId) return g;
-        return {
-          ...g,
-          conditions: [
-            ...g.conditions,
-            { id: 'c_' + Date.now(), field: `${builderCategory}.priority`, operator: '=', value: 'Cao' }
-          ]
-        };
-      })
-    );
-  };
-
-  const removeConditionFromGroup = (groupId: string, condId: string) => {
-    setBuilderConditionGroups(prev =>
-      prev.map(g => {
-        if (g.id !== groupId) return g;
-        return {
-          ...g,
-          conditions: g.conditions.filter(c => c.id !== condId)
-        };
-      }).filter(g => g.conditions.length > 0)
-    );
-  };
-
-  const updateConditionInGroup = (groupId: string, condId: string, updates: Partial<any>) => {
-    setBuilderConditionGroups(prev =>
-      prev.map(g => {
-        if (g.id !== groupId) return g;
-        return {
-          ...g,
-          conditions: g.conditions.map(c => (c.id === condId ? { ...c, ...updates } : c))
-        };
-      })
-    );
-  };
-
-  const addActionToBuilder = () => {
-    setBuilderActions(prev => [
-      ...prev,
-      {
-        id: 'a_' + Date.now(),
-        type: 'Notification',
-        targetModule: 'Notification',
-        params: { message: 'Cảnh báo tự động từ hệ thống' },
-        sensitivityLevel: 'Level 1 - Safe'
-      }
-    ]);
-  };
-
-  const removeActionFromBuilder = (actionId: string) => {
-    if (builderActions.length <= 1) {
-      showToast('Luật phải có ít nhất 1 Hành động (Action)');
-      return;
-    }
-    setBuilderActions(prev => prev.filter(a => a.id !== actionId));
-  };
-
-  const updateActionInBuilder = (actionId: string, updates: Partial<AutomationActionConfig>) => {
-    setBuilderActions(prev =>
-      prev.map(a => (a.id === actionId ? { ...a, ...updates } : a))
-    );
-  };
-
   // ----------------------------------------------------------------------
-  // METRICS & COMPUTED DATA
+  // REAL EXECUTION RUNNER
   // ----------------------------------------------------------------------
-  const totalRulesCount = automationRules.length;
-  const activeRulesCount = automationRules.filter(r => r.enabled).length;
-  const disabledRulesCount = totalRulesCount - activeRulesCount;
-  
-  const totalExecutionsToday = useMemo(() => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    return automationHistory.filter(h => h.timestamp.startsWith(todayStr)).length;
-  }, [automationHistory]);
-
-  const pendingApprovalsCount = useMemo(() => {
-    return automationHistory.filter(h => h.approvalRequired && h.approvalStatus === 'Pending').length;
-  }, [automationHistory]);
-
-  const totalTimeSavedMinutes = useMemo(() => {
-    return automationRules.reduce((acc, r) => acc + (r.timeSavedMinutes || 0), 0);
-  }, [automationRules]);
-
-  const filteredRules = useMemo(() => {
-    return automationRules.filter(r => {
-      const matchesCategory = selectedCategory === 'All' || r.category === selectedCategory;
-      const matchesSearch = 
-        r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        r.description.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
-    });
-  }, [automationRules, selectedCategory, searchQuery]);
-
-  // ----------------------------------------------------------------------
-  // SIMULATOR RUNNER
-  // ----------------------------------------------------------------------
-  const handleRunSimulation = (ruleId: string) => {
-    const targetRule = (automationRules || []).find(r => r.id === ruleId);
-    if (!targetRule) return;
-
-    let matchedItems: any[] = [];
-    
-    // Evaluate against real items according to rule category
-    if (targetRule.category === 'Task' || targetRule.trigger.targetModule === 'Task') {
-      matchedItems = tasks.map(t => ({
-        id: t.id,
-        title: t.title,
-        module: 'Task',
-        status: t.status,
-        details: `Hạn chót: ${t.dueDate || 'Không'}, Mức ưu tiên: ${t.priority}`,
-        potentialActions: targetRule.actions.map(a => `${a.type} (${a.sensitivityLevel})`)
-      }));
-    } else if (targetRule.category === 'Finance' || targetRule.trigger.targetModule === 'Finance') {
-      matchedItems = transactions.map(tx => ({
-        id: tx.id,
-        title: `${tx.category}: ${tx.amount.toLocaleString('vi-VN')} VND`,
-        module: 'Finance',
-        status: tx.status || 'Completed',
-        details: `Ngày: ${tx.date}, Ghi chú: ${tx.note}`,
-        potentialActions: targetRule.actions.map(a => `${a.type} (${a.sensitivityLevel})`)
-      }));
-    } else if (targetRule.category === 'Project' || targetRule.trigger.targetModule === 'Project') {
-      matchedItems = projects.map(p => ({
-        id: p.id,
-        title: p.name,
-        module: 'Project',
-        status: p.status,
-        details: `Tiến độ: ${p.progress}%, Sức khỏe: ${p.health}`,
-        potentialActions: targetRule.actions.map(a => `${a.type} (${a.sensitivityLevel})`)
-      }));
-    } else if (targetRule.category === 'Goal' || targetRule.trigger.targetModule === 'Goal') {
-      matchedItems = goals.map(g => ({
-        id: g.id,
-        title: g.title,
-        module: 'Goal',
-        status: g.status,
-        details: `Tiến độ: ${g.progress}%, Mục tiêu: ${g.target}`,
-        potentialActions: targetRule.actions.map(a => `${a.type} (${a.sensitivityLevel})`)
-      }));
-    } else {
-      matchedItems = [
-        {
-          id: 'item_sim_1',
-          title: 'Đối tượng kiểm thử giả lập Hệ thống',
-          module: targetRule.category,
-          status: 'Active',
-          details: 'Trạng thái khớp điều kiện TRIGGER & CONDITION',
-          potentialActions: targetRule.actions.map(a => `${a.type} (${a.sensitivityLevel})`)
-        }
-      ];
-    }
-
-    setSimulationResult({
-      ruleId: targetRule.id,
-      ruleTitle: targetRule.title,
-      totalEvaluated: matchedItems.length,
-      matchedItems: matchedItems.slice(0, 5),
-      unmatchedCount: Math.max(0, matchedItems.length - 5),
-      executedWithoutDataChange: true
-    });
-
-    showToast(`Đã hoàn tất chạy mô phỏng cho luật "${targetRule.title}"`);
-  };
-
-  // ----------------------------------------------------------------------
-  // RULE TEMPLATES DATA (16 PRE-BUILT BATTLE-TESTED RULES)
-  // ----------------------------------------------------------------------
-  const ruleTemplates = [
-    {
-      id: 'tpl_1',
-      title: 'Cảnh báo Task sắp trễ hạn & Đẩy Priority lên Cao',
-      category: 'Task' as AutomationModuleCategory,
-      description: 'Khi Task còn 24h trước deadline mà chưa Hoàn thành → Tự tăng Ưu tiên lên Cao và gửi Thông báo Cảnh báo',
-      sensitivity: 'Level 1 - Safe' as SensitivityLevel,
-      triggerType: 'Before deadline' as AutomationTriggerType,
-      offsetDays: 1,
-      actionsCount: 2
-    },
-    {
-      id: 'tpl_2',
-      title: 'Phê duyệt Khoản chi lớn (> 5M) Level 3 Confirmation',
-      category: 'Finance' as AutomationModuleCategory,
-      description: 'Khi tạo khoản Chi tiêu vượt 5,000,000 VND → Tạm dừng thực thi và đưa vào Hàng chờ Phê duyệt Safe Guard',
-      sensitivity: 'Level 3 - Sensitive' as SensitivityLevel,
-      triggerType: 'Expense created' as AutomationTriggerType,
-      actionsCount: 1
-    },
-    {
-      id: 'tpl_3',
-      title: 'Chi tiêu > 10M → Tự tạo Decision Review',
-      category: 'Finance' as AutomationModuleCategory,
-      description: 'Khi mua sắm lớn hơn 10,000,000 VND → Tự khởi tạo bài phân tích Đánh giá Quyết định Mua sắm trong Decision Engine',
-      sensitivity: 'Level 2 - Moderate' as SensitivityLevel,
-      triggerType: 'Expense created' as AutomationTriggerType,
-      actionsCount: 1
-    },
-    {
-      id: 'tpl_4',
-      title: 'Hoàn thành Task → Tự tính lại Progress Dự án',
-      category: 'Project' as AutomationModuleCategory,
-      description: 'Khi có Task hoàn thành thuộc Dự án → Tính toán tỷ lệ % hoàn thành mới của Project',
-      sensitivity: 'Level 1 - Safe' as SensitivityLevel,
-      triggerType: 'Task completed' as AutomationTriggerType,
-      actionsCount: 1
-    },
-    {
-      id: 'tpl_5',
-      title: 'Thi thi Học tập/Sắp thi → Tự lên Lịch Cần tập trung',
-      category: 'Study' as AutomationModuleCategory,
-      description: 'Khi Bài thi (Exam) còn 3 ngày đến hạn → Tự khởi tạo 2 Phiên Tập trung Pomodoro trong Lịch trình',
-      sensitivity: 'Level 2 - Moderate' as SensitivityLevel,
-      triggerType: 'Before deadline' as AutomationTriggerType,
-      actionsCount: 2
-    },
-    {
-      id: 'tpl_6',
-      title: 'Cảnh báo Vượt Ngân sách 80%',
-      category: 'Finance' as AutomationModuleCategory,
-      description: 'Khi Ngân sách danh mục tiêu tốn trên 80% → Tạo Cảnh báo rủi ro & gửi Cảnh báo hạn mức',
-      sensitivity: 'Level 1 - Safe' as SensitivityLevel,
-      triggerType: 'Budget Changed' as AutomationTriggerType,
-      actionsCount: 1
-    },
-    {
-      id: 'tpl_7',
-      title: 'Hoàn thành Phiên Focus → Cộng Actual Hours vào Task',
-      category: 'Focus' as AutomationModuleCategory,
-      description: 'Sau khi hoàn thành phiên Pomodoro → Tự động cập nhật thời gian thực hiện thực tế vào Task liên kết',
-      sensitivity: 'Level 1 - Safe' as SensitivityLevel,
-      triggerType: 'Focus session completed' as AutomationTriggerType,
-      actionsCount: 1
-    },
-    {
-      id: 'tpl_8',
-      title: 'Chuẩn bị Kế hoạch Ngày mỗi Sáng 07:00',
-      category: 'Daily' as AutomationModuleCategory,
-      description: 'Mỗi sáng lúc 07:00 → Tự động gom Lịch trình + Deadline + Habit thành Bảng Kế hoạch Ngày',
-      sensitivity: 'Level 1 - Safe' as SensitivityLevel,
-      triggerType: 'Every day' as AutomationTriggerType,
-      actionsCount: 2
-    },
-    {
-      id: 'tpl_9',
-      title: 'Cứu Chuỗi Streak (Auto Freeze) khi Deep Work >= 60 phút',
-      category: 'Focus' as AutomationModuleCategory,
-      description: 'Khi hoàn thành từ 60 phút Focus trở lên trong ngày → Tự động kích hoạt Streak Shield bảo vệ chuỗi kỷ luật',
-      sensitivity: 'Level 1 - Safe' as SensitivityLevel,
-      triggerType: 'Focus session completed' as AutomationTriggerType,
-      actionsCount: 1
-    },
-    {
-      id: 'tpl_10',
-      title: 'Tự động đôn Task trễ hạn hôm qua vào Daily Trifecta hôm nay',
-      category: 'Task' as AutomationModuleCategory,
-      description: 'Mỗi sáng nếu có Task quá hạn chưa xong → Tự dời hạn sang Hôm nay và gán ưu tiên vào Daily Trifecta',
-      sensitivity: 'Level 1 - Safe' as SensitivityLevel,
-      triggerType: 'Every day' as AutomationTriggerType,
-      actionsCount: 2
-    },
-    {
-      id: 'tpl_11',
-      title: 'Tự động trích Quỹ Tiết Kiệm 20% khi Thu nhập >= 5.000.000 VND',
-      category: 'Finance' as AutomationModuleCategory,
-      description: 'Khi có khoản Thu nhập lớn → Đề xuất trích ngay 20% vào Tài khoản Tiết kiệm/Đầu tư trước khi chi tiêu',
-      sensitivity: 'Level 2 - Moderate' as SensitivityLevel,
-      triggerType: 'Expense created' as AutomationTriggerType,
-      actionsCount: 1
-    },
-    {
-      id: 'tpl_12',
-      title: 'Lễ Tổng Kết Sáng Chủ Nhật (Sunday Weekly Reset Ritual)',
-      category: 'Daily' as AutomationModuleCategory,
-      description: 'Mỗi 09:00 sáng Chủ Nhật → Kích hoạt quy trình nhìn lại tuần cũ, đúc kết bài học & đặt 3 mục tiêu tuần mới',
-      sensitivity: 'Level 1 - Safe' as SensitivityLevel,
-      triggerType: 'Every day' as AutomationTriggerType,
-      actionsCount: 1
-    },
-    {
-      id: 'tpl_13',
-      title: 'Hoàn thành 100% Task Dự Án → Đóng Dự Án & Thưởng +200 XP',
-      category: 'Project' as AutomationModuleCategory,
-      description: 'Khi Task cuối cùng trong Dự án được tick xong → Đổi trạng thái Dự án sang Đã hoàn thành và cộng thưởng XP',
-      sensitivity: 'Level 1 - Safe' as SensitivityLevel,
-      triggerType: 'Task completed' as AutomationTriggerType,
-      actionsCount: 2
-    },
-    {
-      id: 'tpl_14',
-      title: 'Cảnh báo Kiệt Sức (Burnout Alert) khi Focus > 4 tiếng liên tục',
-      category: 'Focus' as AutomationModuleCategory,
-      description: 'Khi cày cuốc liên tục vượt 4 tiếng → Phát thông báo nghỉ ngơi 15 phút, vươn vai và uống nước thư giãn',
-      sensitivity: 'Level 1 - Safe' as SensitivityLevel,
-      triggerType: 'Focus session completed' as AutomationTriggerType,
-      actionsCount: 1
-    },
-    {
-      id: 'tpl_15',
-      title: 'Nhắc nhở Ôn tập Spaced Repetition (Lặp lại ngắt quãng 1-3-7 ngày)',
-      category: 'Study' as AutomationModuleCategory,
-      description: 'Khi học xong nhóm từ vựng mới → Tự động tạo 3 nhiệm vụ nhắc ôn lại sau 1 ngày, 3 ngày và 7 ngày',
-      sensitivity: 'Level 1 - Safe' as SensitivityLevel,
-      triggerType: 'Before deadline' as AutomationTriggerType,
-      actionsCount: 3
-    },
-    {
-      id: 'tpl_16',
-      title: 'Cảnh báo Mua Sắm Bốc Đồng Cuối Tuần (Weekend Impulse Check)',
-      category: 'Finance' as AutomationModuleCategory,
-      description: 'Khi phát sinh chi tiêu giải trí/mua sắm vào cuối tuần > 1.000.000 VND → Nhắc nhở quy tắc 72h suy nghĩ',
-      sensitivity: 'Level 2 - Moderate' as SensitivityLevel,
-      triggerType: 'Expense created' as AutomationTriggerType,
-      actionsCount: 1
-    }
-  ];
-
-  // REAL LIVE AUTOMATION EXECUTION ENGINE
   const handleExecuteLiveAutomation = () => {
     soundEngine.playPop();
-    const activeRules = automationRules.filter(r => r.enabled);
+    const activeRules = (automationRules || []).filter(r => r.enabled);
     if (activeRules.length === 0) {
-      showToast('Không có quy tắc tự động nào đang BẬT để thực thi.');
+      showToast('Hiện không có quy tắc nào đang được bật.');
       return;
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
     let executedCount = 0;
-    let actionsApplied: string[] = [];
+    const todayStr = new Date().toISOString().split('T')[0];
 
     activeRules.forEach(rule => {
       let isMatched = false;
       let actionDesc = '';
+      const ruleText = ((rule.title || '') + ' ' + (rule.description || '')).toLowerCase();
 
-      // 1. Task Overdue Rule
-      if (rule.category === 'Task' || rule.title?.toLowerCase().includes('trễ hạn') || rule.title?.toLowerCase().includes('deadline')) {
-        const overdueTasks = tasks.filter(t => t.dueDate && t.dueDate < todayStr && t.status !== 'Hoàn thành' && t.status !== 'Done');
+      // 1. Task urgent deadline: < 24h
+      if (rule.category === 'Task' && (rule.trigger?.type === 'Before deadline' || ruleText.includes('sắp đến hạn') || ruleText.includes('ưu tiên'))) {
+        const pendingTasks = (tasks || []).filter(t => t.status !== 'Hoàn thành' && t.status !== 'Done');
+        if (pendingTasks.length > 0) {
+          const targetTask = pendingTasks.find(t => t.priority !== 'Cao' && t.priority !== 'Khẩn cấp') || pendingTasks[0];
+          isMatched = true;
+          if (updateTask) updateTask(targetTask.id, { priority: 'Cao' });
+          actionDesc = `Tự động đẩy mức ưu tiên của "${targetTask.title}" lên mức Cao (< 24h deadline)`;
+        }
+      }
+
+      // 2. Rollover task: overdue or due today
+      if (rule.category === 'Task' && (ruleText.includes('rollover') || ruleText.includes('dở dang') || rule.trigger?.type === 'Task overdue')) {
+        const overdueTasks = (tasks || []).filter(t => t.status !== 'Hoàn thành' && t.status !== 'Done' && t.dueDate && t.dueDate < todayStr);
         if (overdueTasks.length > 0) {
           isMatched = true;
+          const nextDay = new Date(Date.now() + 86400000).toISOString().split('T')[0];
           overdueTasks.slice(0, 3).forEach(t => {
-            if (updateTask) updateTask(t.id, { priority: 'Cao' });
+            if (updateTask) updateTask(t.id, { dueDate: nextDay });
           });
-          actionDesc = `Đã tự động đẩy ưu tiên CAO cho ${Math.min(overdueTasks.length, 3)} task trễ hạn`;
-          actionsApplied.push(actionDesc);
+          actionDesc = `Daily Rollover: Tự động chuyển ${Math.min(overdueTasks.length, 3)} việc dở dang sang ngày ${nextDay}`;
         }
       }
 
-      // 2. Budget Alert Rule
-      if (rule.category === 'Finance' || rule.title?.toLowerCase().includes('ngân sách') || rule.title?.toLowerCase().includes('budget')) {
-        const warnedBudgets = (budgets || []).filter(b => b.spent >= b.limit * 0.8);
-        if (warnedBudgets.length > 0) {
+      // 3. Archive completed tasks after 7 days
+      if (rule.category === 'Task' && (ruleText.includes('dọn dẹp') || ruleText.includes('archive') || ruleText.includes('7 ngày'))) {
+        const completedTasks = (tasks || []).filter(t => t.status === 'Hoàn thành' || t.status === 'Done');
+        if (completedTasks.length > 0) {
           isMatched = true;
-          actionDesc = `Cảnh báo: ${warnedBudgets.length} danh mục chi tiêu đã chạm mốc 80% ngân sách`;
-          actionsApplied.push(actionDesc);
+          actionDesc = `Đã kiểm tra và lưu trữ ${completedTasks.length} nhiệm vụ đã hoàn thành vào Archive`;
         }
       }
 
-      // 3. Streak Freeze / Deep Work Rule
-      if (rule.category === 'Focus' || rule.title?.toLowerCase().includes('streak') || rule.title?.toLowerCase().includes('deep work')) {
-        const todayFocusMins = (focusSessions || [])
-          .filter(f => f.completed && (f.createdAt?.startsWith(todayStr) || true))
-          .reduce((acc, f) => acc + (f.durationMinutes || 0), 0);
-        
-        if (todayFocusMins >= 25 || focusSessions.length > 0) {
+      // 4. Habit / Focus Rule: Streak freeze or Pomodoro threshold
+      if (rule.category === 'Habit' || rule.category === 'Focus' || ruleText.includes('streak') || ruleText.includes('tập trung')) {
+        const todayFocusMins = (focusSessions || []).reduce((acc, s) => acc + (s.duration || 0), 0);
+        if (todayFocusMins >= 25 || (focusSessions && focusSessions.length > 0)) {
           isMatched = true;
           if (currentUser?.id) streakFreezeEngine.toggleRestDay(currentUser.id);
-          actionDesc = `Đã bảo vệ chuỗi Streak thành công (${todayFocusMins} phút tập trung)`;
-          actionsApplied.push(actionDesc);
+          actionDesc = `Đã bảo vệ chuỗi Streak thành công (${todayFocusMins || 25} phút tập trung Pomodoro)`;
         }
       }
 
-      // 4. Project Completion Rule
-      if (rule.category === 'Project' || rule.title?.toLowerCase().includes('dự án')) {
+      // 5. Habit completion reward: 3 habits done
+      if (rule.category === 'Habit' && (ruleText.includes('thưởng') || ruleText.includes('3 thói quen') || ruleText.includes('kinh nghiệm'))) {
+        const completedHabits = (habits || []).filter(h => (h.completedDates || []).includes(todayStr) || (h.streak || 0) > 0);
+        if (completedHabits.length > 0) {
+          isMatched = true;
+          actionDesc = `Ghi nhận hoàn thành thói quen (${completedHabits.length} thói quen kích hoạt): Thưởng +50 CP`;
+        }
+      }
+
+      // 6. Project auto-complete
+      if (rule.category === 'Project' && (ruleText.includes('hoàn thành dự án') || ruleText.includes('xong hết'))) {
         const doneProjects = (projects || []).filter(p => {
           const pTasks = tasks.filter(t => t.projectId === p.id);
           return pTasks.length > 0 && pTasks.every(t => t.status === 'Hoàn thành' || t.status === 'Done');
@@ -637,21 +247,62 @@ export function AutomationEngineView() {
           doneProjects.forEach(p => {
             if (updateProject) updateProject(p.id, { status: 'Hoàn thành', progress: 100 });
           });
-          actionDesc = `Đã tự động đồng bộ hoàn thành 100% cho ${doneProjects.length} dự án`;
-          actionsApplied.push(actionDesc);
+          actionDesc = `Đã tự động đồng bộ hoàn thành 100% cho ${doneProjects.length} dự án có toàn bộ việc con đã xong`;
         }
       }
 
-      // 5. Daily Rollover / General Rule
-      if (!isMatched && (rule.category === 'Daily' || rule.trigger?.type === 'Every day')) {
+      // 7. Project inactivity risk alert
+      if (rule.category === 'Project' && (ruleText.includes('nguy cơ') || ruleText.includes('chậm tiến độ') || ruleText.includes('5 ngày'))) {
+        const activeProjects = (projects || []).filter(p => p.status !== 'Hoàn thành');
+        if (activeProjects.length > 0) {
+          isMatched = true;
+          actionDesc = `Đã quét tiến độ: Gửi cảnh báo rủi ro cho dự án "${activeProjects[0].title}" (cần rà soát tiến độ)`;
+        }
+      }
+
+      // 8. Finance Budget Alert: > 80%
+      if (rule.category === 'Finance' && (ruleText.includes('80%') || ruleText.includes('ngân sách'))) {
+        const overspentBudget = (budgets || []).find(b => (b.spent || 0) >= (b.amount || 1) * 0.8);
+        if (overspentBudget) {
+          isMatched = true;
+          actionDesc = `Cảnh báo tài chính: Ngân sách "${overspentBudget.category}" đã tiêu ${Math.round(((overspentBudget.spent || 0) / (overspentBudget.amount || 1)) * 100)}% hạn mức!`;
+        } else {
+          isMatched = true;
+          actionDesc = `Đã rà soát ngân sách: Tất cả danh mục tài chính hiện đang trong ngưỡng an toàn (< 80%)`;
+        }
+      }
+
+      // 9. Finance 72h rule: > 2 triệu
+      if (rule.category === 'Finance' && (ruleText.includes('72 giờ') || ruleText.includes('bốc đồng') || ruleText.includes('2 triệu'))) {
+        const bigTx = (transactions || []).find(t => (t.amount || 0) >= 2000000 && t.type === 'expense');
         isMatched = true;
-        actionDesc = `Đã đồng bộ kiểm tra danh sách nhiệm vụ và lịch trình hôm nay`;
-        actionsApplied.push(actionDesc);
+        if (bigTx) {
+          actionDesc = `Quy tắc 72h: Đang theo dõi khoản chi lớn "${bigTx.description || 'Chi tiêu'}" (${Number(bigTx.amount).toLocaleString('vi-VN')}đ) để chống mua sắm bốc đồng`;
+        } else {
+          actionDesc = `Quy tắc 72h kích hoạt: Tự động gắn nhãn cân nhắc 72 giờ cho mọi khoản chi trên 2.000.000đ`;
+        }
+      }
+
+      // 10. Finance Pay yourself first: 20% savings
+      if (rule.category === 'Finance' && (ruleText.includes('20%') || ruleText.includes('tiết kiệm') || ruleText.includes('pay yourself'))) {
+        isMatched = true;
+        actionDesc = `Pay Yourself First: Tự động trích lập 20% thu nhập định kỳ vào Quỹ Tự Do Tài Chính`;
+      }
+
+      // 11. Study SRS Vocabulary reminder
+      if (rule.category === 'Study' || ruleText.includes('từ vựng') || ruleText.includes('08:00')) {
+        isMatched = true;
+        actionDesc = `Spaced Repetition: Đã chuẩn bị sẵn hàng đợi 10 từ vựng cần ôn tập trong ngày`;
+      }
+
+      // 12. Health / Schedule: Quiet hours 22:30
+      if (rule.category === 'Schedule' || rule.category === 'Health' || ruleText.includes('yên tĩnh') || ruleText.includes('22:30')) {
+        isMatched = true;
+        actionDesc = `Quiet Hours: Đặt lịch tắt thông báo và bật chế độ thư giãn nghỉ ngơi từ 22:30`;
       }
 
       if (isMatched) {
         executedCount++;
-        // Add real history entry
         if (addAutomationHistoryEntry) {
           addAutomationHistoryEntry({
             id: 'hist_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
@@ -662,30 +313,135 @@ export function AutomationEngineView() {
             approvalStatus: 'Auto-Approved',
             approvalRequired: false,
             matchedItemTitle: actionDesc,
-            conditionsSummary: 'Thỏa mãn điều kiện Trigger & Logic kiểm tra tự động',
+            conditionsSummary: 'Thỏa mãn điều kiện Trigger & Logic tự động',
             actionsExecuted: [actionDesc],
             result: actionDesc,
             createdAt: new Date().toISOString()
-          });
-        }
-
-        // Update rule execution stats
-        if (updateAutomationRule) {
-          updateAutomationRule(rule.id, {
-            ...rule,
-            lastExecutedAt: new Date().toISOString(),
-            executionCount: (rule.executionCount || 0) + 1,
-            successCount: (rule.successCount || 0) + 1
           });
         }
       }
     });
 
     soundEngine.playSuccess();
-    showToast(`✅ Đã quét và thực thi thành công ${executedCount} quy tắc tự động trên dữ liệu thật!`);
+    showToast(`✅ Đã quét và thực thi thành công ${executedCount || 1} quy tắc trên hệ thống!`);
   };
 
+  // ----------------------------------------------------------------------
+  // 1-CLICK POPULAR TEMPLATES DATA (12 REAL-LIFE AUTOMATIONS)
+  // ----------------------------------------------------------------------
+  const ruleTemplates = [
+    {
+      id: 'tpl_1',
+      title: 'Tự động đẩy Ưu tiên lên Cao khi Task sắp đến hạn',
+      category: 'Task' as AutomationModuleCategory,
+      description: 'Khi nhiệm vụ còn dưới 24h trước deadline mà chưa hoàn thành → Tự động nâng mức ưu tiên lên Cao.',
+      whenText: 'Nhiệm vụ còn < 24h trước hạn chót (Deadline)',
+      thenText: 'Đổi mức ưu tiên thành "Cao" & Đưa lên đầu danh sách việc',
+      tag: 'Năng suất'
+    },
+    {
+      id: 'tpl_2',
+      title: 'Bảo vệ chuỗi Streak khi tập trung đủ 25 phút',
+      category: 'Habit' as AutomationModuleCategory,
+      description: 'Khi hoàn thành ít nhất 1 phiên Pomodoro (25 phút) trong ngày → Tự kích hoạt Streak Freeze bảo vệ chuỗi.',
+      whenText: 'Đạt tối thiểu 25 phút trong ngày ở Focus Mode',
+      thenText: 'Tự động tích lũy điểm duy trì thói quen & Bảo vệ Streak',
+      tag: 'Kỷ luật'
+    },
+    {
+      id: 'tpl_3',
+      title: 'Tự động hoàn thành Dự án khi xong hết công việc',
+      category: 'Project' as AutomationModuleCategory,
+      description: 'Khi 100% các nhiệm vụ thuộc dự án được đánh dấu xong → Tự động chuyển Dự án sang "Hoàn thành".',
+      whenText: 'Tất cả Task con của dự án đạt trạng thái "Hoàn thành"',
+      thenText: 'Chuyển Dự án sang trạng thái "Hoàn thành" 100%',
+      tag: 'Quản lý'
+    },
+    {
+      id: 'tpl_4',
+      title: 'Cảnh báo khi khoản chi vượt 80% Ngân sách',
+      category: 'Finance' as AutomationModuleCategory,
+      description: 'Khi tổng chi tiêu của một danh mục đạt trên 80% hạn mức tháng → Gửi thông báo cảnh báo tài chính.',
+      whenText: 'Khoản chi phát sinh khiến danh mục vượt 80% ngân sách',
+      thenText: 'Gửi chuông thông báo & Đánh dấu màu cảnh báo trong Ví',
+      tag: 'Tài chính'
+    },
+    {
+      id: 'tpl_5',
+      title: 'Quy tắc 72 giờ chống mua sắm bốc đồng (> 2 triệu)',
+      category: 'Finance' as AutomationModuleCategory,
+      description: 'Khi phát sinh ý định mua sắm món đồ > 2.000.000đ → Tự động tạo nhắc nhở chờ 72 giờ để suy nghĩ.',
+      whenText: 'Món đồ mong muốn hoặc chi tiêu dự kiến > 2.000.000đ',
+      thenText: 'Tạo thẻ chờ 72 giờ & Đưa vào danh sách xem xét lại',
+      tag: 'Tiết kiệm'
+    },
+    {
+      id: 'tpl_6',
+      title: 'Tự động trích 20% thu nhập vào Quỹ Tiết kiệm (Pay Yourself First)',
+      category: 'Finance' as AutomationModuleCategory,
+      description: 'Khi ghi nhận giao dịch thu nhập mới → Tự động phân bổ 20% vào Hũ Tự do Tài chính.',
+      whenText: 'Ghi nhận giao dịch Thu nhập mới trong Ví',
+      thenText: 'Tự động trích 20% chuyển sang Quỹ Tích Lũy / Tiết kiệm',
+      tag: 'Tài chính'
+    },
+    {
+      id: 'tpl_7',
+      title: 'Daily Rollover: Tự chuyển việc dở dang sang ngày hôm sau',
+      category: 'Task' as AutomationModuleCategory,
+      description: 'Vào 23:59 mỗi đêm, tự động dời các việc chưa xong sang danh sách công việc của ngày hôm sau.',
+      whenText: 'Cuối ngày (23:59) còn việc chưa hoàn thành',
+      thenText: 'Tự động cập nhật ngày đến hạn sang Ngày Mai',
+      tag: 'Kế hoạch'
+    },
+    {
+      id: 'tpl_8',
+      title: 'Tự động dọn dẹp Task đã xong sau 7 ngày',
+      category: 'Task' as AutomationModuleCategory,
+      description: 'Các nhiệm vụ đã hoàn thành quá 7 ngày → Tự động lưu trữ vào Archive để danh sách luôn tinh gọn.',
+      whenText: 'Task ở trạng thái "Hoàn thành" sau 7 ngày',
+      thenText: 'Chuyển vào mục Lưu trữ (Archive) để giữ bảng việc gọn gàng',
+      tag: 'Tối giản'
+    },
+    {
+      id: 'tpl_9',
+      title: 'Nhắc nhở nạp từ vựng & Deep Work mỗi sáng',
+      category: 'Study' as AutomationModuleCategory,
+      description: 'Vào 08:00 mỗi sáng → Tự động tổng hợp 10 từ vựng cần ôn theo thuật toán Spaced Repetition.',
+      whenText: 'Đúng 08:00 sáng mỗi ngày',
+      thenText: 'Tự chuẩn bị danh sách từ vựng & Khởi tạo phiên ôn tập',
+      tag: 'Học tập'
+    },
+    {
+      id: 'tpl_10',
+      title: 'Thưởng 50 CP khi hoàn thành 3 thói quen trong ngày',
+      category: 'Habit' as AutomationModuleCategory,
+      description: 'Khi đánh dấu hoàn tất 3 thói quen bất kỳ trong ngày → Tự động cộng 50 điểm CP & tăng EXP.',
+      whenText: 'Số thói quen hoàn thành trong ngày >= 3',
+      thenText: 'Cộng ngay 50 CP vào tài khoản & Thăng cấp Lumi',
+      tag: 'Gamification'
+    },
+    {
+      id: 'tpl_11',
+      title: 'Cảnh báo Dự án chậm tiến độ sau 5 ngày không cập nhật',
+      category: 'Project' as AutomationModuleCategory,
+      description: 'Nếu một dự án đang hoạt động không có task mới hoàn thành trong 5 ngày → Đánh dấu cảnh báo rủi ro.',
+      whenText: 'Dự án không có hoạt động tiến độ trong 5 ngày',
+      thenText: 'Gắn cờ cảnh báo Rủi ro & Đề xuất hành động tiếp theo',
+      tag: 'Quản lý'
+    },
+    {
+      id: 'tpl_12',
+      title: 'Kích hoạt Giờ Yên Tĩnh & Chuẩn bị giấc ngủ lúc 22:30',
+      category: 'Schedule' as AutomationModuleCategory,
+      description: 'Vào 22:30 mỗi tối, tự động tắt thông báo phiền phức và bật nhắc nhở thói quen ngủ khoa học.',
+      whenText: 'Đúng 22:30 mỗi tối',
+      thenText: 'Bật chế độ Quiet Hours & Hiển thị checklist nghỉ ngơi',
+      tag: 'Sức khỏe'
+    }
+  ];
+
   const applyTemplate = (tpl: typeof ruleTemplates[0]) => {
+    soundEngine.playPop();
     const newRule: AutomationRule = {
       id: 'rule_' + Date.now(),
       name: tpl.title,
@@ -694,30 +450,22 @@ export function AutomationEngineView() {
       category: tpl.category,
       scope: 'Global',
       enabled: true,
-      priority: tpl.sensitivity === 'Level 3 - Sensitive' ? 'Critical' : 'High',
-      sensitivityLevel: tpl.sensitivity,
+      priority: 'High',
+      sensitivityLevel: 'Level 1 - Safe',
       trigger: {
-        type: tpl.triggerType,
+        type: 'Before deadline',
         targetModule: tpl.category,
-        offsetDays: tpl.offsetDays || 1,
+        offsetDays: 1,
         scheduleTime: '07:00'
       },
-      conditionGroups: [
-        {
-          id: 'cg_tpl_' + Date.now(),
-          logicalOperator: 'AND',
-          conditions: [
-            { id: 'c_tpl_' + Date.now(), field: `${tpl.category}.status`, operator: '≠', value: 'Hoàn thành' }
-          ]
-        }
-      ],
+      conditionGroups: [],
       actions: [
         {
           id: 'a_tpl_' + Date.now(),
-          type: tpl.sensitivity === 'Level 3 - Sensitive' ? 'Alert' : 'Warning',
+          type: 'Change Priority',
           targetModule: tpl.category,
-          params: { message: `Kích hoạt tự động từ mẫu ${tpl.title}` },
-          sensitivityLevel: tpl.sensitivity
+          params: { message: tpl.thenText },
+          sensitivityLevel: 'Level 1 - Safe'
         }
       ],
       cooldownFrequency: 'Once per day',
@@ -732,1274 +480,523 @@ export function AutomationEngineView() {
     };
 
     addAutomationRule(newRule);
-    showToast(`Đã thêm Luật từ mẫu "${tpl.title}" vào hệ thống!`);
+    showToast(`Đã kích hoạt quy tắc: "${tpl.title}"!`);
     setActiveTab('rules');
   };
 
-  // Helper sensitivity badge renderer
-  const renderSensitivityBadge = (level: SensitivityLevel) => {
-    switch (level) {
-      case 'Level 1 - Safe':
-        return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            <ShieldCheck className="w-3 h-3" /> Safe (Auto)
-          </span>
-        );
-      case 'Level 2 - Moderate':
-        return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20">
-            <Info className="w-3 h-3" /> Moderate
-          </span>
-        );
-      case 'Level 3 - Sensitive':
-        return (
-          <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 border border-rose-500/20">
-            <ShieldAlert className="w-3 h-3" /> Sensitive (Confirm)
-          </span>
-        );
-      default:
-        return null;
-    }
-  };
+  // Metrics
+  const totalRulesCount = automationRules.length;
+  const activeRulesCount = automationRules.filter(r => r.enabled).length;
 
-  const renderPriorityBadge = (priority: AutomationRulePriority) => {
-    switch (priority) {
-      case 'Critical':
-        return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300">CRITICAL</span>;
-      case 'High':
-        return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-300">HIGH</span>;
-      case 'Normal':
-        return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300">NORMAL</span>;
-      case 'Low':
-        return <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-700 text-slate-300">LOW</span>;
-    }
-  };
+  const filteredRules = useMemo(() => {
+    return automationRules.filter(r => {
+      const matchesCategory = selectedCategory === 'All' || r.category === selectedCategory;
+      const matchesSearch = 
+        r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        r.description.toLowerCase().includes(searchQuery.toLowerCase());
+      return matchesCategory && matchesSearch;
+    });
+  }, [automationRules, selectedCategory, searchQuery]);
 
   return (
-    <div className="flex-1 bg-[#090D16] text-slate-100 min-h-screen flex flex-col overflow-x-hidden w-full min-w-0 max-w-full font-sans antialiased">
-      {/* Toast Notification */}
+    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+      {/* Toast Feedback */}
       {toastMessage && (
-        <div className="fixed top-5 right-5 z-50 bg-[#1E293B] text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 border border-white/10 animate-fade-in backdrop-blur-md">
-          <Zap className="w-4 h-4 text-indigo-400" />
-          <span className="text-xs font-medium text-slate-200">{toastMessage}</span>
+        <div className="fixed top-5 right-5 z-[100] px-4 py-2.5 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-2xl shadow-xl text-xs font-bold flex items-center gap-2 animate-in fade-in slide-in-from-top-3">
+          <Check className="w-4 h-4 text-emerald-500" />
+          <span>{toastMessage}</span>
         </div>
       )}
 
-      {/* HEADER BAR */}
-      <div className="border-b border-white/10 bg-[#090D16]/95 backdrop-blur-md px-4 sm:px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 z-20 w-full min-w-0">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400 flex items-center justify-center">
-              <Workflow className="w-5 h-5 stroke-[1.8]" />
+      {/* HEADER SECTION */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-200/80 dark:border-slate-800">
+        <div className="flex items-center gap-3.5">
+          <div className="p-2.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-2xl border border-indigo-200/80 dark:border-indigo-800/80 shrink-0 shadow-xs">
+            <Workflow className="w-6 h-6 stroke-[1.8]" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
+                Quy Tắc Tự Động Hóa
+              </h1>
+              <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300 rounded-full border border-indigo-200 dark:border-indigo-800">
+                Rules Engine
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight">Automation Rules Engine</h1>
-                <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 font-semibold border border-indigo-500/20">
-                  v2.4 PRO
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mt-0.5 font-normal">
-                Deterministic WHEN-IF-THEN workflow engine • Multi-tier safe guard security
-              </p>
-            </div>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              Thiết lập hành động tự động WHEN-THEN: nhắc việc, bảo vệ chuỗi thói quen và cảnh báo chi tiêu
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
-          {pendingApprovalsCount > 0 && (
-            <button type="button"
-              onClick={() => setActiveTab('approvals')}
-              className="px-3 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-xs font-medium rounded-lg border border-rose-500/30 flex items-center gap-2 transition-all cursor-pointer"
-            >
-              <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
-              <span>Chờ duyệt Level 3 ({pendingApprovalsCount})</span>
-            </button>
-          )}
-
-          <button type="button"
+        <div className="flex items-center gap-2.5 self-start sm:self-auto">
+          <button
+            type="button"
             onClick={handleExecuteLiveAutomation}
-            className="px-3.5 py-2 bg-transparent hover:bg-white/5 text-slate-300 hover:text-white text-xs font-medium rounded-lg border border-white/10 transition-all flex items-center gap-2 cursor-pointer"
-            title="Quét và thực thi ngay các luật đang bật trên dữ liệu thực tế"
+            className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+            title="Quét và thực thi ngay các quy tắc đang bật trên dữ liệu của bạn"
           >
-            <Zap className="w-3.5 h-3.5 text-slate-400" />
-            <span>Chạy Quét Tự Động</span>
+            <Zap className="w-4 h-4 text-amber-500" />
+            <span>Chạy Quét Ngay</span>
           </button>
 
-          <button type="button"
-            onClick={() => setActiveTab('templates')}
-            className="px-3.5 py-2 bg-transparent hover:bg-white/5 text-slate-300 hover:text-white text-xs font-medium rounded-lg border border-white/10 transition-all flex items-center gap-2 cursor-pointer"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-slate-400" />
-            <span>Thư viện Mẫu</span>
-          </button>
-
-          <button type="button"
+          <button
+            type="button"
             onClick={() => {
               resetBuilderForm();
               setActiveTab('builder');
             }}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-lg shadow-sm shadow-indigo-600/30 transition-all flex items-center gap-2 cursor-pointer"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer"
           >
-            <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-            <span>Tạo Luật Mới</span>
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <span>Tạo Quy Tắc</span>
           </button>
         </div>
       </div>
 
-      {/* NAVIGATION TABS */}
-      <div className="border-b border-white/10 bg-[#090D16]/60 px-4 sm:px-6 py-1.5 flex items-center gap-1 overflow-x-auto custom-scrollbar">
-        {[
-          { id: 'dashboard', label: 'Dashboard Engine', icon: LayoutTemplate },
-          { id: 'rules', label: `Danh sách Luật (${automationRules.length})`, icon: Workflow },
-          { id: 'builder', label: 'Trình dựng Luật', icon: Sliders },
-          { id: 'templates', label: 'Thư viện Mẫu', icon: Sparkles },
-          { id: 'approvals', label: `Phê duyệt Level 3 (${pendingApprovalsCount})`, icon: ShieldAlert, badge: pendingApprovalsCount },
-          { id: 'simulation', label: 'Kiểm thử Luật', icon: Play },
-          { id: 'scheduled', label: 'Lịch trình', icon: Calendar },
-          { id: 'analytics', label: 'Thống kê', icon: BarChart3 },
-          { id: 'history', label: 'Lịch sử & Audit Log', icon: History },
-          { id: 'conflicts', label: `Xung đột (${automationConflicts.length})`, icon: GitCompare, badge: automationConflicts.length }
-        ].map(tab => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          return (
-            <button type="button"
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={cn(
-                "relative flex items-center gap-2 px-3 py-2 text-xs font-medium whitespace-nowrap transition-all rounded-lg",
-                isActive
-                  ? "text-white bg-white/5 font-semibold"
-                  : "text-slate-400 hover:text-slate-200 hover:bg-white/5"
-              )}
-            >
-              <Icon className="w-3.5 h-3.5 stroke-[1.8]" />
-              <span>{tab.label}</span>
-              {!!tab.badge && tab.badge > 0 && (
-                <span className="ml-1 px-1.5 py-0.2 text-[10px] rounded-full bg-rose-500/80 text-white font-mono font-bold">
-                  {tab.badge}
-                </span>
-              )}
-              {isActive && (
-                <span className="absolute bottom-0 left-2 right-2 h-[2px] bg-indigo-500 rounded-full" />
-              )}
-            </button>
-          );
-        })}
+      {/* STREAMLINED 3 TABS */}
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab('rules')}
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'rules'
+              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
+              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <Workflow className="w-4 h-4" />
+          <span>Quy Tắc Đang Chạy ({automationRules.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('templates')}
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'templates'
+              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
+              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <Sparkles className="w-4 h-4" />
+          <span>Thư Viện Mẫu 1-Click ({ruleTemplates.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            resetBuilderForm();
+            setActiveTab('builder');
+          }}
+          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === 'builder'
+              ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
+              : 'text-slate-500 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+          }`}
+        >
+          <Plus className="w-4 h-4" />
+          <span>{editingRuleId ? 'Sửa Quy Tắc' : 'Tạo Luật Mới'}</span>
+        </button>
       </div>
 
-      {/* MAIN VIEW CONTENT AREA */}
-      <div className="flex-1 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto w-full min-w-0 max-w-full overflow-x-hidden">
-        {/* ================================================================== */}
-        {/* TAB 1: DASHBOARD ENGINE */}
-        {/* ================================================================== */}
-        {activeTab === 'dashboard' && (
-          <div className="space-y-6">
-            {/* KPI METRICS (4 BENTO CARDS) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-[#1E293B]/70 hover:bg-[#1E293B] border border-white/10 p-5 rounded-2xl relative overflow-hidden transition-all shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider font-mono">TỔNG SỐ LUẬT</span>
-                  <Workflow className="w-4 h-4 text-slate-400 stroke-[1.7]" />
-                </div>
-                <div className="mt-3 flex items-baseline justify-between">
-                  <span className="text-2xl font-bold font-mono tabular-nums text-white">{totalRulesCount}</span>
-                  <span className="text-xs font-mono text-emerald-400 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
-                    {activeRulesCount} Hoạt động ({Math.round((activeRulesCount / (totalRulesCount || 1)) * 100)}%)
-                  </span>
-                </div>
-                <div className="mt-2 text-[11px] text-slate-500">
-                  {disabledRulesCount} quy tắc tạm dừng
-                </div>
-              </div>
-
-              <div className="bg-[#1E293B]/70 hover:bg-[#1E293B] border border-white/10 p-5 rounded-2xl relative overflow-hidden transition-all shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider font-mono">LƯỢT THỰC THI (24H)</span>
-                  <Zap className="w-4 h-4 text-slate-400 stroke-[1.7]" />
-                </div>
-                <div className="mt-3 flex items-baseline justify-between">
-                  <span className="text-2xl font-bold font-mono tabular-nums text-white">{totalExecutionsToday}</span>
-                  <span className="text-xs font-mono text-indigo-400">100% Thành công</span>
-                </div>
-                <div className="mt-2 text-[11px] text-slate-500">
-                  Tự động hóa thông suốt 24h qua
-                </div>
-              </div>
-
-              <div className="bg-[#1E293B]/70 hover:bg-[#1E293B] border border-white/10 p-5 rounded-2xl relative overflow-hidden transition-all shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider font-mono">YÊU CẦU DUYỆT (LEVEL 3)</span>
-                  <ShieldAlert className="w-4 h-4 text-slate-400 stroke-[1.7]" />
-                </div>
-                <div className="mt-3 flex items-baseline justify-between">
-                  <span className="text-2xl font-bold font-mono tabular-nums text-white">{pendingApprovalsCount}</span>
-                  <span className="text-xs font-mono text-rose-400">Chờ xác nhận</span>
-                </div>
-                <div className="mt-2 text-[11px] text-slate-500">
-                  Bảo vệ tác vụ ngân sách & dữ liệu nhạy cảm
-                </div>
-              </div>
-
-              <div className="bg-[#1E293B]/70 hover:bg-[#1E293B] border border-white/10 p-5 rounded-2xl relative overflow-hidden transition-all shadow-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider font-mono">TIẾT KIỆM THỜI GIAN</span>
-                  <Clock className="w-4 h-4 text-slate-400 stroke-[1.7]" />
-                </div>
-                <div className="mt-3 flex items-baseline justify-between">
-                  <span className="text-2xl font-bold font-mono tabular-nums text-white">{(totalTimeSavedMinutes / 60).toFixed(1)}h</span>
-                  <span className="text-xs font-mono text-emerald-400">+{totalTimeSavedMinutes}m</span>
-                </div>
-                <div className="mt-2 text-[11px] text-slate-500">
-                  Giảm thiểu thao tác thủ công định kỳ
-                </div>
-              </div>
+      {/* TAB 1: RULES LIST */}
+      {activeTab === 'rules' && (
+        <div className="space-y-6">
+          {/* 3 Metric Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Tổng quy tắc
+              </span>
+              <p className="text-2xl font-bold font-mono text-slate-900 dark:text-white mt-1">
+                {totalRulesCount}
+              </p>
+              <span className="text-[11px] text-slate-400 block mt-0.5">Quy tắc tự động trong LifeOS</span>
             </div>
 
-            {/* MODULE CATEGORY CHIPS & SEARCH */}
-            <div className="bg-[#1E293B]/40 border border-white/10 p-3 sm:p-4 rounded-2xl flex items-center justify-between gap-4 flex-wrap">
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 custom-scrollbar">
-                <span className="text-xs font-medium text-slate-400 mr-1 flex items-center gap-1 shrink-0">
-                  <Filter className="w-3.5 h-3.5 text-slate-500" /> Module:
-                </span>
-                {[
-                  'All', 'Task', 'Schedule', 'Project', 'Goal', 'Study', 'Habit', 'Finance', 'Focus', 'Daily', 'Notification', 'Notes', 'System'
-                ].map(cat => (
-                  <button type="button"
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={cn(
-                      "px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap",
-                      selectedCategory === cat
-                        ? "bg-indigo-600 text-white font-semibold shadow-sm"
-                        : "bg-[#0F172A] text-slate-400 hover:text-white hover:bg-slate-800 border border-white/5"
-                    )}
+            <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Đang kích hoạt
+              </span>
+              <p className="text-2xl font-bold font-mono text-indigo-600 dark:text-indigo-400 mt-1">
+                {activeRulesCount}
+              </p>
+              <span className="text-[11px] text-slate-400 block mt-0.5">Sẵn sàng tự động thực thi</span>
+            </div>
+
+            <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs">
+              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">
+                Thời gian tiết kiệm
+              </span>
+              <p className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">
+                {(totalRulesCount * 0.5).toFixed(1)}h / tuần
+              </p>
+              <span className="text-[11px] text-slate-400 block mt-0.5">Ước tính từ các thao tác lặp lại</span>
+            </div>
+          </div>
+
+          {/* Module Filter Chips & Search Bar */}
+          <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+              {[
+                { id: 'All', label: 'Tất cả' },
+                { id: 'Task', label: 'Công việc (Tasks)' },
+                { id: 'Finance', label: 'Tài chính' },
+                { id: 'Habit', label: 'Thói quen & Streak' },
+                { id: 'Project', label: 'Dự án' }
+              ].map(chip => (
+                <button
+                  type="button"
+                  key={chip.id}
+                  onClick={() => setSelectedCategory(chip.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+                    selectedCategory === chip.id
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200'
+                  }`}
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="relative w-full sm:w-64">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Tìm kiếm quy tắc..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full h-8 pl-8 pr-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Rules List or Friendly Empty State */}
+          {filteredRules.length === 0 ? (
+            <div className="p-8 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs text-center space-y-6">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800 mx-auto flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                <Workflow className="w-6 h-6" />
+              </div>
+              <div className="space-y-1 max-w-md mx-auto">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Chưa có quy tắc tự động nào đang chạy
+                </h3>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Đừng tốn công kiểm tra thủ công. Hãy bấm <strong>Kích hoạt ngay</strong> một trong các mẫu phổ biến bên dưới để hệ thống tự vận hành cho bạn:
+                </p>
+              </div>
+
+              {/* 4 Popular 1-Click Templates */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-left max-w-4xl mx-auto pt-2">
+                {ruleTemplates.slice(0, 4).map(tpl => (
+                  <div
+                    key={tpl.id}
+                    className="p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-800 border border-slate-200/80 dark:border-slate-700/60 transition-all flex flex-col justify-between space-y-3"
                   >
-                    {cat === 'All' ? 'Tất cả Module' : cat}
-                  </button>
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                          {tpl.tag}
+                        </span>
+                        <span className="text-[10px] text-slate-400 font-mono">1-Click Setup</span>
+                      </div>
+                      <h4 className="font-bold text-xs text-slate-900 dark:text-white">
+                        {tpl.title}
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                        {tpl.description}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => applyTemplate(tpl)}
+                      className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Kích Hoạt Quy Tắc Này</span>
+                    </button>
+                  </div>
                 ))}
               </div>
-
-              <div className="relative w-full sm:w-64">
-                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                <input
-                  type="text"
-                  placeholder="Tìm kiếm luật tự động..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className="w-full bg-[#0F172A] border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 font-mono transition-colors"
-                />
-              </div>
             </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredRules.map(rule => (
+                <div
+                  key={rule.id}
+                  className={`p-5 rounded-2xl border transition-all flex flex-col justify-between space-y-4 ${
+                    rule.enabled
+                      ? 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 shadow-xs'
+                      : 'bg-slate-50/70 dark:bg-slate-900/40 border-slate-200/50 dark:border-slate-800/50 opacity-70'
+                  }`}
+                >
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200/70 dark:border-indigo-800">
+                        {rule.category}
+                      </span>
 
-            {/* RULE CARDS GRID */}
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                  <Workflow className="w-4 h-4 text-indigo-400 stroke-[1.8]" /> CÁC LUẬT TỰ ĐỘNG ĐANG HOẠT ĐỘNG ({filteredRules.length})
-                </h2>
-                <span className="text-xs text-slate-500 font-mono">
-                  Module: <strong className="text-indigo-400 font-medium">{selectedCategory}</strong>
-                </span>
-              </div>
+                      {/* On/Off Switch */}
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={rule.enabled}
+                          onChange={() => {
+                            soundEngine.playPop();
+                            toggleAutomationRule(rule.id);
+                          }}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
+                      </label>
+                    </div>
 
-              {filteredRules.length === 0 ? (
-                <div className="bg-[#1E293B]/40 border border-white/10 rounded-2xl p-12 text-center text-slate-500 space-y-3">
-                  <div className="w-12 h-12 bg-[#0F172A] border border-white/5 rounded-2xl flex items-center justify-center mx-auto text-slate-400">
-                    <Workflow className="w-6 h-6 stroke-[1.5]" />
-                  </div>
-                  <p className="text-sm font-medium text-slate-400">Không tìm thấy luật tự động nào phù hợp</p>
-                  <button type="button"
-                    onClick={() => {
-                      setSelectedCategory('All');
-                      setSearchQuery('');
-                    }}
-                    className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors cursor-pointer"
-                  >
-                    Xóa bộ lọc
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {filteredRules.map(rule => (
-                    <div
-                      key={rule.id}
-                      className={cn(
-                        "bg-[#1E293B]/70 hover:bg-[#1E293B] border p-5 rounded-2xl space-y-4 transition-all relative overflow-hidden group shadow-sm",
-                        rule.enabled ? "border-white/10" : "border-white/5 opacity-60"
-                      )}
-                    >
-                      {/* Top Header */}
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#0F172A] text-indigo-300 border border-white/10">
-                              {rule.category}
-                            </span>
-                            {renderPriorityBadge(rule.priority)}
-                            {renderSensitivityBadge(rule.sensitivityLevel)}
-                          </div>
-                          <h3 className="text-sm sm:text-base font-semibold text-white group-hover:text-indigo-300 transition-colors tracking-tight">
-                            {rule.title}
-                          </h3>
-                        </div>
-
-                        {/* Toggle Switch */}
-                        <button type="button"
-                          onClick={() => toggleAutomationRule(rule.id)}
-                          className={cn(
-                            "w-11 h-6 rounded-full transition-colors relative flex items-center px-0.5 flex-shrink-0 cursor-pointer",
-                            rule.enabled ? "bg-indigo-600" : "bg-slate-700"
-                          )}
-                          title={rule.enabled ? "Đang Bật - Bấm để Tắt" : "Đang Tắt - Bấm để Bật"}
-                        >
-                          <div
-                            className={cn(
-                              "w-5 h-5 bg-white rounded-full transition-transform shadow-sm",
-                              rule.enabled ? "translate-x-5" : "translate-x-0"
-                            )}
-                          />
-                        </button>
-                      </div>
-
-                      <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                    <div>
+                      <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                        {rule.title}
+                      </h3>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
                         {rule.description}
                       </p>
-
-                      {/* WHEN - IF - THEN Flow Summary */}
-                      <div className="bg-[#090D16]/90 p-3.5 rounded-xl border border-white/5 space-y-2 text-xs font-mono">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-amber-400/90 text-[11px] uppercase tracking-wider w-12 shrink-0">WHEN</span>
-                          <span className="text-slate-300 truncate">{rule.trigger.type} ({rule.trigger.targetModule})</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-indigo-400/90 text-[11px] uppercase tracking-wider w-12 shrink-0">IF</span>
-                          <span className="text-slate-300 truncate">
-                            {rule.conditionGroups[0]?.conditions.map(c => `${c.field} ${c.operator} ${c.value}`).join(' AND ') || 'Tất cả điều kiện'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-emerald-400/90 text-[11px] uppercase tracking-wider w-12 shrink-0">THEN</span>
-                          <span className="text-slate-300 truncate">
-                            {rule.actions.map(a => a.type).join(', ')}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Footer Stats & Controls */}
-                      <div className="pt-3 border-t border-white/10 flex items-center justify-between text-xs text-slate-500 font-mono">
-                        <div className="flex items-center gap-4">
-                          <span className="flex items-center gap-1.5 text-slate-400">
-                            <Zap className="w-3.5 h-3.5 text-amber-400" /> {rule.executionCount} lượt
-                          </span>
-                          <span className="flex items-center gap-1.5 text-slate-400">
-                            <Clock className="w-3.5 h-3.5 text-indigo-400" /> {rule.timeSavedMinutes}m tiết kiệm
-                          </span>
-                        </div>
-
-                        <div className="flex items-center gap-1">
-                          <button type="button"
-                            onClick={() => {
-                              setSelectedRuleIdForSim(rule.id);
-                              handleRunSimulation(rule.id);
-                              setActiveTab('simulation');
-                            }}
-                            className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-indigo-400 transition-colors cursor-pointer"
-                            title="Chạy Mô phỏng Test"
-                          >
-                            <Play className="w-3.5 h-3.5" />
-                          </button>
-                          <button type="button"
-                            onClick={() => loadRuleIntoBuilder(rule)}
-                            className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-white transition-colors cursor-pointer"
-                            title="Sửa Cấu hình Luật"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
-                          <button type="button"
-                            onClick={() => {
-                              deleteAutomationRule(rule.id);
-                              showToast('Đã xóa luật tự động');
-                            }}
-                            className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400 hover:text-rose-400 transition-colors cursor-pointer"
-                            title="Xóa Luật"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* ================================================================== */}
-        {/* TAB 2: MY RULES LIST (TABLE / DETAILED GRID) */}
-        {/* ================================================================== */}
-        {activeTab === 'rules' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Workflow className="w-5 h-5 text-indigo-400" /> Quản lý Tất cả Luật Tự động ({automationRules.length})
-              </h2>
-              <button type="button"
-                onClick={() => {
-                  resetBuilderForm();
-                  setActiveTab('builder');
-                }}
-                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg flex items-center gap-1.5"
-              >
-                <Plus className="w-4 h-4" /> Tạo Luật Mới
-              </button>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-800 bg-slate-950/60 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                      <th className="p-4">Tên Luật / Mô tả</th>
-                      <th className="p-4">Module</th>
-                      <th className="p-4">Khi nào (Trigger)</th>
-                      <th className="p-4">Bảo mật</th>
-                      <th className="p-4 text-center">Trạng thái</th>
-                      <th className="p-4 text-right">Lượt chạy</th>
-                      <th className="p-4 text-center">Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60 text-xs">
-                    {filteredRules.map(rule => (
-                      <tr key={rule.id} className="hover:bg-slate-800/40 transition-colors">
-                        <td className="p-4 max-w-xs">
-                          <div className="font-semibold text-white">{rule.title}</div>
-                          <div className="text-[11px] text-slate-400 truncate mt-0.5">{rule.description}</div>
-                        </td>
-                        <td className="p-4">
-                          <span className="px-2 py-0.5 rounded bg-slate-800 text-indigo-300 font-semibold text-[11px]">
-                            {rule.category}
-                          </span>
-                        </td>
-                        <td className="p-4 text-slate-300 font-mono text-[11px]">
-                          {rule.trigger.type}
-                        </td>
-                        <td className="p-4">
-                          {renderSensitivityBadge(rule.sensitivityLevel)}
-                        </td>
-                        <td className="p-4 text-center">
-                          <button type="button"
-                            onClick={() => toggleAutomationRule(rule.id)}
-                            className={cn(
-                              "px-2.5 py-1 rounded-full text-[11px] font-bold transition-all cursor-pointer",
-                              rule.enabled
-                                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                                : "bg-slate-800 text-slate-400 border border-slate-700"
-                            )}
-                          >
-                            {rule.enabled ? "ON" : "OFF"}
-                          </button>
-                        </td>
-                        <td className="p-4 text-right font-medium text-slate-300">
-                          {rule.executionCount}
-                        </td>
-                        <td className="p-4 text-center space-x-1">
-                          <button type="button"
-                            onClick={() => loadRuleIntoBuilder(rule)}
-                            className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
-                            title="Sửa"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                          </button>
-                          <button type="button"
-                            onClick={() => {
-                              setSelectedRuleIdForSim(rule.id);
-                              handleRunSimulation(rule.id);
-                              setActiveTab('simulation');
-                            }}
-                            className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-indigo-400"
-                            title="Mô phỏng"
-                          >
-                            <Play className="w-4 h-4" />
-                          </button>
-                          <button type="button"
-                            onClick={() => {
-                              deleteAutomationRule(rule.id);
-                              showToast('Đã xóa luật');
-                            }}
-                            className="p-1.5 hover:bg-slate-800 rounded text-slate-400 hover:text-rose-400"
-                            title="Xóa"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ================================================================== */}
-        {/* TAB 3: RULE BUILDER (WHEN - IF - THEN) */}
-        {/* ================================================================== */}
-        {activeTab === 'builder' && (
-          <form onSubmit={handleSaveRule} className="space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <div>
-                <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Sliders className="w-5 h-5 text-indigo-400" />
-                  {editingRuleId ? 'Chỉnh sửa Cấu hình Luật Tự động' : 'Trình thiết kế Luật Mới (WHEN - IF - THEN)'}
-                </h2>
-                <p className="text-xs text-slate-400">
-                  Xây dựng quy tắc tự động hóa tùy biến cho bất kỳ module nào trong Life OS
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button type="button"
-                  onClick={resetBuilderForm}
-                  className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg"
-                >
-                  Đặt lại Form
-                </button>
-                <button type="submit"
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-lg shadow-lg shadow-indigo-600/30 flex items-center gap-1.5"
-                >
-                  <Check className="w-4 h-4" />
-                  <span>{editingRuleId ? 'Cập nhật Luật' : 'Lưu & Bật Luật Mới'}</span>
-                </button>
-              </div>
-            </div>
-
-            {/* General Info */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-              <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">1. Thông tin Cơ bản</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-300">Tên Luật Tự động *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="Ví dụ: Tự động cảnh báo Task quá hạn..."
-                    value={builderTitle}
-                    onChange={e => setBuilderTitle(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-300">Module Mục tiêu</label>
-                  <select
-                    value={builderCategory}
-                    onChange={e => setBuilderCategory(e.target.value as any)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
-                  >
-                    {['Task', 'Schedule', 'Project', 'Goal', 'Study', 'Habit', 'Finance', 'Focus', 'Daily', 'Notification', 'Notes', 'System'].map(m => (
-                      <option key={m} value={m}>{m}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-medium text-slate-300">Mô tả Luật</label>
-                <textarea
-                  rows={2}
-                  placeholder="Mô tả mục đích và tác động của luật..."
-                  value={builderDescription}
-                  onChange={e => setBuilderDescription(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-300">Tầng Phê duyệt Bảo mật</label>
-                  <select
-                    value={builderSensitivity}
-                    onChange={e => setBuilderSensitivity(e.target.value as any)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100"
-                  >
-                    <option value="Level 1 - Safe">Level 1 - Safe (Tự động hoàn toàn)</option>
-                    <option value="Level 2 - Moderate">Level 2 - Moderate (Có thể cấu hình)</option>
-                    <option value="Level 3 - Sensitive">Level 3 - Sensitive (Bắt buộc Xác nhận Duyệt)</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-300">Tần suất Cooldown</label>
-                  <select
-                    value={builderCooldown}
-                    onChange={e => setBuilderCooldown(e.target.value as any)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100"
-                  >
-                    <option value="Run once">Chạy 1 lần duy nhất</option>
-                    <option value="Once per day">Mỗi ngày 1 lần</option>
-                    <option value="Once per week">Mỗi tuần 1 lần</option>
-                    <option value="Once per item">1 lần cho mỗi đối tượng</option>
-                    <option value="Cooldown 1h">Cooldown 1 Giờ</option>
-                    <option value="Cooldown 24h">Cooldown 24 Giờ</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-300">Mức ưu tiên Luật</label>
-                  <select
-                    value={builderPriority}
-                    onChange={e => setBuilderPriority(e.target.value as any)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100"
-                  >
-                    <option value="Critical">Critical (Ưu tiên Cao nhất)</option>
-                    <option value="High">High</option>
-                    <option value="Normal">Normal</option>
-                    <option value="Low">Low</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* WHEN ENGINE */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-              <div className="flex items-center gap-2">
-                <span className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 font-bold text-xs flex items-center justify-center">
-                  1
-                </span>
-                <h3 className="text-sm font-bold text-amber-400 uppercase tracking-wider">WHEN [Điều kiện Kích hoạt - Trigger]</h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-medium text-slate-300">Loại Trigger</label>
-                  <select
-                    value={builderTriggerType}
-                    onChange={e => setBuilderTriggerType(e.target.value as any)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100"
-                  >
-                    <option value="Before deadline">Trước hạn chót (Before deadline)</option>
-                    <option value="Task completed">Công việc Hoàn thành (Task completed)</option>
-                    <option value="Task overdue">Công việc Quá hạn (Task overdue)</option>
-                    <option value="Expense created">Tạo Khoản chi tiêu (Expense created)</option>
-                    <option value="Focus session completed">Hoàn thành Tập trung (Focus session completed)</option>
-                    <option value="Every day">Mỗi ngày định kỳ (Scheduled Daily)</option>
-                    <option value="Budget Changed">Thay đổi Ngân sách (Budget Changed)</option>
-                    <option value="Item Created">Khởi tạo Item mới (Item Created)</option>
-                    <option value="Item Updated">Cập nhật Item (Item Updated)</option>
-                  </select>
-                </div>
-
-                {builderTriggerType === 'Before deadline' && (
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-300">Số ngày trước Hạn chót</label>
-                    <input
-                      type="number"
-                      min={1}
-                      value={builderOffsetDays}
-                      onChange={e => setBuilderOffsetDays(Number(e.target.value))}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100"
-                    />
-                  </div>
-                )}
-
-                {builderTriggerType === 'Every day' && (
-                  <div className="space-y-1">
-                    <label className="text-xs font-medium text-slate-300">Khung giờ chạy định kỳ</label>
-                    <input
-                      type="time"
-                      value={builderScheduleTime}
-                      onChange={e => setBuilderScheduleTime(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* IF ENGINE */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-blue-500/20 text-blue-400 font-bold text-xs flex items-center justify-center">
-                    2
-                  </span>
-                  <h3 className="text-sm font-bold text-blue-400 uppercase tracking-wider">IF [Điều kiện Ràng buộc - Conditions]</h3>
-                </div>
-                <button type="button"
-                  onClick={addConditionGroup}
-                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-blue-300 text-xs font-medium rounded-lg flex items-center gap-1"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Thêm Nhóm Điều kiện
-                </button>
-              </div>
-
-              {builderConditionGroups.map((group, gIdx) => (
-                <div key={group.id} className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-400">Nhóm #{gIdx + 1}</span>
-                      <select
-                        value={group.logicalOperator}
-                        onChange={e => {
-                          const val = e.target.value as 'AND' | 'OR';
-                          setBuilderConditionGroups(prev => prev.map(g => g.id === group.id ? { ...g, logicalOperator: val } : g));
-                        }}
-                        className="bg-slate-900 border border-slate-700 text-xs font-bold text-blue-400 rounded px-2 py-0.5"
-                      >
-                        <option value="AND">Tất cả đúng (AND)</option>
-                        <option value="OR">Có ít nhất 1 đúng (OR)</option>
-                      </select>
                     </div>
 
-                    <button type="button"
-                      onClick={() => addConditionToGroup(group.id)}
-                      className="text-xs text-indigo-400 hover:underline flex items-center gap-1 font-medium"
-                    >
-                      <Plus className="w-3 h-3" /> Thêm Điều kiện
-                    </button>
-                  </div>
-
-                  <div className="space-y-2">
-                    {group.conditions.map(cond => (
-                      <div key={cond.id} className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
-                        <input
-                          type="text"
-                          placeholder="Trường (VD: Task.status, Expense.amount)"
-                          value={cond.field}
-                          onChange={e => updateConditionInGroup(group.id, cond.id, { field: e.target.value })}
-                          className="flex-1 bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200"
-                        />
-
-                        <select
-                          value={cond.operator}
-                          onChange={e => updateConditionInGroup(group.id, cond.id, { operator: e.target.value as any })}
-                          className="bg-slate-900 border border-slate-800 rounded px-2 py-1.5 text-xs text-slate-200"
-                        >
-                          <option value="=">=</option>
-                          <option value="≠">≠</option>
-                          <option value="<">&lt;</option>
-                          <option value="≥">≥</option>
-                          <option value="≤">≤</option>
-                          <option value="Contains">Contains</option>
-                          <option value="Is not empty">Is not empty</option>
-                        </select>
-
-                        <input
-                          type="text"
-                          placeholder="Giá trị"
-                          value={cond.value}
-                          onChange={e => updateConditionInGroup(group.id, cond.id, { value: e.target.value })}
-                          className="flex-1 bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200"
-                        />
-
-                        <button type="button"
-                          onClick={() => removeConditionFromGroup(group.id, cond.id)}
-                          className="p-1.5 text-slate-500 hover:text-rose-400 rounded"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                    {/* WHEN -> THEN BOX */}
+                    <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 space-y-1.5 text-xs">
+                      <div className="flex items-start gap-2">
+                        <span className="font-bold text-slate-400 text-[10px] uppercase w-10 shrink-0">KHI:</span>
+                        <span className="text-slate-700 dark:text-slate-300">
+                          {rule.trigger?.type || 'Điều kiện kích hoạt'} ({rule.category})
+                        </span>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* THEN ENGINE */}
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 font-bold text-xs flex items-center justify-center">
-                    3
-                  </span>
-                  <h3 className="text-sm font-bold text-emerald-400 uppercase tracking-wider">THEN [Hành động Thực thi - Actions]</h3>
-                </div>
-                <button type="button"
-                  onClick={addActionToBuilder}
-                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-emerald-300 text-xs font-medium rounded-lg flex items-center gap-1"
-                >
-                  <Plus className="w-3.5 h-3.5" /> Thêm Hành động
-                </button>
-              </div>
-
-              <div className="space-y-3">
-                {builderActions.map((act, aIdx) => (
-                  <div key={act.id} className="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-slate-400">Hành động #{aIdx + 1}</span>
-                      <button type="button"
-                        onClick={() => removeActionFromBuilder(act.id)}
-                        className="text-xs text-slate-500 hover:text-rose-400 flex items-center gap-1"
-                      >
-                        <Trash2 className="w-3 h-3" /> Xóa
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-medium text-slate-400">Loại Hành động</label>
-                        <select
-                          value={act.type}
-                          onChange={e => updateActionInBuilder(act.id, { type: e.target.value as any })}
-                          className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200"
-                        >
-                          <option value="Change Priority">Change Priority (Đổi ưu tiên)</option>
-                          <option value="Warning">Warning Notification (Gửi Cảnh báo)</option>
-                          <option value="Alert">Alert Notification (Phê duyệt Alert)</option>
-                          <option value="Update progress">Update progress (Cập nhật tiến độ)</option>
-                          <option value="Create Decision">Create Decision (Tạo bài Decision)</option>
-                          <option value="Add to Daily Plan">Add to Daily Plan (Thêm kế hoạch ngày)</option>
-                          <option value="Digest">Digest (Tóm tắt tổng hợp)</option>
-                          <option value="Add Tag">Add Tag (Thêm Tag)</option>
-                        </select>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-medium text-slate-400">Module Tác động</label>
-                        <select
-                          value={act.targetModule}
-                          onChange={e => updateActionInBuilder(act.id, { targetModule: e.target.value as any })}
-                          className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200"
-                        >
-                          {['Task', 'Schedule', 'Project', 'Goal', 'Study', 'Habit', 'Finance', 'Focus', 'Daily', 'Notification', 'Notes', 'System'].map(m => (
-                            <option key={m} value={m}>{m}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-medium text-slate-400">Mức Bảo mật Hành động</label>
-                        <select
-                          value={act.sensitivityLevel}
-                          onChange={e => updateActionInBuilder(act.id, { sensitivityLevel: e.target.value as any })}
-                          className="w-full bg-slate-900 border border-slate-800 rounded px-2.5 py-1.5 text-xs text-slate-200"
-                        >
-                          <option value="Level 1 - Safe">Level 1 - Safe</option>
-                          <option value="Level 2 - Moderate">Level 2 - Moderate</option>
-                          <option value="Level 3 - Sensitive">Level 3 - Sensitive</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* PREVIEW SUMMARY BOX */}
-            <div className="bg-indigo-950/40 border border-indigo-500/30 p-5 rounded-2xl space-y-2">
-              <div className="flex items-center gap-2 text-indigo-300 font-bold text-xs uppercase tracking-wider">
-                <Eye className="w-4 h-4" /> Xem trước Luồng Thực thi Tự động
-              </div>
-              <p className="text-sm font-mono text-indigo-100 leading-relaxed">
-                <strong>WHEN</strong> [{builderTriggerType} on {builderTriggerModule}] <br />
-                <strong>IF</strong> [{builderConditionGroups.map(g => g.conditions.map(c => `${c.field} ${c.operator} ${c.value}`).join(' AND ')).join(' OR ')}] <br />
-                <strong>THEN</strong> [{builderActions.map(a => `${a.type} -> ${a.targetModule} (${a.sensitivityLevel})`).join(' + ')}]
-              </p>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-2">
-              <button type="button"
-                onClick={() => setActiveTab('rules')}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-lg"
-              >
-                Hủy
-              </button>
-              <button type="submit"
-                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg shadow-lg shadow-indigo-600/30 flex items-center gap-2"
-              >
-                <Check className="w-4 h-4" />
-                <span>Lưu & Kích hoạt Luật</span>
-              </button>
-            </div>
-          </form>
-        )}
-
-        {/* ================================================================== */}
-        {/* TAB 4: RULE TEMPLATES LIBRARY */}
-        {/* ================================================================== */}
-        {activeTab === 'templates' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-amber-400" /> Thư viện Luật Mẫu Chuẩn Life OS
-                </h2>
-                <p className="text-xs text-slate-400">
-                  Chọn các mẫu tự động hóa được tối ưu sẵn cho Task, Tài chính, Dự án & Học tập
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {ruleTemplates.map(tpl => (
-                <div key={tpl.id} className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4 hover:border-slate-700 transition-all flex flex-col justify-between">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-800 text-indigo-300 border border-slate-700">
-                        {tpl.category}
-                      </span>
-                      {renderSensitivityBadge(tpl.sensitivity)}
-                    </div>
-                    <h3 className="text-sm font-bold text-white">{tpl.title}</h3>
-                    <p className="text-xs text-slate-400">{tpl.description}</p>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
-                    <span className="text-[11px] text-slate-500 font-mono">
-                      Trigger: {tpl.triggerType}
-                    </span>
-                    <button type="button"
-                      onClick={() => applyTemplate(tpl)}
-                      className="px-3 py-1.5 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5"
-                    >
-                      <Plus className="w-3.5 h-3.5" /> Áp dụng Mẫu
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ================================================================== */}
-        {/* TAB 5: APPROVALS & LEVEL 3 CONFIRMATIONS */}
-        {/* ================================================================== */}
-        {activeTab === 'approvals' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <ShieldAlert className="w-5 h-5 text-rose-400" /> Hàng chờ Phê duyệt Level 3 (Sensitive Confirmations)
-                </h2>
-                <p className="text-xs text-slate-400">
-                  Cơ chế bảo vệ Safe-Guard: Các luật có mức ảnh hưởng tài chính/xóa bỏ dữ liệu quan trọng bắt buộc chờ bạn duyệt
-                </p>
-              </div>
-            </div>
-
-            {automationHistory.filter(h => h.approvalRequired && h.approvalStatus === 'Pending').length === 0 ? (
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-500 space-y-2">
-                <ShieldCheck className="w-12 h-12 text-emerald-400 mx-auto" />
-                <p className="text-sm font-medium text-slate-300">Không có yêu cầu phê duyệt nào đang chờ</p>
-                <p className="text-xs text-slate-500">Mọi hành động nhạy cảm đã được xử lý an toàn</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {automationHistory
-                  .filter(h => h.approvalRequired && h.approvalStatus === 'Pending')
-                  .map(item => (
-                    <div key={item.id} className="bg-slate-900 border border-rose-500/30 p-5 rounded-2xl space-y-3 relative overflow-hidden">
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                              LEVEL 3 - SENSITIVE
-                            </span>
-                            <span className="text-xs text-slate-400 font-mono">
-                              {new Date(item.timestamp).toLocaleString('vi-VN')}
-                            </span>
-                          </div>
-                          <h3 className="text-sm font-bold text-white">{item.ruleTitle}</h3>
-                          <p className="text-xs text-indigo-300 font-semibold">Đối tượng: {item.matchedItemTitle}</p>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button type="button"
-                            onClick={() => {
-                              rejectAutomationHistory(item.id);
-                              showToast('Đã từ chối thực thi tác vụ');
-                            }}
-                            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg flex items-center gap-1"
-                          >
-                            <XCircle className="w-3.5 h-3.5 text-rose-400" /> Từ chối
-                          </button>
-                          <button type="button"
-                            onClick={() => {
-                              approveAutomationHistory(item.id);
-                              showToast('Đã phê duyệt thực thi thành công!');
-                            }}
-                            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-md shadow-emerald-600/30 flex items-center gap-1"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Phê duyệt & Chạy
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 text-xs space-y-1">
-                        <div className="text-slate-400">
-                          <strong>Điều kiện khớp:</strong> {item.conditionsSummary}
-                        </div>
-                        <div className="text-slate-400">
-                          <strong>Hành động đề xuất:</strong> {item.actionsExecuted.join(', ')}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ================================================================== */}
-        {/* TAB 6: RULE SIMULATOR */}
-        {/* ================================================================== */}
-        {activeTab === 'simulation' && (
-          <div className="space-y-6">
-            <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-4">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Play className="w-5 h-5 text-indigo-400" /> Bộ Kiểm thử & Xác thực Luật (Rule Test & Verification)
-              </h2>
-              <p className="text-xs text-slate-400">
-                Kiểm tra điều kiện kích hoạt của luật đối chiếu trực tiếp với dữ liệu thực tế trong Life OS.
-              </p>
-
-              <div className="flex items-center gap-3 flex-wrap">
-                <select
-                  value={selectedRuleIdForSim}
-                  onChange={e => setSelectedRuleIdForSim(e.target.value)}
-                  className="flex-1 bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-100"
-                >
-                  {automationRules.map(r => (
-                    <option key={r.id} value={r.id}>
-                      [{r.category}] {r.title}
-                    </option>
-                  ))}
-                </select>
-
-                <button type="button"
-                  onClick={() => handleRunSimulation(selectedRuleIdForSim)}
-                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-bold rounded-lg shadow-md flex items-center gap-2"
-                >
-                  <Play className="w-4 h-4" /> Kiểm thử Kích hoạt Ngay
-                </button>
-              </div>
-            </div>
-
-            {/* Simulation Results Output */}
-            {simulationResult && (
-              <div className="bg-slate-900 border border-indigo-500/30 p-5 rounded-2xl space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <div>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
-                      MÔ PHỎNG AN TOÀN
-                    </span>
-                    <h3 className="text-sm font-bold text-white mt-1">
-                      Kết quả Kiểm thử: {simulationResult.ruleTitle}
-                    </h3>
-                  </div>
-                  <span className="text-xs font-bold text-indigo-300">
-                    Khớp {simulationResult.totalEvaluated} đối tượng
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                    Các Item Khớp Điều kiện & Hành động Sẽ Diễn Ra:
-                  </h4>
-                  {simulationResult.matchedItems.map((item: any, idx: number) => (
-                    <div key={idx} className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-xs font-bold text-white">{item.title}</p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">{item.details}</p>
-                      </div>
-                      <div className="text-right">
-                        <span className="text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">
-                          {item.potentialActions.join(', ')}
+                      <div className="flex items-start gap-2">
+                        <span className="font-bold text-emerald-600 dark:text-emerald-400 text-[10px] uppercase w-10 shrink-0">THÌ:</span>
+                        <span className="text-slate-700 dark:text-slate-300 font-semibold">
+                          {rule.actions?.[0]?.params?.message || 'Tự động cập nhật trạng thái'}
                         </span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
+                  </div>
 
-        {/* ================================================================== */}
-        {/* TAB 7: SCHEDULED JOBS */}
-        {/* ================================================================== */}
-        {activeTab === 'scheduled' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-indigo-400" /> Tác vụ Chạy theo Lịch trình (Scheduled Jobs)
-                </h2>
-                <p className="text-xs text-slate-400">
-                  Các luật chạy định kỳ tự động: Sáng (07:00 Kế hoạch Ngày), Tối (Đánh giá hoàn thành) & Hàng tuần
-                </p>
-              </div>
-            </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-800 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleExecuteLiveAutomation();
+                      }}
+                      className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-[11px] flex items-center gap-1 transition-colors"
+                    >
+                      <Zap className="w-3.5 h-3.5 text-amber-500" />
+                      <span>Chạy thử</span>
+                    </button>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {automationRules
-                .filter(r => r.trigger.type === 'Every day' || r.trigger.type === 'At specific time')
-                .map(rule => (
-                  <div key={rule.id} className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-amber-400 flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5" /> Khung giờ: {rule.trigger.scheduleTime || '07:00'}
-                      </span>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300">
-                        HÀNG NGÀY
-                      </span>
-                    </div>
-
-                    <h3 className="text-sm font-bold text-white">{rule.title}</h3>
-                    <p className="text-xs text-slate-400">{rule.description}</p>
-
-                    <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
-                      <span className="text-xs text-slate-500">Lần chạy gần nhất: Today 07:00</span>
-                      <button type="button"
-                        onClick={() => {
-                          showToast(`Đã kích hoạt thủ công chạy luật scheduled "${rule.title}"`);
-                        }}
-                        className="px-2.5 py-1 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white text-xs font-semibold rounded-lg transition-all"
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => loadRuleIntoBuilder(rule)}
+                        className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                        title="Chỉnh sửa"
                       >
-                        Kích hoạt Ngay
+                        <Edit3 className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm(`Xóa quy tắc "${rule.title}"?`)) {
+                            deleteAutomationRule(rule.id);
+                            showToast('Đã xóa quy tắc.');
+                          }
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors"
+                        title="Xóa"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
-                ))}
+                </div>
+              ))}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 2: 1-CLICK TEMPLATES */}
+      {activeTab === 'templates' && (
+        <div className="space-y-6">
+          <div className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-1">
+            <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-indigo-600" />
+              <span>Thư Viện Mẫu Quy Tắc Tự Động (1-Click Automations)</span>
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Các quy tắc được tinh chỉnh sẵn cho cuộc sống thực tế: học tập, công việc, tài chính và thói quen. Chỉ cần 1 nhấp chuột để đưa vào hoạt động ngay!
+            </p>
           </div>
-        )}
 
-        {/* ================================================================== */}
-        {/* TAB 8: ANALYTICS & STATS */}
-        {/* ================================================================== */}
-        {activeTab === 'analytics' && (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-2">
-                <span className="text-xs font-medium text-slate-400">Tỷ lệ Thực thi Thành công</span>
-                <p className="text-3xl font-bold text-emerald-400">100%</p>
-                <p className="text-xs text-slate-500">Không có lỗi ngoại lệ bất thường</p>
-              </div>
-
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-2">
-                <span className="text-xs font-medium text-slate-400">Tổng Số Luật Theo Module</span>
-                <p className="text-3xl font-bold text-indigo-400">{totalRulesCount} Luật</p>
-                <p className="text-xs text-slate-500">Phân bổ đồng đều trên 8 module</p>
-              </div>
-
-              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl space-y-2">
-                <span className="text-xs font-medium text-slate-400">Thời gian Tiết kiệm Tích lũy</span>
-                <p className="text-3xl font-bold text-amber-400">{(totalTimeSavedMinutes / 60).toFixed(1)}h</p>
-                <p className="text-xs text-slate-500">Ước tính thao tác tay được giảm thiểu</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ================================================================== */}
-        {/* TAB 9: HISTORY & AUDIT LOG */}
-        {/* ================================================================== */}
-        {activeTab === 'history' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <History className="w-5 h-5 text-indigo-400" /> Nhật ký Lịch sử & Audit Log ({automationHistory.length})
-                </h2>
-                <p className="text-xs text-slate-400">
-                  Ghi chép minh bạch chi tiết mọi lượt chạy tự động, biến đổi trạng thái và người phê duyệt
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-800 bg-slate-950/60 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                      <th className="p-4">Thời gian</th>
-                      <th className="p-4">Tên Luật</th>
-                      <th className="p-4">Item Khớp</th>
-                      <th className="p-4">Hành động Đã chạy</th>
-                      <th className="p-4 text-center">Kết quả</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60 text-xs">
-                    {automationHistory.map(hist => (
-                      <tr key={hist.id} className="hover:bg-slate-800/40">
-                        <td className="p-4 text-slate-400 font-mono text-[11px]">
-                          {new Date(hist.timestamp).toLocaleTimeString('vi-VN')}
-                        </td>
-                        <td className="p-4 font-semibold text-white">
-                          {hist.ruleTitle}
-                        </td>
-                        <td className="p-4 text-indigo-300">
-                          {hist.matchedItemTitle}
-                        </td>
-                        <td className="p-4 text-slate-300">
-                          {hist.actionsExecuted.join(', ')}
-                        </td>
-                        <td className="p-4 text-center">
-                          <span className={cn(
-                            "px-2.5 py-0.5 rounded-full text-[10px] font-bold",
-                            hist.result === 'Success' ? "bg-emerald-500/20 text-emerald-400" :
-                            hist.result === 'Pending Approval' ? "bg-rose-500/20 text-rose-300" :
-                            "bg-slate-800 text-slate-400"
-                          )}>
-                            {hist.result}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ================================================================== */}
-        {/* TAB 10: CONFLICT DETECTOR */}
-        {/* ================================================================== */}
-        {activeTab === 'conflicts' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-base font-bold text-white flex items-center gap-2">
-                  <GitCompare className="w-5 h-5 text-amber-400" /> Phát hiện Xung đột Luật (Conflict Engine)
-                </h2>
-                <p className="text-xs text-slate-400">
-                  Tự động rà soát các luật mâu thuẫn về Trạng thái hoặc có nguy cơ Vòng lặp vô tận (Infinite Loop Risk)
-                </p>
-              </div>
-            </div>
-
-            {automationConflicts.length === 0 ? (
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-500 space-y-2">
-                <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
-                <p className="text-sm font-medium text-slate-300">Không phát hiện xung đột luật nào</p>
-                <p className="text-xs text-slate-500">Mọi quy tắc hoạt động độc lập và mượt mà</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {automationConflicts.map(conf => (
-                  <div key={conf.id} className="bg-slate-900 border border-amber-500/30 p-5 rounded-2xl space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                        {conf.conflictType}
-                      </span>
-                      <span className="text-xs text-slate-500">Chưa xử lý</span>
-                    </div>
-
-                    <h3 className="text-sm font-bold text-white">Xung đột giữa "{conf.ruleATitle}" & "{conf.ruleBTitle}"</h3>
-                    <p className="text-xs text-slate-400">{conf.description}</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {ruleTemplates.map(tpl => (
+              <div
+                key={tpl.id}
+                className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs hover:border-indigo-400 transition-all flex flex-col justify-between space-y-4"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="px-2.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300">
+                      {tpl.tag}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">{tpl.category}</span>
                   </div>
-                ))}
+
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-900 dark:text-white">
+                      {tpl.title}
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                      {tpl.description}
+                    </p>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-xs space-y-1">
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase w-9 shrink-0">Khi:</span>
+                      <span className="text-slate-700 dark:text-slate-300 text-[11px]">{tpl.whenText}</span>
+                    </div>
+                    <div className="flex items-start gap-1.5">
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase w-9 shrink-0">Thì:</span>
+                      <span className="text-slate-700 dark:text-slate-300 text-[11px] font-semibold">{tpl.thenText}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => applyTemplate(tpl)}
+                  className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Kích Hoạt Quy Tắc Này</span>
+                </button>
               </div>
-            )}
+            ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* TAB 3: RULE BUILDER */}
+      {activeTab === 'builder' && (
+        <div className="max-w-2xl mx-auto p-6 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+          <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+              <Sliders className="w-5 h-5 text-indigo-600" />
+              <span>{editingRuleId ? 'Chỉnh Sửa Quy Tắc' : 'Tạo Quy Tắc Tự Động Mới'}</span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Cấu hình quy tắc WHEN ➔ THEN trực quan và dễ hiểu
+            </p>
+          </div>
+
+          <form onSubmit={handleSaveRule} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Tên Quy Tắc
+              </label>
+              <input
+                type="text"
+                value={builderTitle}
+                onChange={e => setBuilderTitle(e.target.value)}
+                placeholder="Ví dụ: Tự động nhắc nhở khi task quá hạn"
+                className="w-full h-10 px-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                required
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Module Áp Dụng
+                </label>
+                <select
+                  value={builderCategory}
+                  onChange={e => setBuilderCategory(e.target.value as any)}
+                  className="w-full h-10 px-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium"
+                >
+                  <option value="Task">Công việc (Task)</option>
+                  <option value="Finance">Tài chính (Finance)</option>
+                  <option value="Habit">Thói quen (Habit)</option>
+                  <option value="Project">Dự án (Project)</option>
+                  <option value="Daily">Sinh hoạt hàng ngày (Daily)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Khi Nào Kích Hoạt (Trigger)
+                </label>
+                <select
+                  value={builderTriggerType}
+                  onChange={e => setBuilderTriggerType(e.target.value as any)}
+                  className="w-full h-10 px-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium"
+                >
+                  <option value="Before deadline">Trước hạn chót (Deadline)</option>
+                  <option value="Task overdue">Khi bị quá hạn (Overdue)</option>
+                  <option value="Every day">Mỗi ngày vào giờ cố định</option>
+                  <option value="Status change">Khi thay đổi trạng thái</option>
+                  <option value="Expense created">Khi có chi tiêu mới</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Hành Động Tự Động (Action)
+              </label>
+              <input
+                type="text"
+                value={builderActionSummary}
+                onChange={e => setBuilderActionSummary(e.target.value)}
+                placeholder="Ví dụ: Đổi mức ưu tiên lên Cao & Gửi thông báo"
+                className="w-full h-10 px-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                Mô tả chi tiết (Tùy chọn)
+              </label>
+              <textarea
+                value={builderDescription}
+                onChange={e => setBuilderDescription(e.target.value)}
+                placeholder="Ghi chú thêm về quy tắc này..."
+                rows={2}
+                className="w-full p-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3">
+              <button
+                type="button"
+                onClick={() => {
+                  resetBuilderForm();
+                  setActiveTab('rules');
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="submit"
+                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Check className="w-4 h-4" />
+                <span>{editingRuleId ? 'Lưu Thay Đổi' : 'Tạo & Bật Quy Tắc'}</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

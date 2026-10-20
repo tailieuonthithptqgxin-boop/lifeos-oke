@@ -53,7 +53,12 @@ import { authRouter } from './routes/auth.js';
 import { apiRouter } from './routes/api.js';
 import { checkDbConnection, dbService, getPrisma } from './db.js';
 import { workerService } from './services/worker.service.js';
+import { notificationScheduler } from './services/notification/notificationScheduler.service.js';
 import { csrfProtection } from './security/csrf.js';
+import { emailQueueService } from './services/emailQueue.service.js';
+import { SystemNotificationHelper } from './services/systemNotification.helper.js';
+import { validateEnvOnStartup } from './config/env.config.js';
+import { sanitizeInputMiddleware } from './security/sanitizer.js';
 
 function ensurePostgresRunning() {
   try {
@@ -77,6 +82,7 @@ function ensurePostgresRunning() {
 }
 
 async function startServer() {
+  validateEnvOnStartup();
   ensurePostgresRunning();
 
   const app = express();
@@ -98,6 +104,7 @@ async function startServer() {
   });
 
   app.use(express.json({ limit: '10mb' }));
+  app.use(sanitizeInputMiddleware);
   app.use(cookieParser());
   app.use(csrfProtection);
 
@@ -121,6 +128,9 @@ async function startServer() {
   // Start background worker scheduler (every 5 minutes to optimize cloud database compute/connections)
   workerService.start(300000);
 
+  // Start dedicated real-time Notification Scheduler (every 60s)
+  notificationScheduler.start(60000);
+
   // Health check endpoint (Liveness Probe)
   app.get('/health', async (req, res) => {
     let dbLive = false;
@@ -133,6 +143,26 @@ async function startServer() {
 
     const workerStatus = workerService.getStatus();
 
+    const healthPayload = {
+      status: dbLive ? 'ok' : 'degraded',
+      database: dbLive ? 'connected' : 'disconnected',
+      worker: workerStatus.running ? 'running' : 'stopped',
+      timestamp: new Date().toISOString()
+    };
+
+    res.status(dbLive ? 200 : 503).json(healthPayload);
+  });
+
+  // Alias /api/health
+  app.get('/api/health', async (req, res) => {
+    let dbLive = false;
+    try {
+      await getPrisma().$queryRaw`SELECT 1`;
+      dbLive = true;
+    } catch (e) {
+      dbLive = false;
+    }
+    const workerStatus = workerService.getStatus();
     res.status(dbLive ? 200 : 503).json({
       status: dbLive ? 'ok' : 'degraded',
       database: dbLive ? 'connected' : 'disconnected',
@@ -141,8 +171,18 @@ async function startServer() {
     });
   });
 
-  // Readiness check endpoint (Readiness Probe for Kubernetes / Docker)
+  // Readiness check endpoint (Readiness Probe for Kubernetes / Docker / Nginx)
   app.get('/ready', async (req, res) => {
+    try {
+      await getPrisma().$queryRaw`SELECT 1`;
+      res.status(200).json({ status: 'ready', database: 'ready' });
+    } catch (e) {
+      res.status(503).json({ status: 'not_ready', database: 'unavailable' });
+    }
+  });
+
+  // Alias /api/ready
+  app.get('/api/ready', async (req, res) => {
     try {
       await getPrisma().$queryRaw`SELECT 1`;
       res.status(200).json({ status: 'ready', database: 'ready' });
@@ -213,7 +253,7 @@ async function startServer() {
     // Seed default system templates if empty
     // Seed default system templates if empty or incomplete
     const templates = await dbService.getSystemTemplates();
-    if (templates.length < 12) {
+    if (templates.length < 16) {
       await dbService.seedTemplates([
         {
           id: 'tpl_para_system',
@@ -334,9 +374,49 @@ async function startServer() {
           tags: ['Startup', 'Founder', 'MVP', 'KinhDoanh'],
           price: 0,
           isFree: true
+        },
+        {
+          id: 'tpl_okr_master',
+          title: 'Hệ Thống Quản Trị Mục Tiêu OKRs Quý',
+          description: 'Khung Objective & Key Results (John Doerr) định hướng nỗ lực, theo dõi mục tiêu then chốt và sáng kiến hành động',
+          category: 'Management',
+          tier: 'Free',
+          tags: ['OKR', 'MụcTiêu', 'ChiếnLược', 'Productivity'],
+          price: 0,
+          isFree: true
+        },
+        {
+          id: 'tpl_eisenhower_matrix',
+          title: 'Ma Trận Ưu Tiên Eisenhower 4 Cấp Độ',
+          description: 'Phân loại công việc theo Ma trận Khẩn cấp vs Quan trọng, tập trung 60% năng lượng vào Q2 chiến lược dài hạn',
+          category: 'Productivity',
+          tier: 'Free',
+          tags: ['Eisenhower', 'ƯuTiên', 'ThờiGian', 'KỷLuật'],
+          price: 0,
+          isFree: true
+        },
+        {
+          id: 'tpl_6_jars_finance',
+          title: 'Hệ Thống Quản Lý Tiền 6 Chiếc Hũ (6 JARS)',
+          description: 'Phương pháp quản trị dòng tiền đỉnh cao của T. Harv Eker: Thiết yếu 55%, Tự do tài chính 10%, Tiết kiệm 10%, Giáo dục 10%, Hưởng thụ 10%, Cho đi 5%',
+          category: 'Finance',
+          tier: 'Free',
+          tags: ['Finance', '6JARS', 'TiềnBạc', 'QuảnLýTàiChính'],
+          price: 0,
+          isFree: true
+        },
+        {
+          id: 'tpl_circadian_health',
+          title: 'Tối Ưu Nhịp Sinh Học & Giấc Ngủ Phục Hồi (Circadian Protocol)',
+          description: 'Giao thức năng lượng sinh học khoa học: Tắm nắng sớm 15p, cắt caffeine sau 14h, giảm ánh sáng xanh 22h và ngủ sâu 8 tiếng',
+          category: 'Health',
+          tier: 'Free',
+          tags: ['Health', 'Circadian', 'GiấcNgủ', 'NăngLượng'],
+          price: 0,
+          isFree: true
         }
       ]);
-      console.log('✅ 12 System templates seeded successfully');
+      console.log('✅ 16 System templates seeded successfully');
     }
 
     // Seed default promotional coupons if none exist
@@ -373,6 +453,13 @@ async function startServer() {
     console.error('Initial provisioning notice:', e.message);
   }
 
+  // Google OAuth Direct & Fallback Aliases (Bypass path rewriting)
+  app.get('/auth/google', (req, res) => res.redirect('/api/auth/google'));
+  app.get('/auth/google/callback', (req, res) => {
+    const qs = new URLSearchParams(req.query as any).toString();
+    res.redirect(qs ? ('/api/auth/google/callback?' + qs) : '/api/auth/google/callback');
+  });
+
   // API Routes
   app.use('/api/auth', authRouter);
   app.use('/api', apiRouter);
@@ -396,6 +483,15 @@ async function startServer() {
       return next(err);
     }
     if (req.path.startsWith('/api/')) {
+      // Alert Admin of critical 500 error via Outbox Queue
+      SystemNotificationHelper.onSystemCriticalError({
+        message: err.message || 'Lỗi không xác định',
+        stack: err.stack,
+        path: req.path,
+        method: req.method,
+        userEmail: (req as any).user?.email
+      }).catch(() => {});
+
       return res.status(err.status || 500).json({
         success: false,
         error: {
@@ -460,12 +556,18 @@ async function startServer() {
 
   const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 LifeOS Server running on http://0.0.0.0:${PORT}`);
+    // Start Outbox Email Queue Worker (Automatic Retry & Delivery Guarantee)
+    emailQueueService.startQueueWorker();
+    // Verify SMTP connection on startup & report status
+    emailQueueService.verifySmtpConnection().catch(e => console.warn('Initial SMTP verify notice:', e));
   });
 
   const shutdown = (signal: string) => {
     console.log(`Received ${signal}. Shutting down gracefully...`);
     try {
       workerService.stop();
+      notificationScheduler.stop();
+      emailQueueService.stopQueueWorker();
     } catch (e) {}
 
     // PROD-002 FIX: Force exit after 30s if connections don't close

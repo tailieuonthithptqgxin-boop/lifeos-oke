@@ -5,6 +5,8 @@ import { uploadRateLimiter } from '../security/rateLimiter.js';
 
 export const r2Router = Router();
 
+import { validateUploadedBuffer } from '../security/fileSecurity.js';
+
 // Helper to check admin privileges
 function checkIsAdmin(user: any): boolean {
   const role = (user?.role || '').toUpperCase();
@@ -78,10 +80,20 @@ r2Router.post('/upload-base64', requireAuth, uploadRateLimiter, async (req: Auth
     const cleanBase64 = base64Data.replace(/^data:[^;]+;base64,/, '');
     const buffer = Buffer.from(cleanBase64, 'base64');
 
+    // Deep Magic Bytes & MIME verification
+    const validation = validateUploadedBuffer(buffer, String(fileName), mimeType || 'image/png');
+    if (!validation.valid) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'FILE_SECURITY_REJECTED', message: validation.error },
+        message: validation.error
+      });
+    }
+
     const result = await r2Service.uploadFile(
       buffer,
-      String(fileName),
-      mimeType || 'image/png',
+      validation.safeFileName,
+      validation.detectedMime,
       userId,
       folder || 'uploads'
     );

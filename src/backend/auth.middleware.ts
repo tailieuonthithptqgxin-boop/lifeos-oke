@@ -202,6 +202,9 @@ export function canUse(user: { plan?: string; role?: string }, feature: string):
   // Admins have access to all features
   if (role === 'SUPERADMIN' || role === 'ADMIN') return true;
 
+  // Global Free Trial accounts have full access to all features
+  if (plan === 'FREE_TRIAL_GLOBAL') return true;
+
   // Unsubscribed or FREE accounts cannot use features
   if (plan === 'FREE' || !plan) return false;
 
@@ -246,13 +249,19 @@ export const requireActiveSubscription = async (req: AuthRequest, res: Response,
     const subStatus = await subscriptionService.checkUserSubscription(req.userId!);
 
     if (!subStatus.hasAccess) {
+      const isTrialExp = Boolean(subStatus.isTrialExpired);
+      const code = isTrialExp ? 'TRIAL_EXPIRED' : 'SUBSCRIPTION_REQUIRED';
+      const msg = isTrialExp
+        ? 'Thời gian dùng thử 7 ngày miễn phí của bạn đã kết thúc. Vui lòng kích hoạt gói dịch vụ để tiếp tục sử dụng các phân hệ cao cấp của LifeOS.'
+        : 'Tất cả các chức năng của LifeOS yêu cầu người dùng mua gói trả phí đang hoạt động. Vui lòng chọn gói dịch vụ để tiếp tục sử dụng.';
+
       res.status(403).json({
         success: false,
         error: {
-          code: 'SUBSCRIPTION_REQUIRED',
-          message: 'Tất cả các chức năng của LifeOS yêu cầu người dùng mua gói trả phí đang hoạt động. Vui lòng chọn gói dịch vụ để tiếp tục sử dụng.'
+          code,
+          message: msg
         },
-        message: 'Tất cả các chức năng của LifeOS yêu cầu người dùng mua gói trả phí đang hoạt động. Vui lòng chọn gói dịch vụ để tiếp tục sử dụng.',
+        message: msg,
         subscriptionStatus: subStatus
       });
       return;

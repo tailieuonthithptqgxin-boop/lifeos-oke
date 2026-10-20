@@ -16,49 +16,81 @@ import {
   Sparkles, 
   Zap,
   Clock,
-  Copy,
-  Check,
   RefreshCw,
-  Timer,
-  Flame,
-  Star,
-  Trophy,
-  Target
+  AlertCircle,
+  ExternalLink,
+  ChevronRight,
+  Shield
 } from 'lucide-react';
 
 interface LoginViewProps {
   onBack: () => void;
+  initialMode?: 'login' | 'register' | 'forgot' | 'reset';
 }
 
-export function LoginView({ onBack }: LoginViewProps) {
+// Google Official 4-Color Vector Icon
+function GoogleIcon({ className = "w-5 h-5" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="#4285F4"
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+      />
+      <path
+        fill="#34A853"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+      />
+      <path
+        fill="#FBBC05"
+        d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+      />
+      <path
+        fill="#EA4335"
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+      />
+    </svg>
+  );
+}
+
+// Password strength calculator
+function getPasswordStrength(password: string): { score: number; label: string; color: string } {
+  if (!password) return { score: 0, label: '', color: 'bg-slate-200 dark:bg-slate-700' };
+  let score = 0;
+  if (password.length >= 8) score += 1;
+  if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score += 1;
+  if (/\d/.test(password)) score += 1;
+  if (/[^A-Za-z0-9]/.test(password)) score += 1;
+
+  if (score <= 1) return { score: 1, label: 'Mật khẩu yếu', color: 'bg-rose-500' };
+  if (score === 2) return { score: 2, label: 'Trung bình', color: 'bg-amber-500' };
+  if (score === 3) return { score: 3, label: 'Khá mạnh', color: 'bg-blue-500' };
+  return { score: 4, label: 'Rất an toàn', color: 'bg-emerald-500' };
+}
+
+export function LoginView({ onBack, initialMode }: LoginViewProps) {
   const { login } = useAppStore();
-  const [resetToken, setResetToken] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      return params.get('resetToken') || params.get('token') || '';
-    }
-    return '';
-  });
+
+  // Mode state: 'login' | 'register' | 'forgot' | 'reset'
   const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'reset'>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('resetToken') || params.get('token')) {
-        return 'reset';
-      }
-      if (localStorage.getItem('lifeos_reset_ticket')) {
-        return 'forgot';
-      }
+      if (params.get('resetToken') || params.get('token')) return 'reset';
+      if (params.get('mode') === 'register') return 'register';
+      if (params.get('mode') === 'forgot') return 'forgot';
     }
-    return 'login';
+    return initialMode || 'login';
   });
+
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Login fields
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  // Login form
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
 
-  // Register fields
+  // Register form
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
@@ -72,56 +104,90 @@ export function LoginView({ onBack }: LoginViewProps) {
     return '';
   });
 
-  // Admin-Approved Password Reset Flow States (Session-Bound Token)
-  const [resetStep, setResetStep] = useState<'REQUEST' | 'PENDING' | 'CONFIRM'>('REQUEST');
-  const [ticketCode, setTicketCode] = useState(() => {
+  // Forgot Password state
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSentSuccess, setForgotSentSuccess] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Reset Password state
+  const [resetToken, setResetToken] = useState(() => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('lifeos_reset_ticket') || '';
+      const params = new URLSearchParams(window.location.search);
+      return params.get('resetToken') || params.get('token') || '';
     }
     return '';
   });
-  const [claimToken, setClaimToken] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('lifeos_reset_claim_token') || '';
-    }
-    return '';
-  });
-  const [forgotEmail, setForgotEmail] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('lifeos_reset_email') || '';
-    }
-    return '';
-  });
-  const [verificationNote, setVerificationNote] = useState('');
-  const [backupPin, setBackupPin] = useState('');
-  const [showPinInput, setShowPinInput] = useState(false);
-  const [expiresAt, setExpiresAt] = useState<string | null>(null);
-  const [remainingTime, setRemainingTime] = useState<string>('');
-  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
-  const [copiedTicket, setCopiedTicket] = useState(false);
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [tokenVerifyState, setTokenVerifyState] = useState<'IDLE' | 'VERIFYING' | 'VALID' | 'INVALID'>('IDLE');
+  const [tokenInvalidReason, setTokenInvalidReason] = useState<string>('');
+  const [resetComplete, setResetComplete] = useState(false);
 
-  const [error, setError] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
+  // Cooldown countdown for resending forgot password
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const interval = setInterval(() => {
+      setResendCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [resendCooldown]);
 
-  const executeLogin = async (loginEmail: string, loginPass: string) => {
-    setError('');
-    setSuccessMsg('');
-    setIsLoading(true);
+  // Pre-flight check reset token validity if user opens /?resetToken=...
+  useEffect(() => {
+    if (mode === 'reset' && resetToken) {
+      verifyResetToken(resetToken);
+    }
+  }, [mode, resetToken]);
 
+  const verifyResetToken = async (tok: string) => {
+    setTokenVerifyState('VERIFYING');
     try {
-      const cleanEmail = loginEmail.trim();
-      const rawPassword = String(loginPass);
+      const res = await apiCall(`/api/auth/verify-reset-token?token=${encodeURIComponent(tok.trim())}`, 'GET');
+      if (res && res.valid) {
+        setTokenVerifyState('VALID');
+        setError(null);
+      } else {
+        setTokenVerifyState('INVALID');
+        setTokenInvalidReason(res?.message || 'Liên kết đặt lại mật khẩu đã hết hạn hoặc không hợp lệ.');
+      }
+    } catch (err: any) {
+      setTokenVerifyState('INVALID');
+      setTokenInvalidReason(err?.message || 'Không thể xác thực mã token.');
+    }
+  };
 
+  // Google Sign-In redirect
+  const handleGoogleSignIn = () => {
+    setIsLoading(true);
+    // Redirect browser to backend Google OAuth initiation route
+    window.location.href = '/api/auth/google';
+  };
+
+  // 1. Submit Login
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccessMsg(null);
+
+    const cleanInput = loginEmail.trim();
+    if (!cleanInput) {
+      setError('Vui lòng nhập Email hoặc Tên đăng nhập.');
+      return;
+    }
+    if (!loginPassword) {
+      setError('Vui lòng nhập mật khẩu.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
       const res = await apiCall('/api/auth/login', 'POST', {
-        email: cleanEmail,
-        password: rawPassword
+        identifier: cleanInput,
+        password: String(loginPassword)
       });
 
-      if (res.token) {
+      if (res?.token) {
         try { localStorage.setItem('token', res.token); } catch (e) {}
       }
 
@@ -130,9 +196,7 @@ export function LoginView({ onBack }: LoginViewProps) {
       console.error('Login error:', err);
       let msg = 'Email/Tên đăng nhập hoặc mật khẩu không chính xác.';
       if (err?.status === 429) {
-        msg = 'Bạn đã nhập sai quá nhiều lần. Vui lòng thử lại sau 15 phút hoặc liên hệ Admin.';
-      } else if (err?.status === 403) {
-        msg = err.message || 'Tài khoản của bạn đã bị tạm khóa hoặc vô hiệu hóa.';
+        msg = 'Tài khoản tạm thời bị khóa do nhập sai quá 5 lần. Vui lòng thử lại sau 15 phút.';
       } else if (err?.message) {
         msg = err.message;
       }
@@ -142,35 +206,30 @@ export function LoginView({ onBack }: LoginViewProps) {
     }
   };
 
-  const handleLoginSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await executeLogin(email, password);
-  };
-
+  // 2. Submit Register
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccessMsg('');
+    setError(null);
+    setSuccessMsg(null);
 
     if (!regName.trim()) {
       setError('Vui lòng nhập họ và tên của bạn.');
       return;
     }
-    if (!regEmail.trim()) {
-      setError('Vui lòng nhập địa chỉ email.');
+    if (!regEmail.trim() || !regEmail.includes('@')) {
+      setError('Vui lòng nhập địa chỉ email hợp lệ.');
       return;
     }
-    if (regPassword.length < 6) {
-      setError('Mật khẩu bảo mật tối thiểu 6 ký tự.');
+    if (regPassword.length < 8) {
+      setError('Mật khẩu bảo mật phải có tối thiểu 8 ký tự.');
       return;
     }
     if (regPassword !== regConfirmPassword) {
-      setError('Mật khẩu xác nhận không khớp.');
+      setError('Mật khẩu xác nhận không khớp. Vui lòng kiểm tra lại.');
       return;
     }
 
     setIsLoading(true);
-
     try {
       const res = await apiCall('/api/auth/register', 'POST', {
         name: regName.trim(),
@@ -179,204 +238,62 @@ export function LoginView({ onBack }: LoginViewProps) {
         referralCode: regReferralCode.trim() || undefined
       });
 
-      if (res.token) {
+      if (res?.token) {
         try { localStorage.setItem('token', res.token); } catch (e) {}
       }
 
-      setSuccessMsg('Khởi tạo tài khoản thành công! Đang chuyển tiếp vào không gian làm việc...');
+      setSuccessMsg('Đăng ký tài khoản thành công! Đang chuyển tiếp vào không gian làm việc...');
       await login(res.user);
     } catch (err: any) {
       console.error('Registration error:', err);
-      setError(err?.message || 'Không thể khởi tạo tài khoản. Vui lòng thử lại.');
+      setError(err?.message || 'Không thể tạo tài khoản. Vui lòng thử lại.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Check active reset request on mount or mode change
-  useEffect(() => {
-    if (mode === 'forgot' || mode === 'reset') {
-      const storedTicket = localStorage.getItem('lifeos_reset_ticket');
-      const storedToken = localStorage.getItem('lifeos_reset_claim_token');
-      const storedEmail = localStorage.getItem('lifeos_reset_email');
-      if (storedEmail && !forgotEmail) {
-        setForgotEmail(storedEmail);
-      }
-      if (storedTicket) {
-        checkResetStatus(storedTicket, storedToken || undefined);
-      }
-    }
-  }, [mode]);
-
-  // Polling when in PENDING state (every 5s)
-  useEffect(() => {
-    let interval: any = null;
-    if ((mode === 'forgot' || mode === 'reset') && resetStep === 'PENDING' && ticketCode) {
-      interval = setInterval(() => {
-        checkResetStatus(ticketCode, claimToken || undefined, backupPin || undefined, true);
-      }, 5000);
-    }
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [mode, resetStep, ticketCode, claimToken, backupPin]);
-
-  // Expiration countdown when in CONFIRM state
-  useEffect(() => {
-    let timer: any = null;
-    if (resetStep === 'CONFIRM' && expiresAt) {
-      const updateRemaining = () => {
-        const diff = new Date(expiresAt).getTime() - Date.now();
-        if (diff <= 0) {
-          setRemainingTime('00:00 (Hết hạn)');
-          setError('Phiên đặt lại mật khẩu đã hết hạn sau 30 phút. Vui lòng tạo yêu cầu mới.');
-          setResetStep('REQUEST');
-          try {
-            localStorage.removeItem('lifeos_reset_ticket');
-            localStorage.removeItem('lifeos_reset_claim_token');
-          } catch (e) {}
-        } else {
-          const mins = Math.floor(diff / 60000);
-          const secs = Math.floor((diff % 60000) / 1000);
-          setRemainingTime(`${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`);
-        }
-      };
-      updateRemaining();
-      timer = setInterval(updateRemaining, 1000);
-    }
-    return () => {
-      if (timer) clearInterval(timer);
-    };
-  }, [resetStep, expiresAt]);
-
-  const checkResetStatus = async (ticket: string, token?: string, pin?: string, isBackground = false) => {
-    if (!isBackground) setIsCheckingStatus(true);
-    try {
-      const res = await apiCall('/api/auth/reset-status', 'POST', {
-        ticketCode: ticket,
-        claimToken: token,
-        backupPin: pin
-      });
-
-      if (res && res.success) {
-        setTicketCode(res.ticketCode);
-        if (res.expiresAt) setExpiresAt(res.expiresAt);
-
-        if (res.canSetNewPassword) {
-          setResetStep('CONFIRM');
-          setMode('reset');
-          setError('');
-        } else if (res.status === 'PENDING') {
-          setResetStep('PENDING');
-          setMode('forgot');
-        } else if (res.status === 'EXPIRED') {
-          setError('Yêu cầu đã hết hạn. Vui lòng gửi yêu cầu mới.');
-          handleClearResetSession();
-        } else if (res.status === 'REJECTED') {
-          setError(res.message || 'Yêu cầu của bạn đã bị Quản trị viên từ chối.');
-          handleClearResetSession();
-        }
-      }
-    } catch (err: any) {
-      if (!isBackground) {
-        setError(err?.message || 'Không thể kiểm tra trạng thái yêu cầu.');
-      }
-    } finally {
-      if (!isBackground) setIsCheckingStatus(false);
-    }
-  };
-
+  // 3. Submit Forgot Password
   const handleForgotSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccessMsg('');
+    setError(null);
+    setSuccessMsg(null);
 
-    if (showPinInput) {
-      if (!ticketCode.trim()) {
-        setError('Vui lòng nhập Mã yêu cầu (VD: RST-8392)');
-        return;
-      }
-      if (!backupPin.trim()) {
-        setError('Vui lòng nhập Mã PIN 6 số do Admin cung cấp');
-        return;
-      }
-      await checkResetStatus(ticketCode.trim(), undefined, backupPin.trim());
-      return;
-    }
-
-    if (!forgotEmail.trim()) {
-      setError('Vui lòng nhập địa chỉ email của bạn.');
+    const clean = forgotEmail.trim().toLowerCase();
+    if (!clean || !clean.includes('@')) {
+      setError('Vui lòng nhập địa chỉ email hợp lệ đã đăng ký.');
       return;
     }
 
     setIsLoading(true);
-
     try {
-      const res = await apiCall('/api/auth/reset-request', 'POST', {
-        email: forgotEmail.trim(),
-        verificationNote: verificationNote.trim() || undefined,
-        claimToken: claimToken || undefined
+      const res = await apiCall('/api/auth/forgot-password', 'POST', {
+        email: clean
       });
 
-      if (res && res.success) {
-        setTicketCode(res.ticketCode);
-        setClaimToken(res.claimToken);
-        setResetStep('PENDING');
-        try {
-          localStorage.setItem('lifeos_reset_ticket', res.ticketCode);
-          localStorage.setItem('lifeos_reset_claim_token', res.claimToken);
-          localStorage.setItem('lifeos_reset_email', forgotEmail.trim());
-        } catch (e) {}
-
-        setSuccessMsg(res.message || 'Yêu cầu khôi phục mật khẩu đã được gửi đến Admin.');
-      }
+      setForgotSentSuccess(true);
+      setResendCooldown(60); // 60s cooldown
+      setSuccessMsg(res?.message || 'Hướng dẫn đặt lại mật khẩu đã được gửi đến hộp thư Gmail của bạn.');
     } catch (err: any) {
-      setError(err?.message || 'Không thể gửi yêu cầu khôi phục mật khẩu.');
+      console.error('Forgot password error:', err);
+      setError(err?.message || 'Lỗi gửi yêu cầu khôi phục mật khẩu. Vui lòng thử lại.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleCancelReset = async () => {
-    if (ticketCode) {
-      try {
-        await apiCall('/api/auth/reset-cancel', 'POST', {
-          ticketCode,
-          claimToken
-        });
-      } catch (e) {}
-    }
-    handleClearResetSession();
-    setError('');
-    setSuccessMsg('Đã hủy yêu cầu khôi phục mật khẩu.');
-  };
-
-  const handleClearResetSession = () => {
-    try {
-      localStorage.removeItem('lifeos_reset_ticket');
-      localStorage.removeItem('lifeos_reset_claim_token');
-      localStorage.removeItem('lifeos_reset_email');
-    } catch (e) {}
-    setTicketCode('');
-    setClaimToken('');
-    setBackupPin('');
-    setExpiresAt(null);
-    setResetStep('REQUEST');
-  };
-
-  const handleCopyTicket = (code: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedTicket(true);
-    setTimeout(() => setCopiedTicket(false), 2000);
-  };
-
+  // 4. Submit Reset Password
   const handleResetSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccessMsg('');
+    setError(null);
+    setSuccessMsg(null);
 
-    if (newPassword.length < 6) {
-      setError('Mật khẩu mới tối thiểu 6 ký tự.');
+    const cleanTok = resetToken.trim();
+    if (!cleanTok) {
+      setError('Mã token đặt lại mật khẩu không được để trống.');
+      return;
+    }
+    if (newPassword.length < 8) {
+      setError('Mật khẩu mới phải có tối thiểu 8 ký tự.');
       return;
     }
     if (newPassword !== confirmNewPassword) {
@@ -385,708 +302,625 @@ export function LoginView({ onBack }: LoginViewProps) {
     }
 
     setIsLoading(true);
-
     try {
-      const res = await apiCall('/api/auth/reset-confirm', 'POST', {
-        ticketCode,
-        claimToken: claimToken || undefined,
-        backupPin: backupPin || undefined,
+      const res = await apiCall('/api/auth/reset-password', 'POST', {
+        token: cleanTok,
         newPassword: String(newPassword)
       });
 
-      if (res && res.success) {
-        setSuccessMsg(res.message || 'Đặt lại mật khẩu thành công! Hãy đăng nhập lại.');
-        handleClearResetSession();
-        setTimeout(() => {
-          setMode('login');
-          if (forgotEmail) setEmail(forgotEmail);
-          setPassword('');
-          setNewPassword('');
-          setConfirmNewPassword('');
-          setError('');
-        }, 1500);
-      }
+      setResetComplete(true);
+      setSuccessMsg(res?.message || 'Đặt lại mật khẩu thành công!');
     } catch (err: any) {
-      setError(err?.message || 'Không thể đặt lại mật khẩu.');
+      console.error('Reset password error:', err);
+      setError(err?.message || 'Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.');
     } finally {
       setIsLoading(false);
     }
   };
 
+  const regStrength = getPasswordStrength(regPassword);
+  const resetStrength = getPasswordStrength(newPassword);
+
   return (
-    <div className="min-h-screen min-h-[100dvh] bg-[#F8FAFC] dark:bg-[#090D16] flex items-center justify-center p-3.5 sm:p-6 font-sans w-full min-w-0 max-w-full overflow-x-hidden">
-      <div className="w-full max-w-5xl min-w-0">
-        
-        {/* Top Back to Home Button */}
-        <button
-          onClick={onBack}
-          className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white mb-4 sm:mb-6 transition-colors px-3 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 shadow-2xs cursor-pointer"
-        >
-          <ArrowLeft className="w-4 h-4 stroke-[2]" />
-          <span>Quay lại trang chủ</span>
-        </button>
+    <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4 sm:p-6 relative overflow-hidden font-sans selection:bg-emerald-500 selection:text-white">
+      {/* Background Ambient Glows */}
+      <div className="absolute -top-40 -left-40 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -right-40 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-slate-900/40 rounded-full blur-[140px] pointer-events-none" />
 
-        {/* 2-Column Auth Card: Laptop (5/12 + 7/12) vs Mobile (1 Col) */}
-        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-xl border border-[#E2E8F0] dark:border-slate-800 grid grid-cols-1 lg:grid-cols-12 overflow-hidden">
-          
-          {/* ========================================================================= */}
-          {/* CỘT TRÁI (5/12 Laptop, 12/12 Mobile): FORM ĐĂNG NHẬP / ĐĂNG KÝ / RESET */}
-          {/* ========================================================================= */}
-          <div className="lg:col-span-5 p-6 sm:p-8 flex flex-col justify-between">
-            <div>
-              {/* Mobile-Only Mascot Greeting Banner */}
-              <div className="lg:hidden flex items-center gap-2.5 p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-200 text-xs mb-4">
-                <span className="text-xl">⭐</span>
-                <div className="leading-tight">
-                  <span className="font-bold block">Bé Lumi chào bạn!</span>
-                  <span className="text-[11px] text-emerald-700 dark:text-emerald-400">Đăng nhập để duy trì chuỗi Streak nhé!</span>
+      {/* Main Container Card */}
+      <div className="w-full max-w-md relative z-10">
+        {/* Top Header & Logo */}
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={onBack}
+            className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors px-3 py-1.5 rounded-xl hover:bg-slate-900/60 border border-transparent hover:border-slate-800"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Trang chủ</span>
+          </button>
+
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              LifeOS v2.0
+            </span>
+          </div>
+        </div>
+
+        {/* Card Body */}
+        <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/40">
+          {/* Logo & Headline */}
+          <div className="text-center mb-6">
+            <div className="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-emerald-500/10 via-slate-800 to-indigo-500/10 border border-slate-700/50 mb-3 shadow-inner">
+              <img src="/logo.png" alt="LifeOS Logo" className="w-10 h-10 object-contain rounded-xl" />
+            </div>
+            
+            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+              {mode === 'login' && 'Chào mừng trở lại!'}
+              {mode === 'register' && 'Khởi tạo không gian của bạn'}
+              {mode === 'forgot' && 'Khôi phục mật khẩu'}
+              {mode === 'reset' && 'Đặt lại mật khẩu mới'}
+            </h1>
+            
+            <p className="text-xs sm:text-sm text-slate-400 mt-1.5 leading-relaxed">
+              {mode === 'login' && 'Đăng nhập để đồng bộ công việc, tài chính và mục tiêu.'}
+              {mode === 'register' && 'Hệ điều hành tối ưu nhịp sống chuẩn Gen Z hiện đại.'}
+              {mode === 'forgot' && 'Nhập email đã đăng ký để nhận liên kết xác thực qua Gmail.'}
+              {mode === 'reset' && 'Tạo mật khẩu mới có độ bảo mật cao cho tài khoản của bạn.'}
+            </p>
+          </div>
+
+          {/* Quick Segmented Control Tabs (Login / Register) */}
+          {(mode === 'login' || mode === 'register') && (
+            <div className="grid grid-cols-2 p-1 bg-slate-950/80 rounded-2xl border border-slate-800/80 mb-6">
+              <button
+                type="button"
+                onClick={() => { setMode('login'); setError(null); setSuccessMsg(null); }}
+                className={`py-2 text-xs font-bold rounded-xl transition-all ${
+                  mode === 'login'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Đăng nhập
+              </button>
+              <button
+                type="button"
+                onClick={() => { setMode('register'); setError(null); setSuccessMsg(null); }}
+                className={`py-2 text-xs font-bold rounded-xl transition-all ${
+                  mode === 'register'
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Tạo tài khoản
+              </button>
+            </div>
+          )}
+
+          {/* Google OAuth Button (Visible on Login & Register) */}
+          {(mode === 'login' || mode === 'register') && (
+            <div className="space-y-4 mb-6">
+              <button
+                type="button"
+                onClick={handleGoogleSignIn}
+                disabled={isLoading}
+                className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs sm:text-sm rounded-2xl transition-all shadow-sm hover:shadow active:scale-[0.99] cursor-pointer disabled:opacity-50"
+              >
+                <GoogleIcon className="w-5 h-5 shrink-0" />
+                <span>Tiếp tục với Google</span>
+              </button>
+
+              <div className="relative flex items-center justify-center">
+                <div className="border-t border-slate-800 w-full" />
+                <span className="bg-slate-900 px-3 text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+                  Hoặc bằng email
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Alert Messages */}
+          {error && (
+            <div className="mb-5 p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 flex items-start gap-3 text-xs leading-relaxed animate-in fade-in slide-in-from-top-1 duration-200">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+              <div className="flex-1 font-medium">{error}</div>
+            </div>
+          )}
+
+          {successMsg && (
+            <div className="mb-5 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 flex items-start gap-3 text-xs leading-relaxed animate-in fade-in slide-in-from-top-1 duration-200">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
+              <div className="flex-1 font-medium">{successMsg}</div>
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* 1. LOGIN FORM */}
+          {/* ========================================================= */}
+          {mode === 'login' && (
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Email hoặc Tên đăng nhập
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
+                    placeholder="admin@lifeos.com"
+                    required
+                    autoComplete="username"
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                  />
                 </div>
               </div>
 
-              {/* Header Title */}
-              <div className="text-center lg:text-left mb-6">
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center mx-auto lg:mx-0 mb-3 shadow-2xs border ${
-                  (mode === 'forgot' || mode === 'reset') && resetStep === 'PENDING'
-                    ? 'bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border-amber-200/60 dark:border-amber-800/60'
-                    : 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-800/60'
-                }`}>
-                  {(mode === 'forgot' || mode === 'reset') ? (
-                    resetStep === 'PENDING' ? <Clock className="w-5 h-5 stroke-[2]" /> :
-                    resetStep === 'CONFIRM' ? <CheckCircle2 className="w-5 h-5 stroke-[2]" /> :
-                    <KeyRound className="w-5 h-5 stroke-[2]" />
-                  ) : (
-                    <Zap className="w-5 h-5 stroke-[2] fill-current" />
-                  )}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold text-slate-300">
+                    Mật khẩu
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => { setMode('forgot'); setError(null); setSuccessMsg(null); }}
+                    className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+                  >
+                    Quên mật khẩu?
+                  </button>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-black text-[#0F172A] dark:text-white tracking-tight">
-                  {mode === 'login' && 'Chào mừng trở lại'}
-                  {mode === 'register' && 'Khởi tạo tài khoản'}
-                  {(mode === 'forgot' || mode === 'reset') && (
-                    resetStep === 'CONFIRM'
-                      ? 'Đặt lại mật khẩu'
-                      : resetStep === 'PENDING'
-                      ? 'Đang chờ Admin duyệt'
-                      : 'Khôi phục mật khẩu'
-                  )}
-                </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-normal mt-0.5">
-                  {(mode === 'forgot' || mode === 'reset')
-                    ? 'Quy trình bảo mật xác thực Admin (Không cần SMTP)'
-                    : 'LifeOS · Productivity & Life Operating System'}
-                </p>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <input
+                    type={showLoginPassword ? 'text' : 'password'}
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    autoComplete="current-password"
+                    className="w-full pl-10 pr-10 py-2.5 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300"
+                  >
+                    {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
-              {/* Mode Switcher Tabs */}
-              {(mode === 'login' || mode === 'register') && (
-                <div className="grid grid-cols-2 p-1 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl mb-5">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-2xl transition-all shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2 mt-2 disabled:opacity-50 cursor-pointer active:scale-[0.99]"
+              >
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Đang xác thực...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Đăng nhập vào LifeOS</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
+
+          {/* ========================================================= */}
+          {/* 2. REGISTER FORM */}
+          {/* ========================================================= */}
+          {mode === 'register' && (
+            <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Họ và tên
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <User className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="text"
+                    value={regName}
+                    onChange={(e) => setRegName(e.target.value)}
+                    placeholder="Nguyễn Văn A"
+                    required
+                    className="w-full pl-10 pr-4 py-2 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Địa chỉ Email
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <Mail className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="email"
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
+                    placeholder="name@example.com"
+                    required
+                    className="w-full pl-10 pr-4 py-2 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Mật khẩu bảo vệ (Tối thiểu 8 ký tự)
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <Lock className="w-4 h-4" />
+                  </div>
+                  <input
+                    type={showRegPassword ? 'text' : 'password'}
+                    value={regPassword}
+                    onChange={(e) => setRegPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    className="w-full pl-10 pr-10 py-2 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                  />
                   <button
                     type="button"
-                    onClick={() => { setMode('login'); setError(''); setSuccessMsg(''); }}
-                    className={`py-2 text-xs font-semibold rounded-lg transition-colors cursor-pointer ${
-                      mode === 'login'
-                        ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs'
-                        : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                    }`}
+                    onClick={() => setShowRegPassword(!showRegPassword)}
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300"
                   >
-                    Đăng nhập
+                    {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => { setMode('register'); setError(''); setSuccessMsg(''); }}
-                    className={`py-2 text-xs font-semibold rounded-lg transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
-                      mode === 'register'
-                        ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs'
-                        : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                    }`}
-                  >
-                    <UserPlus className="w-3.5 h-3.5 stroke-[2]" />
-                    Tạo tài khoản
-                  </button>
+                </div>
+
+                {/* Password Strength Meter */}
+                {regPassword && (
+                  <div className="mt-2">
+                    <div className="flex gap-1.5 h-1">
+                      {[1, 2, 3, 4].map((step) => (
+                        <div
+                          key={step}
+                          className={`flex-1 rounded-full transition-all ${
+                            regStrength.score >= step ? regStrength.color : 'bg-slate-800'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    <span className="text-[10px] font-semibold text-slate-400 mt-1 block">
+                      Độ mạnh: <span className="text-slate-200">{regStrength.label}</span>
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Xác nhận lại mật khẩu
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                    <KeyRound className="w-4 h-4" />
+                  </div>
+                  <input
+                    type="password"
+                    value={regConfirmPassword}
+                    onChange={(e) => setRegConfirmPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    className="w-full pl-10 pr-4 py-2 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                  />
+                </div>
+              </div>
+
+              {regReferralCode && (
+                <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
+                  <span>Mã giới thiệu áp dụng: <strong>{regReferralCode}</strong></span>
                 </div>
               )}
 
-              {/* Error and Success Notifications */}
-              {error && (
-                <div className="mb-4 p-3 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-300 rounded-xl text-xs font-medium border border-red-100 dark:border-red-900/60 flex items-start gap-2">
-                  <ShieldAlert className="w-4 h-4 shrink-0 mt-0.5 text-red-500" />
-                  <span>{error}</span>
-                </div>
-              )}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-2xl transition-all shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2 mt-2 disabled:opacity-50 cursor-pointer active:scale-[0.99]"
+              >
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>Đang khởi tạo tài khoản...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Tạo Tài Khoản Mới</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
+          )}
 
-              {successMsg && (
-                <div className="mb-4 p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300 rounded-xl text-xs font-medium border border-emerald-100 dark:border-emerald-900/60 flex items-start gap-2">
-                  <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-500" />
-                  <span>{successMsg}</span>
-                </div>
-              )}
-
-              {/* LOGIN FORM */}
-              {mode === 'login' && (
-                <form onSubmit={handleLoginSubmit} className="space-y-3.5">
+          {/* ========================================================= */}
+          {/* 3. FORGOT PASSWORD (GMAIL OUTBOX DELIVERY) */}
+          {/* ========================================================= */}
+          {mode === 'forgot' && (
+            <div className="space-y-4">
+              {!forgotSentSuccess ? (
+                <form onSubmit={handleForgotSubmit} className="space-y-4">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                      Email hoặc Tên đăng nhập
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                      Email tài khoản cần khôi phục
                     </label>
                     <div className="relative">
-                      <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="text"
-                        value={email}
-                        onChange={e => setEmail(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-xs sm:text-sm text-slate-900 dark:text-white"
-                        placeholder="email@example.com hoặc username"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                        Mật khẩu
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => { setMode('forgot'); setError(''); setSuccessMsg(''); }}
-                        className="text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 font-semibold transition-colors cursor-pointer"
-                      >
-                        Quên mật khẩu?
-                      </button>
-                    </div>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={password}
-                        onChange={e => setPassword(e.target.value)}
-                        className="w-full pl-9 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-xs sm:text-sm text-slate-900 dark:text-white"
-                        placeholder="••••••••"
-                        required
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <button
-                    type="submit"
-                    disabled={isLoading}
-                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all shadow-xs mt-2 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm hover:scale-[1.01] active:scale-[0.99]"
-                  >
-                    <Lock className="w-4 h-4 stroke-[2]" />
-                    <span>{isLoading ? 'Đang xác thực...' : 'Đăng nhập ngay'}</span>
-                  </button>
-                </form>
-              )}
-
-              {/* REGISTER FORM */}
-              {mode === 'register' && (
-                <form onSubmit={handleRegisterSubmit} className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Họ và tên *
-                    </label>
-                    <div className="relative">
-                      <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type="text"
-                        value={regName}
-                        onChange={e => setRegName(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-xs sm:text-sm text-slate-900 dark:text-white"
-                        placeholder="Nguyễn Văn A"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Địa chỉ Email *
-                    </label>
-                    <div className="relative">
-                      <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                        <Mail className="w-4 h-4" />
+                      </div>
                       <input
                         type="email"
-                        value={regEmail}
-                        onChange={e => setRegEmail(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-xs sm:text-sm text-slate-900 dark:text-white"
-                        placeholder="nguyenvana@gmail.com"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        placeholder="yourname@gmail.com"
                         required
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                       />
                     </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Mật khẩu (tối thiểu 6 ký tự) *
-                    </label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type={showRegPassword ? 'text' : 'password'}
-                        value={regPassword}
-                        onChange={e => setRegPassword(e.target.value)}
-                        className="w-full pl-9 pr-10 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-xs sm:text-sm text-slate-900 dark:text-white"
-                        placeholder="••••••••"
-                        required
-                        minLength={6}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowRegPassword(!showRegPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer"
-                      >
-                        {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                      Xác nhận mật khẩu *
-                    </label>
-                    <div className="relative">
-                      <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                      <input
-                        type={showRegPassword ? 'text' : 'password'}
-                        value={regConfirmPassword}
-                        onChange={e => setRegConfirmPassword(e.target.value)}
-                        className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-xs sm:text-sm text-slate-900 dark:text-white"
-                        placeholder="••••••••"
-                        required
-                        minLength={6}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1 flex items-center justify-between">
-                      <span>Mã giới thiệu (nếu có)</span>
-                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Nhận ưu đãi</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={regReferralCode}
-                      onChange={e => setRegReferralCode(e.target.value.toUpperCase())}
-                      className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono text-xs sm:text-sm text-slate-900 dark:text-white"
-                      placeholder="LIFE-XXXXXX"
-                    />
                   </div>
 
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all shadow-xs mt-2 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm hover:scale-[1.01] active:scale-[0.99]"
+                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-2xl transition-all shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                   >
-                    <UserPlus className="w-4 h-4" />
-                    <span>{isLoading ? 'Đang khởi tạo tài khoản...' : 'Khởi tạo tài khoản mới'}</span>
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Đang gửi qua Gmail...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-4 h-4" />
+                        <span>Gửi liên kết đặt lại mật khẩu</span>
+                      </>
+                    )}
                   </button>
                 </form>
-              )}
+              ) : (
+                /* Sent Success Info Screen */
+                <div className="text-center py-2 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                    <Mail className="w-8 h-8" />
+                  </div>
 
-              {/* ADMIN-APPROVED PASSWORD RESET FLOW (3 DYNAMIC STATES) */}
-              {(mode === 'forgot' || mode === 'reset') && (
-                <div className="space-y-4">
-                  {/* STATE 1: FORM GỬI YÊU CẦU HOẶC NHẬP PIN */}
-                  {resetStep === 'REQUEST' && (
-                    <form onSubmit={handleForgotSubmit} className="space-y-3.5">
-                      {!showPinInput ? (
-                        <>
-                          <div className="p-3 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200/70 dark:border-slate-700/70 text-xs text-slate-600 dark:text-slate-400 space-y-1">
-                            <p className="font-semibold text-slate-900 dark:text-white flex items-center gap-1.5">
-                              <ShieldCheck className="w-4 h-4 text-emerald-500" />
-                              <span>Quy trình duyệt qua Quản trị viên</span>
-                            </p>
-                            <p>
-                              Hệ thống không yêu cầu email SMTP. Khi gửi yêu cầu, Admin sẽ nhận thông báo để phê duyệt phiên làm việc hoặc cấp mã PIN 6 số cho bạn.
-                            </p>
-                          </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Kiểm tra hộp thư Gmail của bạn</h3>
+                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                      Chúng tôi đã gửi hướng dẫn kèm đường dẫn đặt lại mật khẩu đến <strong>{forgotEmail}</strong>.
+                    </p>
+                  </div>
 
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                              Địa chỉ Email của bạn *
-                            </label>
-                            <div className="relative">
-                              <Mail className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                              <input
-                                type="email"
-                                value={forgotEmail}
-                                onChange={e => setForgotEmail(e.target.value)}
-                                className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-xs sm:text-sm text-slate-900 dark:text-white"
-                                placeholder="email@example.com"
-                                required
-                              />
-                            </div>
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                              Ghi chú xác minh danh tính (Tùy chọn)
-                            </label>
-                            <textarea
-                              value={verificationNote}
-                              onChange={e => setVerificationNote(e.target.value)}
-                              rows={2}
-                              className="w-full p-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-xs text-slate-900 dark:text-white"
-                              placeholder="VD: Tên tài khoản là Minh, số điện thoại đuôi 89, hoặc lý do cần reset..."
-                            />
-                          </div>
-
-                          <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all shadow-xs mt-2 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm"
-                          >
-                            <KeyRound className="w-4 h-4" />
-                            <span>{isLoading ? 'Đang gửi yêu cầu...' : 'Gửi Yêu Cầu Cho Admin'}</span>
-                          </button>
-
-                          <div className="pt-2 text-center">
-                            <button
-                              type="button"
-                              onClick={() => { setShowPinInput(true); setError(''); setSuccessMsg(''); }}
-                              className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline font-semibold cursor-pointer"
-                            >
-                              Bạn đã có Mã PIN 6 số từ Admin? Nhập mã ngay →
-                            </button>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="p-3 bg-emerald-50/80 dark:bg-emerald-950/40 rounded-xl border border-emerald-200/80 dark:border-emerald-800/60 text-xs text-emerald-800 dark:text-emerald-300">
-                            <p className="font-semibold flex items-center gap-1.5">
-                              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                              <span>Kích hoạt qua Mã PIN dự phòng</span>
-                            </p>
-                            <p className="mt-1 text-emerald-700 dark:text-emerald-400">
-                              Nhập Mã vé yêu cầu (#RST-XXXX) và Mã PIN 6 số do Quản trị viên cấp qua Zalo/Telegram/Phone để mở khóa đặt lại mật khẩu.
-                            </p>
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                              Mã Yêu Cầu (Ticket Code) *
-                            </label>
-                            <input
-                              type="text"
-                              value={ticketCode}
-                              onChange={e => setTicketCode(e.target.value.toUpperCase())}
-                              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono text-xs sm:text-sm text-slate-900 dark:text-white uppercase"
-                              placeholder="RST-8392"
-                              required
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                              Mã PIN 6 số từ Admin *
-                            </label>
-                            <input
-                              type="text"
-                              maxLength={6}
-                              value={backupPin}
-                              onChange={e => setBackupPin(e.target.value.replace(/\D/g, ''))}
-                              className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono text-center tracking-widest text-lg font-bold text-slate-900 dark:text-white"
-                              placeholder="••••••"
-                              required
-                            />
-                          </div>
-
-                          <button
-                            type="submit"
-                            disabled={isLoading || isCheckingStatus}
-                            className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all shadow-xs mt-2 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm"
-                          >
-                            {isCheckingStatus ? <RefreshCw className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
-                            <span>{isCheckingStatus ? 'Đang kiểm tra mã...' : 'Xác thực & Đặt lại Mật khẩu'}</span>
-                          </button>
-
-                          <div className="pt-2 text-center">
-                            <button
-                              type="button"
-                              onClick={() => { setShowPinInput(false); setError(''); setSuccessMsg(''); }}
-                              className="text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white font-medium cursor-pointer"
-                            >
-                              ← Quay lại gửi yêu cầu qua Email
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </form>
-                  )}
-
-                  {/* STATE 2: ĐANG CHỜ ADMIN PHÊ DUYỆT (WAITING ROOM) */}
-                  {resetStep === 'PENDING' && (
-                    <div className="space-y-4 animate-in fade-in duration-200">
-                      <div className="p-4 bg-amber-50/80 dark:bg-amber-950/40 rounded-2xl border border-amber-200/80 dark:border-amber-800/50 text-center space-y-2">
-                        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 dark:bg-amber-900/60 text-amber-800 dark:text-amber-200">
-                          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                          <span>Đang chờ Admin phê duyệt...</span>
-                        </div>
-
-                        <div className="pt-1">
-                          <span className="text-[11px] text-slate-500 dark:text-slate-400 block mb-1">Mã Phiếu Yêu Cầu Của Bạn:</span>
-                          <div className="inline-flex items-center gap-2 bg-white dark:bg-slate-900 px-3.5 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xs">
-                            <span className="font-mono font-bold text-base text-slate-900 dark:text-white tracking-wider">
-                              #{ticketCode}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleCopyTicket(ticketCode)}
-                              className="text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer p-0.5"
-                              title="Sao chép mã phiếu"
-                            >
-                              {copiedTicket ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-                            </button>
-                          </div>
-                        </div>
-
-                        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed pt-1">
-                          Trình duyệt này đã được gắn mã phiên xác thực an toàn. Bạn có thể giữ tab này mở (hệ thống tự động kiểm tra mỗi 5 giây) hoặc gửi mã phiếu trên cho Quản trị viên.
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => checkResetStatus(ticketCode, claimToken, backupPin || undefined)}
-                          disabled={isCheckingStatus}
-                          className="flex-1 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-semibold rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs hover:bg-slate-800"
-                        >
-                          <RefreshCw className={`w-3.5 h-3.5 ${isCheckingStatus ? 'animate-spin' : ''}`} />
-                          <span>{isCheckingStatus ? 'Đang kiểm tra...' : 'Kiểm tra ngay'}</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleCancelReset}
-                          className="px-3.5 py-2.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium rounded-xl text-xs cursor-pointer hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 transition-colors"
-                        >
-                          Hủy yêu cầu
-                        </button>
-                      </div>
-
-                      {/* Out-of-band PIN manual trigger */}
-                      <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                        <details className="group">
-                          <summary className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 cursor-pointer hover:underline list-none flex items-center justify-between">
-                            <span>Nhận được Mã PIN 6 số từ Admin?</span>
-                            <span className="text-[11px] text-slate-400 group-open:rotate-180 transition-transform">▼</span>
-                          </summary>
-                          <div className="mt-3 space-y-2">
-                            <input
-                              type="text"
-                              maxLength={6}
-                              value={backupPin}
-                              onChange={e => setBackupPin(e.target.value.replace(/\D/g, ''))}
-                              className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono text-center tracking-widest text-base font-bold text-slate-900 dark:text-white"
-                              placeholder="Nhập PIN 6 số..."
-                            />
-                            <button
-                              type="button"
-                              onClick={() => checkResetStatus(ticketCode, claimToken, backupPin)}
-                              disabled={isCheckingStatus || backupPin.length < 6}
-                              className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-xl text-xs disabled:opacity-50 cursor-pointer"
-                            >
-                              Xác minh PIN & Mở Khóa
-                            </button>
-                          </div>
-                        </details>
-                      </div>
+                  <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400 text-left space-y-1.5">
+                    <div className="flex items-center gap-2 text-slate-300 font-semibold">
+                      <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                      <span>Liên kết có hiệu lực trong 30 phút.</span>
                     </div>
-                  )}
+                    <p className="leading-relaxed text-slate-400">
+                      💡 Mẹo: Nếu không thấy email trong Hộp thư đến, vui lòng kiểm tra cả mục <strong>Spam / Thư rác</strong> hoặc <strong>Quảng cáo (Promotions)</strong>.
+                    </p>
+                  </div>
 
-                  {/* STATE 3: ĐẶT LẠI MẬT KHẨU MỚI (APPROVED) */}
-                  {resetStep === 'CONFIRM' && (
-                    <form onSubmit={handleResetSubmit} className="space-y-3.5 animate-in fade-in duration-200">
-                      <div className="p-3 bg-emerald-50/80 dark:bg-emerald-950/40 rounded-xl border border-emerald-200/80 dark:border-emerald-800/60 flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs text-emerald-800 dark:text-emerald-300 font-semibold">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-                          <span>Admin đã duyệt vé #{ticketCode}</span>
-                        </div>
-                        {remainingTime && (
-                          <span className="text-[11px] font-mono font-bold text-emerald-700 dark:text-emerald-400 bg-white/70 dark:bg-slate-900/70 px-2 py-0.5 rounded-md border border-emerald-200 dark:border-emerald-800 tabular-nums">
-                            {remainingTime}
-                          </span>
-                        )}
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                          Mật khẩu mới (tối thiểu 6 ký tự) *
-                        </label>
-                        <div className="relative">
-                          <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input
-                            type={showNewPassword ? 'text' : 'password'}
-                            value={newPassword}
-                            onChange={e => setNewPassword(e.target.value)}
-                            className="w-full pl-9 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-xs sm:text-sm text-slate-900 dark:text-white"
-                            placeholder="••••••••"
-                            required
-                            minLength={6}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowNewPassword(!showNewPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer"
-                          >
-                            {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                          Xác nhận mật khẩu mới *
-                        </label>
-                        <div className="relative">
-                          <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                          <input
-                            type={showConfirmPassword ? 'text' : 'password'}
-                            value={confirmNewPassword}
-                            onChange={e => setConfirmNewPassword(e.target.value)}
-                            className="w-full pl-9 pr-10 py-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-xs sm:text-sm text-slate-900 dark:text-white"
-                            placeholder="••••••••"
-                            required
-                            minLength={6}
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer"
-                          >
-                            {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      </div>
-
-                      <button
-                        type="submit"
-                        disabled={isLoading}
-                        className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-all shadow-xs mt-2 disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer text-xs sm:text-sm"
-                      >
-                        <CheckCircle2 className="w-4 h-4" />
-                        <span>{isLoading ? 'Đang cập nhật mật khẩu...' : 'Cập nhật Mật khẩu & Đăng nhập'}</span>
-                      </button>
-                    </form>
-                  )}
-
-                  <div className="text-center pt-2">
+                  <div className="flex gap-2 pt-2">
                     <button
                       type="button"
-                      onClick={() => {
-                        setMode('login');
-                        setError('');
-                        setSuccessMsg('');
-                      }}
-                      className="text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white font-medium cursor-pointer"
+                      disabled={resendCooldown > 0 || isLoading}
+                      onClick={handleForgotSubmit}
+                      className="flex-1 py-2.5 px-3 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white font-semibold text-xs rounded-xl transition-all cursor-pointer"
                     >
-                      ← Quay lại Đăng nhập
+                      {resendCooldown > 0 ? `Gửi lại sau (${resendCooldown}s)` : 'Gửi lại email'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { setMode('login'); setError(null); setSuccessMsg(null); }}
+                      className="py-2.5 px-4 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
+                    >
+                      Về đăng nhập
                     </button>
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* Bottom Security Note */}
-            <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 justify-center lg:justify-start">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Xác thực an toàn với PostgreSQL Session & HttpOnly Cookie.</span>
+              <div className="text-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => { setMode('login'); setError(null); setSuccessMsg(null); }}
+                  className="text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+                >
+                  ← Quay lại màn hình Đăng nhập
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* ========================================================================= */}
-          {/* CỘT PHẢI (7/12 Laptop, ẨN TRÊN MOBILE): KHUNG TRUYỀN CẢM HỨNG & BÉ LUMI */}
-          {/* ========================================================================= */}
-          <div className="hidden lg:flex lg:col-span-7 flex-col justify-between p-8 lg:p-10 bg-gradient-to-br from-emerald-50/80 via-teal-50/30 to-amber-50/30 dark:from-emerald-950/40 dark:via-slate-900 dark:to-amber-950/20 border-l border-slate-200/80 dark:border-slate-800">
-            {/* Top: Mascot Lumi Greeting */}
+          {/* ========================================================= */}
+          {/* 4. RESET PASSWORD FORM (TOKEN-BOUND) */}
+          {/* ========================================================= */}
+          {mode === 'reset' && (
             <div className="space-y-4">
-              <div className="flex items-start gap-4">
-                <div className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-950/60 border-2 border-amber-300 dark:border-amber-700/80 flex items-center justify-center text-3xl shadow-sm shrink-0">
-                  ⭐
+              {/* Token State: Verifying */}
+              {tokenVerifyState === 'VERIFYING' && (
+                <div className="text-center py-8">
+                  <div className="w-8 h-8 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                  <p className="text-xs text-slate-400">Đang xác thực liên kết bảo mật...</p>
                 </div>
-                <div className="relative bg-white dark:bg-slate-900 p-4 rounded-2xl rounded-tl-none border border-slate-200/80 dark:border-slate-800 shadow-sm max-w-sm">
-                  <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1.5 mb-1">
-                    <span>Bé Lumi</span>
-                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
-                      Companion
-                    </span>
+              )}
+
+              {/* Token State: Invalid or Expired */}
+              {tokenVerifyState === 'INVALID' && !resetComplete && (
+                <div className="text-center py-4 space-y-4">
+                  <div className="w-14 h-14 rounded-3xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center mx-auto">
+                    <ShieldAlert className="w-7 h-7" />
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                    "Chào mừng bạn trở lại! Hôm nay chúng ta cùng chinh phục 3 mục tiêu cốt lõi nhé!"
-                  </p>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Liên kết không hợp lệ hoặc đã hết hạn</h3>
+                    <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+                      {tokenInvalidReason || 'Mã xác thực chỉ có hiệu lực một lần trong vòng 30 phút kể từ lúc gửi.'}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setMode('forgot'); setError(null); setSuccessMsg(null); }}
+                    className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
+                  >
+                    Gửi lại yêu cầu mới
+                  </button>
                 </div>
-              </div>
+              )}
 
-              {/* Motivational Tag */}
-              <div className="pt-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 bg-emerald-100/70 dark:bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-200 dark:border-emerald-800/80">
-                  ⚡ Tiến Trình Kỷ Luật Số
-                </span>
-              </div>
+              {/* Token State: Completed */}
+              {resetComplete && (
+                <div className="text-center py-4 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto">
+                    <CheckCircle2 className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-white">Đặt lại mật khẩu thành công!</h3>
+                    <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                      Mật khẩu của bạn đã được cập nhật an toàn. Mọi phiên đăng nhập cũ trên các thiết bị khác đã được vô hiệu hóa.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setMode('login'); setError(null); setSuccessMsg(null); }}
+                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-2xl transition-all cursor-pointer shadow-lg shadow-emerald-950/40"
+                  >
+                    Đăng nhập ngay bây giờ
+                  </button>
+                </div>
+              )}
+
+              {/* Token State: Valid (Allow setting new password) */}
+              {(tokenVerifyState === 'VALID' || (!resetToken && tokenVerifyState === 'IDLE')) && !resetComplete && (
+                <form onSubmit={handleResetSubmit} className="space-y-4">
+                  {/* Manual token input if token wasn't in URL */}
+                  {!resetToken && (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-300 mb-1">
+                        Mã xác nhận bảo mật (Token 64 ký tự)
+                      </label>
+                      <input
+                        type="text"
+                        value={resetToken}
+                        onChange={(e) => setResetToken(e.target.value)}
+                        placeholder="Dán mã nhận từ email vào đây"
+                        required
+                        className="w-full px-4 py-2 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+                      />
+                    </div>
+                  )}
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Mật khẩu mới (Tối thiểu 8 ký tự)
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                        <Lock className="w-4 h-4" />
+                      </div>
+                      <input
+                        type={showNewPassword ? 'text' : 'password'}
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        className="w-full pl-10 pr-10 py-2.5 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300"
+                      >
+                        {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+
+                    {/* Strength meter */}
+                    {newPassword && (
+                      <div className="mt-2">
+                        <div className="flex gap-1.5 h-1">
+                          {[1, 2, 3, 4].map((step) => (
+                            <div
+                              key={step}
+                              className={`flex-1 rounded-full transition-all ${
+                                resetStrength.score >= step ? resetStrength.color : 'bg-slate-800'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-[10px] font-semibold text-slate-400 mt-1 block">
+                          Độ an toàn: <span className="text-slate-200">{resetStrength.label}</span>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Xác nhận mật khẩu mới
+                    </label>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                        <KeyRound className="w-4 h-4" />
+                      </div>
+                      <input
+                        type="password"
+                        value={confirmNewPassword}
+                        onChange={(e) => setConfirmNewPassword(e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        className="w-full pl-10 pr-4 py-2.5 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-2xl transition-all shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>Đang lưu mật khẩu mới...</span>
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="w-4 h-4" />
+                        <span>Cập nhật mật khẩu & Đăng nhập</span>
+                      </>
+                    )}
+                  </button>
+                </form>
+              )}
             </div>
+          )}
 
-            {/* Middle: Live Gamification Preview Card */}
-            <div className="my-6 p-5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block">Cấp Độ Hiện Tại</span>
-                  <span className="text-base font-extrabold text-slate-900 dark:text-white">
-                    Cấp 2 · Initiator
-                  </span>
-                </div>
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200/80 dark:border-amber-800/80 text-amber-700 dark:text-amber-400 font-mono text-xs font-bold">
-                  <Flame className="w-4 h-4 fill-current text-amber-500" />
-                  <span>7 ngày Streak</span>
-                </div>
-              </div>
-
-              {/* XP Bar */}
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-xs font-semibold text-slate-600 dark:text-slate-400">
-                  <span className="flex items-center gap-1">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    <span>Tiến độ lên Cấp 3</span>
-                  </span>
-                  <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">80 / 100 XP</span>
-                </div>
-                <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
-                  <div className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full w-[80%]" />
-                </div>
-              </div>
-
-              {/* Mini Today's 3 Pillars Preview */}
-              <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-slate-800 text-xs">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-                  3 Việc Cốt Lõi Hôm Nay (The Rule of 3)
-                </span>
-                <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span>1. Hoàn thành 1 việc cốt lõi hôm nay</span>
-                </div>
-                <div className="flex items-center gap-2 text-slate-500">
-                  <div className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 shrink-0" />
-                  <span>2. Tập trung sâu Pomodoro 25 phút</span>
-                </div>
-                <div className="flex items-center gap-2 text-slate-500">
-                  <div className="w-4 h-4 rounded border border-slate-300 dark:border-slate-600 shrink-0" />
-                  <span>3. Uống đủ 2L nước & Ôn từ vựng</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom: Quote & Branding */}
-            <div className="pt-4 border-t border-slate-200/60 dark:border-slate-800/80 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-              <span className="italic">"Kỷ luật không phải là sự gò bó, mà là tự do để chạm tới ước mơ."</span>
-              <span className="font-semibold text-emerald-600 dark:text-emerald-400">LifeOS v2.0</span>
+          {/* Footer Note */}
+          <div className="mt-6 pt-5 border-t border-slate-800/80 text-center">
+            <div className="flex items-center justify-center gap-2 text-[11px] text-slate-400">
+              <Shield className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Bảo mật chuẩn AES-256 · Mã hóa phiên HTTP-Only</span>
             </div>
           </div>
-
         </div>
       </div>
     </div>

@@ -1,5 +1,7 @@
 import { getPrisma } from '../db.js';
 import { gmailService } from './gmailNotification.service.js';
+import { emailQueueService } from './emailQueue.service.js';
+import { buildEmailHtml } from './emailTemplate.service.js';
 
 export interface CreateAnnouncementInput {
   title: string;
@@ -247,8 +249,25 @@ class AnnouncementService {
         }
       }
 
-      // 2. Email Delivery Execution
+      // 2. Email Delivery Queueing (Outbox Pattern via emailQueueService)
+      let emailEnqueuedCount = 0;
+      let emailSkippedCount = 0;
+
       if (isEmailEnabled) {
+        // Fetch preferences for all target users in a single batch
+        const userIds = targetUsers.map(u => u.id);
+        const prefs = await prisma.userNotificationPreference.findMany({
+          where: { userId: { in: userIds } },
+          select: { userId: true, emailEnabled: true }
+        });
+        const prefMap = new Map(prefs.map(p => [p.userId, p.emailEnabled]));
+
+        const isBypassPreference =
+          announcement.priority === 'CRITICAL' ||
+          announcement.priority === 'IMPORTANT' ||
+          announcement.type === 'SECURITY' ||
+          announcement.type === 'MAINTENANCE';
+
         for (const user of targetUsers) {
           if (!user.email) continue;
 
@@ -263,63 +282,95 @@ class AnnouncementService {
             }
           });
 
-          if (existingEmailDelivery && existingEmailDelivery.status === 'SENT') {
+          if (existingEmailDelivery && (existingEmailDelivery.status === 'SENT' || existingEmailDelivery.status === 'PENDING')) {
             continue;
           }
 
-          // Delivery record (PENDING)
-          const deliveryRecord = existingEmailDelivery || await prisma.announcementDelivery.create({
-            data: {
+          // Respect user email notification settings for standard broadcasts
+          const userEmailAllowed = prefMap.has(user.id) ? prefMap.get(user.id) : true;
+          if (!userEmailAllowed && !isBypassPreference) {
+            // User opted out of promotional/normal broadcast emails
+            if (!existingEmailDelivery) {
+              await prisma.announcementDelivery.create({
+                data: {
+                  announcementId: announcement.id,
+                  userId: user.id,
+                  userEmail: user.email,
+                  userName: user.name,
+                  channel: 'EMAIL',
+                  status: 'SKIPPED',
+                  errorMessage: 'Người dùng đã tắt nhận email thông báo thông thường trong cài đặt'
+                }
+              });
+            } else {
+              await prisma.announcementDelivery.update({
+                where: { id: existingEmailDelivery.id },
+                data: {
+                  status: 'SKIPPED',
+                  errorMessage: 'Người dùng đã tắt nhận email thông báo thông thường trong cài đặt'
+                }
+              });
+            }
+            emailSkippedCount++;
+            continue;
+          }
+
+          // Create or update delivery record to PENDING
+          const deliveryRecord = existingEmailDelivery
+            ? await prisma.announcementDelivery.update({
+                where: { id: existingEmailDelivery.id },
+                data: { status: 'PENDING', errorMessage: null }
+              })
+            : await prisma.announcementDelivery.create({
+                data: {
+                  announcementId: announcement.id,
+                  userId: user.id,
+                  userEmail: user.email,
+                  userName: user.name,
+                  channel: 'EMAIL',
+                  status: 'PENDING'
+                }
+              });
+
+          // Generate Bento/Linear responsive HTML template
+          const emailHtml = buildEmailHtml({
+            headline: announcement.title,
+            previewText: announcement.message.slice(0, 120),
+            priority: announcement.priority === 'CRITICAL' ? 'CRITICAL' : announcement.priority === 'IMPORTANT' ? 'HIGH' : 'NORMAL',
+            badgeText: announcement.priority === 'CRITICAL' ? 'THÔNG BÁO KHẨN CẤP' : (announcement.type || 'THÔNG BÁO HỆ THỐNG'),
+            greeting: `Xin chào ${user.name || 'bạn'},`,
+            paragraphs: [
+              announcement.message
+            ],
+            detailsTable: [
+              { label: 'Loại thông báo', value: announcement.type },
+              { label: 'Mức độ ưu tiên', value: announcement.priority },
+              { label: 'Kênh phát hành', value: 'Website & Gmail' }
+            ],
+            ctaButton: announcement.actionUrl ? {
+              label: announcement.actionLabel || 'Xem trên website',
+              url: announcement.actionUrl
+            } : {
+              label: 'Mở Life OS',
+              url: process.env.APP_URL || 'http://localhost:3000'
+            },
+            footerNote: 'Đây là thông báo chính thức từ Ban Quản trị Life OS. Bạn có thể thay đổi tùy chọn thông báo trong trang Cài đặt tài khoản.'
+          });
+
+          // Enqueue into persistent Outbox Queue (Non-blocking, background worker will deliver with retries)
+          await emailQueueService.enqueue({
+            recipient: user.email,
+            subject: `[Life OS] ${announcement.title}`,
+            htmlBody: emailHtml,
+            eventType: 'ADMIN_BROADCAST',
+            metadata: {
               announcementId: announcement.id,
-              userId: user.id,
-              userEmail: user.email,
-              userName: user.name,
-              channel: 'EMAIL',
-              status: 'PENDING'
+              announcementDeliveryId: deliveryRecord.id,
+              userId: user.id
             }
           });
 
-          try {
-            const emailResult = await gmailService.sendNotification({
-              to: user.email,
-              recipientName: user.name,
-              subject: `[Life OS Announcement] ${announcement.title}`,
-              category: 'SYSTEM',
-              headline: announcement.title,
-              content: `
-                <div style="font-size: 14px; line-height: 1.6; color: #334155;">
-                  <p style="margin: 0 0 12px 0;">${announcement.message.replace(/\n/g, '<br/>')}</p>
-                  <div style="margin-top: 16px; padding: 10px 14px; background: #f8fafc; border-radius: 10px; border-left: 3px solid #6366f1; font-size: 12px; color: #64748b;">
-                    <strong>Type:</strong> ${announcement.type} &nbsp;|&nbsp; <strong>Priority:</strong> ${announcement.priority}
-                  </div>
-                </div>
-              `,
-              actionLabel: announcement.actionLabel || 'Open Life OS',
-              actionUrl: announcement.actionUrl || (process.env.APP_URL || 'http://localhost:3000'),
-              badgeText: announcement.priority === 'CRITICAL' ? 'CRITICAL NOTICE' : (announcement.type || 'ANNOUNCEMENT'),
-              badgeColor: announcement.priority === 'CRITICAL' ? '#ef4444' : '#6366f1'
-            });
-
-            if (emailResult.sent) {
-              await prisma.announcementDelivery.update({
-                where: { id: deliveryRecord.id },
-                data: { status: 'SENT', sentAt: new Date(), errorMessage: null }
-              });
-              emailSuccessCount++;
-            } else {
-              await prisma.announcementDelivery.update({
-                where: { id: deliveryRecord.id },
-                data: { status: 'FAILED', errorMessage: emailResult.message }
-              });
-              emailFailedCount++;
-            }
-          } catch (err: any) {
-            await prisma.announcementDelivery.update({
-              where: { id: deliveryRecord.id },
-              data: { status: 'FAILED', errorMessage: err.message }
-            });
-            emailFailedCount++;
-          }
+          emailEnqueuedCount++;
         }
       }
 
@@ -343,11 +394,11 @@ class AnnouncementService {
             status: 'PUBLISHED',
             targeted: targetUsers.length,
             webDelivered: webCount,
-            emailSuccess: emailSuccessCount,
-            emailFailed: emailFailedCount
+            emailEnqueued: emailEnqueuedCount,
+            emailSkipped: emailSkippedCount
           }),
           result: 'Success',
-          reason: `Published announcement "${announcement.title}" to ${targetUsers.length} users.`
+          reason: `Published announcement "${announcement.title}" to ${targetUsers.length} users (Web: ${webCount}, Email enqueued: ${emailEnqueuedCount}, Skipped: ${emailSkippedCount}).`
         }
       });
 
@@ -355,8 +406,8 @@ class AnnouncementService {
         announcement: updated,
         targetedCount: targetUsers.length,
         webDelivered: webCount,
-        emailDelivered: emailSuccessCount,
-        emailFailed: emailFailedCount
+        emailEnqueued: emailEnqueuedCount,
+        emailSkipped: emailSkippedCount
       };
     } catch (err: any) {
       // Revert status to DRAFT on critical failure
@@ -573,6 +624,121 @@ class AnnouncementService {
         console.error(`[AnnouncementService] Auto-publish scheduled announcement ${item.id} error:`, err);
       }
     }
+  }
+
+  /**
+   * Admin: 1-Click Broadcast Now (Create + Validate + Enqueue Emails + Web Deliver)
+   */
+  async broadcastNow(input: CreateAnnouncementInput, adminUser: { id: string; name: string }) {
+    // 1. Create the announcement record
+    const created = await this.createAnnouncement(input, adminUser);
+    // 2. Immediately publish & enqueue
+    const publishResult = await this.publishAnnouncement(created.id, adminUser);
+    return {
+      success: true,
+      announcement: publishResult.announcement,
+      targetedCount: publishResult.targetedCount,
+      webDelivered: publishResult.webDelivered,
+      emailEnqueued: publishResult.emailEnqueued,
+      emailSkipped: publishResult.emailSkipped
+    };
+  }
+
+  /**
+   * Admin: Retry a specific failed email delivery without duplicating web notifications
+   */
+  async retryDelivery(deliveryId: string, adminUser: { id: string; name: string }) {
+    const prisma = getPrisma();
+
+    const delivery = await prisma.announcementDelivery.findUnique({
+      where: { id: deliveryId },
+      include: { announcement: true }
+    });
+
+    if (!delivery) throw new Error('Không tìm thấy bản ghi gửi thông báo này.');
+    if (delivery.channel !== 'EMAIL') throw new Error('Chỉ có thể thử lại các bản ghi gửi qua kênh Email.');
+
+    const announcement = delivery.announcement;
+    if (!announcement) throw new Error('Không tìm thấy thông báo gốc tương ứng.');
+
+    // Reset status to PENDING
+    await prisma.announcementDelivery.update({
+      where: { id: delivery.id },
+      data: { status: 'PENDING', errorMessage: null }
+    });
+
+    // Rebuild email template
+    const emailHtml = buildEmailHtml({
+      headline: announcement.title,
+      previewText: announcement.message.slice(0, 120),
+      priority: announcement.priority === 'CRITICAL' ? 'CRITICAL' : announcement.priority === 'IMPORTANT' ? 'HIGH' : 'NORMAL',
+      badgeText: announcement.priority === 'CRITICAL' ? 'THÔNG BÁO KHẨN CẤP' : (announcement.type || 'THÔNG BÁO HỆ THỐNG'),
+      greeting: `Xin chào ${delivery.userName || 'bạn'},`,
+      paragraphs: [
+        announcement.message
+      ],
+      detailsTable: [
+        { label: 'Loại thông báo', value: announcement.type },
+        { label: 'Mức độ ưu tiên', value: announcement.priority },
+        { label: 'Kênh phát hành', value: 'Website & Gmail' }
+      ],
+      ctaButton: announcement.actionUrl ? {
+        label: announcement.actionLabel || 'Xem trên website',
+        url: announcement.actionUrl
+      } : {
+        label: 'Mở Life OS',
+        url: process.env.APP_URL || 'http://localhost:3000'
+      },
+      footerNote: 'Đây là thông báo chính thức từ Ban Quản trị Life OS.'
+    });
+
+    // Enqueue to persistent queue
+    await emailQueueService.enqueue({
+      recipient: delivery.userEmail,
+      subject: `[Life OS] ${announcement.title}`,
+      htmlBody: emailHtml,
+      eventType: 'ADMIN_BROADCAST',
+      metadata: {
+        announcementId: announcement.id,
+        announcementDeliveryId: delivery.id,
+        userId: delivery.userId
+      }
+    });
+
+    return { success: true, message: 'Đã đưa email vào hàng đợi gửi lại thành công.' };
+  }
+
+  /**
+   * Admin: Retry all failed email deliveries for a given announcement
+   */
+  async retryAllFailedDeliveries(announcementId: string, adminUser: { id: string; name: string }) {
+    const prisma = getPrisma();
+
+    const announcement = await prisma.announcement.findUnique({
+      where: { id: announcementId }
+    });
+
+    if (!announcement) throw new Error('Không tìm thấy thông báo.');
+
+    const failedDeliveries = await prisma.announcementDelivery.findMany({
+      where: {
+        announcementId,
+        channel: 'EMAIL',
+        status: 'FAILED'
+      }
+    });
+
+    let requeuedCount = 0;
+    for (const delivery of failedDeliveries) {
+      await this.retryDelivery(delivery.id, adminUser).catch(() => {});
+      requeuedCount++;
+    }
+
+    return {
+      success: true,
+      requeuedCount,
+      message: `Đã đưa ${requeuedCount} email thất bại vào hàng đợi gửi lại.`
+    };
   }
 }
 

@@ -391,6 +391,27 @@ class SoundEngine {
   }
 
   // 9. Level Up Epic Fanfare
+  // 10. Sword Slash sound
+  public playSword() {
+    if (!this.enabled) return;
+    const ctx = this.initContext();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.exponentialRampToValueAtTime(150, now + 0.15);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.15);
+    } catch (e) {}
+  }
+
   public playLevelUpFanfare() {
     if (!this.enabled) return;
     const ctx = this.initContext();

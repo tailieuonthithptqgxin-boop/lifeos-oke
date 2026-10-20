@@ -150,6 +150,11 @@ class GmailNotificationService {
     return this.cachedConfig;
   }
 
+  // Alias updateConfig to saveConfig
+  async updateConfig(newConfig: Partial<GmailSmtpConfig>, adminUserId?: string): Promise<GmailSmtpConfig> {
+    return this.saveConfig(newConfig, adminUserId);
+  }
+
   // Save new configuration securely to Database
   async saveConfig(newConfig: Partial<GmailSmtpConfig>, adminUserId?: string): Promise<GmailSmtpConfig> {
     const current = await this.getConfig();

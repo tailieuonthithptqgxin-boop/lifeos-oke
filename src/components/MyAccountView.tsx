@@ -25,12 +25,15 @@ import {
   Smartphone,
   LogOut,
   FileJson,
-  Loader2
+  Loader2,
+  Bell,
+  Mail
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { apiCall } from '../lib/apiClient';
 import { formatCurrency } from '../lib/utils';
 import { StudyCompanionWidget } from './companion/StudyCompanionWidget';
+import { NotificationSettingsModal } from './notifications/NotificationSettingsModal';
 
 interface PaymentHistoryItem {
   id: string;
@@ -101,6 +104,7 @@ export function MyAccountView() {
   const [showImportModal, setShowImportModal] = useState(false);
   const [importMode, setImportMode] = useState<'merge' | 'replace'>('merge');
   const backupInputRef = useRef<HTMLInputElement>(null);
+  const [showNotificationSettings, setShowNotificationSettings] = useState(false);
 
   const fetchSubscription = async () => {
     try {
@@ -545,17 +549,21 @@ export function MyAccountView() {
             <div>
               <span className="text-slate-400 block text-[11px] mb-0.5">Gói dịch vụ hiện tại</span>
               <span className="font-black text-slate-900 dark:text-white text-base">
-                {subscriptionStatus?.planName || (subscriptionStatus?.hasAccess ? 'Gói Đang Hoạt Động' : 'Chưa kích hoạt')}
+                {subscriptionStatus?.isTrial
+                  ? (subscriptionStatus.hasAccess ? '🎁 Dùng Thử 7 Ngày' : '🔒 Dùng Thử Đã Kết Thúc')
+                  : subscriptionStatus?.planName || (subscriptionStatus?.hasAccess ? 'Gói Đang Hoạt Động' : 'Chưa kích hoạt')}
               </span>
               <span className="block text-[11px] text-slate-500 mt-0.5">
-                {subscriptionStatus?.hasAccess ? 'Mở khóa toàn bộ chức năng LifeOS' : 'Cần kích hoạt gói để sử dụng'}
+                {subscriptionStatus?.isTrial
+                  ? (subscriptionStatus.hasAccess ? 'Trải nghiệm 100% tính năng Premium' : 'Hết 7 ngày trải nghiệm miễn phí')
+                  : subscriptionStatus?.hasAccess ? 'Mở khóa toàn bộ chức năng LifeOS' : 'Cần kích hoạt gói để sử dụng'}
               </span>
             </div>
 
             <div>
-              <span className="text-slate-400 block text-[11px] mb-0.5">Thời hạn gói</span>
+              <span className="text-slate-400 block text-[11px] mb-0.5">Thời hạn hiệu lực</span>
               <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
-                {subscriptionStatus?.endDate ? new Date(subscriptionStatus.endDate).toLocaleDateString('vi-VN') : 'Chưa kích hoạt'}
+                {subscriptionStatus?.endDate ? new Date(subscriptionStatus.endDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Chưa kích hoạt'}
               </span>
               <span className="block text-[11px] text-slate-500 mt-0.5">
                 {subscriptionStatus?.hasAccess ? `Còn lại ${subscriptionStatus.remainingDays || 0} ngày sử dụng` : 'Hết hạn truy cập'}
@@ -569,11 +577,13 @@ export function MyAccountView() {
                   subscriptionStatus?.hasAccess ? 'bg-emerald-500' : 'bg-rose-500'
                 }`}></span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
-                  {subscriptionStatus?.hasAccess ? 'Đang hoạt động (Đầy đủ chức năng)' : 'Tạm khóa (Cần gia hạn)'}
+                  {subscriptionStatus?.isTrial
+                    ? (subscriptionStatus.hasAccess ? 'Đang dùng thử (Đầy đủ chức năng)' : 'Hết hạn dùng thử (Cần mua gói)')
+                    : subscriptionStatus?.hasAccess ? 'Đang hoạt động (Đầy đủ chức năng)' : 'Tạm khóa (Cần gia hạn)'}
                 </span>
               </div>
               <span className="block text-[11px] text-slate-500 mt-0.5">
-                {subscriptionStatus?.hasAccess ? 'Mọi chức năng hệ thống đều khả dụng' : 'Vui lòng kích hoạt gói để tiếp tục'}
+                {subscriptionStatus?.hasAccess ? 'Mọi chức năng hệ thống đều khả dụng' : 'Vui lòng chọn gói để tiếp tục'}
               </span>
             </div>
           </div>
@@ -844,6 +854,58 @@ export function MyAccountView() {
               <Upload className="w-4 h-4 stroke-[2]" />
               <span>Phục Hồi Dữ Liệu</span>
             </button>
+          </div>
+        </div>
+      </div>
+
+      {/* NOTIFICATION CENTER & GMAIL AUTOMATION */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+              <Bell className="w-5 h-5" />
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                <span>Trung Tâm Thông Báo & Tự Động Hóa Gmail</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                  Engine
+                </span>
+              </h4>
+              <p className="text-xs text-slate-500 mt-1">
+                Tích hợp Google OAuth 2.0 cá nhân, tùy chỉnh nhắc việc, deadline, sự kiện lịch và giờ yên tĩnh (Quiet Hours).
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowNotificationSettings(true)}
+            className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-2 transition-all shadow-xs cursor-pointer self-start sm:self-auto shrink-0"
+          >
+            <Mail className="w-4 h-4" />
+            <span>Cài Đặt & Kết Nối Gmail</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+            <span className="text-[11px] text-slate-400 block font-medium">Kênh gửi</span>
+            <span className="font-bold text-slate-800 dark:text-slate-200 block mt-0.5">
+              Gmail OAuth 2.0 & In-App Web
+            </span>
+          </div>
+          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+            <span className="text-[11px] text-slate-400 block font-medium">Tự động phát hiện</span>
+            <span className="font-bold text-slate-800 dark:text-slate-200 block mt-0.5">
+              14 loại sự kiện (Lịch, Task, Thói quen)
+            </span>
+          </div>
+          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+            <span className="text-[11px] text-slate-400 block font-medium">Bảo mật</span>
+            <span className="font-bold text-emerald-600 dark:text-emerald-400 block mt-0.5">
+              Idempotency chống trùng & Token băm
+            </span>
           </div>
         </div>
       </div>
@@ -1158,6 +1220,12 @@ export function MyAccountView() {
           </div>
         </div>
       )}
+
+      {/* Notification Settings Modal */}
+      <NotificationSettingsModal
+        isOpen={showNotificationSettings}
+        onClose={() => setShowNotificationSettings(false)}
+      />
 
     </div>
   );

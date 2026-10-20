@@ -27,6 +27,14 @@ export default defineConfig(() => {
         'destructuring': true,
       },
     },
+    optimizeDeps: {
+      esbuildOptions: {
+        target: 'esnext',
+        supported: {
+          'destructuring': true,
+        },
+      },
+    },
     build: {
       target: 'esnext',
       cssTarget: 'esnext',

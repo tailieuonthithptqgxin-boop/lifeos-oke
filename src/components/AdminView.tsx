@@ -15,6 +15,7 @@ import {
   CreditCard,
   Megaphone,
   KeyRound,
+  Activity,
   X
 } from 'lucide-react';
 import { apiCall } from '../lib/apiClient';
@@ -43,6 +44,7 @@ import { AdminGmailConfigTab } from './admin/AdminGmailConfigTab';
 import { AdminReferralsTab } from './admin/AdminReferralsTab';
 import { AdminFeedbackTab } from './admin/AdminFeedbackTab';
 import { AdminAnnouncementsTab } from './admin/AdminAnnouncementsTab';
+import { AdminLiveTestLabTab } from './admin/AdminLiveTestLabTab';
 
 export type { ServicePlan, LanguageItem };
 
@@ -877,6 +879,19 @@ export function AdminView() {
 
           <button
             type="button"
+            onClick={() => setActiveTab('live_test_lab')}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'live_test_lab'
+                ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs ring-1 ring-emerald-100 dark:ring-emerald-900'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Activity className="w-3.5 h-3.5" />
+            <span>Live Test Lab</span>
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('announcements')}
             className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'announcements'
@@ -885,7 +900,7 @@ export function AdminView() {
             }`}
           >
             <Megaphone className="w-3.5 h-3.5" />
-            <span>Thông Báo & Broadcast</span>
+            <span>Thông Báo Người Dùng</span>
           </button>
         </div>
       </div>
@@ -1090,6 +1105,13 @@ export function AdminView() {
       {activeTab === 'feedback' && (
         <div className="space-y-6 animate-in fade-in duration-150">
           <AdminFeedbackTab />
+        </div>
+      )}
+
+      {/* Tab 12: Live Test Lab */}
+      {activeTab === 'live_test_lab' && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <AdminLiveTestLabTab />
         </div>
       )}
 

@@ -1481,7 +1481,7 @@ function NoteEditorModal({
   goals: Goal[];
   studySubjects: StudySubject[];
   onClose: () => void;
-  onSave: (n: Partial<Note>) => void;
+  onSave: (n: Partial<Note>) => void | Promise<void>;
 }) {
   const [formData, setFormData] = useState<Partial<Note>>({
     ...note,
@@ -1491,6 +1491,8 @@ function NoteEditorModal({
 
   const [tagInput, setTagInput] = useState('');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1498,7 +1500,7 @@ function NoteEditorModal({
     if (!file) return;
 
     if (file.size > 10 * 1024 * 1024) {
-      alert('Kích thước ảnh không được vượt quá 10MB');
+      setErrorMessage('Kích thước ảnh không được vượt quá 10MB');
       return;
     }
 
@@ -1533,7 +1535,7 @@ function NoteEditorModal({
       reader.readAsDataURL(file);
     } catch (err: any) {
       setIsUploadingImage(false);
-      alert('Lỗi khi đọc ảnh: ' + err.message);
+      setErrorMessage('Lỗi khi đọc ảnh: ' + err.message);
     }
     e.target.value = '';
   };
@@ -1553,169 +1555,221 @@ function NoteEditorModal({
     setTagInput('');
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    setErrorMessage(null);
+    if (!formData.title?.trim()) {
+      setErrorMessage('Vui lòng nhập tiêu đề ghi chú!');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await Promise.resolve(onSave(formData));
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Lỗi khi lưu ghi chú');
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto animate-backdrop-fade">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-modal-enter">
+    <div 
+      className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 overflow-y-auto animate-backdrop-fade"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden animate-modal-enter my-auto">
         {/* HEADER */}
-        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
-          <h3 className="font-bold text-slate-800 dark:text-white text-lg">
-            {note.id ? 'Edit Note' : 'Create New Note'}
-          </h3>
-          <button type="button" onClick={onClose} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg transition-colors cursor-pointer">
+        <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/40 shrink-0">
+          <div>
+            <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg">
+              {note.id ? 'Edit Note' : 'Create New Note'}
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Biên tập nội dung & liên kết tri thức</p>
+          </div>
+          <button 
+            type="button" 
+            onClick={onClose} 
+            disabled={isSubmitting}
+            className="w-10 h-10 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl transition-colors cursor-pointer"
+            aria-label="Close"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* FORM BODY */}
-        <div className="p-6 overflow-y-auto space-y-4 flex-1">
-          {/* TITLE & TYPE */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="md:col-span-2">
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Note Title *</label>
-              <input 
-                type="text"
-                value={formData.title || ''}
-                onChange={(e) => setFormData(s => ({ ...s, title: e.target.value }))}
-                placeholder="Enter note title..."
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+          <div className="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1">
+            {errorMessage && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs sm:text-sm flex items-start gap-2 animate-fade-in">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
 
-            <div>
-              <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-1">Note Type</label>
-              <select 
-                value={formData.type || 'Normal'}
-                onChange={(e) => setFormData(s => ({ ...s, type: e.target.value as NoteType }))}
-                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-900 dark:text-white focus:ring-2 focus:ring-emerald-500"
-              >
-                {NOTE_TYPES.map(t => <option key={t.type} value={t.type}>{t.label}</option>)}
-              </select>
-            </div>
-          </div>
-
-          {/* MAIN CONTENT */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-xs font-bold text-slate-700">Nội dung Chính</label>
-              <input
-                type="file"
-                ref={imageInputRef}
-                accept="image/*"
-                onChange={handleImageUpload}
-                className="hidden"
-              />
-              <button
-                type="button"
-                onClick={() => imageInputRef.current?.click()}
-                disabled={isUploadingImage}
-                className="text-xs font-bold text-blue-600 hover:text-blue-700 hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
-              >
-                {isUploadingImage ? (
-                  <>
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    <span>Đang tải ảnh lên R2...</span>
-                  </>
-                ) : (
-                  <>
-                    <ImageIcon className="w-3.5 h-3.5" />
-                    <span>Chèn ảnh (Cloudflare R2)</span>
-                  </>
-                )}
-              </button>
-            </div>
-            <textarea 
-              rows={5}
-              value={formData.content || ''}
-              onChange={(e) => setFormData(s => ({ ...s, content: e.target.value }))}
-              placeholder="Nhập nội dung ghi chú..."
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm leading-relaxed focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          {/* SECTIONS MANAGER */}
-          <div className="space-y-3 pt-2 border-t border-slate-100">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-700">Các phần nội dung (Sections)</span>
-              <button type="button"
-                onClick={handleAddSection}
-                className="text-xs font-bold text-blue-600 hover:underline"
-              >
-                + Thêm Section
-              </button>
-            </div>
-
-            {formData.sections?.map((sec, idx) => (
-              <div key={sec.id} className="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+            {/* TITLE & TYPE */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+              <div className="md:col-span-2">
+                <label className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">Note Title *</label>
                 <input 
                   type="text"
-                  value={sec.title}
-                  onChange={(e) => {
-                    const updated = [...(formData.sections || [])];
-                    updated[idx].title = e.target.value;
-                    setFormData(s => ({ ...s, sections: updated }));
-                  }}
-                  className="w-full font-bold text-xs bg-white border border-slate-200 px-2.5 py-1.5 rounded-lg"
-                />
-                <textarea 
-                  rows={2}
-                  value={sec.content}
-                  onChange={(e) => {
-                    const updated = [...(formData.sections || [])];
-                    updated[idx].content = e.target.value;
-                    setFormData(s => ({ ...s, sections: updated }));
-                  }}
-                  className="w-full text-xs bg-white border border-slate-200 px-2.5 py-1.5 rounded-lg"
+                  required
+                  autoFocus
+                  value={formData.title || ''}
+                  onChange={(e) => setFormData(s => ({ ...s, title: e.target.value }))}
+                  placeholder="Enter note title..."
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
-            ))}
-          </div>
 
-          {/* TAGS */}
-          <div className="pt-2 border-t border-slate-100">
-            <label className="text-xs font-bold text-slate-700 block mb-1">Tags</label>
-            <div className="flex items-center gap-2 mb-2">
-              <input 
-                type="text"
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                placeholder="Nhập tag rồi ấn +"
-                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs"
-              />
-              <button type="button" 
-                onClick={handleAddTag} 
-                className="bg-slate-200 hover:bg-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold"
-              >
-                + Tag
-              </button>
+              <div>
+                <label className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">Note Type</label>
+                <select 
+                  value={formData.type || 'Normal'}
+                  onChange={(e) => setFormData(s => ({ ...s, type: e.target.value as NoteType }))}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm font-medium text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                >
+                  {NOTE_TYPES.map(t => <option key={t.type} value={t.type}>{t.label}</option>)}
+                </select>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-1">
-              {formData.tags?.map(t => (
-                <span key={t} className="bg-blue-50 text-blue-600 text-xs font-medium px-2 py-0.5 rounded">
-                  #{t}
-                </span>
+
+            {/* MAIN CONTENT */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">Nội dung Chính</label>
+                <input
+                  type="file"
+                  ref={imageInputRef}
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={isUploadingImage}
+                  className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                >
+                  {isUploadingImage ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Đang tải ảnh lên R2...</span>
+                    </>
+                  ) : (
+                    <>
+                      <ImageIcon className="w-3.5 h-3.5" />
+                      <span>Chèn ảnh (Cloudflare R2)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+              <textarea 
+                rows={5}
+                value={formData.content || ''}
+                onChange={(e) => setFormData(s => ({ ...s, content: e.target.value }))}
+                placeholder="Nhập nội dung ghi chú..."
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
+              />
+            </div>
+
+            {/* SECTIONS MANAGER */}
+            <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between">
+                <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">Các phần nội dung (Sections)</span>
+                <button type="button"
+                  onClick={handleAddSection}
+                  className="text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                >
+                  + Thêm Section
+                </button>
+              </div>
+
+              {formData.sections?.map((sec, idx) => (
+                <div key={sec.id} className="bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
+                  <input 
+                    type="text"
+                    value={sec.title}
+                    onChange={(e) => {
+                      const updated = [...(formData.sections || [])];
+                      updated[idx].title = e.target.value;
+                      setFormData(s => ({ ...s, sections: updated }));
+                    }}
+                    placeholder="Tiêu đề mục..."
+                    className="w-full font-bold text-base sm:text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl text-slate-900 dark:text-white"
+                  />
+                  <textarea 
+                    rows={2}
+                    value={sec.content}
+                    onChange={(e) => {
+                      const updated = [...(formData.sections || [])];
+                      updated[idx].content = e.target.value;
+                      setFormData(s => ({ ...s, sections: updated }));
+                    }}
+                    placeholder="Nội dung mục..."
+                    className="w-full text-base sm:text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-xl text-slate-900 dark:text-white"
+                  />
+                </div>
               ))}
             </div>
-          </div>
-        </div>
 
-        {/* FOOTER */}
-        <div className="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-end gap-3">
-          <button type="button" onClick={onClose} className="px-4 py-2.5 text-xs font-bold text-slate-600 hover:bg-slate-200 rounded-xl">
-            Hủy
-          </button>
-          <button type="button" 
-            onClick={() => {
-              if (!formData.title?.trim()) {
-                alert('Vui lòng nhập tiêu đề ghi chú!');
-                return;
-              }
-              onSave(formData);
-            }}
-            className="px-5 py-2.5 text-xs font-medium bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg shadow-xs transition-colors cursor-pointer"
-          >
-            Lưu Ghi chú
-          </button>
-        </div>
+            {/* TAGS */}
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+              <label className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">Tags</label>
+              <div className="flex items-center gap-2 mb-2">
+                <input 
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  placeholder="Nhập tag rồi ấn +..."
+                  className="px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <button type="button" 
+                  onClick={handleAddTag} 
+                  className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors"
+                >
+                  + Tag
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {formData.tags?.map(t => (
+                  <span key={t} className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-semibold px-2.5 py-0.5 rounded-full border border-emerald-200/50">
+                    #{t}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* FOOTER */}
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex items-center justify-end gap-2.5 shrink-0">
+            <button 
+              type="button" 
+              onClick={onClose} 
+              disabled={isSubmitting}
+              className="px-4 py-2.5 min-h-[44px] text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer disabled:opacity-50"
+            >
+              Hủy
+            </button>
+            <button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="px-5 py-2.5 min-h-[44px] text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-400 text-white rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Đang lưu...</span>
+                </>
+              ) : (
+                <span>Lưu Ghi chú</span>
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

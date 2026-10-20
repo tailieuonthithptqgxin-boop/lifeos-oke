@@ -54,7 +54,56 @@ export async function checkDbConnection(): Promise<boolean> {
     }
   }
 
+  // Ensure schema extensions: Soft delete columns, Idempotency table, and Compound Indexes
+  await ensureSchemaExtensions(prisma);
+
   return true;
+}
+
+export async function ensureSchemaExtensions(prisma: PrismaClient): Promise<void> {
+  const statements = [
+    'ALTER TABLE "tasks" ADD COLUMN IF NOT EXISTS "deleted_at" TIMESTAMP(3)',
+    'ALTER TABLE "transactions" ADD COLUMN IF NOT EXISTS "deleted_at" TIMESTAMP(3)',
+    'ALTER TABLE "finance_accounts" ADD COLUMN IF NOT EXISTS "deleted_at" TIMESTAMP(3)',
+    'ALTER TABLE "habits" ADD COLUMN IF NOT EXISTS "deleted_at" TIMESTAMP(3)',
+    'ALTER TABLE "goals" ADD COLUMN IF NOT EXISTS "deleted_at" TIMESTAMP(3)',
+    'ALTER TABLE "notes" ADD COLUMN IF NOT EXISTS "deleted_at" TIMESTAMP(3)',
+    'ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "google_id" TEXT UNIQUE',
+    'ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "trial_started_at" TIMESTAMP(3)',
+    'ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "trial_ends_at" TIMESTAMP(3)',
+    'ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "trial_used" BOOLEAN NOT NULL DEFAULT false',
+    'CREATE INDEX IF NOT EXISTS "idx_users_trial_ends_at" ON "users"("trial_ends_at")',
+    `CREATE TABLE IF NOT EXISTS "idempotency_keys" (
+      "id" TEXT PRIMARY KEY,
+      "key" TEXT NOT NULL UNIQUE,
+      "user_id" TEXT NOT NULL,
+      "endpoint" TEXT NOT NULL,
+      "request_hash" TEXT NOT NULL,
+      "response_code" INTEGER NOT NULL,
+      "response_body" TEXT NOT NULL,
+      "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "expires_at" TIMESTAMP(3) NOT NULL
+    )`,
+    'CREATE INDEX IF NOT EXISTS "idx_idempotency_key" ON "idempotency_keys"("key")',
+    'CREATE INDEX IF NOT EXISTS "idx_idempotency_user_id" ON "idempotency_keys"("user_id")',
+    'CREATE INDEX IF NOT EXISTS "idx_idempotency_expires_at" ON "idempotency_keys"("expires_at")',
+    'CREATE INDEX IF NOT EXISTS "idx_tasks_user_deleted" ON "tasks"("userId", "deleted_at")',
+    'CREATE INDEX IF NOT EXISTS "idx_transactions_user_deleted" ON "transactions"("userId", "deleted_at")',
+    'CREATE INDEX IF NOT EXISTS "idx_transactions_user_date_type" ON "transactions"("userId", "date", "type")',
+    'CREATE INDEX IF NOT EXISTS "idx_finance_user_deleted" ON "finance_accounts"("userId", "deleted_at")',
+    'CREATE INDEX IF NOT EXISTS "idx_habits_user_deleted" ON "habits"("userId", "deleted_at")',
+    'CREATE INDEX IF NOT EXISTS "idx_goals_user_deleted" ON "goals"("userId", "deleted_at")',
+    'CREATE INDEX IF NOT EXISTS "idx_notes_user_deleted" ON "notes"("userId", "deleted_at")'
+  ];
+
+  for (const sql of statements) {
+    try {
+      await prisma.$executeRawUnsafe(sql);
+    } catch (err: any) {
+      console.warn(`[Schema Sync Notice] ${sql.substring(0, 40)}...: ${err.message}`);
+    }
+  }
+  console.log('✅ Cơ sở dữ liệu: Soft Delete columns, Idempotency table và Compound Indexes đã được đồng bộ hóa.');
 }
 
 // Map frontend collection names to Prisma model delegates
@@ -793,6 +842,10 @@ export const dbService = {
     status?: 'ACTIVE' | 'SUSPENDED' | 'DISABLED';
     avatar?: string | null;
     planExpiresAt?: Date | null;
+    googleId?: string | null;
+    trialStartedAt?: Date | null;
+    trialEndsAt?: Date | null;
+    trialUsed?: boolean;
   }) {
     const prisma = getPrisma();
     return await prisma.user.create({
@@ -805,7 +858,11 @@ export const dbService = {
         plan: data.plan || 'FREE',
         status: data.status || 'ACTIVE',
         avatar: data.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(data.name)}&background=random`,
-        planExpiresAt: data.planExpiresAt || null
+        planExpiresAt: data.planExpiresAt || null,
+        googleId: data.googleId || null,
+        trialStartedAt: data.trialStartedAt || null,
+        trialEndsAt: data.trialEndsAt || null,
+        trialUsed: data.trialUsed ?? false
       }
     });
   },
@@ -1021,8 +1078,13 @@ export const dbService = {
 
     // Bound high-frequency notification/inbox collections to 100 latest items
     const isHighVolume = collectionName === 'notifications' || collectionName === 'inbox';
+    const isSoftDeletable = ['tasks', 'financeAccounts', 'transactions', 'habits', 'goals', 'notes'].includes(collectionName);
+
     const items = await delegate.findMany({
-      where: { userId },
+      where: {
+        userId,
+        ...(isSoftDeletable ? { deletedAt: null } : {})
+      },
       orderBy: { createdAt: 'desc' },
       ...(isHighVolume ? { take: 100 } : {})
     });
@@ -1293,6 +1355,13 @@ export const dbService = {
       return await this.deleteFinanceTransaction(userId, id);
     }
 
+    if (['tasks', 'financeAccounts', 'habits', 'goals', 'notes'].includes(collectionName)) {
+      return await delegate.update({
+        where: { id },
+        data: { deletedAt: new Date() }
+      });
+    }
+
     return await delegate.delete({ where: { id } });
   },
 
@@ -1433,7 +1502,10 @@ export const dbService = {
         }
       }
 
-      await tx.transaction.delete({ where: { id: txId } });
+      await tx.transaction.update({
+        where: { id: txId },
+        data: { deletedAt: new Date() }
+      });
       return { success: true };
     });
   },

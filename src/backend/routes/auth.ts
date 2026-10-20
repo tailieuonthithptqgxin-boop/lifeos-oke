@@ -7,6 +7,7 @@ import { requireAuth, AuthRequest, getJwtSecret } from '../auth.middleware.js';
 import { referralService } from '../services/referral.service.js';
 import { gmailService } from '../services/gmailNotification.service.js';
 import { sendEmail } from '../mailer.js';
+import { SystemNotificationHelper } from '../services/systemNotification.helper.js';
 import {
   LoginSchema,
   RegisterSchema,
@@ -84,14 +85,21 @@ authRouter.post('/register', authRateLimiter, validateBody(RegisterSchema), asyn
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(rawPassword, salt);
 
-    // Create user in PostgreSQL
+    // Calculate exact 7-Day Free Trial (7 * 24 hours from creation)
+    const now = new Date();
+    const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+    // Create user in PostgreSQL with 7-Day Free Trial entitlement
     const newUser = await dbService.createUser({
       name: cleanName,
       email: cleanEmail,
       passwordHash,
       role: 'USER',
       plan: 'FREE',
-      status: 'ACTIVE'
+      status: 'ACTIVE',
+      trialStartedAt: now,
+      trialEndsAt,
+      trialUsed: true
     });
 
     // Auto-create referral profile for new user
@@ -133,20 +141,26 @@ authRouter.post('/register', authRateLimiter, validateBody(RegisterSchema), asyn
       data: [
         {
           userId: newUser.id,
-          title: '🎉 Chào mừng bạn đến với LifeOS!',
-          message: 'Tài khoản của bạn đã được khởi tạo thành công. Bạn đang ở chế độ xem thử (Preview) không gian làm việc.',
+          title: '🎉 Kích hoạt 7 ngày dùng thử miễn phí LifeOS!',
+          message: `Chào mừng bạn! Tài khoản của bạn đã được kích hoạt 7 ngày dùng thử miễn phí toàn bộ tính năng cao cấp (hết hạn vào ${trialEndsAt.toLocaleString('vi-VN')}).`,
           type: 'info',
           read: false
         },
         {
           userId: newUser.id,
-          title: '⚡ Hướng dẫn kích hoạt bản quyền LifeOS',
-          message: 'Để mở khóa toàn bộ các phân hệ quản lý công việc, tài chính, thói quen và mục tiêu, vui lòng chọn gói dịch vụ tại mục "Gói cước & Đội ngũ" và quét mã VietQR để kích hoạt.',
-          type: 'warning',
+          title: '⚡ Trải nghiệm không giới hạn',
+          message: 'Bạn có thể tự do trải nghiệm Quản lý Công việc, Tài chính, Thói quen, Mục tiêu và Không gian Học tập. Sau 7 ngày, hãy nâng cấp gói để tiếp tục đồng bộ.',
+          type: 'success',
           read: false
         }
       ]
     }).catch(e => console.warn('Registration notifications creation warning:', e));
+
+    // Guaranteed Outbox Email Delivery: Welcome email to User + New User Alert to Admin
+    SystemNotificationHelper.onUserRegistered(
+      { id: newUser.id, name: newUser.name, email: newUser.email },
+      clientIp
+    ).catch(e => console.warn('[EmailQueue] Error enqueuing registration notification:', e));
 
     const safeUser = {
       id: newUser.id,
@@ -157,7 +171,9 @@ authRouter.post('/register', authRateLimiter, validateBody(RegisterSchema), asyn
       status: newUser.status,
       avatar: newUser.avatar,
       planExpiresAt: newUser.planExpiresAt,
-      onboardingCompleted: newUser.onboardingCompleted
+      onboardingCompleted: newUser.onboardingCompleted,
+      trialStartedAt: newUser.trialStartedAt,
+      trialEndsAt: newUser.trialEndsAt
     };
 
     res.status(201).json({
@@ -378,7 +394,10 @@ authRouter.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
         status: user.status,
         avatar: user.avatar,
         planExpiresAt: subStatus.endDate || user.planExpiresAt || null,
-        onboardingCompleted: user.onboardingCompleted
+        onboardingCompleted: user.onboardingCompleted,
+        trialStartedAt: (user as any).trialStartedAt || null,
+        trialEndsAt: (user as any).trialEndsAt || null,
+        isTrial: Boolean(subStatus.isTrial)
       },
       subscriptionStatus: subStatus,
       token: req.headers.authorization?.split(' ')[1] || req.cookies?.token
@@ -477,19 +496,83 @@ authRouter.post('/change-password', requireAuth, passwordResetRateLimiter, valid
 });
 
 // --------------------------------------------------------------------------
-// 8. Forgot Password (generates one-time token, 1 hour validity)
+// 8. Verify Password Reset Token (Pre-flight check for UI state)
+// --------------------------------------------------------------------------
+authRouter.get('/verify-reset-token', async (req: Request, res: Response) => {
+  try {
+    const token = String(req.query.token || '').trim();
+    if (!token) {
+      res.status(400).json({ valid: false, reason: 'TOKEN_REQUIRED', message: 'Mã token không được để trống.' });
+      return;
+    }
+
+    const prisma = getPrisma();
+    const record = await prisma.passwordResetToken.findUnique({
+      where: { token },
+      include: {
+        user: {
+          select: { id: true, email: true, name: true, status: true }
+        }
+      }
+    });
+
+    if (!record) {
+      res.json({ valid: false, reason: 'NOT_FOUND', message: 'Liên kết đặt lại mật khẩu không tồn tại hoặc đã bị xóa.' });
+      return;
+    }
+
+    if (record.used) {
+      res.json({ valid: false, reason: 'USED', message: 'Liên kết đặt lại mật khẩu này đã được sử dụng trước đó.' });
+      return;
+    }
+
+    const isExpired = new Date(record.expiresAt).getTime() < Date.now();
+    if (isExpired) {
+      res.json({ valid: false, reason: 'EXPIRED', message: 'Liên kết đặt lại mật khẩu đã hết hạn (tối đa 30 phút). Vui lòng yêu cầu lại.' });
+      return;
+    }
+
+    // Obfuscate email for UI preview: e.g. j***@gmail.com
+    const rawEmail = record.user?.email || '';
+    const [namePart, domainPart] = rawEmail.split('@');
+    const maskedEmail = namePart.length > 2
+      ? `${namePart[0]}***${namePart.slice(-1)}@${domainPart || ''}`
+      : `${namePart[0] || '*'}***@${domainPart || ''}`;
+
+    res.json({
+      valid: true,
+      emailMasked: maskedEmail,
+      expiresAt: record.expiresAt
+    });
+  } catch (err: any) {
+    console.error('Verify reset token error:', err);
+    res.status(500).json({ valid: false, reason: 'SERVER_ERROR', message: 'Lỗi kiểm tra tính hợp lệ của token.' });
+  }
+});
+
+// --------------------------------------------------------------------------
+// 9. Forgot Password (Guaranteed Outbox Email Delivery via Gmail Queue)
 // --------------------------------------------------------------------------
 authRouter.post('/forgot-password', passwordResetRateLimiter, validateBody(ForgotPasswordSchema), async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
+    const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '';
     const cleanEmail = email.toLowerCase().trim();
     const user = await dbService.findUserByEmail(cleanEmail);
 
     if (user && user.status === 'ACTIVE') {
       const prisma = getPrisma();
-      // Generate secure one-time token
+      
+      // Invalidate any older unused tokens for this user
+      await prisma.passwordResetToken.updateMany({
+        where: { userId: user.id, used: false },
+        data: { used: true }
+      }).catch(e => console.warn('Old tokens cleanup warning:', e));
+
+      // Generate cryptographically secure one-time token (32 bytes = 64 hex chars)
       const resetToken = crypto.randomBytes(32).toString('hex');
-      const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+      const expiresMinutes = 30; // 30 minutes window as per security spec
+      const expiresAt = new Date(Date.now() + expiresMinutes * 60 * 1000);
 
       await prisma.passwordResetToken.create({
         data: {
@@ -506,55 +589,33 @@ authRouter.post('/forgot-password', passwordResetRateLimiter, validateBody(Forgo
         'users',
         user.id,
         null,
-        { email: cleanEmail }
+        { email: cleanEmail, ip: clientIp }
       );
 
-      // Deliver reset link by email ONLY. Token must never be returned over HTTP in non-test envs.
-      if (process.env.NODE_ENV === 'test') {
-        res.json({
-          success: true,
-          message: 'Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi.',
-          resetToken
-        });
-        return;
-      }
-
+      // Determine public domain for reset URL
       const appUrl = (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
       const resetUrl = `${appUrl}/?resetToken=${resetToken}`;
-      const mailResult = await gmailService.sendNotification({
-        to: user.email,
-        recipientName: user.name || 'Quý khách',
-        subject: '[Life OS] Yêu cầu đặt lại mật khẩu',
-        category: 'SECURITY',
-        headline: 'Đặt lại mật khẩu tài khoản của bạn',
-        content: `Chúng tôi nhận được yêu cầu đặt lại mật khẩu cho tài khoản <strong>${user.email}</strong>.<br/><br/>Liên kết có hiệu lực trong <strong>60 phút</strong> và chỉ dùng được một lần.<br/><br/>Mã đặt lại (nếu cần nhập thủ công):<br/><code style="word-break:break-all">${resetToken}</code><br/><br/>Nếu bạn không yêu cầu, hãy bỏ qua email này.`,
-        actionLabel: 'Đặt lại mật khẩu',
-        actionUrl: resetUrl,
-        badgeText: 'Bảo mật',
-        badgeColor: '#ef4444'
-      }).catch((e: any) => ({ sent: false, message: e?.message || 'send failed' }));
 
-      if (!mailResult?.sent) {
-        // Fallback to direct SMTP transport
-        const fallback = await sendEmail(
-          user.email,
-          '[Life OS] Yêu cầu đặt lại mật khẩu',
-          `<p>Liên kết đặt lại mật khẩu (hiệu lực 60 phút): <a href="${resetUrl}">${resetUrl}</a></p><p>Mã: <code>${resetToken}</code></p>`
-        );
-        if (!fallback.sent) {
-          console.error(`[ForgotPassword] Could not deliver reset email to user ${user.id}: ${mailResult?.message} / ${fallback.message}`);
-        }
-      }
+      // Enqueue to guaranteed email queue (Worker automatically delivers via Gmail with auto-retry)
+      await SystemNotificationHelper.onPasswordResetRequested({
+        userId: user.id,
+        userName: user.name,
+        email: user.email,
+        resetUrl,
+        resetToken,
+        expiresMinutes,
+        ip: clientIp
+      });
 
       if (process.env.NODE_ENV !== 'production') {
-        console.log(`[DEV ONLY] Password reset token for ${cleanEmail}: ${resetToken}`);
+        console.log(`[AUTH-DEV] Password reset link for ${cleanEmail}: ${resetUrl}`);
       }
     }
 
-    // Always respond with identical message to prevent user enumeration
+    // Always respond with identical message to prevent account enumeration
     res.json({
       success: true,
-      message: 'Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi.'
+      message: 'Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi đến hộp thư Gmail của bạn. Vui lòng kiểm tra hộp thư đến (Inbox) hoặc thư mục Spam.'
     });
   } catch (err: any) {
     console.error('Forgot password error:', err);
@@ -567,15 +628,26 @@ authRouter.post('/forgot-password', passwordResetRateLimiter, validateBody(Forgo
 });
 
 // --------------------------------------------------------------------------
-// 9. Reset Password using one-time token
+// 10. Reset Password using one-time token
 // --------------------------------------------------------------------------
 authRouter.post('/reset-password', passwordResetRateLimiter, validateBody(ResetPasswordSchema), async (req: Request, res: Response) => {
   try {
     const { token, newPassword } = req.body;
+    const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '';
     const prisma = getPrisma();
 
+    const cleanToken = String(token || '').trim();
+    if (!cleanToken) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_TOKEN', message: 'Mã xác nhận đặt lại mật khẩu không hợp lệ.' },
+        message: 'Mã xác nhận đặt lại mật khẩu không hợp lệ.'
+      });
+      return;
+    }
+
     const record = await prisma.passwordResetToken.findUnique({
-      where: { token },
+      where: { token: cleanToken },
       include: { user: true }
     });
 
@@ -584,9 +656,9 @@ authRouter.post('/reset-password', passwordResetRateLimiter, validateBody(ResetP
         success: false,
         error: {
           code: 'INVALID_RESET_TOKEN',
-          message: 'Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.'
+          message: 'Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu gửi lại liên kết mới.'
         },
-        message: 'Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.'
+        message: 'Liên kết đặt lại mật khẩu không hợp lệ hoặc đã hết hạn. Vui lòng yêu cầu gửi lại liên kết mới.'
       });
       return;
     }
@@ -605,11 +677,14 @@ authRouter.post('/reset-password', passwordResetRateLimiter, validateBody(ResetP
         where: { id: record.id },
         data: { used: true }
       }),
-      // Invalidate all existing sessions so old logins cannot access account
+      // Revoke all existing sessions across devices for security
       prisma.session.deleteMany({
         where: { userId: record.userId }
       })
     ]);
+
+    // Clear session cookie if active
+    clearSessionCookie(res);
 
     await dbService.createAuditLog(
       record.userId,
@@ -617,12 +692,12 @@ authRouter.post('/reset-password', passwordResetRateLimiter, validateBody(ResetP
       'users',
       record.userId,
       null,
-      { tokenUsed: record.id }
+      { tokenUsed: record.id, ip: clientIp }
     );
 
     res.json({
       success: true,
-      message: 'Đặt lại mật khẩu thành công. Vui lòng đăng nhập với mật khẩu mới.'
+      message: 'Đặt lại mật khẩu thành công! Mọi phiên đăng nhập cũ đã được đăng xuất an toàn. Vui lòng đăng nhập với mật khẩu mới.'
     });
   } catch (err: any) {
     console.error('Reset password error:', err);
@@ -631,6 +706,396 @@ authRouter.post('/reset-password', passwordResetRateLimiter, validateBody(ResetP
       error: { code: 'SERVER_ERROR', message: err.message },
       message: err.message
     });
+  }
+});
+
+// --------------------------------------------------------------------------
+// 11. Google OAuth 2.0 / OpenID Connect Endpoints
+// --------------------------------------------------------------------------
+
+// 11A. Check if Google OAuth is configured
+authRouter.get('/google/config', (req: Request, res: Response) => {
+  const clientId = (process.env.GOOGLE_CLIENT_ID || '').trim();
+  res.json({
+    enabled: Boolean(clientId && clientId.length > 5),
+    clientId: clientId || null
+  });
+});
+
+// 11B. Initiate Google OAuth Flow (Redirects to Google Sign-In)
+authRouter.get('/google', (req: Request, res: Response) => {
+  try {
+    const clientId = (process.env.GOOGLE_CLIENT_ID || '').trim();
+    if (!clientId) {
+      res.status(400).send(`
+        <!DOCTYPE html>
+        <html>
+        <head><meta charset="utf-8"><title>Google OAuth Chưa Cấu Hình</title></head>
+        <body style="font-family:system-ui,sans-serif;padding:40px;background:#0f172a;color:#f8fafc;text-align:center;">
+          <div style="max-width:500px;margin:auto;background:#1e293b;padding:32px;border-radius:16px;border:1px solid #334155;">
+            <h2 style="color:#f43f5e;">⚠️ Google OAuth Chưa Được Bật</h2>
+            <p style="color:#94a3b8;font-size:14px;line-height:1.6;">
+              Hệ thống chưa tìm thấy biến <code>GOOGLE_CLIENT_ID</code> trong file <code>.env</code>.
+            </p>
+            <p style="color:#cbd5e1;font-size:13px;">
+              Quản trị viên vui lòng cấu hình <code>GOOGLE_CLIENT_ID</code> và <code>GOOGLE_CLIENT_SECRET</code> trong file <code>.env</code> trên máy chủ VPS.
+            </p>
+            <a href="/" style="display:inline-block;margin-top:20px;padding:10px 24px;background:#10b981;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;">
+              Quay về Trang Chủ
+            </a>
+          </div>
+        </body>
+        </html>
+      `);
+      return;
+    }
+
+    const appUrl = (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+    const redirectUri = process.env.GOOGLE_CALLBACK_URL || `${appUrl}/api/auth/google/callback`;
+
+    // Secure CSRF state token
+    const state = crypto.randomBytes(24).toString('hex');
+    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+
+    res.cookie('google_oauth_state', state, {
+      httpOnly: true,
+      secure: isHttps,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 10 * 60 * 1000 // 10 minutes
+    });
+
+    const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+    googleAuthUrl.searchParams.set('client_id', clientId);
+    googleAuthUrl.searchParams.set('redirect_uri', redirectUri);
+    googleAuthUrl.searchParams.set('response_type', 'code');
+    googleAuthUrl.searchParams.set('scope', 'openid email profile');
+    googleAuthUrl.searchParams.set('state', state);
+    googleAuthUrl.searchParams.set('access_type', 'offline');
+    googleAuthUrl.searchParams.set('prompt', 'select_account');
+
+    res.redirect(googleAuthUrl.toString());
+  } catch (error: any) {
+    console.error('Google OAuth init error:', error);
+    res.redirect('/?login=google_init_error');
+  }
+});
+
+// 11C. Handle Google OAuth Callback
+const handleGoogleCallback = async (req: Request, res: Response) => {
+  try {
+    const { code, state, error: googleError } = req.query;
+    const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '';
+    const storedState = req.cookies?.google_oauth_state;
+
+    // Clear state cookie
+    res.clearCookie('google_oauth_state', { path: '/' });
+
+    if (googleError) {
+      console.warn('[Google OAuth] Google returned error:', googleError);
+      res.redirect('/?login=google_cancelled');
+      return;
+    }
+
+    if (!state || !storedState || state !== storedState) {
+      console.warn('[Google OAuth] State mismatch or expired');
+      res.redirect('/?login=google_state_mismatch');
+      return;
+    }
+
+    if (!code || typeof code !== 'string') {
+      res.redirect('/?login=google_missing_code');
+      return;
+    }
+
+    const clientId = (process.env.GOOGLE_CLIENT_ID || '').trim();
+    const clientSecret = (process.env.GOOGLE_CLIENT_SECRET || '').trim();
+    const appUrl = (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+    const redirectUri = process.env.GOOGLE_CALLBACK_URL || `${appUrl}/api/auth/google/callback`;
+
+    // Exchange authorization code for tokens
+    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code'
+      })
+    });
+
+    const tokenData: any = await tokenResponse.json();
+
+    if (!tokenResponse.ok || !tokenData.access_token) {
+      console.error('[Google OAuth] Token exchange failed:', tokenData);
+      res.redirect('/?login=google_token_exchange_failed');
+      return;
+    }
+
+    // Fetch user profile from Google OpenID userinfo endpoint
+    const userinfoResponse = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` }
+    });
+
+    const profile: any = await userinfoResponse.json();
+
+    if (!userinfoResponse.ok || !profile?.email) {
+      console.error('[Google OAuth] Failed to fetch userinfo:', profile);
+      res.redirect('/?login=google_profile_fetch_failed');
+      return;
+    }
+
+    const googleId = String(profile.sub || profile.id);
+    const cleanEmail = String(profile.email).toLowerCase().trim();
+    const fullName = String(profile.name || profile.given_name || cleanEmail.split('@')[0]).trim();
+    const avatarUrl = profile.picture || null;
+    const emailVerified = Boolean(profile.email_verified);
+
+    if (!emailVerified) {
+      res.redirect('/?login=google_email_unverified');
+      return;
+    }
+
+    const prisma = getPrisma();
+
+    // Find user by googleId or by verified email
+    let user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { googleId },
+          { email: cleanEmail }
+        ]
+      }
+    });
+
+    if (user) {
+      // Check status
+      if (user.status === 'SUSPENDED' || user.status === 'DISABLED') {
+        res.redirect('/?login=account_locked');
+        return;
+      }
+
+      // Link googleId or update avatar if missing
+      const updates: any = {};
+      if (!user.googleId) updates.googleId = googleId;
+      if (!user.avatar && avatarUrl) updates.avatar = avatarUrl;
+      if (Object.keys(updates).length > 0) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: updates
+        });
+      }
+    } else {
+      // Create new user authenticated via Google
+      const randomUnusablePassword = crypto.randomBytes(32).toString('hex');
+      const passwordHash = await bcrypt.hash(randomUnusablePassword, 10);
+      const generatedUsername = `${cleanEmail.split('@')[0]}_${crypto.randomBytes(3).toString('hex')}`.toLowerCase();
+
+      // Calculate exact 7-Day Free Trial (7 * 24 hours from creation)
+      const now = new Date();
+      const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+      user = await dbService.createUser({
+        name: fullName,
+        email: cleanEmail,
+        username: generatedUsername,
+        passwordHash,
+        googleId,
+        role: 'USER',
+        plan: 'FREE',
+        status: 'ACTIVE',
+        avatar: avatarUrl,
+        trialStartedAt: now,
+        trialEndsAt,
+        trialUsed: true
+      });
+
+      // Automation: Dispatch welcome notification
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          title: '🎉 Chào mừng bạn gia nhập LifeOS qua Google!',
+          message: 'Tài khoản của bạn đã được liên kết và khởi tạo thành công bằng tài khoản Google.',
+          type: 'info',
+          read: false
+        }
+      }).catch(e => console.warn('Google user welcome notification warning:', e));
+
+      // Enqueue welcome email
+      SystemNotificationHelper.onUserRegistered(
+        { id: user.id, name: user.name, email: user.email },
+        clientIp
+      ).catch(e => console.warn('[EmailQueue] Error enqueuing registration notification:', e));
+    }
+
+    // Issue standard JWT Token (14 days validity) matching standard authentication
+    const token = jwt.sign(
+      { userId: user.id, role: user.role, email: user.email },
+      getJwtSecret(),
+      { expiresIn: '14d' }
+    );
+
+    // Save session in PostgreSQL database
+    const sessionExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 14 days
+    await dbService.createSession(user.id, token, sessionExpiry);
+
+    // Set secure HTTP-only cookie
+    setSessionCookie(req, res, token);
+
+    await dbService.createAuditLog(
+      user.id,
+      'USER_GOOGLE_LOGIN',
+      'users',
+      user.id,
+      null,
+      { email: user.email, googleId, ip: clientIp }
+    );
+
+    res.redirect(`/?login=google_success&token=${encodeURIComponent(token)}`);
+  } catch (error: any) {
+    console.error('Google OAuth callback error:', error);
+    res.redirect('/?login=google_server_error');
+  }
+};
+
+authRouter.get('/google/callback', handleGoogleCallback);
+authRouter.get('/callback/google', handleGoogleCallback);
+
+// 11D. Google One-Tap / GIS Client-Side ID Token Verification
+authRouter.post('/google/credential', authRateLimiter, async (req: Request, res: Response) => {
+  try {
+    const { credential } = req.body;
+    const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '';
+
+    if (!credential || typeof credential !== 'string') {
+      res.status(400).json({ success: false, message: 'Google Credential Token là bắt buộc.' });
+      return;
+    }
+
+    const clientId = (process.env.GOOGLE_CLIENT_ID || '').trim();
+
+    // Verify token with Google public endpoint
+    const verifyRes = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(credential)}`);
+    const payload: any = await verifyRes.json();
+
+    if (!verifyRes.ok || !payload?.email) {
+      res.status(401).json({ success: false, message: 'Google Token không hợp lệ hoặc đã hết hạn.' });
+      return;
+    }
+
+    // Verify audience matches our Client ID if configured
+    if (clientId && payload.aud !== clientId) {
+      res.status(403).json({ success: false, message: 'Token Google không thuộc ứng dụng này (Audience mismatch).' });
+      return;
+    }
+
+    if (!payload.email_verified) {
+      res.status(400).json({ success: false, message: 'Email Google chưa được xác thực.' });
+      return;
+    }
+
+    const googleId = String(payload.sub);
+    const cleanEmail = String(payload.email).toLowerCase().trim();
+    const fullName = String(payload.name || cleanEmail.split('@')[0]).trim();
+    const avatarUrl = payload.picture || null;
+
+    const prisma = getPrisma();
+    let user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { googleId },
+          { email: cleanEmail }
+        ]
+      }
+    });
+
+    if (user) {
+      if (user.status === 'SUSPENDED' || user.status === 'DISABLED') {
+        res.status(403).json({ success: false, message: 'Tài khoản của bạn đang bị tạm khóa. Vui lòng liên hệ Admin.' });
+        return;
+      }
+
+      const updates: any = {};
+      if (!user.googleId) updates.googleId = googleId;
+      if (!user.avatar && avatarUrl) updates.avatar = avatarUrl;
+      if (Object.keys(updates).length > 0) {
+        user = await prisma.user.update({
+          where: { id: user.id },
+          data: updates
+        });
+      }
+    } else {
+      const randomPass = crypto.randomBytes(32).toString('hex');
+      const passwordHash = await bcrypt.hash(randomPass, 10);
+      const generatedUsername = `${cleanEmail.split('@')[0]}_${crypto.randomBytes(3).toString('hex')}`.toLowerCase();
+
+      // Calculate exact 7-Day Free Trial (7 * 24 hours from creation)
+      const now = new Date();
+      const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+      user = await dbService.createUser({
+        name: fullName,
+        email: cleanEmail,
+        username: generatedUsername,
+        passwordHash,
+        googleId,
+        role: 'USER',
+        plan: 'FREE',
+        status: 'ACTIVE',
+        avatar: avatarUrl,
+        trialStartedAt: now,
+        trialEndsAt,
+        trialUsed: true
+      });
+
+      SystemNotificationHelper.onUserRegistered(
+        { id: user.id, name: user.name, email: user.email },
+        clientIp
+      ).catch(e => console.warn('[EmailQueue] Error enqueuing registration notification:', e));
+    }
+
+    // Issue standard JWT Token (14 days validity) matching standard authentication
+    const token = jwt.sign(
+      { userId: user.id, role: user.role, email: user.email },
+      getJwtSecret(),
+      { expiresIn: '14d' }
+    );
+
+    const sessionExpiry = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+    await dbService.createSession(user.id, token, sessionExpiry);
+    setSessionCookie(req, res, token);
+
+    await dbService.createAuditLog(
+      user.id,
+      'USER_GOOGLE_LOGIN',
+      'users',
+      user.id,
+      null,
+      { email: user.email, googleId, ip: clientIp }
+    );
+
+    const safeUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      plan: user.plan,
+      status: user.status,
+      avatar: user.avatar,
+      planExpiresAt: user.planExpiresAt,
+      onboardingCompleted: user.onboardingCompleted
+    };
+
+    res.json({
+      success: true,
+      message: 'Đăng nhập Google thành công',
+      user: safeUser
+    });
+  } catch (error: any) {
+    console.error('Google credential login error:', error);
+    res.status(500).json({ success: false, message: 'Lỗi máy chủ khi xác thực Google: ' + error.message });
   }
 });
 

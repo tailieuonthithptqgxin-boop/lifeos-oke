@@ -23,6 +23,9 @@ import { GlobalCompanionOverlay } from './components/companion/GlobalCompanionOv
 import { PwaPromptBanner } from './components/PwaPromptBanner';
 import { PageSkeleton } from './components/Skeleton';
 import { ToastContainer } from './components/ToastContainer';
+import { toast } from './lib/toast';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { SeoHead } from './components/common/SeoHead';
 import { lazyWithRetry } from './lib/lazyWithRetry';
 import { Zap } from 'lucide-react';
 
@@ -105,107 +108,61 @@ function AppContent() {
 
   const t = useTranslation(language);
 
-  // Global I18n Observer: Ensures 100% of rendered DOM text and placeholders match the active language
+  // Synchronize document language attribute without intrusive DOM mutations
   React.useEffect(() => {
-    if (language !== 'en') return;
+    document.documentElement.lang = language || 'vi';
+  }, [language]);
 
-    let isTranslating = false;
-    const dict = translations.en || {};
-
-    const translateText = (raw: string): string => {
-      const trimmed = raw.trim();
-      if (!trimmed) return raw;
-      const trans = translateI18n(trimmed, 'en');
-      if (trans && trans !== trimmed) {
-        return raw.replace(trimmed, trans);
+  const [publicView, setPublicView] = useState<'home' | 'login'>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const loginParam = params.get('login');
+      const isLoginErrorOrPrompt = loginParam && loginParam !== 'google_success';
+      const hasResetToken = Boolean(params.get('resetToken'));
+      if (
+        hasResetToken ||
+        isLoginErrorOrPrompt ||
+        params.get('view') === 'login' ||
+        params.get('mode') === 'login' ||
+        params.get('mode') === 'register' ||
+        params.get('auth')
+      ) {
+        return 'login';
       }
-      return raw;
-    };
-
-    const translateElement = (el: HTMLElement) => {
-      // 1. Text nodes inside element
-      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-      let node: Node | null;
-      while ((node = walker.nextNode())) {
-        const content = node.textContent;
-        if (content && content.trim()) {
-          const translated = translateText(content);
-          if (translated !== content) {
-            node.textContent = translated;
-          }
-        }
-      }
-
-      // 2. Attributes (placeholder, title, aria-label)
-      const formEls = el.querySelectorAll<HTMLElement>('input, textarea, select, button, [title], [placeholder], [aria-label]');
-      formEls.forEach((item) => {
-        const ph = item.getAttribute('placeholder');
-        if (ph && ph.trim()) {
-          const transPh = translateText(ph);
-          if (transPh !== ph) item.setAttribute('placeholder', transPh);
-        }
-        const title = item.getAttribute('title');
-        if (title && title.trim()) {
-          const transTitle = translateText(title);
-          if (transTitle !== title) item.setAttribute('title', transTitle);
-        }
-        const aria = item.getAttribute('aria-label');
-        if (aria && aria.trim()) {
-          const transAria = translateText(aria);
-          if (transAria !== aria) item.setAttribute('aria-label', transAria);
-        }
-      });
-    };
-
-    const root = document.getElementById('root');
-    if (root) {
-      isTranslating = true;
-      try {
-        translateElement(root);
-      } finally {
-        isTranslating = false;
-      }
-
-      const observer = new MutationObserver((mutations) => {
-        if (isTranslating) return;
-        isTranslating = true;
-        try {
-          for (const mutation of mutations) {
-            if (mutation.type === 'childList') {
-              mutation.addedNodes.forEach((node) => {
-                if (node.nodeType === Node.ELEMENT_NODE) {
-                  translateElement(node as HTMLElement);
-                } else if (node.nodeType === Node.TEXT_NODE) {
-                  const content = node.textContent;
-                  if (content && content.trim()) {
-                    const translated = translateText(content);
-                    if (translated !== content) {
-                      node.textContent = translated;
-                    }
-                  }
-                }
-              });
-            } else if (mutation.type === 'characterData') {
-              const content = mutation.target.textContent;
-              if (content && content.trim()) {
-                const translated = translateText(content);
-                if (translated !== content) {
-                  mutation.target.textContent = translated;
-                }
-              }
-            }
-          }
-        } finally {
-          isTranslating = false;
-        }
-      });
-
-      observer.observe(root, { childList: true, subtree: true, characterData: true });
-      return () => observer.disconnect();
     }
-  }, [language, currentView]);
+    return 'home';
+  });
 
-  const [publicView, setPublicView] = useState<'home' | 'login'>('home');
+  const [authInitialMode, setAuthInitialMode] = useState<'login' | 'register'>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('mode') === 'register') return 'register';
+    }
+    return 'login';
+  });
+
+  // Handle Google OAuth query feedback
+  React.useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const loginStatus = params.get('login');
+      if (loginStatus === 'google_success') {
+        toast.success('Đăng nhập Google thành công! Chào mừng bạn trở lại.');
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (loginStatus && loginStatus.startsWith('google_')) {
+        
+        const errMap: Record<string, string> = {
+          google_cancelled: 'Bạn đã hủy quá trình đăng nhập Google.',
+          google_state_mismatch: 'Phiên đăng nhập Google đã hết hạn. Vui lòng thử lại.',
+          google_email_unverified: 'Tài khoản Google của bạn chưa được xác minh email.',
+          google_server_error: 'Có lỗi xảy ra khi xác thực với Google. Vui lòng thử lại.',
+          account_locked: 'Tài khoản của bạn đã bị khóa hoặc tạm ngưng.'
+        };
+        toast.error(errMap[loginStatus] || 'Đăng nhập Google thất bại. Vui lòng thử lại.');
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    }
+  }, []);
 
   if (!isAppLoaded) {
     return (
@@ -222,13 +179,18 @@ function AppContent() {
     if (publicView === 'login') {
       return (
         <div key={language} className="w-full h-full">
-          <LoginView onBack={() => setPublicView('home')} />
+          <LoginView onBack={() => setPublicView('home')} initialMode={authInitialMode} />
         </div>
       );
     }
     return (
       <div key={language} className="w-full h-full">
-        <PublicLandingView onLoginClick={() => setPublicView('login')} />
+        <PublicLandingView 
+          onLoginClick={(mode = 'login') => {
+            setAuthInitialMode(mode);
+            setPublicView('login');
+          }} 
+        />
       </div>
     );
   }
@@ -343,7 +305,9 @@ function AppContent() {
 
     return (
       <div className="relative min-h-full flex flex-col flex-1">
-        {renderView()}
+        <ErrorBoundary fallbackTitle={`Khối giao diện '${currentView}' gặp sự cố`}>
+          {renderView()}
+        </ErrorBoundary>
         {!hasSubAccess && !isUnrestrictedView && (
           <LockedWorkspaceOverlay />
         )}
@@ -353,6 +317,7 @@ function AppContent() {
 
   return (
     <div key={language} className="flex h-screen h-[100dvh] w-full max-w-full bg-[#F8FAFC] dark:bg-slate-950 overflow-hidden font-sans text-[#0F172A] dark:text-slate-100 transition-colors duration-150">
+      <SeoHead title="" viewKey={currentView} />
       <ToastContainer />
       <CommandCenter />
       <SyncIndicator />
@@ -375,8 +340,10 @@ function AppContent() {
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <ErrorBoundary fallbackTitle="Hệ thống LifeOS gặp sự cố ngoài dự kiến">
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }

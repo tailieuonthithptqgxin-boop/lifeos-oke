@@ -57,6 +57,8 @@ export function LockedWorkspaceOverlay({ featureName }: LockedWorkspaceOverlayPr
         <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight mb-2">
           {isPending
             ? t('Đang Chờ Quản Trị Viên Xác Nhận')
+            : subscriptionStatus?.isTrialExpired
+            ? t('Thời Gian Dùng Thử 7 Ngày Đã Kết Thúc')
             : isExpired
             ? t('Gói Dịch Vụ Đã Hết Hạn')
             : t('Không Gian Làm Việc Đang Khóa')}
@@ -69,6 +71,10 @@ export function LockedWorkspaceOverlay({ featureName }: LockedWorkspaceOverlayPr
               Yêu cầu thanh toán của bạn cho đơn hàng{' '}
               <strong className="text-slate-900 dark:text-white font-mono">{pendingOrder?.txReference || pendingOrder?.orderId || 'đang xử lý'}</strong>{' '}
               đã được ghi nhận. Vui lòng chờ quản trị viên đối soát ngân hàng và kích hoạt.
+            </span>
+          ) : subscriptionStatus?.isTrialExpired ? (
+            <span>
+              Bạn đã hoàn thành 7 ngày trải nghiệm miễn phí toàn bộ tính năng cao cấp của LifeOS. Toàn bộ dữ liệu của bạn vẫn được bảo toàn nguyên vẹn 100%. Vui lòng kích hoạt gói dịch vụ để tiếp tục sử dụng.
             </span>
           ) : isExpired ? (
             <span>

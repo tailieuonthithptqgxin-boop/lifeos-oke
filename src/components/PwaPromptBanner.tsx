@@ -12,7 +12,7 @@ export function PwaPromptBanner() {
   });
   const [dismissedInstall, setDismissedInstall] = useState(() => {
     try {
-      return sessionStorage.getItem('lifeos_pwa_dismissed') === 'true';
+      return localStorage.getItem('lifeos_pwa_dismissed') === 'true';
     } catch {
       return false;
     }
@@ -180,7 +180,7 @@ export function PwaPromptBanner() {
                 type="button"
                 onClick={() => {
                   setDismissedInstall(true);
-                  sessionStorage.setItem('lifeos_pwa_dismissed', 'true');
+                  localStorage.setItem('lifeos_pwa_dismissed', 'true');
                 }}
                 className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-normal rounded-lg transition-colors cursor-pointer"
               >
@@ -192,7 +192,7 @@ export function PwaPromptBanner() {
             type="button"
             onClick={() => {
               setDismissedInstall(true);
-              sessionStorage.setItem('lifeos_pwa_dismissed', 'true');
+              localStorage.setItem('lifeos_pwa_dismissed', 'true');
             }}
             className="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1 rounded-md transition-colors cursor-pointer"
             aria-label="Đóng"

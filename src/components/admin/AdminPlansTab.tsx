@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  RotateCcw, History, RefreshCw, Edit, Package, X, Check, AlertTriangle 
+  RotateCcw, History, RefreshCw, Edit, Package, X, Check, AlertTriangle, Sparkles, ShieldAlert, Lock, Unlock 
 } from 'lucide-react';
 import { apiCall } from '../../lib/apiClient';
 import { formatCurrency } from '../../lib/utils';
@@ -19,6 +19,10 @@ export function AdminPlansTab({ onShowMessage }: AdminPlansTabProps) {
   const [newFeatureInput, setNewFeatureInput] = useState('');
   const [planAuditLogs, setPlanAuditLogs] = useState<PlanAuditLog[]>([]);
   const [showAuditLogs, setShowAuditLogs] = useState(false);
+
+  // Global Free Mode Toggle State
+  const [isGlobalFreeMode, setIsGlobalFreeMode] = useState<boolean>(false);
+  const [isTogglingFreeMode, setIsTogglingFreeMode] = useState<boolean>(false);
 
   const fetchPlans = async () => {
     try {
@@ -45,10 +49,47 @@ export function AdminPlansTab({ onShowMessage }: AdminPlansTabProps) {
     }
   };
 
+  const fetchGlobalFreeMode = async () => {
+    try {
+      const res = await apiCall('/api/admin/settings/global-free-mode');
+      if (res && res.success) {
+        setIsGlobalFreeMode(Boolean(res.enabled));
+      }
+    } catch (err: any) {
+      console.warn('Lỗi khi tải trạng thái dùng thử Free toàn hệ thống:', err);
+    }
+  };
+
   useEffect(() => {
     fetchPlans();
     fetchPlanAuditLogs();
+    fetchGlobalFreeMode();
   }, []);
+
+  const handleToggleGlobalFreeMode = async () => {
+    const nextState = !isGlobalFreeMode;
+    const confirmMsg = nextState
+      ? 'XÁC NHẬN BẬT CHẾ ĐỘ DÙNG THỬ FREE TOÀN HỆ THỐNG?\n\n- Tất cả người dùng (kể cả chưa mua gói) sẽ được mở khóa 100% tính năng ngay lập tức.\n- Dữ liệu gói của khách hàng đã mua thật vẫn được bảo toàn nguyên vẹn.\n- Email cảnh báo an ninh sẽ tự động gửi đến Ban Quản trị.'
+      : 'XÁC NHẬN TẮT CHẾ ĐỘ DÙNG THỬ FREE?\n\n- Hệ thống sẽ khóa lại ngay lập tức đối với người dùng chưa mua gói.\n- Khách hàng đã mua gói còn hạn vẫn tiếp tục sử dụng bình thường.\n- Email cảnh báo an ninh sẽ tự động gửi đến Ban Quản trị.';
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      setIsTogglingFreeMode(true);
+      const res = await apiCall('/api/admin/settings/global-free-mode', 'POST', { enabled: nextState });
+      if (res && res.success) {
+        setIsGlobalFreeMode(nextState);
+        onShowMessage?.({
+          text: res.message || `Đã ${nextState ? 'BẬT' : 'TẮT'} chế độ dùng thử Free toàn hệ thống!`,
+          type: 'success'
+        });
+      }
+    } catch (err: any) {
+      onShowMessage?.({ text: err.message || 'Lỗi khi thay đổi công tắc dùng thử Free', type: 'error' });
+    } finally {
+      setIsTogglingFreeMode(false);
+    }
+  };
 
   const handleSavePlan = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -131,6 +172,91 @@ export function AdminPlansTab({ onShowMessage }: AdminPlansTabProps) {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-150">
+      {/* GLOBAL FREE MODE TOGGLE BENTO CARD */}
+      <div className={`p-5 rounded-2xl border transition-all shadow-sm ${
+        isGlobalFreeMode
+          ? 'bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-teal-500/10 border-emerald-300 dark:border-emerald-700/60 ring-1 ring-emerald-400/20'
+          : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'
+      }`}>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3.5">
+            <div className={`p-2.5 rounded-2xl shrink-0 ${
+              isGlobalFreeMode
+                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20 animate-pulse'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+            }`}>
+              {isGlobalFreeMode ? <Unlock className="w-5 h-5" /> : <Lock className="w-5 h-5" />}
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="font-black text-sm text-slate-900 dark:text-white">
+                  CÔNG TẮC DÙNG THỬ FREE TOÀN HỆ THỐNG (GLOBAL FREE TRIAL MODE)
+                </h4>
+                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                  isGlobalFreeMode
+                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-700'
+                    : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-300 dark:border-slate-700'
+                }`}>
+                  {isGlobalFreeMode ? '● ĐANG BẬT (MỞ KHÓA 100%)' : '○ ĐANG TẮT (YÊU CẦU MUA GÓI)'}
+                </span>
+              </div>
+
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                {isGlobalFreeMode ? (
+                  <span className="text-emerald-700 dark:text-emerald-300 font-medium">
+                    Toàn bộ người dùng trong hệ thống (kể cả chưa trả phí) đều được mở khóa 100% tính năng Pro mà không cần thanh toán. Dữ liệu gói của các khách hàng đã mua trước đó vẫn được lưu trữ an toàn trong Database.
+                  </span>
+                ) : (
+                  <span>
+                    Hệ thống đang hoạt động ở chế độ thương mại tiêu chuẩn: Người dùng bắt buộc phải mua gói trả phí để truy cập không gian làm việc. Khách hàng đã thanh toán được sử dụng đầy đủ theo thời hạn gói.
+                  </span>
+                )}
+              </p>
+
+              <div className="flex items-center gap-4 mt-2 text-[11px] text-slate-400">
+                <span className="flex items-center gap-1">
+                  <ShieldAlert className="w-3.5 h-3.5 text-amber-500" />
+                  Lưu trữ bền vững trong Database
+                </span>
+                <span>•</span>
+                <span>Tự động gửi cảnh báo Gmail cho Admin khi bật/tắt</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 shrink-0 self-end md:self-center">
+            <button
+              type="button"
+              onClick={handleToggleGlobalFreeMode}
+              disabled={isTogglingFreeMode}
+              className={`px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-sm transition-all cursor-pointer disabled:opacity-50 ${
+                isGlobalFreeMode
+                  ? 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20'
+              }`}
+            >
+              {isTogglingFreeMode ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Đang xử lý...</span>
+                </>
+              ) : isGlobalFreeMode ? (
+                <>
+                  <Lock className="w-4 h-4" />
+                  <span>TẮT DÙNG THỬ FREE (KHÓA LẠI)</span>
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  <span>BẬT DÙNG THỬ FREE (MỞ KHÓA TẤT CẢ)</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h3 className="font-bold text-slate-900 dark:text-white text-base">Danh Sách Gói Dịch Vụ</h3>

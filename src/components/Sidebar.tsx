@@ -162,16 +162,18 @@ export function Sidebar() {
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
-        {/* Brand header with Minimalist Logo */}
+        {/* Brand header with Logo */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-[#E2E8F0] dark:border-slate-800 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-6 h-6 rounded-md bg-[#10B981] flex items-center justify-center text-white">
-              <Zap className="w-3.5 h-3.5 stroke-[2.5]" />
-            </div>
+            <img 
+              src="/logo.png" 
+              alt="LifeOS Logo" 
+              className="w-7 h-7 rounded-lg object-contain shadow-xs shrink-0" 
+            />
             <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-sm text-[#0F172A] dark:text-white tracking-tight">LifeOS</span>
-              <span className="text-[10px] font-normal px-1.5 py-0.2 rounded border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400">
-                Gen-Z
+              <span className="font-bold text-sm text-[#0F172A] dark:text-white tracking-tight">LifeOS</span>
+              <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-md bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300">
+                PRO
               </span>
             </div>
           </div>

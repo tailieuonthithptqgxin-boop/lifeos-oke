@@ -3,7 +3,7 @@ import {
   Menu, Moon, Sun, Search, Bell, Plus, Inbox, ShoppingCart, 
   Shield, CheckSquare, DollarSign, Calendar, Target, Zap, 
   User, LogOut, ChevronDown, CheckCircle2, Globe, Sparkles, Lock, Flame, Award, Volume2, VolumeX, Bot,
-  ExternalLink, AlertTriangle, FileText
+  ExternalLink, AlertTriangle, FileText, Settings
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { useTranslation } from '../lib/i18n';
@@ -12,6 +12,8 @@ import { soundEngine } from '../lib/soundEngine';
 import { ZenFocusOverlay } from './focus/ZenFocusOverlay';
 import { apiCall } from '../lib/apiClient';
 import { companionEngine, MASCOT_PROFILES } from '../lib/companionEngine';
+import { NotificationCenterModal } from './notifications/NotificationCenterModal';
+import { NotificationSettingsModal } from './notifications/NotificationSettingsModal';
 
 export function TopBar() {
   const [showNotifications, setShowNotifications] = useState(false);
@@ -19,6 +21,8 @@ export function TopBar() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showInboxModal, setShowInboxModal] = useState(false);
   const [showZenFocus, setShowZenFocus] = useState(false);
+  const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
+  const [isNotificationSettingsOpen, setIsNotificationSettingsOpen] = useState(false);
 
   const { 
     isMobileMenuOpen, toggleMobileMenu, theme, setTheme, cart, 
@@ -114,10 +118,12 @@ export function TopBar() {
     <header className="h-14 md:h-16 bg-white dark:bg-slate-950 border-b border-[#E2E8F0] dark:border-slate-800 flex items-center justify-between px-3.5 sm:px-5 md:px-6 shrink-0 relative z-50 transition-colors">
       {/* Mobile Brand Logo */}
       <div className="flex md:hidden items-center gap-2 shrink-0">
-        <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center text-white shadow-xs font-bold text-xs">
-          ⚡
-        </div>
-        <span className="font-semibold text-sm tracking-tight text-slate-900 dark:text-white">LifeOS</span>
+        <img 
+          src="/logo.png" 
+          alt="LifeOS Logo" 
+          className="w-7 h-7 rounded-lg object-contain shadow-xs shrink-0" 
+        />
+        <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-white">LifeOS</span>
       </div>
 
       {/* Desktop Quick Search Bar (Hidden on Mobile) */}
@@ -135,6 +141,14 @@ export function TopBar() {
         </button>
       </div>
       
+      {/* Global Free Trial Active Indicator */}
+      {subscriptionStatus?.isGlobalFreeMode && (
+        <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold shrink-0 animate-pulse">
+          <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+          <span>Dùng Thử Miễn Phí Toàn Hệ Thống</span>
+        </div>
+      )}
+
       {/* Right Action Cluster */}
       <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
         
@@ -453,6 +467,31 @@ export function TopBar() {
                     })
                   )}
                 </div>
+
+                {/* Notification Dropdown Footer */}
+                <div className="p-2 border-t border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowNotifications(false);
+                      setIsNotificationCenterOpen(true);
+                    }}
+                    className="flex-1 py-1.5 px-2.5 rounded-lg text-[11px] font-bold text-slate-700 dark:text-slate-200 hover:bg-slate-200/60 dark:hover:bg-slate-700/60 transition-colors text-center"
+                  >
+                    {isVi ? 'Xem tất cả thông báo' : 'View All Notifications'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowNotifications(false);
+                      setIsNotificationSettingsOpen(true);
+                    }}
+                    className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 transition-colors"
+                    title={isVi ? 'Cài đặt thông báo & Gmail' : 'Notification Settings'}
+                  >
+                    <Settings className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </>
           )}
@@ -692,7 +731,24 @@ export function TopBar() {
                 </div>
 
                 {/* Account & Logout */}
-                <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800/80">
+                <div className="pt-1.5 border-t border-slate-100 dark:border-slate-800/80 space-y-0.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowUserMenu(false);
+                      setIsNotificationSettingsOpen(true);
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Bell className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <span>{isVi ? 'Cài đặt Thông báo & Gmail' : 'Notification & Gmail Settings'}</span>
+                    </div>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
+                      Auto
+                    </span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => {
@@ -771,6 +827,22 @@ export function TopBar() {
       <ZenFocusOverlay
         isOpen={showZenFocus}
         onClose={() => setShowZenFocus(false)}
+      />
+
+      {/* Modern Notification Center Modal */}
+      <NotificationCenterModal
+        isOpen={isNotificationCenterOpen}
+        onClose={() => setIsNotificationCenterOpen(false)}
+        onOpenSettings={() => {
+          setIsNotificationCenterOpen(false);
+          setIsNotificationSettingsOpen(true);
+        }}
+      />
+
+      {/* Notification & Gmail Automation Settings Modal */}
+      <NotificationSettingsModal
+        isOpen={isNotificationSettingsOpen}
+        onClose={() => setIsNotificationSettingsOpen(false)}
       />
     </header>
   );

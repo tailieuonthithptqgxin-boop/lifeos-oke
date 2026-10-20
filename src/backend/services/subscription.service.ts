@@ -1,5 +1,7 @@
 import { getPrisma } from '../db.js';
 import { gmailService, getAppBaseUrl } from './gmailNotification.service.js';
+import { emailQueueService } from './emailQueue.service.js';
+import { buildEmailHtml } from './emailTemplate.service.js';
 
 export interface PlanDefinition {
   id: string;
@@ -157,6 +159,13 @@ export interface UserSubscriptionStatus {
   subscriptionId?: string;
   role?: string;
   activePending?: any;
+  isGlobalFreeMode?: boolean;
+  isTrial?: boolean;
+  isTrialActive?: boolean;
+  isTrialExpired?: boolean;
+  trialStartedAt?: string;
+  trialEndsAt?: string;
+  remainingHours?: number;
 }
 
 export const subscriptionService = {
@@ -236,6 +245,88 @@ export const subscriptionService = {
   },
 
   /**
+   * Check whether Global Free Trial Mode is activated across the whole system.
+   * Persisted in PostgreSQL database (system_settings table).
+   */
+  async isGlobalFreeMode(): Promise<boolean> {
+    const prisma = getPrisma();
+    try {
+      const setting = await prisma.systemSetting.findUnique({
+        where: { key: 'global_free_mode' }
+      });
+      return setting?.value === 'true';
+    } catch {
+      return false;
+    }
+  },
+
+  /**
+   * Toggle Global Free Trial Mode ON/OFF.
+   * Persisted in PostgreSQL database, logs audit trail, and automatically dispatches
+   * guaranteed security email notification to Admin via persistent Outbox Queue.
+   */
+  async setGlobalFreeMode(enabled: boolean, adminUser: { id: string; name: string; email: string; ip?: string }): Promise<{ enabled: boolean; updatedAt: Date }> {
+    const prisma = getPrisma();
+    const strVal = enabled ? 'true' : 'false';
+    const now = new Date();
+
+    const setting = await prisma.systemSetting.upsert({
+      where: { key: 'global_free_mode' },
+      update: { value: strVal, updatedAt: now },
+      create: { key: 'global_free_mode', value: strVal, updatedAt: now }
+    });
+
+    // Record audit log
+    await prisma.auditLog.create({
+      data: {
+        adminId: adminUser.id,
+        action: 'TOGGLE_GLOBAL_FREE_MODE',
+        beforeState: null,
+        afterState: JSON.stringify({ enabled, updatedAt: now }),
+        result: 'Success',
+        reason: `Admin ${adminUser.name} (${adminUser.email}) đã ${enabled ? 'BẬT' : 'TẮT'} chế độ Dùng thử Free toàn hệ thống.`
+      }
+    });
+
+    // Guaranteed security email alert to Admin via Outbox Queue
+    const adminNotificationEmail = process.env.ADMIN_NOTIFICATION_EMAIL || process.env.INITIAL_ADMIN_EMAIL || adminUser.email;
+    const emailHtml = buildEmailHtml({
+      headline: `CẢNH BÁO BẢO MẬT: Chế độ Dùng Thử Miễn Phí Toàn Hệ Thống đã được ${enabled ? 'BẬT' : 'TẮT'}`,
+      previewText: `Chế độ Dùng thử Free toàn hệ thống đã thay đổi thành: ${enabled ? 'BẬT (Mở khóa 100%)' : 'TẮT (Khóa với user chưa mua)'}`,
+      priority: 'CRITICAL',
+      badgeText: enabled ? 'FREE TRIAL MODE ACTIVATED' : 'FREE TRIAL MODE DEACTIVATED',
+      greeting: `Kính gửi Ban Quản Trị LifeOS,`,
+      paragraphs: [
+        `Công tắc <strong>"Cho phép tất cả mọi người dùng thử miễn phí toàn bộ tính năng"</strong> vừa được thay đổi trạng thái trong trang Quản trị.`,
+        enabled
+          ? `⚠️ <strong>Trạng thái hiện tại: ĐANG BẬT</strong>. Tất cả người dùng (kể cả chưa mua gói) đều có quyền truy cập 100% tính năng của hệ thống. Dữ liệu gói của những khách hàng đã mua trước đó vẫn được bảo toàn nguyên vẹn.`
+          : `🔒 <strong>Trạng thái hiện tại: ĐANG TẮT</strong>. Hệ thống đã khóa lại quyền truy cập đối với các tài khoản chưa mua gói trả phí. Những khách hàng đã mua gói hợp lệ vẫn tiếp tục sử dụng bình thường.`
+      ],
+      detailsTable: [
+        { label: 'Trạng thái mới', value: enabled ? 'BẬT (Cho phép dùng thử FREE)' : 'TẮT (Bắt buộc mua gói)' },
+        { label: 'Người thực hiện', value: `${adminUser.name} (${adminUser.email})` },
+        { label: 'Địa chỉ IP', value: adminUser.ip || 'Local / Internal' },
+        { label: 'Thời gian áp dụng', value: now.toLocaleString('vi-VN') }
+      ],
+      ctaButton: {
+        label: 'Mở Trang Quản Trị Hệ Thống',
+        url: (process.env.APP_URL || 'http://localhost:3000') + '/admin'
+      },
+      footerNote: 'Đây là thông báo an ninh quan trọng được gửi tự động từ LifeOS Security Center khi cấu hình hệ thống thay đổi.'
+    });
+
+    await emailQueueService.enqueue({
+      recipient: adminNotificationEmail,
+      subject: `[LifeOS Security] Cảnh báo: Công tắc Dùng thử Free toàn hệ thống đã được ${enabled ? 'BẬT' : 'TẮT'}`,
+      htmlBody: emailHtml,
+      eventType: 'SECURITY_ALERT',
+      metadata: { adminId: adminUser.id, action: 'TOGGLE_GLOBAL_FREE_MODE', enabled }
+    });
+
+    return { enabled, updatedAt: setting.updatedAt };
+  },
+
+  /**
    * Zero-Trust Subscription Verification & Lazy Expiration Enforcement
    * 1. Checks current database state without relying on client localStorage or cookies.
    * 2. Automatically updates expired subscriptions to EXPIRED in the database upon check.
@@ -248,7 +339,17 @@ export const subscriptionService = {
     // 1. Fetch user model and core role/status
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, role: true, plan: true, planExpiresAt: true, status: true }
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        plan: true,
+        planExpiresAt: true,
+        status: true,
+        trialStartedAt: true,
+        trialEndsAt: true,
+        trialUsed: true
+      }
     });
 
     if (!user) {
@@ -309,6 +410,23 @@ export const subscriptionService = {
       where: { userId, status: 'PENDING' },
       orderBy: { createdAt: 'desc' }
     });
+
+    // Check if Global Free Mode is currently activated in system settings
+    const isFreeMode = await this.isGlobalFreeMode();
+    if (isFreeMode) {
+      return {
+        hasAccess: true,
+        lifecycleStatus: 'ACTIVE',
+        planId: user.plan === 'FREE' ? 'FREE_TRIAL_GLOBAL' : user.plan,
+        planType: user.plan?.includes('TEAM') ? 'TEAM' : 'PERSONAL',
+        planName: user.plan === 'FREE' ? 'Dùng thử Toàn Hệ thống (Admin Open)' : (user.plan || 'Gói Cá Nhân'),
+        status: 'ACTIVE',
+        remainingDays: 365,
+        isGlobalFreeMode: true,
+        role: user.role,
+        activePending: activePending || null
+      };
+    }
 
     // 2. LAZY EXPIRATION AUDIT: Sweep any subscriptions that passed their endDate
     const expiredActiveSubs = await prisma.subscription.findMany({
@@ -458,7 +576,61 @@ export const subscriptionService = {
       user.planExpiresAt = null;
     }
 
-    // 6. Check historical latest subscription for explicit EXPIRED status display
+    // 6. Check 7-Day Free Trial Entitlement (for newly registered accounts)
+    if (user.trialEndsAt) {
+      const trialEndMs = new Date(user.trialEndsAt).getTime();
+      const nowMs = now.getTime();
+
+      if (trialEndMs > nowMs) {
+        // Active 7-Day Free Trial
+        const remainingDiff = trialEndMs - nowMs;
+        const remainingDays = Math.max(1, Math.ceil(remainingDiff / (1000 * 60 * 60 * 24)));
+        const remainingHours = Math.max(0, Math.ceil(remainingDiff / (1000 * 60 * 60)));
+
+        return {
+          hasAccess: true,
+          lifecycleStatus: 'ACTIVE',
+          planId: 'FREE_TRIAL_7D',
+          planType: 'PERSONAL',
+          planName: 'Dùng thử 7 Ngày Miễn Phí',
+          status: 'ACTIVE',
+          isTrial: true,
+          isTrialActive: true,
+          isTrialExpired: false,
+          trialStartedAt: user.trialStartedAt?.toISOString(),
+          trialEndsAt: user.trialEndsAt.toISOString(),
+          startDate: user.trialStartedAt?.toISOString() || now.toISOString(),
+          endDate: user.trialEndsAt.toISOString(),
+          remainingDays,
+          remainingHours,
+          role: user.role,
+          activePending: activePending || null
+        };
+      } else {
+        // 7-Day Free Trial Expired
+        return {
+          hasAccess: false,
+          lifecycleStatus: activePending ? 'PENDING' : 'EXPIRED',
+          planId: 'FREE_TRIAL_7D',
+          planType: 'PERSONAL',
+          planName: 'Dùng thử 7 ngày đã kết thúc',
+          status: 'EXPIRED',
+          isTrial: true,
+          isTrialActive: false,
+          isTrialExpired: true,
+          trialStartedAt: user.trialStartedAt?.toISOString(),
+          trialEndsAt: user.trialEndsAt.toISOString(),
+          startDate: user.trialStartedAt?.toISOString(),
+          endDate: user.trialEndsAt.toISOString(),
+          remainingDays: 0,
+          remainingHours: 0,
+          role: user.role,
+          activePending: activePending || null
+        };
+      }
+    }
+
+    // 7. Check historical latest subscription for explicit EXPIRED status display
     const latestSub = await prisma.subscription.findFirst({
       where: { userId },
       orderBy: { endDate: 'desc' }
@@ -481,7 +653,7 @@ export const subscriptionService = {
       };
     }
 
-    // 7. No subscription found -> PENDING if payment request exists, else UNPAID
+    // 8. No subscription found -> PENDING if payment request exists, else UNPAID
     return {
       hasAccess: false,
       lifecycleStatus: activePending ? 'PENDING' : 'UNPAID',

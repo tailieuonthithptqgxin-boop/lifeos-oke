@@ -4,7 +4,6 @@ node_modules/
 .pnp.js
 
 # Production & Build outputs
-/dist
 /build
 out/
 .vite/

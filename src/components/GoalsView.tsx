@@ -5,7 +5,7 @@ import {
   Crosshair, Clock, Zap, ListFilter, Layers, ShieldAlert, FileText, Sparkles, FolderGit2, 
   CheckSquare, History, BarChart3, Sliders, Edit2, Trash2, X, ChevronRight, Link2, Flag, 
   Flame, BookOpen, DollarSign, Award, SlidersHorizontal, Grid, GitBranch, Play, Search,
-  Eye, Check, ArrowUpRight, AlertCircle, RefreshCw
+  Eye, Check, ArrowUpRight, AlertCircle, RefreshCw, Loader2
 } from 'lucide-react';
 import { Goal, GoalMilestone, GoalReview, GoalPriority, GoalType, GoalTier, GoalRiskStatus } from '../lib/types';
 import { formatCurrency } from '../lib/utils';
@@ -1422,7 +1422,7 @@ function GoalDetailDrawer({ goal, onClose, onEdit, updateGoal, addGoalReview, to
 // ----------------------------------------------------------------------
 function GoalModal({ goal, onClose, onSave, onDelete }: any) {
   const [formData, setFormData] = useState({
-    id: goal?.id || Math.random().toString(36).substring(2, 9),
+    id: goal?.id || undefined,
     title: goal?.title || '',
     description: goal?.description || '',
     category: goal?.category || 'Personal Growth',
@@ -1436,112 +1436,210 @@ function GoalModal({ goal, onClose, onSave, onDelete }: any) {
     color: goal?.color || '#8b5cf6'
   });
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSubmitting) return;
+
+    setErrorMessage(null);
+    const title = (formData.title || '').trim();
+    if (!title) {
+      setErrorMessage('Please enter goal title');
+      return;
+    }
+
+    try {
+      setIsSubmitting(true);
+      await Promise.resolve(onSave({
+        ...formData,
+        title,
+        current: Number(formData.current) || 0,
+        target: Number(formData.target) || 100
+      }));
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Failed to save goal');
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!goal?.id || !onDelete || isSubmitting) return;
+    if (window.confirm('Are you sure you want to delete this goal?')) {
+      try {
+        setIsSubmitting(true);
+        await Promise.resolve(onDelete(goal.id));
+      } catch (err: any) {
+        setErrorMessage(err?.message || 'Failed to delete goal');
+        setIsSubmitting(false);
+      }
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-backdrop-fade">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 animate-modal-enter">
-        <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white">{goal ? 'Edit Goal' : 'New Goal'}</h3>
-          <button type="button" onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"><X className="w-5 h-5" /></button>
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-backdrop-fade"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col border border-slate-200/80 dark:border-slate-800 animate-modal-enter my-auto">
+        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/70 dark:bg-slate-800/40 shrink-0">
+          <div>
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">{goal ? 'Edit Goal' : 'New Goal'}</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Define your milestones and target metrics</p>
+          </div>
+          <button 
+            type="button" 
+            onClick={onClose} 
+            disabled={isSubmitting}
+            className="w-10 h-10 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl transition-colors cursor-pointer"
+            aria-label="Close"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        <div className="p-5 space-y-4 overflow-y-auto max-h-[70vh]">
-          <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Goal Title *</label>
-            <input 
-              type="text" 
-              value={formData.title} 
-              onChange={e=>setFormData({...formData, title: e.target.value})} 
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none" 
-              placeholder="e.g. Master JLPT N2, Build SaaS MVP"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Category</label>
-              <select 
-                value={formData.category} 
-                onChange={e=>setFormData({...formData, category: e.target.value})} 
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none"
-              >
-                <option value="Sự nghiệp">Career</option>
-                <option value="Tài chính">Finance</option>
-                <option value="Sức khoẻ">Health</option>
-                <option value="Học tập">Education</option>
-                <option value="Phát triển bản thân">Personal Growth</option>
-              </select>
-            </div>
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
+          <div className="p-4 sm:p-5 space-y-4 overflow-y-auto max-h-[70vh]">
+            {errorMessage && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs sm:text-sm flex items-start gap-2 animate-fade-in">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
 
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Priority</label>
-              <select 
-                value={formData.priority} 
-                onChange={e=>setFormData({...formData, priority: e.target.value})} 
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none"
-              >
-                <option value="Critical">Critical</option>
-                <option value="High">High</option>
-                <option value="Medium">Medium</option>
-                <option value="Low">Low</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Current Value</label>
-              <input 
-                type="number" 
-                value={formData.current} 
-                onChange={e=>setFormData({...formData, current: Number(e.target.value)})} 
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none font-mono" 
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Target Value</label>
-              <input 
-                type="number" 
-                value={formData.target} 
-                onChange={e=>setFormData({...formData, target: Number(e.target.value)})} 
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none font-mono" 
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Unit</label>
+              <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Goal Title <span className="text-rose-500">*</span>
+              </label>
               <input 
                 type="text" 
-                value={formData.unit} 
-                onChange={e=>setFormData({...formData, unit: e.target.value})} 
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none" 
-                placeholder="%, hours, books, VND..."
+                required
+                autoFocus
+                value={formData.title} 
+                onChange={e=>setFormData({...formData, title: e.target.value})} 
+                className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium" 
+                placeholder="e.g. Master JLPT N2, Build SaaS MVP"
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Target Deadline</label>
-              <input 
-                type="date" 
-                value={formData.deadline} 
-                onChange={e=>setFormData({...formData, deadline: e.target.value})} 
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white outline-none" 
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div>
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Category</label>
+                <select 
+                  value={formData.category} 
+                  onChange={e=>setFormData({...formData, category: e.target.value})} 
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                >
+                  <option value="Sự nghiệp">Career</option>
+                  <option value="Tài chính">Finance</option>
+                  <option value="Sức khoẻ">Health</option>
+                  <option value="Học tập">Education</option>
+                  <option value="Phát triển bản thân">Personal Growth</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Priority</label>
+                <select 
+                  value={formData.priority} 
+                  onChange={e=>setFormData({...formData, priority: e.target.value})} 
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+                >
+                  <option value="Critical">Critical</option>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div>
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Current Value</label>
+                <input 
+                  type="number" 
+                  step="any"
+                  value={formData.current} 
+                  onChange={e=>setFormData({...formData, current: Number(e.target.value)})} 
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono font-bold" 
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Target Value</label>
+                <input 
+                  type="number" 
+                  step="any"
+                  value={formData.target} 
+                  onChange={e=>setFormData({...formData, target: Number(e.target.value)})} 
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono font-bold" 
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div>
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Unit</label>
+                <input 
+                  type="text" 
+                  value={formData.unit} 
+                  onChange={e=>setFormData({...formData, unit: e.target.value})} 
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+                  placeholder="%, hours, books, VND..."
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Target Deadline</label>
+                <input 
+                  type="date" 
+                  value={formData.deadline} 
+                  onChange={e=>setFormData({...formData, deadline: e.target.value})} 
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+                />
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="p-4 bg-slate-50 dark:bg-slate-800/60 border-t border-slate-100 dark:border-slate-800 flex justify-between gap-3">
-          {goal ? (
-            <button type="button" onClick={() => onDelete(goal.id)} className="px-4 py-2 text-rose-600 dark:text-rose-400 text-xs font-medium hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg transition-colors cursor-pointer">Delete</button>
-          ) : <div />}
-          <div className="flex gap-2">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-slate-600 dark:text-slate-400 text-xs font-medium hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors cursor-pointer">Cancel</button>
-            <button type="button" onClick={() => onSave(formData)} className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium rounded-lg transition-colors cursor-pointer shadow-xs">Save Goal</button>
+          <div className="p-4 bg-slate-50/70 dark:bg-slate-800/40 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
+            {goal ? (
+              <button 
+                type="button" 
+                disabled={isSubmitting}
+                onClick={handleDelete} 
+                className="px-4 py-2.5 min-h-[44px] text-rose-600 dark:text-rose-400 text-xs sm:text-sm font-semibold hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Delete
+              </button>
+            ) : <div />}
+            <div className="flex items-center gap-2.5">
+              <button 
+                type="button" 
+                onClick={onClose} 
+                disabled={isSubmitting}
+                className="px-4 py-2.5 min-h-[44px] text-slate-600 dark:text-slate-400 text-xs sm:text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                disabled={isSubmitting}
+                className="px-5 py-2.5 min-h-[44px] bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-400 text-white text-xs sm:text-sm font-semibold rounded-xl transition-all cursor-pointer shadow-xs flex items-center gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <span>Save Goal</span>
+                )}
+              </button>
+            </div>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );

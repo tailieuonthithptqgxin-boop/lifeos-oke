@@ -165,6 +165,92 @@ export const CreateAnnouncementSchema = z.object({
 
 export const UpdateAnnouncementSchema = CreateAnnouncementSchema.partial();
 
+// --------------------------------------------------------------------------
+// CORE MODULE VALIDATION SCHEMAS
+// --------------------------------------------------------------------------
+
+export const CreateTaskSchema = z.object({
+  title: z.string().min(1, 'Tiêu đề công việc là bắt buộc').max(255, 'Tiêu đề tối đa 255 ký tự'),
+  description: z.string().max(2000, 'Mô tả tối đa 2000 ký tự').optional().nullable(),
+  status: z.enum(['Chưa làm', 'Đang làm', 'Hoàn thành', 'Tạm hoãn', 'Hủy bỏ', 'TODO', 'IN_PROGRESS', 'DONE']).default('Chưa làm'),
+  priority: z.enum(['Thấp', 'Trung bình', 'Cao', 'Khẩn cấp', 'LOW', 'MEDIUM', 'HIGH', 'URGENT']).default('Trung bình'),
+  dueDate: z.string().optional().nullable(),
+  startDate: z.string().optional().nullable(),
+  estimatedHours: z.number().min(0).default(0),
+  actualHours: z.number().min(0).default(0),
+  projectId: z.string().optional().nullable(),
+  linkedGoalId: z.string().optional().nullable(),
+  tags: z.string().optional().nullable(),
+  recurring: z.string().optional().nullable()
+});
+
+export const UpdateTaskSchema = CreateTaskSchema.partial();
+
+export const CreateFinanceAccountSchema = z.object({
+  name: z.string().min(1, 'Tên tài khoản là bắt buộc').max(100),
+  type: z.enum(['Tiền mặt', 'Ngân hàng', 'Ví điện tử', 'Thẻ tín dụng', 'Đầu tư', 'Khác']).default('Tiền mặt'),
+  balance: z.number().default(0),
+  currency: z.string().default('VND'),
+  color: z.string().default('#10b981')
+});
+
+export const UpdateFinanceAccountSchema = CreateFinanceAccountSchema.partial();
+
+export const CreateTransactionSchema = z.object({
+  accountId: z.string().min(1, 'Tài khoản là bắt buộc'),
+  toAccountId: z.string().optional().nullable(),
+  amount: z.number().positive('Số tiền phải lớn hơn 0'),
+  type: z.enum(['Thu nhập', 'Chi tiêu', 'Chuyển tiền', 'INCOME', 'EXPENSE', 'TRANSFER']),
+  category: z.string().min(1, 'Danh mục là bắt buộc').default('Chung'),
+  date: z.string().min(1, 'Ngày giao dịch là bắt buộc'),
+  note: z.string().max(500, 'Ghi chú tối đa 500 ký tự').optional().nullable()
+});
+
+export const UpdateTransactionSchema = CreateTransactionSchema.partial();
+
+export const CreateHabitSchema = z.object({
+  name: z.string().min(1, 'Tên thói quen là bắt buộc').max(150),
+  category: z.string().default('Personal'),
+  target: z.number().positive('Mục tiêu phải lớn hơn 0').default(1),
+  unitLabel: z.string().default('lần'),
+  unit: z.string().default('boolean'),
+  scheduleTime: z.string().optional().nullable(),
+  status: z.enum(['Active', 'Archived', 'Paused']).default('Active')
+});
+
+export const UpdateHabitSchema = CreateHabitSchema.partial();
+
+export const CreateGoalSchema = z.object({
+  title: z.string().min(1, 'Tiêu đề mục tiêu là bắt buộc').max(200),
+  category: z.string().default('Personal'),
+  targetValue: z.number().positive().default(100),
+  currentValue: z.number().min(0).default(0),
+  deadline: z.string().optional().nullable(),
+  tier: z.string().default('Tier 1'),
+  status: z.enum(['In Progress', 'Completed', 'Paused', 'Behind']).default('In Progress')
+});
+
+export const UpdateGoalSchema = CreateGoalSchema.partial();
+
+export const CreateNoteSchema = z.object({
+  title: z.string().min(1, 'Tiêu đề ghi chú là bắt buộc').max(255),
+  content: z.string().default(''),
+  folder: z.string().default('Ghi chú chung'),
+  category: z.string().default('Cá nhân'),
+  pinned: z.boolean().default(false),
+  tags: z.string().default('[]')
+});
+
+export const UpdateNoteSchema = CreateNoteSchema.partial();
+
+export const TaskAttachmentSchema = z.object({
+  fileName: z.string().min(1, 'Tên tệp là bắt buộc').max(255),
+  fileUrl: z.string().url('Đường dẫn tệp phải là URL hợp lệ').refine(url => url.startsWith('https://'), {
+    message: 'Chỉ chấp nhận tệp lưu trữ qua giao thức bảo mật HTTPS'
+  }),
+  fileSize: z.number().min(0).default(0)
+});
+
 export function validateBody(schema: z.ZodSchema) {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse(req.body);

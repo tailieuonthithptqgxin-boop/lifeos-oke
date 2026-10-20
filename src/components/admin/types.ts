@@ -11,7 +11,8 @@ export type AdminTab =
   | 'gmail_config'
   | 'referrals'
   | 'feedback'
-  | 'announcements';
+  | 'announcements'
+  | 'live_test_lab';
 
 export interface PasswordResetRequestItem {
   id: string;

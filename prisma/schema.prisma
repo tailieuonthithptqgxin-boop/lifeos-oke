@@ -37,7 +37,12 @@ model User {
   avatar              String?
   onboardingCompleted Boolean    @default(false)
   planExpiresAt       DateTime?
-  createdAt           DateTime   @default(now())
+  googleId            String?    @unique @map("google_id")
+  trialStartedAt      DateTime?  @map("trial_started_at")
+  trialEndsAt         DateTime?  @map("trial_ends_at")
+  trialUsed           Boolean    @default(false) @map("trial_used")
+    isTestData          Boolean    @default(false) @map("is_test_data")
+createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
 
   sessions            Session[]
@@ -75,7 +80,11 @@ model User {
   payments            Payment[]
   cartItems           CartItem[]
   orders              Order[]
-  notifications       Notification[]
+  notifications          Notification[]
+  notificationPreference UserNotificationPreference?
+  notificationRules      UserNotificationRule[]
+  emailIntegration       UserEmailIntegration?
+  notificationDeliveries NotificationDelivery[]
   supportTickets      SupportTicket[]
   templateUsages      TemplateUsage[]
   ownedTeams          Team[]         @relation("TeamOwner")
@@ -103,6 +112,8 @@ model User {
   @@index([email])
   @@index([role])
   @@index([status])
+  @@index([googleId])
+  @@index([trialEndsAt])
   @@index([createdAt])
   @@map("users")
 }
@@ -219,7 +230,9 @@ model Task {
   actualHours    Float            @default(0)
   tags           String?
   recurring      String?
-  createdAt      DateTime         @default(now())
+  deletedAt      DateTime?        @map("deleted_at")
+    isTestData          Boolean    @default(false) @map("is_test_data")
+createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
   comments       TaskComment[]
@@ -235,6 +248,7 @@ model Task {
   @@index([createdAt])
   @@index([userId, status, dueDate])
   @@index([dueDate, status])
+  @@index([userId, deletedAt])
   @@map("tasks")
 }
 
@@ -440,12 +454,14 @@ model FinanceAccount {
   balance   Float         @default(0)
   currency  String        @default("VND")
   color     String        @default("#10b981")
+  deletedAt DateTime?     @map("deleted_at")
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
 
   transactions Transaction[]
 
   @@index([userId])
+  @@index([userId, deletedAt])
   @@map("finance_accounts")
 }
 
@@ -461,7 +477,9 @@ model Transaction {
   category    String         @default("Chung")
   date        String
   note        String?
-  createdAt   DateTime       @default(now())
+  deletedAt   DateTime?      @map("deleted_at")
+    isTestData          Boolean    @default(false) @map("is_test_data")
+createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
   @@index([userId])
@@ -469,6 +487,8 @@ model Transaction {
   @@index([date])
   @@index([type])
   @@index([category])
+  @@index([userId, date, type])
+  @@index([userId, deletedAt])
   @@map("transactions")
 }
 
@@ -644,13 +664,16 @@ model Habit {
   status         String     @default("Active")
   completedDates String     @default("[]")
   scheduleTime   String?
-  createdAt      DateTime   @default(now())
+  deletedAt      DateTime?  @map("deleted_at")
+    isTestData          Boolean    @default(false) @map("is_test_data")
+createdAt      DateTime   @default(now())
   updatedAt      DateTime   @updatedAt
 
   habitLogs      HabitLog[]
 
   @@index([userId])
   @@index([status])
+  @@index([userId, deletedAt])
   @@map("habits")
 }
 
@@ -685,7 +708,9 @@ model Goal {
   streak       Int             @default(0)
   score        Float           @default(0)
   tier         String          @default("Tier 1")
-  createdAt    DateTime        @default(now())
+  deletedAt    DateTime?       @map("deleted_at")
+    isTestData          Boolean    @default(false) @map("is_test_data")
+createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
   tasks        Task[]
@@ -695,6 +720,7 @@ model Goal {
   @@index([userId])
   @@index([status])
   @@index([deadline])
+  @@index([userId, deletedAt])
   @@map("goals")
 }
 
@@ -737,13 +763,16 @@ model Note {
   category  String   @default("Cá nhân")
   pinned    Boolean  @default(false)
   tags      String   @default("[]")
-  createdAt DateTime @default(now())
+  deletedAt DateTime? @map("deleted_at")
+    isTestData          Boolean    @default(false) @map("is_test_data")
+createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([folder])
   @@index([category])
   @@index([pinned])
+  @@index([userId, deletedAt])
   @@map("notes")
 }
 
@@ -1030,18 +1059,110 @@ model Notification {
   title           String
   message         String
   type            String   @default("info")
-  priority        String   @default("NORMAL") // NORMAL, IMPORTANT, CRITICAL
+  priority        String   @default("NORMAL") // LOW, NORMAL, IMPORTANT, CRITICAL
+  category        String?  // CALENDAR, TASK, SYSTEM, FINANCIAL, ANNOUNCEMENT
+  deliveryId      String?
   actionUrl       String?
   actionLabel     String?
   read            Boolean  @default(false)
   readAt          DateTime?
   date            DateTime @default(now())
-  createdAt       DateTime @default(now())
+    isTestData          Boolean    @default(false) @map("is_test_data")
+createdAt       DateTime @default(now())
 
   @@index([userId])
   @@index([read])
   @@index([announcementId])
+  @@index([category])
   @@map("notifications")
+}
+
+model UserNotificationPreference {
+  id                       String   @id @default(uuid())
+  userId                   String   @unique
+  user                     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enabled                  Boolean  @default(true)
+  inAppEnabled             Boolean  @default(true)
+  emailEnabled             Boolean  @default(true)
+  recipientEmail           String?
+  timezone                 String   @default("Asia/Ho_Chi_Minh")
+  quietHoursEnabled        Boolean  @default(false)
+  quietHoursStart          String   @default("22:00")
+  quietHoursEnd            String   @default("07:00")
+  quietHoursBypassCritical Boolean  @default(true)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  @@map("user_notification_preferences")
+}
+
+model UserNotificationRule {
+  id                  String   @id @default(uuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventType           String
+  enabled             Boolean  @default(true)
+  timingOffsetMinutes Int      @default(15)
+  priority            String   @default("NORMAL")
+  channels            String   @default("in_app,email")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@unique([userId, eventType])
+  @@index([userId])
+  @@index([eventType])
+  @@map("user_notification_rules")
+}
+
+model UserEmailIntegration {
+  id             String    @id @default(uuid())
+  userId         String    @unique
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider       String    @default("gmail")
+  connectedEmail String
+  accessToken    String?
+  refreshToken   String?
+  tokenExpiry    DateTime?
+  status         String    @default("ACTIVE")
+  lastVerifiedAt DateTime?
+  lastError      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("user_email_integrations")
+}
+
+model NotificationDelivery {
+  id             String    @id @default(uuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  notificationId String?
+  eventType      String
+  entityId       String?
+  channel        String
+  recipient      String
+  subject        String?
+  title          String
+  content        String
+  priority       String    @default("NORMAL")
+  status         String    @default("PENDING")
+  idempotencyKey String    @unique
+  retryCount     Int       @default(0)
+  maxRetries     Int       @default(3)
+  nextRetryAt    DateTime?
+  scheduledFor   DateTime  @default(now())
+  sentAt         DateTime?
+  failedAt       DateTime?
+  errorMessage   String?
+  metadata       String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([status, scheduledFor])
+  @@index([eventType])
+  @@index([channel])
+  @@map("notification_deliveries")
 }
 
 model Announcement {
@@ -1120,7 +1241,8 @@ model AuditLog {
   afterState   String?
   result       String   @default("Success")
   reason       String?
-  timestamp    DateTime @default(now())
+    isTestData          Boolean    @default(false) @map("is_test_data")
+timestamp    DateTime @default(now())
 
   @@index([adminId])
   @@index([action])
@@ -1660,6 +1782,44 @@ model BattleRecord {
   @@index([monsterId])
   @@index([createdAt])
   @@map("battle_records")
+}
+
+model EmailQueue {
+  id          String    @id @default(uuid())
+  recipient   String
+  subject     String
+  htmlBody    String    @map("html_body")
+  eventType   String    @map("event_type")
+  status      String    @default("PENDING")
+  retryCount  Int       @default(0) @map("retry_count")
+  lastError   String?   @map("last_error")
+  nextRetryAt DateTime? @map("next_retry_at")
+  metadata    String?
+    isTestData          Boolean    @default(false) @map("is_test_data")
+createdAt   DateTime  @default(now()) @map("created_at")
+  sentAt      DateTime? @map("sent_at")
+
+  @@index([status, nextRetryAt], map: "idx_email_queue_status_retry")
+  @@index([createdAt(sort: Desc)], map: "idx_email_queue_created_at")
+  @@index([recipient], map: "idx_email_queue_recipient")
+  @@map("email_queue")
+}
+
+model IdempotencyKey {
+  id           String   @id @default(uuid())
+  key          String   @unique
+  userId       String   @map("user_id")
+  endpoint     String
+  requestHash  String   @map("request_hash")
+  responseCode Int      @map("response_code")
+  responseBody String   @map("response_body")
+  createdAt    DateTime @default(now()) @map("created_at")
+  expiresAt    DateTime @map("expires_at")
+
+  @@index([key])
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("idempotency_keys")
 }
 
 

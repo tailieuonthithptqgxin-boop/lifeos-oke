@@ -72,6 +72,10 @@ class ToastManager {
     return this.show(message, 'warning', title, duration);
   }
 
+  public warn(message: string, title?: string, duration: number = 4500): string {
+    return this.warning(message, title, duration);
+  }
+
   public info(message: string, title?: string, duration: number = 4000): string {
     return this.show(message, 'info', title, duration);
   }

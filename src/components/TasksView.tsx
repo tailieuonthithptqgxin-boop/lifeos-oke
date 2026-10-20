@@ -246,21 +246,29 @@ export function TasksView() {
     setShowTaskModal(true);
   };
 
+  const [isQuickCreating, setIsQuickCreating] = useState(false);
+
   const handleQuickCreate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isQuickCreating) return;
     const title = quickTitle.trim();
     if (!title) return;
 
-    await addTask({
-      title,
-      status: 'Chưa làm',
-      priority: quickPriority || 'Trung bình',
-      dueDate: quickDueDate || localToday,
-      estimatedHours: 1,
-      actualHours: 0,
-      tags: []
-    });
-    setQuickTitle('');
+    try {
+      setIsQuickCreating(true);
+      await addTask({
+        title,
+        status: 'Chưa làm',
+        priority: quickPriority || 'Trung bình',
+        dueDate: quickDueDate || localToday,
+        estimatedHours: 1,
+        actualHours: 0,
+        tags: []
+      });
+      setQuickTitle('');
+    } finally {
+      setIsQuickCreating(false);
+    }
   };
 
   return (
@@ -458,15 +466,15 @@ export function TasksView() {
         {viewMode === 'list' ? (
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col">
             {/* Linear Style Quick Add Task Input */}
-            <form onSubmit={handleQuickCreate} className="p-2.5 sm:p-3 border-b border-slate-100 dark:border-slate-800 flex flex-wrap sm:flex-nowrap items-center gap-2 bg-slate-50/70 dark:bg-slate-800/40">
-              <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+            <form onSubmit={handleQuickCreate} className="p-3 sm:p-3.5 border-b border-slate-100 dark:border-slate-800 flex flex-wrap sm:flex-nowrap items-center gap-2.5 bg-slate-50/70 dark:bg-slate-800/40">
+              <div className="flex items-center gap-2 flex-1 min-w-[220px]">
                 <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 ml-1" />
                 <input
                   type="text"
                   value={quickTitle}
                   onChange={e => setQuickTitle(e.target.value)}
                   placeholder={t('Thêm nhanh công việc mới... (Nhấn Enter để lưu)')}
-                  className="w-full bg-transparent text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden"
+                  className="w-full bg-transparent text-base sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden"
                 />
               </div>
 
@@ -476,13 +484,13 @@ export function TasksView() {
                   type="date"
                   value={quickDueDate}
                   onChange={e => setQuickDueDate(e.target.value)}
-                  className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-slate-600 dark:text-slate-300 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+                  className="text-base sm:text-xs min-h-[38px] sm:min-h-[32px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-slate-600 dark:text-slate-300 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
                   title={t('Hạn chót')}
                 />
                 <select
                   value={quickPriority}
                   onChange={e => setQuickPriority(e.target.value as Priority)}
-                  className="text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-slate-600 dark:text-slate-300 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+                  className="text-base sm:text-xs min-h-[38px] sm:min-h-[32px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-slate-600 dark:text-slate-300 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
                   title={t('Độ ưu tiên')}
                 >
                   <option value="Thấp">{t('Thấp')}</option>
@@ -493,9 +501,10 @@ export function TasksView() {
                 {quickTitle.trim() && (
                   <button
                     type="submit"
-                    className="px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black rounded-lg shadow-xs transition-colors cursor-pointer shrink-0"
+                    disabled={isQuickCreating}
+                    className="px-3.5 py-1.5 min-h-[38px] sm:min-h-[32px] bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 text-xs font-black rounded-xl shadow-xs transition-colors cursor-pointer shrink-0"
                   >
-                    {t('Thêm ↵')}
+                    {isQuickCreating ? '...' : t('Thêm ↵')}
                   </button>
                 )}
               </div>
@@ -1061,9 +1070,17 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
     }
   };
 
-  const handleSubmit = (e: any) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
-    if (!formData.title.trim()) return;
+    if (isSubmitting) return;
+    setErrorMessage(null);
+    if (!formData.title.trim()) {
+      setErrorMessage(t('Vui lòng nhập tên công việc'));
+      return;
+    }
 
     const parsedTags = typeof formData.tags === 'string'
       ? formData.tags.split(',').map((t: string) => t.trim().replace(/^#/, '')).filter(Boolean)
@@ -1075,20 +1092,26 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
       ? (rawDesc ? `${rawDesc}\n\n[Ghi chú]: ${rawNotes}` : rawNotes)
       : rawDesc;
 
-    onSave({
-      ...(task || {}),
-      title: formData.title.trim(),
-      description: mergedDescription,
-      status: formData.status,
-      priority: formData.priority,
-      dueDate: formData.dueDate || null,
-      projectId: formData.projectId || null,
-      linkedGoalId: formData.linkedGoalId || null,
-      estimatedHours: formData.estimatedHours ? Number(formData.estimatedHours) : 0,
-      actualHours: formData.actualHours ? Number(formData.actualHours) : 0,
-      recurrence: formData.recurrence,
-      tags: parsedTags
-    });
+    try {
+      setIsSubmitting(true);
+      await Promise.resolve(onSave({
+        ...(task || {}),
+        title: formData.title.trim(),
+        description: mergedDescription,
+        status: formData.status,
+        priority: formData.priority,
+        dueDate: formData.dueDate || null,
+        projectId: formData.projectId || null,
+        linkedGoalId: formData.linkedGoalId || null,
+        estimatedHours: formData.estimatedHours ? Number(formData.estimatedHours) : 0,
+        actualHours: formData.actualHours ? Number(formData.actualHours) : 0,
+        recurrence: formData.recurrence,
+        tags: parsedTags
+      }));
+    } catch (err: any) {
+      setErrorMessage(err?.message || t('Lỗi khi lưu công việc'));
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -1119,16 +1142,22 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
         </div>
         
         <form id="task-form" onSubmit={handleSubmit} className="flex-1 flex flex-col overflow-hidden">
-          <div className="p-5 overflow-y-auto flex-1 space-y-5">
+          <div className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4 sm:space-y-5">
+            {errorMessage && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs sm:text-sm flex items-start gap-2 animate-fade-in">
+                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
             <div>
-              <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+              <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                 {t('Tên công việc')} <span className="text-red-500">*</span>
               </label>
               <input 
                 type="text" required autoFocus
                 value={formData.title} 
                 onChange={e => setFormData({ ...formData, title: e.target.value })}
-                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white font-medium"
+                className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-base sm:text-sm font-medium"
                 placeholder={t('VD: Soạn thảo đề xuất kế hoạch quý 4...')}
               />
             </div>
@@ -1349,19 +1378,28 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
             )}
           </div>
 
-          <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end gap-3 shrink-0">
+          <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end gap-2.5 shrink-0">
             <button 
               type="button" 
               onClick={onClose} 
-              className="px-4 py-2 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer text-sm"
+              disabled={isSubmitting}
+              className="px-4 py-2.5 min-h-[44px] text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-200 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer text-sm disabled:opacity-50"
             >
               {t('Hủy')}
             </button>
             <button 
               type="submit" 
-              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition-colors shadow-xs cursor-pointer text-sm"
+              disabled={isSubmitting}
+              className="px-5 py-2.5 min-h-[44px] bg-emerald-600 hover:bg-emerald-500 disabled:bg-emerald-400 text-white font-bold rounded-xl transition-all shadow-xs cursor-pointer text-sm flex items-center gap-2"
             >
-              {t('Lưu Công việc')}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>{t('Đang lưu...')}</span>
+                </>
+              ) : (
+                <span>{t('Lưu Công việc')}</span>
+              )}
             </button>
           </div>
         </form>

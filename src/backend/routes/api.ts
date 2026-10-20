@@ -5,6 +5,7 @@ import { dbService, getPrisma } from '../db.js';
 import { DecisionEngineService } from '../services/decisionEngine.service.js';
 import { AutomationEngineService } from '../services/automationEngine.service.js';
 import { subscriptionService, OFFICIAL_PLANS } from '../services/subscription.service.js';
+import { testLabRouter } from './testLab.routes.js';
 import { teamService } from '../services/team.service.js';
 import { gmailService, getAppBaseUrl } from '../services/gmailNotification.service.js';
 import { referralService } from '../services/referral.service.js';
@@ -17,7 +18,13 @@ import { r2Router } from './r2.routes.js';
 import { customModulesRouter } from './customModules.routes.js';
 import { vocabRouter } from './vocab.routes.js';
 import { announcementService } from '../services/announcement.service.js';
+import { notificationEngine } from '../services/notification/notificationEngine.service.js';
+import { gmailOAuthService } from '../services/notification/gmailOAuth.service.js';
+import { SYSTEM_NOTIFICATION_RULES, NotificationEventType } from '../services/notification/notification.types.js';
 import { paymentRateLimiter, couponRateLimiter } from '../security/rateLimiter.js';
+import { emailQueueService } from '../services/emailQueue.service.js';
+import { SystemNotificationHelper } from '../services/systemNotification.helper.js';
+import { idempotencyMiddleware } from '../security/idempotency.middleware.js';
 import {
   FinanceTransactionSchema,
   CouponValidateSchema,
@@ -36,6 +43,19 @@ import {
   AdminResetPasswordSchema,
   CreateAnnouncementSchema,
   UpdateAnnouncementSchema,
+  CreateTaskSchema,
+  UpdateTaskSchema,
+  CreateFinanceAccountSchema,
+  UpdateFinanceAccountSchema,
+  CreateTransactionSchema,
+  UpdateTransactionSchema,
+  CreateHabitSchema,
+  UpdateHabitSchema,
+  CreateGoalSchema,
+  UpdateGoalSchema,
+  CreateNoteSchema,
+  UpdateNoteSchema,
+  TaskAttachmentSchema,
   validateBody
 } from '../validation.js';
 
@@ -106,8 +126,113 @@ apiRouter.get('/payments/plans', async (req: any, res: Response) => {
   }
 });
 
+// OAuth Google Callback endpoint for Gmail integration (Public callback from Google with state parameter)
+apiRouter.get('/notifications/gmail/callback', async (req, res: Response) => {
+  const { code, state, error } = req.query as { code?: string; state?: string; error?: string };
+
+  if (error || !code || !state) {
+    const errorMsg = error || 'Thiếu tham số xác thực OAuth từ Google.';
+    res.status(400).send(`
+      <!DOCTYPE html>
+      <html>
+        <head><meta charset="utf-8"><title>Kết nối Gmail thất bại</title></head>
+        <body style="font-family: sans-serif; text-align: center; padding: 40px; background: #FFF1F2; color: #9F1239;">
+          <h2>❌ Kết nối Google OAuth thất bại</h2>
+          <p>${errorMsg}</p>
+          <button onclick="window.close()" style="padding: 10px 20px; border-radius: 8px; background: #E11D48; color: white; border: none; cursor: pointer;">Đóng cửa sổ</button>
+        </body>
+      </html>
+    `);
+    return;
+  }
+
+  const result = await gmailOAuthService.handleCallback(code, state);
+
+  if (result.success) {
+    res.status(200).send(`
+      <!DOCTYPE html>
+      <html>
+        <head><meta charset="utf-8"><title>Kết nối Gmail thành công</title></head>
+        <body style="font-family: sans-serif; text-align: center; padding: 40px; background: #F0FDF4; color: #166534;">
+          <div style="font-size: 48px; margin-bottom: 12px;">✅</div>
+          <h2 style="margin: 0 0 10px 0;">Kết nối Gmail thành công!</h2>
+          <p>Tài khoản: <strong>${result.email}</strong> đã được liên kết với Hệ thống Thông báo LifeOS.</p>
+          <p style="font-size: 13px; color: #15803D;">Cửa sổ này sẽ tự động đóng sau 2.5 giây...</p>
+          <script>
+            try {
+              if (window.opener) {
+                window.opener.postMessage({ type: 'GMAIL_CONNECTED', email: '${result.email}' }, '*');
+              }
+            } catch (e) {}
+            setTimeout(() => { window.close(); }, 2500);
+          </script>
+        </body>
+      </html>
+    `);
+    return;
+  } else {
+    res.status(400).send(`
+      <!DOCTYPE html>
+      <html>
+        <head><meta charset="utf-8"><title>Kết nối Gmail thất bại</title></head>
+        <body style="font-family: sans-serif; text-align: center; padding: 40px; background: #FFF1F2; color: #9F1239;">
+          <h2>❌ Không thể hoàn tất liên kết Gmail</h2>
+          <p>${result.error || 'Đã có lỗi xảy ra trong quá trình trao đổi token với Google.'}</p>
+          <button onclick="window.close()" style="padding: 10px 20px; border-radius: 8px; background: #E11D48; color: white; border: none; cursor: pointer;">Đóng cửa sổ</button>
+        </body>
+      </html>
+    `);
+    return;
+  }
+});
+
+// Public Health & Readiness Probes (accessible by Load Balancers, Uptime Monitors, Docker, VPS)
+apiRouter.get('/health', async (req, res) => {
+  let dbLive = false;
+  try {
+    await getPrisma().$queryRaw`SELECT 1`;
+    dbLive = true;
+  } catch (e) {
+    dbLive = false;
+  }
+  res.status(dbLive ? 200 : 503).json({
+    status: dbLive ? 'ok' : 'degraded',
+    database: dbLive ? 'connected' : 'disconnected',
+    timestamp: new Date().toISOString()
+  });
+});
+
+apiRouter.get('/ready', async (req, res) => {
+  try {
+    await getPrisma().$queryRaw`SELECT 1`;
+    res.status(200).json({ status: 'ready', database: 'ready' });
+  } catch (e) {
+    res.status(503).json({ status: 'not_ready', database: 'unavailable' });
+  }
+});
+
+// Public Global Free Mode check (Used by UI Header and onboarding gates)
+apiRouter.get('/settings/global-free-mode', async (req: any, res: Response) => {
+  try {
+    const enabled = await subscriptionService.isGlobalFreeMode();
+    res.json({ success: true, enabled });
+  } catch (err: any) {
+    res.status(500).json({ success: false, enabled: false, message: err.message });
+  }
+});
+
+// Public OAuth Fallback Aliases (Bypass requireAuth)
+apiRouter.get('/auth/google', (req, res) => res.redirect('/api/auth/google'));
+apiRouter.get('/auth/google/callback', (req, res) => {
+  const qs = new URLSearchParams(req.query as any).toString();
+  res.redirect(qs ? ('/api/auth/google/callback?' + qs) : '/api/auth/google/callback');
+});
+
 // Protect all /api endpoints with authentication
 apiRouter.use(requireAuth);
+
+// Idempotency Protection: Guarantees single execution for state mutations (no double charge, no duplicate records)
+apiRouter.use(idempotencyMiddleware({ ttlHours: 24, autoHashPayload: true }));
 
 // Universal Subscription & Access Control Gate:
 // Non-admin users MUST have an ACTIVE, non-expired subscription (or active Team membership) to access paid workspace modules or mutate data.
@@ -679,6 +804,154 @@ apiRouter.post('/templates/:id/apply', async (req: AuthRequest, res: Response) =
       createdSummary.tasks = 4;
       createdSummary.notes = 1;
       createdSummary.view = 'projects';
+    } else if (id === 'tpl_okr_master') {
+      const todayStr = new Date().toISOString().split('T')[0];
+      const quarterEnd = new Date(Date.now() + 86400000 * 90).toISOString().split('T')[0];
+
+      const g1 = await prisma.goal.create({
+        data: {
+          userId,
+          title: '🎯 [OKR Quý] Bứt Phá Năng Lực & Tăng Trưởng Thu Nhập 30%',
+          category: 'Career',
+          targetValue: 100,
+          currentValue: 15,
+          status: 'Active',
+          deadline: quarterEnd
+        }
+      });
+
+      const p1 = await prisma.project.create({
+        data: {
+          userId,
+          name: '🚀 Chiến Dịch Thực Thi OKR Trọng Tâm',
+          description: `Các đầu việc và sáng kiến hành động phục vụ trực tiếp cho mục tiêu: ${g1.title}`,
+          status: 'Đang làm',
+          color: '#6366f1'
+        }
+      });
+
+      await prisma.task.createMany({
+        data: [
+          { userId, projectId: p1.id, title: 'KR1: Hoàn thành 100% tài liệu và sản phẩm bàn giao đúng hạn', priority: 'Cao', status: 'Chưa làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'KR2: Đạt tối thiểu 60 giờ học tập & thực hành kỹ năng cốt lõi', priority: 'Cao', status: 'Đang làm', dueDate: todayStr },
+          { userId, projectId: p1.id, title: 'KR3: Tích lũy tối thiểu 15 triệu vào quỹ tài chính dự phòng', priority: 'Trung bình', status: 'Chưa làm' },
+          { userId, projectId: p1.id, title: 'Họp kiểm tra tiến độ OKR hàng tuần (Weekly Check-in 15p)', priority: 'Trung bình', status: 'Chưa làm' }
+        ]
+      });
+
+      await prisma.note.create({
+        data: {
+          userId,
+          title: 'Sổ Tay Phương Pháp OKRs (Objectives & Key Results)',
+          content: '### Nguyên Tắc Vàng Của OKRs:\n1. **Objectives (Mục tiêu)**: Phải truyền cảm hứng, rõ ràng và có tính thách thức.\n2. **Key Results (Kết quả then chốt)**: Phải đo lường được bằng con số cụ thể (từ X đến Y).\n3. **Không dùng làm KPI phạt**: OKRs là công cụ định hướng nỗ lực, đạt 70-80% đã là thành công lớn.',
+          category: 'Management',
+          tags: '["OKR", "Goals", "Productivity"]'
+        }
+      });
+
+      createdSummary.projects = 1;
+      createdSummary.tasks = 4;
+      createdSummary.notes = 1;
+      createdSummary.view = 'projects';
+    } else if (id === 'tpl_eisenhower_matrix') {
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      const p1 = await prisma.project.create({
+        data: { userId, name: '🔴 Q1: Khẩn Cấp & Quan Trọng (Làm Ngay)', description: 'Nhiệm vụ có deadline sát nút, khủng hoảng cần giải quyết trong 24h', status: 'Đang làm', color: '#ef4444' }
+      });
+      const p2 = await prisma.project.create({
+        data: { userId, name: '🟢 Q2: Quan Trọng & Không Khẩn Cấp (Lên Lịch)', description: 'Chiến lược dài hạn, học tập, sức khỏe và mối quan hệ (Nơi tạo ra 80% thành công)', status: 'Đang làm', color: '#10b981' }
+      });
+      const p3 = await prisma.project.create({
+        data: { userId, name: '🟡 Q3: Khẩn Cấp & Không Quan Trọng (Ủy Quyền)', description: 'Cuộc gọi gián đoạn, email sự vụ, việc vặt của người khác nhờ', status: 'Đang làm', color: '#f59e0b' }
+      });
+      const p4 = await prisma.project.create({
+        data: { userId, name: '⚪ Q4: Không Khẩn Cấp & Không Quan Trọng (Loại Bỏ)', description: 'Lướt mạng xã hội vô định, việc giải trí quá độ gây mất tập trung', status: 'Mới tạo', color: '#64748b' }
+      });
+
+      await prisma.task.createMany({
+        data: [
+          { userId, projectId: p1.id, title: 'Giải quyết việc gấp phát sinh hôm nay trước 12:00', priority: 'Khẩn cấp', status: 'Chưa làm', dueDate: todayStr },
+          { userId, projectId: p2.id, title: 'Dành 60 phút Deep Work cho mục tiêu phát triển dài hạn', priority: 'Cao', status: 'Đang làm', dueDate: todayStr },
+          { userId, projectId: p3.id, title: 'Ủy quyền hoặc tự động hóa các email trả lời lặp đi lặp lại', priority: 'Trung bình', status: 'Chưa làm' },
+          { userId, projectId: p4.id, title: 'Hạn chế mở ứng dụng tiêu thụ dopamine rác trong giờ làm việc', priority: 'Thấp', status: 'Đang làm' }
+        ]
+      });
+
+      await prisma.note.create({
+        data: {
+          userId,
+          title: 'Ma Trận Eisenhower: Bí Quyết Quản Trị Thời Gian Của Tổng Thống',
+          content: '### Cách Phân Bổ Năng Lượng Theo Ma Trận Eisenhower:\n- **Q1 (Làm ngay)**: Tối đa 20% thời gian trong ngày.\n- **Q2 (Đầu tư dài hạn)**: Cố gắng dành ít nhất 60% thời gian vào đây.\n- **Q3 (Ủy quyền/Từ chối)**: Học cách nói "Không" lịch sự.\n- **Q4 (Cắt giảm)**: Loại bỏ các thói quen đốt thời gian.',
+          category: 'Productivity',
+          tags: '["Eisenhower", "TimeManagement", "Priority"]'
+        }
+      });
+
+      createdSummary.projects = 4;
+      createdSummary.tasks = 4;
+      createdSummary.notes = 1;
+      createdSummary.view = 'projects';
+    } else if (id === 'tpl_6_jars_finance') {
+      const existingAccounts = await prisma.financeAccount.findMany({ where: { userId } });
+      const existingNames = new Set(existingAccounts.map(a => a.name));
+
+      const jarDefs = [
+        { name: '1. Hũ Nhu Cầu Thiết Yếu (NEC 55%)', type: 'Ngân hàng', color: '#2563eb' },
+        { name: '2. Hũ Tự Do Tài Chính (FFA 10%)', type: 'Đầu tư', color: '#10b981' },
+        { name: '3. Hũ Tiết Kiệm Dài Hạn (LTSS 10%)', type: 'Đầu tư', color: '#059669' },
+        { name: '4. Hũ Giáo Dục & Học Tập (EDU 10%)', type: 'Tiền mặt', color: '#8b5cf6' },
+        { name: '5. Hũ Hưởng Thụ Xả Stress (PLAY 10%)', type: 'Tiền mặt', color: '#f59e0b' },
+        { name: '6. Hũ Cho Đi & Giúp Đỡ (GIVE 5%)', type: 'Tiền mặt', color: '#ec4899' }
+      ];
+
+      for (const jar of jarDefs) {
+        if (!existingNames.has(jar.name)) {
+          await prisma.financeAccount.create({
+            data: { userId, name: jar.name, type: jar.type, balance: 0, currency: 'VND', color: jar.color }
+          });
+        }
+      }
+
+      await prisma.note.create({
+        data: {
+          userId,
+          title: 'Quy Tắc 6 Chiếc Hũ Quản Lý Tiền Bạc (T. Harv Eker)',
+          content: '### Bí quyết quản trị tài chính cá nhân 6 JARS:\n- **NEC 55%**: Ăn uống, thuê nhà, hóa đơn, sinh hoạt phí.\n- **FFA 10%**: Đầu tư cổ phiếu, vàng, bất động sản tạo thu nhập thụ động (không bao giờ tiêu).\n- **LTSS 10%**: Quỹ mua xe, du lịch lớn, sửa nhà.\n- **EDU 10%**: Mua sách, khóa học, nâng cấp kỹ năng nghề nghiệp.\n- **PLAY 10%**: Tiêu hết mỗi tháng cho sở thích để nuôi dưỡng tâm hồn.\n- **GIVE 5%**: Làm từ thiện, quà sinh nhật, giúp đỡ gia đình.',
+          category: 'Finance',
+          tags: '["6JARS", "Finance", "HarvEker"]'
+        }
+      });
+
+      createdSummary.accounts = 6;
+      createdSummary.notes = 1;
+      createdSummary.view = 'finance';
+    } else if (id === 'tpl_circadian_health') {
+      const todayStr = new Date().toISOString().split('T')[0];
+
+      await prisma.habit.createMany({
+        data: [
+          { userId, name: 'Tắm nắng tự nhiên 15 phút đầu sáng', category: 'Health', target: 15, unitLabel: 'phút', unit: 'minutes', status: 'Active' },
+          { userId, name: 'Uống 500ml nước kèm nhúm muối khoáng sáng', category: 'Health', target: 500, unitLabel: 'ml', unit: 'ml', status: 'Active' },
+          { userId, name: 'Dừng nạp caffeine sau 14:00 chiều', category: 'Health', target: 1, unitLabel: 'lần', unit: 'times', status: 'Active' },
+          { userId, name: 'Tắt màn hình xanh & hạ đèn lúc 22:00', category: 'Health', target: 1, unitLabel: 'lần', unit: 'times', status: 'Active' },
+          { userId, name: 'Giấc ngủ sâu đủ 7.5 - 8 tiếng', category: 'Health', target: 8, unitLabel: 'tiếng', unit: 'hours', status: 'Active' }
+        ]
+      });
+
+      await prisma.note.create({
+        data: {
+          userId,
+          title: 'Giao Thức Tối Ưu Nhịp Sinh Học Circadian Rhythm (TS. Andrew Huberman)',
+          content: '### Các Trụ Cột Tối Ưu Năng Lượng Sinh Học:\n1. **Ánh sáng mặt trời buổi sớm**: Kích hoạt cortisol tự nhiên và đồng hồ sinh học.\n2. **Trì hoãn cà phê 90 phút sau thức dậy**: Tránh sụp đổ năng lượng (Adenosine crash) buổi chiều.\n3. **Nhiệt độ phòng ngủ**: Giữ phòng ngủ mát (19-21°C) giúp đi vào giấc ngủ sâu nhanh hơn.\n4. **Thể dục**: 30-45 phút mỗi ngày tăng độ nhạy insulin và tập trung trí óc.',
+          category: 'Health',
+          tags: '["Circadian", "Health", "Huberman", "Sleep"]'
+        }
+      });
+
+      createdSummary.habits = 5;
+      createdSummary.notes = 1;
+      createdSummary.view = 'habits';
     } else {
       // General template
       const proj = await prisma.project.create({
@@ -1173,6 +1446,63 @@ apiRouter.post('/data/:collection', async (req: AuthRequest, res: Response) => {
   }
 
   try {
+    // Strict schema validation per core collection
+    if (collection === 'tasks') {
+      const parsed = CreateTaskSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: parsed.error.issues.map(i => i.message).join('; ') },
+          message: parsed.error.issues.map(i => i.message).join('; ')
+        });
+      }
+    } else if (collection === 'financeAccounts') {
+      const parsed = CreateFinanceAccountSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: parsed.error.issues.map(i => i.message).join('; ') },
+          message: parsed.error.issues.map(i => i.message).join('; ')
+        });
+      }
+    } else if (collection === 'transactions') {
+      const parsed = CreateTransactionSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: parsed.error.issues.map(i => i.message).join('; ') },
+          message: parsed.error.issues.map(i => i.message).join('; ')
+        });
+      }
+    } else if (collection === 'habits') {
+      const parsed = CreateHabitSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: parsed.error.issues.map(i => i.message).join('; ') },
+          message: parsed.error.issues.map(i => i.message).join('; ')
+        });
+      }
+    } else if (collection === 'goals') {
+      const parsed = CreateGoalSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: parsed.error.issues.map(i => i.message).join('; ') },
+          message: parsed.error.issues.map(i => i.message).join('; ')
+        });
+      }
+    } else if (collection === 'notes') {
+      const parsed = CreateNoteSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: parsed.error.issues.map(i => i.message).join('; ') },
+          message: parsed.error.issues.map(i => i.message).join('; ')
+        });
+      }
+    }
+
     const payload = { ...req.body };
 
     // Prevent client from forging sensitive business fields
@@ -1219,6 +1549,21 @@ apiRouter.post('/data/:collection', async (req: AuthRequest, res: Response) => {
       );
     }
 
+    // Notification Engine Event Hooks:
+    if (collection === 'tasks' && created.title) {
+      notificationEngine.emitEvent({
+        userId,
+        eventType: 'TASK_CREATED',
+        entityId: created.id,
+        title: `Nhiệm vụ mới: "${created.title}"`,
+        message: `Nhiệm vụ <strong>"${created.title}"</strong> đã được tạo thành công trong danh sách của bạn.${created.dueDate ? ` Hạn chót: <strong>${created.dueDate}</strong>.` : ''}`,
+        priority: 'LOW',
+        category: 'TASK',
+        actionUrl: `${getAppBaseUrl()}/?view=tasks`,
+        actionLabel: 'Mở danh sách việc'
+      }).catch(err => console.warn('[Notification Hook] task created error:', err));
+    }
+
     res.status(201).json(created);
   } catch (err: any) {
     console.error(`POST /api/data/${collection} error:`, err);
@@ -1253,6 +1598,63 @@ apiRouter.put('/data/:collection/:id', async (req: AuthRequest, res: Response) =
   }
 
   try {
+    // Partial schema validation per core collection
+    if (collection === 'tasks') {
+      const parsed = UpdateTaskSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: parsed.error.issues.map(i => i.message).join('; ') },
+          message: parsed.error.issues.map(i => i.message).join('; ')
+        });
+      }
+    } else if (collection === 'financeAccounts') {
+      const parsed = UpdateFinanceAccountSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: parsed.error.issues.map(i => i.message).join('; ') },
+          message: parsed.error.issues.map(i => i.message).join('; ')
+        });
+      }
+    } else if (collection === 'transactions') {
+      const parsed = UpdateTransactionSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: parsed.error.issues.map(i => i.message).join('; ') },
+          message: parsed.error.issues.map(i => i.message).join('; ')
+        });
+      }
+    } else if (collection === 'habits') {
+      const parsed = UpdateHabitSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: parsed.error.issues.map(i => i.message).join('; ') },
+          message: parsed.error.issues.map(i => i.message).join('; ')
+        });
+      }
+    } else if (collection === 'goals') {
+      const parsed = UpdateGoalSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: parsed.error.issues.map(i => i.message).join('; ') },
+          message: parsed.error.issues.map(i => i.message).join('; ')
+        });
+      }
+    } else if (collection === 'notes') {
+      const parsed = UpdateNoteSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          success: false,
+          error: { code: 'VALIDATION_ERROR', message: parsed.error.issues.map(i => i.message).join('; ') },
+          message: parsed.error.issues.map(i => i.message).join('; ')
+        });
+      }
+    }
+
     const updates = { ...req.body };
 
     // Strip forbidden fields from generic update
@@ -1299,6 +1701,33 @@ apiRouter.put('/data/:collection/:id', async (req: AuthRequest, res: Response) =
           description: `Chinh phục mục tiêu tiết kiệm: ${updated.title || 'Khoản tích lũy'}`
         }).catch(err => console.warn('Progression hook error:', err));
       }
+    }
+
+    // Notification Engine Event Hooks:
+    if (collection === 'tasks' && (updated.status === 'Hoàn thành' || updated.status === 'Done' || updated.status === 'completed')) {
+      notificationEngine.emitEvent({
+        userId,
+        eventType: 'TASK_COMPLETED',
+        entityId: id,
+        title: `Hoàn thành xuất sắc: "${updated.title || 'Nhiệm vụ'}" 🎉`,
+        message: `Bạn vừa hoàn thành nhiệm vụ <strong>"${updated.title || 'Nhiệm vụ'}"</strong>! Hãy tiếp tục duy trì phong độ nhé.`,
+        priority: 'LOW',
+        category: 'TASK',
+        actionUrl: `${getAppBaseUrl()}/?view=tasks`,
+        actionLabel: 'Xem nhiệm vụ'
+      }).catch(err => console.warn('[Notification Hook] task completed error:', err));
+    } else if (collection === 'calendarEvents') {
+      notificationEngine.emitEvent({
+        userId,
+        eventType: 'CALENDAR_CHANGED',
+        entityId: id,
+        title: `Lịch biểu được cập nhật: "${updated.title || 'Sự kiện'}"`,
+        message: `Sự kiện <strong>"${updated.title || 'Sự kiện'}"</strong> đã được điều chỉnh ngày hoặc thời gian (${updated.date} lúc ${updated.startTime || ''}).`,
+        priority: 'NORMAL',
+        category: 'CALENDAR',
+        actionUrl: `${getAppBaseUrl()}/?view=calendar`,
+        actionLabel: 'Mở lịch biểu'
+      }).catch(err => console.warn('[Notification Hook] calendar changed error:', err));
     }
 
     res.json(updated);
@@ -1350,6 +1779,21 @@ apiRouter.delete('/data/:collection/:id', async (req: AuthRequest, res: Response
 
   try {
     await dbService.deleteUserCollectionItem(collection, userId, id, req.userRole);
+
+    if (collection === 'calendarEvents') {
+      notificationEngine.emitEvent({
+        userId,
+        eventType: 'CALENDAR_CANCELLED',
+        entityId: id,
+        title: `Sự kiện lịch đã bị hủy`,
+        message: `Một sự kiện trên lịch biểu của bạn đã được xóa khỏi hệ thống.`,
+        priority: 'NORMAL',
+        category: 'CALENDAR',
+        actionUrl: `${getAppBaseUrl()}/?view=calendar`,
+        actionLabel: 'Xem lịch biểu'
+      }).catch(err => console.warn('[Notification Hook] calendar cancelled error:', err));
+    }
+
     res.json({ success: true, message: 'Đã xóa thành công' });
   } catch (err: any) {
     const isClientError = err.message && (
@@ -1453,6 +1897,203 @@ apiRouter.put('/notifications/read-all', async (req: AuthRequest, res: Response)
       error: { code: 'UPDATE_FAILED', message: err.message },
       message: err.message
     });
+  }
+});
+
+// Delete a single notification
+apiRouter.delete('/notifications/:id', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { id } = req.params;
+  try {
+    const prisma = getPrisma();
+    await prisma.notification.deleteMany({
+      where: { id, userId }
+    });
+    res.json({ success: true, message: 'Đã xóa thông báo thành công' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Get User Notification Settings (Preferences, Rules, Gmail Status)
+apiRouter.get('/notifications/settings', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    const prisma = getPrisma();
+    const [preference, rules, gmailStatus] = await Promise.all([
+      notificationEngine.getUserPreferences(userId),
+      prisma.userNotificationRule.findMany({ where: { userId } }),
+      gmailOAuthService.getIntegrationStatus(userId)
+    ]);
+
+    const rulesMap = new Map(rules.map(r => [r.eventType, r]));
+    const allRules = Object.values(SYSTEM_NOTIFICATION_RULES).map(sysRule => {
+      const existing = rulesMap.get(sysRule.eventType);
+      return {
+        eventType: sysRule.eventType,
+        label: sysRule.label,
+        description: sysRule.description,
+        enabled: existing ? existing.enabled : sysRule.defaultEnabled,
+        timingOffsetMinutes: existing ? existing.timingOffsetMinutes : sysRule.defaultTimingMinutes,
+        priority: existing ? existing.priority : sysRule.defaultPriority,
+        channels: existing ? existing.channels : 'in_app,email',
+        supportedTimings: sysRule.supportedTimings
+      };
+    });
+
+    res.json({
+      success: true,
+      preference,
+      rules: allRules,
+      gmailIntegration: gmailStatus
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Update User Notification Preferences
+apiRouter.put('/notifications/settings', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const {
+    enabled,
+    inAppEnabled,
+    emailEnabled,
+    recipientEmail,
+    timezone,
+    quietHoursEnabled,
+    quietHoursStart,
+    quietHoursEnd,
+    quietHoursBypassCritical
+  } = req.body;
+
+  try {
+    const prisma = getPrisma();
+    const updated = await prisma.userNotificationPreference.upsert({
+      where: { userId },
+      update: {
+        ...(enabled !== undefined ? { enabled: Boolean(enabled) } : {}),
+        ...(inAppEnabled !== undefined ? { inAppEnabled: Boolean(inAppEnabled) } : {}),
+        ...(emailEnabled !== undefined ? { emailEnabled: Boolean(emailEnabled) } : {}),
+        ...(recipientEmail !== undefined ? { recipientEmail: recipientEmail?.trim() || null } : {}),
+        ...(timezone !== undefined ? { timezone: timezone.trim() } : {}),
+        ...(quietHoursEnabled !== undefined ? { quietHoursEnabled: Boolean(quietHoursEnabled) } : {}),
+        ...(quietHoursStart !== undefined ? { quietHoursStart: quietHoursStart.trim() } : {}),
+        ...(quietHoursEnd !== undefined ? { quietHoursEnd: quietHoursEnd.trim() } : {}),
+        ...(quietHoursBypassCritical !== undefined ? { quietHoursBypassCritical: Boolean(quietHoursBypassCritical) } : {})
+      },
+      create: {
+        userId,
+        enabled: enabled ?? true,
+        inAppEnabled: inAppEnabled ?? true,
+        emailEnabled: emailEnabled ?? true,
+        recipientEmail: recipientEmail?.trim() || null,
+        timezone: timezone || 'Asia/Ho_Chi_Minh',
+        quietHoursEnabled: quietHoursEnabled ?? false,
+        quietHoursStart: quietHoursStart || '22:00',
+        quietHoursEnd: quietHoursEnd || '07:00',
+        quietHoursBypassCritical: quietHoursBypassCritical ?? true
+      }
+    });
+
+    res.json({ success: true, preference: updated });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Update User Notification Rule
+apiRouter.put('/notifications/rules', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { eventType, enabled, timingOffsetMinutes, priority, channels } = req.body;
+
+  if (!eventType) {
+    res.status(400).json({ success: false, message: 'Thiếu trường eventType.' });
+    return;
+  }
+
+  try {
+    const prisma = getPrisma();
+    const rule = await prisma.userNotificationRule.upsert({
+      where: {
+        userId_eventType: { userId, eventType }
+      },
+      update: {
+        ...(enabled !== undefined ? { enabled: Boolean(enabled) } : {}),
+        ...(timingOffsetMinutes !== undefined ? { timingOffsetMinutes: Number(timingOffsetMinutes) } : {}),
+        ...(priority !== undefined ? { priority: priority.trim() } : {}),
+        ...(channels !== undefined ? { channels: channels.trim() } : {})
+      },
+      create: {
+        userId,
+        eventType,
+        enabled: enabled ?? true,
+        timingOffsetMinutes: Number(timingOffsetMinutes) || 15,
+        priority: priority || 'NORMAL',
+        channels: channels || 'in_app,email'
+      }
+    });
+
+    res.json({ success: true, rule });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Generate Google OAuth Auth URL for Gmail Connect
+apiRouter.get('/notifications/gmail/auth-url', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    const result = await gmailOAuthService.generateAuthUrl(userId);
+    if (!result) {
+      res.status(400).json({
+        success: false,
+        message: 'Hệ thống chưa được thiết lập Google OAuth Client ID / Secret trong biến môi trường.'
+      });
+      return;
+    }
+    res.json({ success: true, authUrl: result.url });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Disconnect User Gmail Integration
+apiRouter.post('/notifications/gmail/disconnect', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    const result = await gmailOAuthService.disconnect(userId);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Send Test Notification Email
+apiRouter.post('/notifications/test-email', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { targetEmail } = req.body;
+  try {
+    const result = await gmailOAuthService.sendTestEmail(userId, targetEmail);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Get Notification Delivery History Logs
+apiRouter.get('/notifications/deliveries', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    const prisma = getPrisma();
+    const deliveries = await prisma.notificationDelivery.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50
+    });
+    res.json({ success: true, deliveries });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
@@ -2468,6 +3109,19 @@ apiRouter.post('/payments/submit-request', paymentRateLimiter, validateBody(Subm
       console.warn('Failed to notify admins:', notifErr);
     }
 
+    // Guaranteed Outbox Email: Customer confirmation + Urgent Admin Alert
+    SystemNotificationHelper.onPaymentRequested({
+      id: updatedPayment.id,
+      orderId: updatedPayment.orderId,
+      txReference: updatedPayment.txReference || payment.txReference,
+      amount: updatedPayment.amount || payment.amount,
+      planRequested: updatedPayment.planRequested || payment.planRequested,
+      billingCycle: updatedPayment.billingCycle || payment.billingCycle,
+      userEmail: req.user.email,
+      userName: req.user.name,
+      note: typeof note === 'string' ? note : undefined
+    }).catch(err => console.warn('[EmailQueue] Error enqueuing payment request email:', err));
+
     res.json({
       success: true,
       message: 'Yêu cầu đã được gửi. Vui lòng chờ quản trị viên xác nhận thanh toán.',
@@ -2749,20 +3403,17 @@ apiRouter.post('/admin/payments/:id/approve', requireAdmin, async (req: AuthRequ
       }
     });
 
-    // 4.1. Send Gmail notification to customer
+    // 4.1. Guaranteed Outbox Email Delivery to customer
     if (updatedUser?.email) {
-      gmailService.sendNotification({
-        to: updatedUser.email,
-        recipientName: updatedUser.name || 'Khách hàng',
-        subject: `🎉 [Life OS] Đơn thanh toán đã được duyệt - Kích hoạt gói ${planToActivate}`,
-        category: 'PAYMENT',
-        headline: `Chúc mừng bạn! Gói ${planToActivate} đã được kích hoạt`,
-        content: `Yêu cầu thanh toán của bạn (Mã: <strong>${payment.txReference || payment.orderId}</strong>, số tiền: <strong>${(payment.amount || 0).toLocaleString('vi-VN')} ₫</strong>) đã được quản trị viên xác nhận và duyệt thành công.<br/><br/>Tài khoản của bạn đã được nâng cấp lên gói <strong>${planToActivate}</strong>, hạn dùng đến ngày <strong>${new Date(planExpiresAt).toLocaleDateString('vi-VN')}</strong>. Bạn có thể sử dụng đầy đủ mọi tính năng cao cấp của Life OS ngay bây giờ.`,
-        actionLabel: 'Truy cập Life OS ngay',
-        actionUrl: getAppBaseUrl(),
-        badgeText: 'Thanh toán thành công',
-        badgeColor: '#10b981'
-      }).catch(e => console.error('[Gmail] Error sending payment approve email:', e));
+      SystemNotificationHelper.onPaymentApproved({
+        orderId: payment.orderId,
+        txReference: payment.txReference,
+        amount: payment.amount || 0,
+        planName: planToActivate,
+        expiresAt: planExpiresAt,
+        userEmail: updatedUser.email,
+        userName: updatedUser.name
+      }).catch(e => console.error('[EmailQueue] Error enqueuing payment approve email:', e));
     }
 
     // 5. Calculate and award 30% Referral Commission (if customer was referred)
@@ -2861,20 +3512,18 @@ apiRouter.post('/admin/payments/:id/reject', requireAdmin, validateBody(AdminRej
       }
     });
 
-    // Send Gmail notification to customer
+    // Guaranteed Outbox Email notification to customer
     const targetEmail = payment.user?.email || payment.customerEmail;
     if (targetEmail) {
-      gmailService.sendNotification({
-        to: targetEmail,
-        recipientName: payment.user?.name || 'Khách hàng',
-        subject: `⚠️ [Life OS] Thông báo về yêu cầu thanh toán gói ${payment.planRequested}`,
-        category: 'PAYMENT',
-        headline: 'Yêu cầu thanh toán không được phê duyệt',
-        content: `Yêu cầu thanh toán của bạn cho mã đơn <strong>${payment.txReference || payment.orderId}</strong> chưa được xác nhận bởi quản trị viên.<br/><br/><strong>Lý do từ chối:</strong> ${reason || 'Thông tin chuyển khoản không trùng khớp hoặc chưa nhận được tiền.'}<br/><br/>Nếu có thắc mắc hoặc cần hỗ trợ, vui lòng phản hồi lại email này hoặc liên hệ quản trị viên để được kiểm tra lại.`,
-        actionLabel: 'Kiểm tra tài khoản',
-        actionUrl: getAppBaseUrl(),
-        badgeText: 'Từ chối thanh toán',
-      }).catch(e => console.error('[Gmail] Error sending payment reject email:', e));
+      SystemNotificationHelper.onPaymentRejected({
+        orderId: payment.orderId,
+        txReference: payment.txReference,
+        amount: payment.amount || 0,
+        planName: payment.planRequested,
+        userEmail: targetEmail,
+        userName: payment.user?.name,
+        reason: reason || 'Thông tin chuyển khoản không trùng khớp hoặc chưa nhận được tiền.'
+      }).catch(e => console.error('[EmailQueue] Error enqueuing payment reject email:', e));
     }
 
     // Auto-adjust / cancel referral commission if already granted
@@ -3978,6 +4627,81 @@ apiRouter.post('/clear-workspace', async (req: AuthRequest, res: Response) => {
 });
 
 // --------------------------------------------------------------------------
+// GLOBAL FREE TRIAL SYSTEM SETTINGS (Admin Toggle Switch)
+// --------------------------------------------------------------------------
+apiRouter.get('/admin/settings/global-free-mode', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const enabled = await subscriptionService.isGlobalFreeMode();
+    res.json({ success: true, enabled });
+  } catch (err: any) {
+    res.status(500).json({ success: false, enabled: false, message: err.message });
+  }
+});
+
+// Alias GET /admin/free-mode
+apiRouter.get('/admin/free-mode', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const enabled = await subscriptionService.isGlobalFreeMode();
+    res.json({ success: true, enabled });
+  } catch (err: any) {
+    res.status(500).json({ success: false, enabled: false, message: err.message });
+  }
+});
+
+apiRouter.post('/admin/settings/global-free-mode', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { enabled } = req.body;
+    if (typeof enabled !== 'boolean') {
+      return res.status(400).json({ success: false, message: 'Tham số enabled (boolean) là bắt buộc.' });
+    }
+    const adminUser = {
+      id: req.userId!,
+      name: req.user?.name || req.user?.email || 'Administrator',
+      email: req.user?.email || 'admin@lifeos.com',
+      ip: (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'Local'
+    };
+    const result = await subscriptionService.setGlobalFreeMode(enabled, adminUser);
+    res.json({
+      success: true,
+      message: `Đã ${enabled ? 'BẬT' : 'TẮT'} chế độ Dùng Thử Miễn Phí toàn hệ thống thành công. Đã gửi cảnh báo an ninh đến Quản trị viên.`,
+      ...result
+    });
+  } catch (err: any) {
+    console.error('POST /admin/settings/global-free-mode error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Alias POST /admin/free-mode/toggle
+apiRouter.post('/admin/free-mode/toggle', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    let enabled = req.body?.enabled;
+    if (typeof enabled !== 'boolean') {
+      const current = await subscriptionService.isGlobalFreeMode();
+      enabled = !current;
+    }
+    const adminUser = {
+      id: req.userId!,
+      name: req.user?.name || req.user?.email || 'Administrator',
+      email: req.user?.email || 'admin@lifeos.com',
+      ip: (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || 'Local'
+    };
+    const result = await subscriptionService.setGlobalFreeMode(enabled, adminUser);
+    res.json({
+      success: true,
+      message: `Đã ${enabled ? 'BẬT' : 'TẮT'} chế độ Dùng Thử Miễn Phí toàn hệ thống thành công.`,
+      ...result
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Mount Live Test Lab diagnostic tools
+apiRouter.use('/admin/test-lab', testLabRouter);
+
+
+// --------------------------------------------------------------------------
 // ADMIN CONSOLE ENDPOINTS (Admin & SuperAdmin only)
 // --------------------------------------------------------------------------
 apiRouter.get('/admin/metrics', requireAdmin, async (req: AuthRequest, res: Response) => {
@@ -4273,7 +4997,7 @@ apiRouter.get('/tasks/:taskId/attachments', requireAuth, async (req: AuthRequest
   }
 });
 
-apiRouter.post('/tasks/:taskId/attachments', requireAuth, async (req: AuthRequest, res: Response) => {
+apiRouter.post('/tasks/:taskId/attachments', requireAuth, validateBody(TaskAttachmentSchema), async (req: AuthRequest, res: Response) => {
   const { taskId } = req.params;
   const userId = req.userId!;
   const { fileName, fileUrl, fileSize } = req.body;
@@ -4731,6 +5455,117 @@ apiRouter.get('/admin/gmail/logs', requireAdmin, async (req: AuthRequest, res: R
 });
 
 // ====================================================
+// PERSISTENT EMAIL QUEUE MANAGEMENT (OUTBOX QUEUE)
+// ====================================================
+
+// 5. Get paginated email queue items
+apiRouter.get('/admin/email-queue', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { status, search, page, limit } = req.query as {
+      status?: string;
+      search?: string;
+      page?: string;
+      limit?: string;
+    };
+    const data = await emailQueueService.getQueueItems({
+      status,
+      search,
+      page: page ? parseInt(page, 10) : 1,
+      limit: limit ? parseInt(limit, 10) : 20
+    });
+    res.json({ success: true, ...data });
+  } catch (err: any) {
+    console.error('GET /admin/email-queue error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi khi tải hàng đợi email: ' + err.message });
+  }
+});
+
+// 6. Get email queue statistics (total, pending, sent, failed)
+apiRouter.get('/admin/email-queue/stats', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const stats = await emailQueueService.getQueueStats();
+    res.json({ success: true, stats });
+  } catch (err: any) {
+    console.error('GET /admin/email-queue/stats error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi khi lấy thống kê email queue: ' + err.message });
+  }
+});
+
+// 7. Manually retry a failed or pending queue item
+apiRouter.post('/admin/email-queue/:id/retry', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const ok = await emailQueueService.retryItem(id);
+    if (!ok) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy email cần gửi lại.' });
+    }
+    res.json({ success: true, message: 'Đã đưa email vào hàng đợi gửi lại ngay lập tức.' });
+  } catch (err: any) {
+    console.error('POST /admin/email-queue/:id/retry error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi khi thử gửi lại email: ' + err.message });
+  }
+});
+
+// 8. Delete a queue item
+apiRouter.delete('/admin/email-queue/:id', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const ok = await emailQueueService.deleteItem(id);
+    if (!ok) {
+      return res.status(404).json({ success: false, message: 'Không tìm thấy bản ghi email.' });
+    }
+    res.json({ success: true, message: 'Đã xóa email khỏi hàng đợi.' });
+  } catch (err: any) {
+    console.error('DELETE /admin/email-queue/:id error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi khi xóa email: ' + err.message });
+  }
+});
+
+// 9. Enqueue a test email to verify queue processing
+apiRouter.post('/admin/email-queue/test', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { testEmail } = req.body;
+    const recipient = (testEmail || req.user.email || '').trim();
+    if (!recipient || !recipient.includes('@')) {
+      return res.status(400).json({ success: false, message: 'Địa chỉ email người nhận không hợp lệ.' });
+    }
+
+    const { buildEmailHtml } = await import('../services/emailTemplate.service.js');
+    const html = buildEmailHtml({
+      headline: 'Thử Nghiệm Hệ Thống Hàng Đợi Email (Outbox Queue)',
+      recipientName: 'Quản Trị Viên',
+      badgeText: 'TEST QUEUE & SMTP',
+      badgeColor: '#10b981',
+      summary: 'Email này được gửi thử nghiệm thông qua hàng đợi Outbox Queue và tiến trình nền tự động thử lại (Exponential Backoff). Tất cả các thông số kết nối SMTP và luồng gửi đã hoạt động trơn tru.',
+      details: [
+        { label: 'Người nhận', value: recipient },
+        { label: 'Cơ chế gửi', value: 'PostgreSQL Outbox Queue + Worker' },
+        { label: 'Thời gian phát tín hiệu', value: new Date().toLocaleString('vi-VN') }
+      ],
+      actionLabel: 'Mở Trang Quản Trị Hệ Thống',
+      actionUrl: `${getAppBaseUrl()}/?view=admin&tab=gmail_config`
+    });
+
+    const queueId = await emailQueueService.enqueue({
+      recipient,
+      subject: '✅ [LifeOS Test] Kiểm tra hệ thống hàng đợi Outbox Queue & SMTP thành công',
+      htmlBody: html,
+      eventType: 'TEST_EMAIL_QUEUE',
+      priority: 'HIGH'
+    });
+
+    res.json({
+      success: true,
+      message: `Đã nạp email thử nghiệm vào hàng đợi (Mã: ${queueId}). Tiến trình ngầm đang tiến hành chuyển phát tới ${recipient}.`,
+      queueId
+    });
+  } catch (err: any) {
+    console.error('POST /admin/email-queue/test error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi kiểm tra hàng đợi: ' + err.message });
+  }
+});
+
+// ====================================================
 // REFERRAL PROGRAM API ENDPOINTS
 // ====================================================
 
@@ -4761,6 +5596,18 @@ apiRouter.post('/referrals/withdraw', async (req: AuthRequest, res: Response) =>
       transferNote,
       userNote
     });
+
+    // Guaranteed Outbox Email: Alert Admin of new withdrawal request
+    SystemNotificationHelper.onWithdrawalRequested({
+      id: request.id,
+      amount: Number(request.amount),
+      bankName: request.bankName,
+      bankAccount: request.bankAccount,
+      bankHolder: request.accountHolder,
+      userEmail: req.user.email,
+      userName: req.user.name
+    }).catch(e => console.warn('[EmailQueue] Error enqueuing withdrawal alert:', e));
+
     res.status(201).json({
       success: true,
       message: 'Gửi yêu cầu rút tiền thành công! Admin sẽ duyệt và giải ngân sớm.',
@@ -4983,6 +5830,17 @@ apiRouter.post('/feedback', async (req: AuthRequest, res: Response) => {
       type,
       rating
     });
+
+    // Guaranteed Outbox Email: Alert Admin of new feedback / bug report
+    SystemNotificationHelper.onFeedbackSubmitted({
+      id: feedback.id,
+      category: feedback.type || 'Góp ý chung',
+      subject: feedback.title,
+      message: feedback.content,
+      userEmail: req.user.email,
+      userName: req.user.name
+    }).catch(e => console.warn('[EmailQueue] Error enqueuing feedback alert:', e));
+
     res.status(201).json({
       success: true,
       message: 'Gửi góp ý thành công! Cảm ơn bạn đã đóng góp.',
@@ -5251,4 +6109,54 @@ apiRouter.delete('/admin/announcements/:id', requireAdmin, async (req: AuthReque
     res.status(400).json({ success: false, message: err.message });
   }
 });
+
+// 10. Admin: 1-Click Broadcast Now (Create + Publish + Email Queue + In-App Web Notification)
+apiRouter.post('/admin/announcements/broadcast-now', requireAdmin, validateBody(CreateAnnouncementSchema), async (req: AuthRequest, res: Response) => {
+  try {
+    const adminUser = {
+      id: req.userId!,
+      name: req.user?.name || req.user?.email || 'Administrator'
+    };
+    const result = await announcementService.broadcastNow(req.body, adminUser);
+    res.status(201).json({
+      success: true,
+      message: `Đã phát thông báo thành công đến ${result.targetedCount} người dùng (Web: ${result.webDelivered}, Email: ${result.emailEnqueued}, Bỏ qua theo cài đặt: ${result.emailSkipped})`,
+      ...result
+    });
+  } catch (err: any) {
+    console.error('POST /admin/announcements/broadcast-now error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 11. Admin: Retry single failed email delivery
+apiRouter.post('/admin/announcements/:id/deliveries/:deliveryId/retry', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const adminUser = {
+      id: req.userId!,
+      name: req.user?.name || req.user?.email || 'Administrator'
+    };
+    const result = await announcementService.retryDelivery(req.params.deliveryId, adminUser);
+    res.json(result);
+  } catch (err: any) {
+    console.error('POST /admin/announcements/:id/deliveries/:deliveryId/retry error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 12. Admin: Retry all failed email deliveries for an announcement
+apiRouter.post('/admin/announcements/:id/retry-failed', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const adminUser = {
+      id: req.userId!,
+      name: req.user?.name || req.user?.email || 'Administrator'
+    };
+    const result = await announcementService.retryAllFailedDeliveries(req.params.id, adminUser);
+    res.json(result);
+  } catch (err: any) {
+    console.error('POST /admin/announcements/:id/retry-failed error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
 

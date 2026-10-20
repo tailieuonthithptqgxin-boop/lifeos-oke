@@ -78,6 +78,8 @@ interface AppContextType extends AppState {
   setWorkspaceMode: (mode: WorkspaceMode) => void;
   toggleCommand: () => void;
   clearAllNotifications: () => Promise<void>;
+  deleteNotification: (id: string) => Promise<void>;
+  deleteAllNotifications: () => Promise<void>;
   checkout: () => Promise<void>;
   updateProfile: (data: { name?: string; avatar?: string }) => Promise<void>;
   upgradePlan: (plan?: 'Free' | 'Pro' | 'Team' | 'FREE' | 'PRO' | 'TEAM' | string) => Promise<any>;
@@ -153,7 +155,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   useEffect(() => {
     const initApp = async () => {
       try {
-        // Query backend directly using HttpOnly cookie session
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.search);
+          const urlToken = params.get('token');
+          if (urlToken && urlToken.length > 20) {
+            try { localStorage.setItem('token', urlToken); } catch (e) {}
+          }
+        }
+        // Query backend directly using HttpOnly cookie session or Bearer token
         const res = await apiCall('/api/auth/me');
         if (res && (res.user || res.id)) {
           const user = res.user || res;
@@ -709,6 +718,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const deleteNotification = async (id: string) => {
+    try {
+      await apiCall(`/api/notifications/${id}`, 'DELETE');
+      setState(s => ({
+        ...s,
+        notifications: (s.notifications || []).filter(n => n.id !== id)
+      }));
+    } catch (e) {
+      console.error('Failed to delete notification:', e);
+    }
+  };
+
+  const deleteAllNotifications = async () => {
+    try {
+      await apiCall('/api/notifications/all', 'DELETE');
+      setState(s => ({
+        ...s,
+        notifications: []
+      }));
+    } catch (e) {
+      console.error('Failed to delete all notifications:', e);
+    }
+  };
+
   const checkout = async (couponCode?: string) => {
     try {
       const res = await apiCall('/api/cart/checkout', 'POST', { couponCode });
@@ -845,6 +878,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         fetchSubscriptionStatus,
         checkout,
         clearAllNotifications,
+        deleteNotification,
+        deleteAllNotifications,
         setCurrentView,
         setWorkspaceMode,
         toggleCommand,

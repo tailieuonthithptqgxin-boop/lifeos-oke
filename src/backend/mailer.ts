@@ -32,7 +32,7 @@ async function getFallbackTransporter(): Promise<any> {
         servername: originalHost,
         rejectUnauthorized: false
       }
-    });
+    } as any);
   }
 
   return cachedTransporter;
