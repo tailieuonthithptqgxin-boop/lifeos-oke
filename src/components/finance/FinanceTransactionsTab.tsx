@@ -118,7 +118,7 @@ export const FinanceTransactionsTab: React.FC<FinanceTransactionsTabProps> = ({
                 key={tx.id} 
                 className="p-3.5 sm:p-4 flex items-center justify-between hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors gap-3"
               >
-                <div className="flex items-center gap-3 min-w-0">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className={`w-10 h-10 min-w-[40px] rounded-2xl flex items-center justify-center shrink-0 ${
                     isIncome 
                       ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400' 
@@ -131,7 +131,7 @@ export const FinanceTransactionsTab: React.FC<FinanceTransactionsTabProps> = ({
                      <ArrowRightLeft className="w-5 h-5 stroke-[2]" />}
                   </div>
 
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-bold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
                         {tx.category || (isVi ? 'Chung' : 'General')}

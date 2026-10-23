@@ -773,7 +773,7 @@ function TaskRow({ task, onEdit, onDelete, onToggleStatus, timerActive, timerSec
       {/* Task Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className={`font-semibold text-sm truncate ${isCompleted ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-900 dark:text-white'}`}>
+          <p className={`font-semibold text-sm leading-snug break-words line-clamp-2 ${isCompleted ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-900 dark:text-white'}`}>
             {t(task.title)}
           </p>
           {task.priority === 'Nghiêm trọng' && <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0 animate-wiggle" />}

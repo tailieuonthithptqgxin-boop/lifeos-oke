@@ -117,13 +117,13 @@ export function HabitsView() {
             return (
               <div
                 key={habit.id}
-                className={`flex items-center justify-between p-3.5 sm:p-4 rounded-2xl border transition-all gap-3 sm:gap-4 w-full min-w-0 shadow-xs ${
+                className={`flex items-start sm:items-center justify-between p-3 sm:p-4 rounded-2xl border transition-all gap-2.5 sm:gap-4 w-full min-w-0 shadow-xs ${
                   completed
                     ? 'bg-slate-50/60 dark:bg-slate-900/40 border-slate-200/60 dark:border-slate-800'
                     : 'bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-emerald-500/40'
                 }`}
               >
-                <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
                   {/* Touch Target Check-in >= 44x44px */}
                   <button
                     type="button"
@@ -139,7 +139,7 @@ export function HabitsView() {
                         }
                       }
                     }}
-                    className="w-11 h-11 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-2xl transition-all cursor-pointer shrink-0"
+                    className="w-10 h-10 sm:w-11 sm:h-11 min-h-[40px] min-w-[40px] sm:min-h-[44px] sm:min-w-[44px] flex items-center justify-center rounded-2xl transition-all cursor-pointer shrink-0 mt-0.5 sm:mt-0"
                     title={completed ? (isVi ? 'Đánh dấu chưa hoàn thành' : 'Mark incomplete') : (isVi ? 'Hoàn thành hôm nay' : 'Check in today')}
                     aria-label={`Toggle habit ${habit.name}`}
                   >
@@ -152,9 +152,9 @@ export function HabitsView() {
                     </div>
                   </button>
 
-                  <div className="min-w-0 flex-1">
+                  <div className="min-w-0 flex-1 py-0.5">
                     <h4
-                      className={`font-semibold text-xs sm:text-sm break-words line-clamp-1 transition-colors ${
+                      className={`font-semibold text-sm sm:text-base leading-snug break-words transition-colors ${
                         completed
                           ? 'line-through text-slate-400 dark:text-slate-500'
                           : 'text-slate-900 dark:text-white'
@@ -162,23 +162,30 @@ export function HabitsView() {
                     >
                       {habit.name}
                     </h4>
+
+                    {/* Category Tag on Mobile (Displayed underneath title to preserve maximum title width) */}
+                    <div className="flex items-center gap-1.5 mt-1 sm:hidden">
+                      <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/50 dark:border-emerald-800/50 px-2 py-0.5 rounded-md">
+                        {habit.category || (isVi ? 'Cá nhân' : 'Personal')}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-                  {/* Category Tag */}
-                  <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/50 dark:border-emerald-800/50 px-2.5 py-0.5 rounded-full">
+                <div className="flex items-center gap-1.5 sm:gap-3 shrink-0 ml-1.5 sm:ml-0 mt-0.5 sm:mt-0">
+                  {/* Category Tag (Desktop/Tablet >= 640px) */}
+                  <span className="hidden sm:inline-flex text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/50 dark:border-emerald-800/50 px-2.5 py-0.5 rounded-full">
                     {habit.category || (isVi ? 'Cá nhân' : 'Personal')}
                   </span>
 
                   {/* Streak Count */}
-                  <div className="flex items-center gap-1 text-[11px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-0.5 rounded-full border border-amber-200/60 dark:border-amber-800/60">
-                    <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                  <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2 sm:px-2.5 py-1 rounded-full border border-amber-200/60 dark:border-amber-800/60 shadow-2xs">
+                    <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />
                     <span className="font-mono tabular-nums">{habit.streak || 0}</span>
-                    <span>{isVi ? 'ngày' : 'd'}</span>
+                    <span className="text-[10px] sm:text-[11px]">{isVi ? 'ngày' : 'd'}</span>
                   </div>
 
-                  {/* Touch Target Delete >= 44x44px */}
+                  {/* Delete button */}
                   <button
                     type="button"
                     onClick={() => {
@@ -189,7 +196,7 @@ export function HabitsView() {
                         deleteHabit && deleteHabit(habit.id);
                       }
                     }}
-                    className="w-10 h-10 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                    className="w-9 h-9 sm:w-10 sm:h-10 min-h-[36px] min-w-[36px] sm:min-h-[44px] sm:min-w-[44px] flex items-center justify-center text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
                     title={isVi ? 'Xóa thói quen' : 'Delete habit'}
                     aria-label={`Delete habit ${habit.name}`}
                   >
