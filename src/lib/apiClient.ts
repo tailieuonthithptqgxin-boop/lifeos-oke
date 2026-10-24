@@ -14,7 +14,17 @@ export async function apiCall<T = any>(
   method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'GET',
   data?: any
 ): Promise<T> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  let token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  // Fallback: If token exists in URL (e.g. from Google OAuth callback), capture and store it immediately
+  if (!token && typeof window !== 'undefined') {
+    try {
+      const urlToken = new URLSearchParams(window.location.search).get('token');
+      if (urlToken && urlToken.length > 20) {
+        token = urlToken;
+        try { localStorage.setItem('token', urlToken); } catch (e) {}
+      }
+    } catch (e) {}
+  }
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     'Accept': 'application/json'

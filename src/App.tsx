@@ -5,6 +5,7 @@
 
 import React, { useState } from 'react';
 import { AppProvider, useAppStore } from './lib/store';
+import { apiCall } from './lib/apiClient';
 import { useTranslation, translations, t as translateI18n } from './lib/i18n';
 import { Sidebar } from './components/Sidebar';
 import { TopBar } from './components/TopBar';
@@ -148,15 +149,30 @@ function AppContent() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const loginStatus = params.get('login');
+      const token = params.get('token');
+      if (token && token.length > 20) {
+        try { localStorage.setItem('token', token); } catch (e) {}
+      }
       if (loginStatus === 'google_success') {
-        toast.success('Đăng nhập Google thành công! Chào mừng bạn trở lại.');
-        window.history.replaceState({}, document.title, window.location.pathname);
+        toast.success('Đăng nhập Google thành công! Đang vào không gian làm việc...');
+        // Immediately fetch user profile and transition UI state to authenticated
+        apiCall('/api/auth/me').then(res => {
+          if (res && (res.user || res.id)) {
+            const u = res.user || res;
+            login(u);
+          }
+        }).catch(err => {
+          console.error('Google OAuth post-login error:', err);
+        }).finally(() => {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        });
       } else if (loginStatus && loginStatus.startsWith('google_')) {
-        
         const errMap: Record<string, string> = {
           google_cancelled: 'Bạn đã hủy quá trình đăng nhập Google.',
           google_state_mismatch: 'Phiên đăng nhập Google đã hết hạn. Vui lòng thử lại.',
           google_email_unverified: 'Tài khoản Google của bạn chưa được xác minh email.',
+          google_token_exchange_failed: 'Không thể kết nối với máy chủ Google để xác thực mã truy cập.',
+          google_profile_fetch_failed: 'Không thể lấy thông tin hồ sơ từ tài khoản Google.',
           google_server_error: 'Có lỗi xảy ra khi xác thực với Google. Vui lòng thử lại.',
           account_locked: 'Tài khoản của bạn đã bị khóa hoặc tạm ngưng.'
         };

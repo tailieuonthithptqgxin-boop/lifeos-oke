@@ -156,16 +156,26 @@ const getInitialState = (): AppState => {
   let cachedUser: User | null = null;
   let cachedCollections: any = {};
   let token: string | null = null;
+  let isGoogleCallback = false;
 
   try {
-    token = localStorage.getItem('token');
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('token');
+    isGoogleCallback = params.get('login') === 'google_success';
+    if (urlToken && urlToken.length > 20) {
+      try { localStorage.setItem('token', urlToken); } catch (e) {}
+      token = urlToken;
+    } else {
+      token = localStorage.getItem('token');
+    }
     const userStr = localStorage.getItem('lifeos_swr_user');
     if (userStr) cachedUser = JSON.parse(userStr);
     const colStr = localStorage.getItem('lifeos_swr_collections');
     if (colStr) cachedCollections = JSON.parse(colStr);
   } catch (e) {}
 
-  const hasAuth = Boolean(token && cachedUser);
+  // If token and cachedUser exist OR returning from successful Google OAuth
+  const hasAuth = Boolean((token && cachedUser) || (token && isGoogleCallback));
 
   let initialMode: WorkspaceMode = 'Advanced';
   let storedPrefs: OnboardingPreferences | null = null;
@@ -197,12 +207,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     let urlToken: string | null = null;
+    let isGoogleLogin = false;
     if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      urlToken = params.get('token');
-      if (urlToken && urlToken.length > 20) {
-        try { localStorage.setItem('token', urlToken); } catch (e) {}
-      }
+      try {
+        const params = new URLSearchParams(window.location.search);
+        urlToken = params.get('token');
+        isGoogleLogin = params.get('login') === 'google_success';
+        if (urlToken && urlToken.length > 20) {
+          try { localStorage.setItem('token', urlToken); } catch (e) {}
+        }
+      } catch (e) {}
     }
     const token = typeof window !== 'undefined' ? (urlToken || localStorage.getItem('token')) : null;
 
@@ -226,13 +240,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     const initApp = async () => {
-      // Technique 1 & 4: Zero unauthenticated penalty. If no token, visitor is immediately ready (0ms)
-      if (!token) {
-        setState(s => ({ ...s, isAuthenticated: false, currentUser: null, isAppLoaded: true }));
-        loadLanguages();
-        return;
-      }
-
+      // Always verify user with /api/auth/me (supports Bearer token and HttpOnly cookie sessions)
       try {
         // Technique 2: Parallel Promise.allSettled execution for user auth + subscription
         const [authRes, subRes] = await Promise.allSettled([
@@ -278,19 +286,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             setState(s => ({ ...s, isAppLoaded: true }));
           });
         } else {
+          // Only clear tokens if not an in-progress Google redirect
+          if (!isGoogleLogin) {
+            try {
+              localStorage.removeItem('token');
+              localStorage.removeItem('lifeos_swr_user');
+              localStorage.removeItem('lifeos_swr_collections');
+            } catch (e) {}
+          }
+          setState(s => ({ ...s, isAuthenticated: false, currentUser: null, isAppLoaded: true }));
+        }
+      } catch (err: any) {
+        if (!isGoogleLogin) {
           try {
             localStorage.removeItem('token');
             localStorage.removeItem('lifeos_swr_user');
             localStorage.removeItem('lifeos_swr_collections');
           } catch (e) {}
-          setState(s => ({ ...s, isAuthenticated: false, currentUser: null, isAppLoaded: true }));
         }
-      } catch (err: any) {
-        try {
-          localStorage.removeItem('token');
-          localStorage.removeItem('lifeos_swr_user');
-          localStorage.removeItem('lifeos_swr_collections');
-        } catch (e) {}
         setState(s => ({
           ...s,
           isAuthenticated: false,
