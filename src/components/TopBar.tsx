@@ -115,7 +115,7 @@ export function TopBar() {
   const inboxCount = inbox?.length || 0;
 
   return (
-    <header className="h-14 md:h-16 bg-white dark:bg-slate-950 border-b border-[#E2E8F0] dark:border-slate-800 flex items-center justify-between px-3.5 sm:px-5 md:px-6 shrink-0 relative z-50 transition-colors">
+    <header className="h-14 md:h-16 bg-white/90 dark:bg-[#0B1120]/90 backdrop-blur-md border-b border-[#E2E8F0] dark:border-white/[0.08] flex items-center justify-between px-3.5 sm:px-5 md:px-6 shrink-0 relative z-50 transition-colors">
       {/* Mobile Brand Logo */}
       <div className="flex md:hidden items-center gap-2 shrink-0">
         <img 
@@ -131,12 +131,12 @@ export function TopBar() {
         <button 
           type="button" 
           onClick={toggleCommand}
-          className="w-full relative flex items-center text-left pl-9 pr-24 h-9 bg-[#F8FAFC] dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-lg text-xs text-slate-500 hover:bg-white dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-colors group cursor-pointer"
+          className="w-full relative flex items-center text-left pl-9 pr-24 h-9 bg-slate-100/70 dark:bg-white/[0.05] border border-slate-200/80 dark:border-white/[0.08] rounded-full text-xs text-slate-500 hover:bg-white dark:hover:bg-white/[0.08] hover:border-slate-300 dark:hover:border-white/[0.15] hover:shadow-2xs transition-all group cursor-pointer"
         >
-          <Search className="w-4 h-4 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-emerald-600 transition-colors shrink-0" />
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-emerald-600 transition-colors shrink-0" />
           <span className="truncate max-w-[calc(100%-1rem)] font-normal text-slate-500">{t('Tìm kiếm nhanh hoặc mở Command Center...')}</span>
           <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-[#F1F5F9] dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-[10px] font-medium text-slate-500 shadow-2xs">Ctrl + K</kbd>
+            <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-[10px] font-medium text-slate-500 shadow-2xs">Ctrl + K</kbd>
           </div>
         </button>
       </div>
@@ -157,7 +157,7 @@ export function TopBar() {
           type="button"
           onClick={toggleCommand}
           aria-label={t('Tìm kiếm')}
-          className="md:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+          className="md:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
         >
           <Search className="w-4 h-4" />
         </button>
@@ -167,7 +167,7 @@ export function TopBar() {
           type="button"
           onClick={() => setCurrentView('journey')}
           title={`Level ${realLevel} · ${realCp} CP · ${realStreak} ngày streak`}
-          className="md:hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white dark:bg-slate-900 text-slate-800 dark:text-white border border-[#E2E8F0] dark:border-slate-800 font-semibold text-[10px] shadow-2xs shrink-0 cursor-pointer"
+          className="md:hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50 dark:bg-white/[0.06] text-slate-800 dark:text-white border border-[#E2E8F0] dark:border-white/[0.08] font-semibold text-[10px] shadow-2xs shrink-0 cursor-pointer"
         >
           <span className="text-amber-600 dark:text-amber-400 font-bold">LV.{realLevel}</span>
           <span className="text-slate-300 dark:text-slate-700">·</span>
@@ -181,13 +181,13 @@ export function TopBar() {
           type="button"
           onClick={() => setCurrentView('journey')}
           title={`Level ${realLevel} · ${realCp} CP · ${realCoins} Coins · ${realStreak}d Streak`}
-          className="hidden md:inline-flex items-center gap-2.5 h-9 px-3 rounded-lg bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-xs text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+          className="hidden md:inline-flex items-center gap-2.5 h-9 px-3.5 rounded-full bg-slate-50/70 dark:bg-white/[0.05] border border-[#E2E8F0] dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/[0.15] text-xs text-slate-700 dark:text-slate-200 transition-all cursor-pointer shadow-2xs"
         >
           <span className="font-semibold text-slate-900 dark:text-white">
             LV.{realLevel}
           </span>
           <span className="text-slate-200 dark:text-slate-700">|</span>
-          <div className="flex items-center gap-1 text-emerald-600">
+          <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
             <Zap className="w-3.5 h-3.5" />
             <span className="font-mono tabular-nums text-[11px] font-medium">{realCp.toLocaleString()} CP</span>
           </div>
@@ -213,7 +213,7 @@ export function TopBar() {
               setShowUserMenu(false);
             }}
             aria-label={t('Tạo mới')}
-            className="h-9 px-3.5 rounded-lg bg-[#10B981] hover:bg-[#059669] text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-xs"
+            className="h-9 px-4 rounded-full bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-sm shadow-emerald-600/25"
           >
             {!hasSubAccess ? <Lock className="w-3.5 h-3.5 text-white/80" /> : <Plus className="w-3.5 h-3.5 stroke-[2.5]" />}
             <span>{t('Tạo mới')}</span>
@@ -340,17 +340,17 @@ export function TopBar() {
               window.dispatchEvent(new CustomEvent('lifeos-companion-settings-updated', { detail: updated }));
             }
           }}
-          className={`hidden md:inline-flex h-9 px-3 rounded-lg border text-xs font-medium transition-colors cursor-pointer items-center gap-1.5 ${
+          className={`hidden md:inline-flex h-9 px-3 rounded-full border text-xs font-medium transition-all cursor-pointer items-center gap-1.5 shadow-2xs ${
             companionSettings.enabled && companionSettings.focusCompanionMode !== 'off'
-              ? 'bg-[#ECFDF5] border-emerald-200 text-[#059669] hover:bg-emerald-100 dark:bg-emerald-950/40 dark:border-emerald-800'
-              : 'bg-white dark:bg-slate-900 border-[#E2E8F0] dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50'
+              ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/15'
+              : 'bg-slate-50/70 dark:bg-white/[0.05] border-[#E2E8F0] dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.08]'
           }`}
           title={companionSettings.enabled && companionSettings.focusCompanionMode !== 'off'
             ? `${MASCOT_PROFILES[companionSettings.mascotId]?.name || 'AI Companion'} ${t('is active · Click to hide')}`
             : t('AI Companion is hidden · Click to open!')}
           aria-label={t('Bật/Tắt nhân vật AI')}
         >
-          <Bot className="w-4 h-4 text-emerald-600" />
+          <Bot className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           <span className="hidden xl:inline text-xs font-medium">
             {companionSettings.enabled && companionSettings.focusCompanionMode !== 'off' ? (isVi ? 'AI Bật' : 'AI On') : (isVi ? 'Mở AI' : 'Open AI')}
           </span>
@@ -360,7 +360,7 @@ export function TopBar() {
         <button
           type="button"
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="hidden md:inline-flex h-9 w-9 items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg border border-[#E2E8F0] dark:border-slate-800 transition-colors cursor-pointer"
+          className="hidden md:inline-flex h-9 w-9 items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.08] rounded-full border border-[#E2E8F0] dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.05] transition-all cursor-pointer shadow-2xs"
           title={theme === 'dark' ? t('Switch to Light Mode') : t('Switch to Dark Mode')}
           aria-label={t('Chuyển chế độ giao diện')}
         >
@@ -380,12 +380,12 @@ export function TopBar() {
               setShowCreateMenu(false); 
               setShowUserMenu(false);
             }} 
-            className="h-9 w-9 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg border border-[#E2E8F0] dark:border-slate-800 transition-colors relative cursor-pointer"
+            className="h-9 w-9 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.08] rounded-full border border-[#E2E8F0] dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.05] transition-all relative cursor-pointer shadow-2xs"
             aria-label={t('Thông báo')}
           >
             <Bell className="w-4 h-4" />
             {unreadCount > 0 && (
-              <span className="absolute top-2 right-2 w-2 h-2 bg-[#10B981] rounded-full"></span>
+              <span className="absolute top-2 right-2 w-2 h-2 bg-[#10B981] rounded-full ring-2 ring-white dark:ring-[#0B1120]"></span>
             )}
           </button>
           

@@ -48,7 +48,7 @@ export function BottomNav() {
       <nav
         id="mobile-bottom-nav"
         aria-label={t('Mobile Navigation')}
-        className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800/80 shadow-2xl px-3 pt-1 pb-[max(0.625rem,env(safe-area-inset-bottom))] transition-all"
+        className="md:hidden fixed bottom-0 inset-x-0 z-50 bg-white/95 dark:bg-[#0B1120]/95 backdrop-blur-xl border-t border-slate-200/80 dark:border-white/[0.08] shadow-2xl px-3 pt-1.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] transition-all"
       >
         <div className="flex items-center justify-between w-full max-w-md mx-auto relative">
           
@@ -57,19 +57,16 @@ export function BottomNav() {
             id="mobile-tab-dashboard"
             type="button"
             onClick={() => handleTabPress('dashboard')}
-            className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer min-h-[44px] ${
+            className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl transition-all cursor-pointer min-h-[44px] ${
               currentView === 'dashboard'
-                ? 'text-emerald-600 dark:text-emerald-400 font-black'
-                : 'text-slate-500 dark:text-slate-400 hover:text-emerald-600 font-semibold'
+                ? 'text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 dark:bg-emerald-500/15'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
             }`}
           >
-            <LayoutDashboard className={`w-5 h-5 transition-transform ${currentView === 'dashboard' ? 'scale-110 stroke-[2.5]' : ''}`} />
-            <span className="text-[10px] mt-1 tracking-tight font-bold">
+            <LayoutDashboard className={`w-5 h-5 transition-transform ${currentView === 'dashboard' ? 'scale-105 stroke-[2.4]' : ''}`} />
+            <span className="text-[10px] mt-1 tracking-tight font-semibold">
               {isVi ? 'Hôm nay' : 'Today'}
             </span>
-            {currentView === 'dashboard' && (
-              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-0.5" />
-            )}
           </button>
 
           {/* 2. Công việc */}
@@ -77,26 +74,23 @@ export function BottomNav() {
             id="mobile-tab-tasks"
             type="button"
             onClick={() => handleTabPress('tasks')}
-            className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer min-h-[44px] ${
+            className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl transition-all cursor-pointer min-h-[44px] ${
               currentView === 'tasks'
-                ? 'text-emerald-600 dark:text-emerald-400 font-black'
-                : 'text-slate-500 dark:text-slate-400 hover:text-emerald-600 font-semibold'
+                ? 'text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 dark:bg-emerald-500/15'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
             }`}
           >
             <div className="relative">
-              <CheckSquare className={`w-5 h-5 transition-transform ${currentView === 'tasks' ? 'scale-110 stroke-[2.5]' : ''}`} />
+              <CheckSquare className={`w-5 h-5 transition-transform ${currentView === 'tasks' ? 'scale-105 stroke-[2.4]' : ''}`} />
               {pendingTaskCount > 0 && (
-                <span className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-emerald-500 text-slate-950 text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-slate-900 shadow-2xs">
+                <span className="absolute -top-1 -right-2 min-w-[16px] h-4 px-1 rounded-full bg-emerald-500 text-slate-950 text-[9px] font-black flex items-center justify-center ring-2 ring-white dark:ring-[#0B1120] shadow-2xs">
                   {pendingTaskCount > 99 ? '99+' : pendingTaskCount}
                 </span>
               )}
             </div>
-            <span className="text-[10px] mt-1 tracking-tight font-bold">
+            <span className="text-[10px] mt-1 tracking-tight font-semibold">
               {isVi ? 'Công việc' : 'Tasks'}
             </span>
-            {currentView === 'tasks' && (
-              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-0.5" />
-            )}
           </button>
 
           {/* 3. Nút + Trung tâm (Quick Action) */}
@@ -110,11 +104,11 @@ export function BottomNav() {
               }}
               title="Tạo nhanh 1-chạm"
               aria-label="Tạo nhanh"
-              className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-full p-3 -mt-6 shadow-lg shadow-emerald-600/35 border-4 border-white dark:border-slate-900 transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center"
+              className="bg-emerald-600 hover:bg-emerald-500 text-white rounded-full p-3.5 -mt-7 shadow-lg shadow-emerald-600/35 border-4 border-white dark:border-[#0B1120] transition-all hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center"
             >
               <Plus className="w-5 h-5 stroke-[2.8]" />
             </button>
-            <span className="text-[9px] font-bold text-slate-400 mt-1">Tạo mới</span>
+            <span className="text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-1">Tạo mới</span>
           </div>
 
           {/* 4. Tập trung */}
@@ -122,19 +116,16 @@ export function BottomNav() {
             id="mobile-tab-focus"
             type="button"
             onClick={() => handleTabPress('focus')}
-            className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl transition-all cursor-pointer min-h-[44px] ${
+            className={`flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl transition-all cursor-pointer min-h-[44px] ${
               currentView === 'focus'
-                ? 'text-emerald-600 dark:text-emerald-400 font-black'
-                : 'text-slate-500 dark:text-slate-400 hover:text-emerald-600 font-semibold'
+                ? 'text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 dark:bg-emerald-500/15'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
             }`}
           >
-            <Zap className={`w-5 h-5 transition-transform ${currentView === 'focus' ? 'scale-110 fill-current' : ''}`} />
-            <span className="text-[10px] mt-1 tracking-tight font-bold">
+            <Zap className={`w-5 h-5 transition-transform ${currentView === 'focus' ? 'scale-105 fill-current' : ''}`} />
+            <span className="text-[10px] mt-1 tracking-tight font-semibold">
               {isVi ? 'Tập trung' : 'Focus'}
             </span>
-            {currentView === 'focus' && (
-              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-0.5" />
-            )}
           </button>
 
           {/* 5. Menu Drawer */}
@@ -146,10 +137,10 @@ export function BottomNav() {
               setShowQuickActionSheet(false);
               toggleMobileMenu();
             }}
-            className="flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-xl text-slate-500 dark:text-slate-400 hover:text-emerald-600 font-semibold transition-all cursor-pointer min-h-[44px]"
+            className="flex-1 flex flex-col items-center justify-center py-1.5 px-1 rounded-2xl text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium transition-all cursor-pointer min-h-[44px]"
           >
             <Menu className="w-5 h-5" />
-            <span className="text-[10px] mt-1 tracking-tight font-bold">{isVi ? 'Menu' : 'More'}</span>
+            <span className="text-[10px] mt-1 tracking-tight font-semibold">{isVi ? 'Menu' : 'More'}</span>
           </button>
 
         </div>
@@ -162,7 +153,7 @@ export function BottomNav() {
             className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm"
             onClick={() => setShowQuickActionSheet(false)}
           />
-          <div className="relative z-10 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800 rounded-t-3xl p-5 shadow-2xl space-y-4 animate-in slide-in-from-bottom duration-250 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+          <div className="relative z-10 bg-white dark:bg-[#141E30] border-t border-slate-200 dark:border-white/[0.08] rounded-t-3xl p-5 shadow-2xl space-y-4 animate-in slide-in-from-bottom duration-250 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             
             {/* Grab Handle */}
             <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto" />

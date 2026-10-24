@@ -4,10 +4,15 @@
 :root {
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   --color-primary: #10b981;
-  --color-primary-dark: #047857;
+  --color-primary-dark: #059669;
   --color-primary-light: #ecfdf5;
   --color-surface-light: #ffffff;
-  --color-surface-dark: #0f172a;
+  --color-surface-dark: #141E30;
+  --color-bg-dark: #0B1120;
+  --color-border-light: #E2E8F0;
+  --color-border-dark: rgba(255,255,255,0.08);
+  --color-text-primary: #0F172A;
+  --color-text-muted: #64748B;
 }
 
 *, *::before, *::after {
@@ -27,6 +32,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  font-feature-settings: "cv11", "ss01", "ss03";
   margin: 0;
   padding: 0;
 }
@@ -47,21 +53,32 @@ body {
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 ::-webkit-scrollbar-track {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #CBD5E1;
   border-radius: 9999px;
 }
 .dark ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: #1E293B;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #10b981;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #10b981;
+}
+
+/* Utility: subtle ring shadow pattern */
+.ring-surface {
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.05);
+}
+.dark .ring-surface {
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.06);
 }
 
 /* Micro-interaction & Keyframe Animations */

@@ -168,10 +168,18 @@ function AppContent() {
 
   if (!isAppLoaded) {
     return (
-      <div key={language} className="flex h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
-        <div className="flex flex-col items-center">
-          <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="mt-4 text-slate-500 font-medium">{t('Đang tải dữ liệu Life OS...')}</p>
+      <div key={language} className="flex h-screen items-center justify-center bg-slate-50 dark:bg-[#0B1120]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="relative flex items-center justify-center">
+            <div className="w-14 h-14 rounded-2xl bg-white dark:bg-[#141E30] border border-slate-200 dark:border-white/[0.08] shadow-md flex items-center justify-center">
+              <img src="/logo.png" alt="LifeOS" className="w-8 h-8 rounded-lg object-contain animate-pulse" />
+            </div>
+            <div className="absolute -inset-1 rounded-2xl border-2 border-emerald-500/40 border-t-emerald-500 animate-spin" />
+          </div>
+          <div className="text-center mt-2">
+            <span className="font-bold text-sm tracking-tight text-slate-800 dark:text-slate-100">LifeOS</span>
+            <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">{t('Đang tải dữ liệu Life OS...')}</p>
+          </div>
         </div>
       </div>
     );
@@ -318,7 +326,7 @@ function AppContent() {
   };
 
   return (
-    <div key={language} className="flex h-screen h-[100dvh] w-full max-w-full bg-[#F8FAFC] dark:bg-slate-950 overflow-hidden font-sans text-[#0F172A] dark:text-slate-100 transition-colors duration-150">
+    <div key={language} className="flex h-screen h-[100dvh] w-full max-w-full bg-[#F8FAFC] dark:bg-[#0B1120] overflow-hidden font-sans text-[#0F172A] dark:text-slate-100 transition-colors duration-150">
       <SeoHead title="" viewKey={currentView} />
       <ToastContainer />
       <CommandCenter />

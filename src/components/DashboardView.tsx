@@ -522,7 +522,7 @@ export function DashboardView() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         
         {/* CỘT TRÁI (8/12 CỘT): GREETING & SMART NUDGE CARD */}
-        <div className="lg:col-span-8 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 dark:from-slate-900 dark:via-slate-900/90 dark:to-slate-950 border border-emerald-200/70 dark:border-slate-800 rounded-2xl p-5 sm:p-7 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-visible">
+        <div className="lg:col-span-8 bg-gradient-to-br from-emerald-50/70 via-white to-teal-50/40 dark:from-[#141E30] dark:via-[#141E30]/90 dark:to-[#0B1120] border border-emerald-200/70 dark:border-white/[0.08] rounded-2xl p-5 sm:p-7 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between relative overflow-visible">
           {/* Subtle ambient blur */}
           <div className="absolute top-0 right-0 w-80 h-80 bg-emerald-400/10 dark:bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -797,7 +797,7 @@ export function DashboardView() {
         </div>
 
         {/* CỘT PHẢI (4/12 CỘT): LUMI & LEVEL PROGRESS CARD (GỘP CHUNG 1 CARD) */}
-        <div className="lg:col-span-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-4">
+        <div className="lg:col-span-4 bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-4">
           {/* Header: Mascot Character & Level info */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-3">
@@ -912,7 +912,7 @@ export function DashboardView() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
         {/* CỘT TRÁI (8/12 CỘT): QUY TẮC TAM HỢP (THE RULE OF 3) & CÔNG VIỆC HÔM NAY  */}
-        <div className="lg:col-span-8 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-200 space-y-6">
+        <div className="lg:col-span-8 bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-200 space-y-6">
           
           {/* Section Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800/80 gap-3">
@@ -1192,7 +1192,7 @@ export function DashboardView() {
         <div className="lg:col-span-4 space-y-6">
           
           {/* Card 1: Trạm Tập Trung (Focus & Pomodoro Station) */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-200 space-y-3 sm:space-y-4">
+          <div className="bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] rounded-2xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-200 space-y-3 sm:space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-2.5 sm:pb-3">
               <div>
                 <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm">
@@ -1260,7 +1260,7 @@ export function DashboardView() {
           </div>
 
           {/* Card 2: Thói quen hôm nay (Daily Habits) */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200 space-y-4">
+          <div className="bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-3">
               <div>
                 <h3 className="font-bold text-slate-800 dark:text-slate-100 text-sm">
@@ -1419,7 +1419,7 @@ export function DashboardView() {
             className="w-full"
           />
         ) : (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 shadow-sm space-y-5">
+          <div className="bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] rounded-2xl p-5 shadow-sm space-y-5">
             {/* PHẦN 1: TÓM TẮT TÀI CHÍNH */}
             <div className="space-y-3.5">
               <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800/80 pb-2.5">
@@ -1530,7 +1530,7 @@ export function DashboardView() {
         </div>
 
         {/* CỘT PHẢI (5/12 CỘT): TÓM TẮT TÀI CHÍNH & TIẾN ĐỘ DỰ ÁN P.A.R.A */}
-        <div className="col-span-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-5">
+        <div className="col-span-5 bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between space-y-5">
           
           {/* PHẦN 1: TÓM TẮT TÀI CHÍNH */}
           <div className="space-y-3.5">
@@ -1654,7 +1654,7 @@ export function DashboardView() {
               soundEngine.playPop();
               setShowZeroEffortVocab(true);
             }}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-emerald-500/50 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 transition-all shadow-2xs shrink-0 cursor-pointer"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-emerald-500/50 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 transition-all shadow-2xs shrink-0 cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
             <span>Nạp từ tự động (0ms)</span>
@@ -1666,7 +1666,7 @@ export function DashboardView() {
               soundEngine.playPop();
               setShowSpeedMatch(true);
             }}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-amber-500/50 hover:bg-amber-50/30 dark:hover:bg-amber-950/20 transition-all shadow-2xs shrink-0 cursor-pointer"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-amber-500/50 hover:bg-amber-50/30 dark:hover:bg-amber-950/20 transition-all shadow-2xs shrink-0 cursor-pointer"
           >
             <Zap className="w-3.5 h-3.5 text-amber-500 fill-current" />
             <span>Speed Match 60s</span>
@@ -1678,7 +1678,7 @@ export function DashboardView() {
               soundEngine.playPop();
               setShowGenZVocabStudy(true);
             }}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-indigo-500/50 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20 transition-all shadow-2xs shrink-0 cursor-pointer"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-indigo-500/50 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20 transition-all shadow-2xs shrink-0 cursor-pointer"
           >
             <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
             <span>Phòng luyện FSRS</span>
@@ -1690,7 +1690,7 @@ export function DashboardView() {
               soundEngine.playPop();
               setShowEconomyShop(true);
             }}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-pink-500/50 hover:bg-pink-50/30 dark:hover:bg-pink-950/20 transition-all shadow-2xs shrink-0 cursor-pointer"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-pink-500/50 hover:bg-pink-50/30 dark:hover:bg-pink-950/20 transition-all shadow-2xs shrink-0 cursor-pointer"
           >
             <Coins className="w-3.5 h-3.5 text-amber-500" />
             <span>Đổi thưởng Coin Shop</span>
@@ -1706,7 +1706,7 @@ export function DashboardView() {
       {/* Quick Task Creation Modal */}
       {showQuickTaskModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md p-6 border border-slate-200 dark:border-slate-800">
+          <div className="bg-white dark:bg-[#141E30] rounded-2xl shadow-xl w-full max-w-md p-6 border border-[#E2E8F0] dark:border-white/[0.08]">
             <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <Plus className="w-5 h-5 text-emerald-600" />
@@ -1930,7 +1930,7 @@ function SummaryCard({ icon: Icon, title, value, subtext, color, bg }: {
   bg: string;
 }) {
   return (
-    <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+    <div className="bg-white dark:bg-[#141E30] p-4 sm:p-5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-sm hover:shadow-md transition-all duration-200 flex flex-col justify-between">
       <div className="flex items-center gap-2.5 mb-2.5">
         <div className={`p-2 rounded-xl ${bg} ${color}`}>
           <Icon className="w-4 h-4 sm:w-4.5 sm:h-4.5" />

@@ -129,16 +129,19 @@ export function Sidebar() {
           setCurrentView(item.id);
           if (isMobileMenuOpen) toggleMobileMenu();
         }}
-        className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors text-left cursor-pointer ${
+        className={`w-full relative flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium transition-all text-left cursor-pointer group ${
           isActive
-            ? 'bg-[#ECFDF5] dark:bg-emerald-950/40 text-[#059669] dark:text-emerald-400'
-            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-[#0F172A] dark:hover:text-slate-100'
+            ? 'bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-semibold shadow-2xs'
+            : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100'
         }`}
       >
-        <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#059669] dark:text-emerald-400' : 'text-slate-400'}`} />
+        {isActive && (
+          <span className="absolute left-1 top-2.5 bottom-2.5 w-1 rounded-full bg-emerald-500" />
+        )}
+        <Icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? 'text-emerald-600 dark:text-emerald-400 scale-105 ml-1' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'}`} />
         <span className="truncate flex-1">{t(item.label)}</span>
         {item.id === 'subscription' && (
-          <span className="text-[10px] font-normal text-slate-400">
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
             {subscriptionStatus?.hasAccess ? `${subscriptionStatus.remainingDays || 0}d` : 'Free'}
           </span>
         )}
@@ -158,21 +161,23 @@ export function Sidebar() {
 
       <aside
         id="app-sidebar"
-        className={`fixed md:static inset-y-0 left-0 z-50 flex flex-col w-[240px] md:w-[240px] shrink-0 bg-white dark:bg-slate-900 border-r border-[#E2E8F0] dark:border-slate-800 transition-transform duration-200 ease-in-out ${
+        className={`fixed md:static inset-y-0 left-0 z-50 flex flex-col w-[240px] md:w-[240px] shrink-0 bg-white dark:bg-[#0B1120] border-r border-[#E2E8F0] dark:border-white/[0.08] transition-transform duration-200 ease-in-out ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
         {/* Brand header with Logo */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-[#E2E8F0] dark:border-slate-800 shrink-0">
+        <div className="h-16 flex items-center justify-between px-4 border-b border-[#E2E8F0] dark:border-white/[0.08] shrink-0">
           <div className="flex items-center gap-2.5">
-            <img 
-              src="/logo.png" 
-              alt="LifeOS Logo" 
-              className="w-7 h-7 rounded-lg object-contain shadow-xs shrink-0" 
-            />
+            <div className="relative p-1 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-white/[0.08] shadow-2xs">
+              <img 
+                src="/logo.png" 
+                alt="LifeOS Logo" 
+                className="w-6 h-6 rounded-lg object-contain shrink-0" 
+              />
+            </div>
             <div className="flex items-center gap-1.5">
               <span className="font-bold text-sm text-[#0F172A] dark:text-white tracking-tight">LifeOS</span>
-              <span className="text-[10px] font-semibold px-1.5 py-0.2 rounded-md bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-800/60 text-emerald-700 dark:text-emerald-300">
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                 PRO
               </span>
             </div>
@@ -184,7 +189,7 @@ export function Sidebar() {
               type="button"
               onClick={() => setShowCustomizer(true)}
               title={isVi ? 'Cá nhân hóa danh mục' : 'Customize Sidebar'}
-              className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <Sliders className="w-3.5 h-3.5" />
             </button>
@@ -194,7 +199,7 @@ export function Sidebar() {
               type="button"
               onClick={toggleMobileMenu}
               aria-label={isVi ? 'Đóng danh mục' : 'Close Menu'}
-              className="md:hidden p-1 rounded-md text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="md:hidden p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
@@ -207,7 +212,7 @@ export function Sidebar() {
           {/* Group 1: NHỊP SỐNG HÀNG NGÀY */}
           {availableDailyItems.length > 0 && (
             <div className="space-y-0.5">
-              <div className="px-3 pb-1 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+              <div className="px-3 pb-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.08em]">
                 {isVi ? 'NHỊP SỐNG HÀNG NGÀY' : 'DAILY RHYTHM'}
               </div>
               {availableDailyItems.map(renderNavButton)}
@@ -216,8 +221,8 @@ export function Sidebar() {
 
           {/* Group 2: KHÔNG GIAN */}
           {availableSpacesItems.length > 0 && (
-            <div className="space-y-0.5 pt-2 border-t border-[#E2E8F0] dark:border-slate-800">
-              <div className="px-3 pb-1 text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+            <div className="space-y-0.5 pt-2.5 border-t border-[#E2E8F0] dark:border-white/[0.08]">
+              <div className="px-3 pb-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.08em]">
                 {isVi ? 'KHÔNG GIAN' : 'SPACES'}
               </div>
               {availableSpacesItems.map(renderNavButton)}
@@ -226,7 +231,7 @@ export function Sidebar() {
 
           {/* Section: Custom Modules */}
           {customModules.length > 0 && (
-            <div className="space-y-1 pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
+            <div className="space-y-1 pt-2.5 border-t border-[#E2E8F0] dark:border-white/[0.08]">
               <div className="px-3 pb-1 text-[10px] font-black text-indigo-500 uppercase tracking-widest flex items-center gap-1.5">
                 <Layers className="w-3 h-3 text-indigo-500" />
                 <span>{t('Custom Modules')}</span>
@@ -242,13 +247,16 @@ export function Sidebar() {
                       setCurrentView(modView as ViewState);
                       if (isMobileMenuOpen) toggleMobileMenu();
                     }}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors text-left cursor-pointer ${
+                    className={`w-full relative flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium transition-all text-left cursor-pointer group ${
                       isModActive
-                        ? 'bg-[#ECFDF5] dark:bg-emerald-950/40 text-[#059669] dark:text-emerald-400'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/60 hover:text-[#0F172A] dark:hover:text-slate-100'
+                        ? 'bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-semibold shadow-2xs'
+                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100'
                     }`}
                   >
-                    <Layers className={`w-4 h-4 shrink-0 ${isModActive ? 'text-[#059669] dark:text-emerald-400' : 'text-slate-400'}`} />
+                    {isModActive && (
+                      <span className="absolute left-1 top-2.5 bottom-2.5 w-1 rounded-full bg-emerald-500" />
+                    )}
+                    <Layers className={`w-4 h-4 shrink-0 transition-transform ${isModActive ? 'text-emerald-600 dark:text-emerald-400 scale-105 ml-1' : 'text-slate-400 group-hover:text-slate-600'}`} />
                     <span className="truncate flex-1">{mod.name}</span>
                   </button>
                 );
@@ -258,8 +266,8 @@ export function Sidebar() {
 
           {/* Group 3: System & Tools */}
           {availableSystemItems.length > 0 && (
-            <div className="space-y-1 pt-2 border-t border-slate-200/60 dark:border-slate-800/60">
-              <div className="px-3 pb-1.5 text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+            <div className="space-y-1 pt-2.5 border-t border-[#E2E8F0] dark:border-white/[0.08]">
+              <div className="px-3 pb-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.08em]">
                 {t('System & Tools')}
               </div>
               {availableSystemItems.map(renderNavButton)}
@@ -268,11 +276,11 @@ export function Sidebar() {
         </nav>
 
         {/* Quick Preferences: Theme & Language */}
-        <div className="px-3 py-2 border-t border-[#E2E8F0] dark:border-slate-800 flex items-center justify-between gap-1.5">
+        <div className="px-3 py-2 border-t border-[#E2E8F0] dark:border-white/[0.08] flex items-center justify-between gap-1.5">
           <button
             type="button"
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-750 transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border border-[#E2E8F0] dark:border-white/[0.08] bg-slate-50/60 dark:bg-[#141E30] text-xs font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             title={isVi ? 'Giao diện' : 'Theme'}
           >
             {theme === 'dark' ? (
@@ -294,7 +302,7 @@ export function Sidebar() {
               const nextLang = language === 'vi' ? 'en' : 'vi';
               setLanguage(nextLang);
             }}
-            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 active:scale-95 transition-all cursor-pointer shadow-2xs"
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-lg border border-[#E2E8F0] dark:border-white/[0.08] bg-slate-50/60 dark:bg-[#141E30] text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 active:scale-95 transition-all cursor-pointer shadow-2xs"
             title={isVi ? 'Nhấp 1 chạm để đổi sang English' : 'Click 1-tap to switch to Tiếng Việt'}
             aria-label={isVi ? 'Đổi ngôn ngữ sang English' : 'Switch language to Vietnamese'}
           >
@@ -304,8 +312,8 @@ export function Sidebar() {
         </div>
 
         {/* Footer profile & quick status */}
-        <div className="p-3 border-t border-[#E2E8F0] dark:border-slate-800 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
-          <div className="flex items-center justify-between p-2 rounded-lg bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-colors">
+        <div className="p-3 border-t border-[#E2E8F0] dark:border-white/[0.08] pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+          <div className="flex items-center justify-between p-2 rounded-xl bg-slate-50/70 dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/[0.15] transition-all">
             <button
               type="button"
               onClick={() => {
@@ -319,12 +327,12 @@ export function Sidebar() {
                 <img
                   src={currentUser?.avatar || 'https://ui-avatars.com/api/?name=LifeOS+SuperAdmin&background=10B981&color=fff'}
                   alt={currentUser?.name || 'LifeOS SuperAdmin'}
-                  className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 object-cover border border-slate-200 dark:border-slate-700"
+                  className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 object-cover border border-slate-200/80 dark:border-white/[0.08] shadow-2xs"
                 />
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white dark:border-slate-900" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#141E30]" />
               </div>
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate group-hover:text-emerald-600 transition-colors">
+                <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                   {currentUser?.name || 'LifeOS SuperAdmin'}
                 </p>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal truncate">
@@ -337,7 +345,7 @@ export function Sidebar() {
               type="button"
               onClick={logout}
               title={isVi ? 'Đăng xuất' : 'Sign Out'}
-              className="p-1.5 rounded-md text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors shrink-0"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors shrink-0"
             >
               <LogOut className="w-4 h-4" />
             </button>
