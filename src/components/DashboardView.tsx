@@ -341,6 +341,7 @@ export function DashboardView() {
     monthlyIncome,
     monthlyExpense,
     netMonthly,
+    hasBudgetBaseline,
     dailySafeToSpendBudget,
     safeToSpendTodayRemaining
   } = useMemo(() => {
@@ -382,6 +383,7 @@ export function DashboardView() {
       monthlyIncome: mInc,
       monthlyExpense: mExp,
       netMonthly: netM,
+      hasBudgetBaseline: hasBaseline,
       dailySafeToSpendBudget: dailySafe,
       safeToSpendTodayRemaining: safeRemaining
     };
