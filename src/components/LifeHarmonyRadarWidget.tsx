@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ResponsiveContainer, 
   RadarChart, 
@@ -35,6 +35,18 @@ export const LifeHarmonyRadarWidget: React.FC<LifeHarmonyRadarWidgetProps> = ({
 }) => {
   const [showTraceModal, setShowTraceModal] = useState(false);
   const [selectedDimForTrace, setSelectedDimForTrace] = useState<LifeHarmonyDimension | null>(null);
+
+  // Close modal on Escape key press
+  useEffect(() => {
+    if (!showTraceModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowTraceModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showTraceModal]);
 
   const getScoreBadgeColor = (score: number | null) => {
     if (score === null) return 'from-slate-400 to-slate-500 text-white';
@@ -268,8 +280,16 @@ export const LifeHarmonyRadarWidget: React.FC<LifeHarmonyRadarWidgetProps> = ({
 
       {/* TRACEABILITY & AUDIT MODAL: "VÌ SAO TÔI CÓ ĐIỂM NÀY?" */}
       {showTraceModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowTraceModal(false);
+          }}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in cursor-default"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col relative z-10"
+          >
             {/* Modal Header */}
             <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/40">
               <div className="flex items-center gap-2.5">
@@ -286,8 +306,13 @@ export const LifeHarmonyRadarWidget: React.FC<LifeHarmonyRadarWidgetProps> = ({
                 </div>
               </div>
               <button 
-                onClick={() => setShowTraceModal(false)}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowTraceModal(false);
+                }}
+                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer relative z-20"
+                aria-label="Đóng cửa sổ"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -403,14 +428,17 @@ export const LifeHarmonyRadarWidget: React.FC<LifeHarmonyRadarWidgetProps> = ({
             </div>
 
             {/* Modal Footer */}
-            <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/40">
+            <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-800/40 relative z-20">
               <span className="text-[11px] text-slate-400">
                 Lần cập nhật cuối: {formatDateTime(harmony.lastUpdated)}
               </span>
               <button
                 type="button"
-                onClick={() => setShowTraceModal(false)}
-                className="px-4 py-2 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold text-xs cursor-pointer hover:opacity-90"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowTraceModal(false);
+                }}
+                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 font-bold text-xs cursor-pointer shadow-sm hover:opacity-95 active:scale-95 transition-all relative z-30"
               >
                 Đóng
               </button>
