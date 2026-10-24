@@ -21833,6 +21833,22 @@ async function startServer() {
   const PORT = parseInt(process.env.PORT || "3000", 10);
   app.set("trust proxy", 1);
   app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    const allowedOrigins = (process.env.CORS_ORIGIN || "").split(",").map((s) => s.trim()).filter(Boolean);
+    if (origin) {
+      if (allowedOrigins.length === 0 || allowedOrigins.includes("*") || allowedOrigins.includes(origin)) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader("Access-Control-Allow-Credentials", "true");
+        res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+        res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With, X-CSRF-Token, X-Request-ID");
+      }
+    }
+    if (req.method === "OPTIONS") {
+      return res.sendStatus(204);
+    }
+    next();
+  });
+  app.use((req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
@@ -22279,4 +22295,20 @@ async function startServer() {
   process.on("SIGTERM", () => shutdown("SIGTERM"));
   process.on("SIGINT", () => shutdown("SIGINT"));
 }
+process.on("uncaughtException", (err) => {
+  console.error("\u{1F4A5} [CRITICAL PROCESS ERROR] Uncaught Exception:", err.stack || err.message);
+  try {
+    SystemNotificationHelper.onSystemCriticalError({
+      message: `Uncaught Exception: ${err.message}`,
+      stack: err.stack,
+      path: "process_level",
+      method: "UNCAUGHT_EXCEPTION"
+    }).catch(() => {
+    });
+  } catch (e) {
+  }
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("\u26A0\uFE0F [PROCESS WARNING] Unhandled Promise Rejection:", reason);
+});
 startServer();
