@@ -316,7 +316,7 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
             {/* Live Trust & 7-Day Trial Pill */}
             <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50/90 dark:bg-emerald-950/60 border border-emerald-200/80 dark:border-emerald-800/80 text-emerald-800 dark:text-emerald-300 text-xs font-semibold shadow-2xs">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-              <span>Dùng thử 7 ngày toàn diện · Hệ điều hành cuộc sống Gen Z v2.0</span>
+              <span>Hệ điều hành cuộc sống Gen Z • Zero-Setup Engine v2.4</span>
             </div>
 
             {/* Main Headline (Clean, Punchy, High Impact) */}
@@ -330,7 +330,7 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
 
             {/* Subheadline (Resolves Pain Point) */}
             <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 font-normal leading-relaxed max-w-xl">
-              Giải phóng 90% áp lực quá tải từ 10 ứng dụng rời rạc. Tích hợp trọn vẹn <strong>Quy tắc Tam Hợp</strong>, <strong>P.A.R.A</strong>, <strong>Pomodoro Lofi</strong>, <strong>Spaced Repetition</strong> cùng <strong>Bé Lumi</strong> đồng hành truyền cảm hứng.
+              Gom trọn Quản lý nhiệm vụ, Lịch biểu, Pomodoro Lofi và Học từ vựng FSRS vào một không gian 0ms duy nhất cùng Bé Lumi đồng hành truyền cảm hứng.
             </p>
 
             {/* CTA Buttons Group (Mobile touch target >= 48px) */}
@@ -340,7 +340,7 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
                 onClick={() => onLoginClick('register')}
                 className="w-full sm:w-auto min-h-[48px] px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-2xl shadow-md shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 text-sm sm:text-base cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
               >
-                <span>🎁 Dùng thử 7 ngày miễn phí</span>
+                <span>⚡ Bắt đầu trải nghiệm ngay</span>
                 <ArrowRight className="w-4 h-4 shrink-0" />
               </button>
 
@@ -358,7 +358,7 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
             <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center justify-center lg:justify-start gap-x-4 gap-y-2.5 pt-2 text-xs font-medium text-slate-500 dark:text-slate-400">
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                <span>Dùng thử 7 ngày đầy đủ</span>
+                <span>Khởi động trong 5 giây</span>
               </div>
               <div className="flex items-center gap-1.5">
                 <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
