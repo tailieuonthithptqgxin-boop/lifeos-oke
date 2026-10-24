@@ -313,7 +313,9 @@ export function SubscriptionManagementView() {
     }
   };
 
-  const isAccessActive = subStatus?.hasAccess;
+  const userRole = (currentUser?.role || '').toUpperCase();
+  const isAdmin = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
+  const isAccessActive = isAdmin || Boolean(subStatus?.hasAccess);
   const isTeamOwner = subStatus?.isTeamOwner || teamData?.role === 'OWNER';
   const isTeamMember = subStatus?.isTeamMember || teamData?.role === 'MEMBER';
 
@@ -345,12 +347,12 @@ export function SubscriptionManagementView() {
               <div className="flex items-center gap-2 mt-0.5">
                 <span className={`w-2.5 h-2.5 rounded-full ${isAccessActive ? 'bg-emerald-500 animate-pulse' : 'bg-rose-500'}`} />
                 <span className="text-sm font-bold text-slate-900 dark:text-white">
-                  {isAccessActive ? 'Đang hoạt động' : (subStatus?.status === 'EXPIRED' ? 'Đã hết hạn' : 'Chưa mua gói')}
+                  {isAdmin ? 'Đang hoạt động (Toàn quyền Admin)' : isAccessActive ? 'Đang hoạt động' : (subStatus?.status === 'EXPIRED' ? 'Đã hết hạn' : 'Chưa mua gói')}
                 </span>
               </div>
               <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-0.5">
-                {subStatus?.planName || 'Chưa kích hoạt'} 
-                {isAccessActive && subStatus?.remainingDays !== undefined && (
+                {isAdmin ? 'Quản trị viên Hệ thống (Vô thời hạn)' : (subStatus?.planName || 'Chưa kích hoạt')} 
+                {!isAdmin && isAccessActive && subStatus?.remainingDays !== undefined && (
                   <span className="text-blue-600 dark:text-blue-400 font-bold ml-1">
                     (Còn {subStatus.remainingDays} ngày)
                   </span>

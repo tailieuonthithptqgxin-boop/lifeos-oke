@@ -44,7 +44,7 @@ export function AccountStatusBanner() {
     : '';
 
   const isGlobalFree = Boolean(subscriptionStatus?.isGlobalFreeMode);
-  const isExpired = !isGlobalFree && (isTrialExpired || subscriptionStatus?.lifecycleStatus === 'EXPIRED' || subscriptionStatus?.status === 'EXPIRED');
+  const isExpired = !hasAccess && !isGlobalFree && (isTrialExpired || subscriptionStatus?.lifecycleStatus === 'EXPIRED' || subscriptionStatus?.status === 'EXPIRED');
   const isExpiringSoon = !isGlobalFree && hasAccess && remainingDays > 0 && remainingDays <= 2;
 
   // Active paid subscription with plenty of days left -> no banner needed

@@ -236,7 +236,22 @@ async function startServer() {
           avatar: 'https://ui-avatars.com/api/?name=Super+Admin&background=0284c7&color=fff',
         });
         console.log(`✅ Initial SuperAdmin created: ${adminEmail}`);
+      } else if (existingAdmin.role !== 'SUPERADMIN' || existingAdmin.plan === 'FREE') {
+        await prisma.user.update({
+          where: { id: existingAdmin.id },
+          data: { role: 'SUPERADMIN', plan: 'TEAM' }
+        });
+        console.log(`✅ SuperAdmin role and plan verified/upgraded: ${adminEmail}`);
       }
+
+      // Auto-heal all administrator accounts in PostgreSQL to have TEAM plan (never FREE)
+      await prisma.user.updateMany({
+        where: {
+          role: { in: ['ADMIN', 'SUPERADMIN'] },
+          plan: 'FREE'
+        },
+        data: { plan: 'TEAM' }
+      }).catch(e => console.warn('Admin plan auto-heal warning:', e));
     } else if (isProduction) {
       const anyAdmin = await prisma.user.findFirst({
         where: { role: { in: ['ADMIN', 'SUPERADMIN'] } }

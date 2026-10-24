@@ -142,7 +142,7 @@ export function Sidebar() {
         <span className="truncate flex-1">{t(item.label)}</span>
         {item.id === 'subscription' && (
           <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
-            {subscriptionStatus?.hasAccess ? `${subscriptionStatus.remainingDays || 0}d` : 'Free'}
+            {isAdmin ? 'Admin' : subscriptionStatus?.hasAccess ? `${subscriptionStatus.remainingDays || 0}d` : 'Free'}
           </span>
         )}
       </button>
@@ -336,7 +336,7 @@ export function Sidebar() {
                   {currentUser?.name || 'LifeOS SuperAdmin'}
                 </p>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal truncate">
-                  {currentUser?.plan || 'SuperAdmin'}
+                  {isAdmin ? 'Quản trị viên (Admin)' : (currentUser?.plan || 'Free')}
                 </p>
               </div>
             </button>

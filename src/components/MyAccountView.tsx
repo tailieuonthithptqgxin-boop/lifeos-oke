@@ -74,6 +74,9 @@ export function MyAccountView() {
     subscriptionStatus
   } = useAppStore();
 
+  const userRole = (currentUser?.role || '').toUpperCase();
+  const isAdmin = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
+
   const [name, setName] = useState(currentUser?.name || '');
   const [avatar, setAvatar] = useState(currentUser?.avatar || '');
   const [statusMsg, setStatusMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -561,12 +564,16 @@ export function MyAccountView() {
             <div>
               <span className="text-slate-400 block text-[11px] mb-0.5">Gói dịch vụ hiện tại</span>
               <span className="font-black text-slate-900 dark:text-white text-base">
-                {subscriptionStatus?.isTrial
+                {isAdmin
+                  ? 'Quản trị viên Hệ thống'
+                  : subscriptionStatus?.isTrial
                   ? (subscriptionStatus.hasAccess ? '🎁 Dùng Thử 7 Ngày' : '🔒 Dùng Thử Đã Kết Thúc')
                   : subscriptionStatus?.planName || (subscriptionStatus?.hasAccess ? 'Gói Đang Hoạt Động' : 'Chưa kích hoạt')}
               </span>
               <span className="block text-[11px] text-slate-500 mt-0.5">
-                {subscriptionStatus?.isTrial
+                {isAdmin
+                  ? 'Toàn quyền quản trị & mở khóa 100% tính năng LifeOS'
+                  : subscriptionStatus?.isTrial
                   ? (subscriptionStatus.hasAccess ? 'Trải nghiệm 100% tính năng Premium' : 'Hết 7 ngày trải nghiệm miễn phí')
                   : subscriptionStatus?.hasAccess ? 'Mở khóa toàn bộ chức năng LifeOS' : 'Cần kích hoạt gói để sử dụng'}
               </span>
@@ -575,10 +582,14 @@ export function MyAccountView() {
             <div>
               <span className="text-slate-400 block text-[11px] mb-0.5">Thời hạn hiệu lực</span>
               <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
-                {subscriptionStatus?.endDate ? new Date(subscriptionStatus.endDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Chưa kích hoạt'}
+                {isAdmin
+                  ? 'Vô thời hạn'
+                  : subscriptionStatus?.endDate ? new Date(subscriptionStatus.endDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Chưa kích hoạt'}
               </span>
               <span className="block text-[11px] text-slate-500 mt-0.5">
-                {subscriptionStatus?.hasAccess ? `Còn lại ${subscriptionStatus.remainingDays || 0} ngày sử dụng` : 'Hết hạn truy cập'}
+                {isAdmin
+                  ? 'Không giới hạn thời gian sử dụng'
+                  : subscriptionStatus?.hasAccess ? `Còn lại ${subscriptionStatus.remainingDays || 0} ngày sử dụng` : 'Hết hạn truy cập'}
               </span>
             </div>
 
@@ -586,16 +597,18 @@ export function MyAccountView() {
               <span className="text-slate-400 block text-[11px] mb-0.5">Trạng thái quyền truy cập</span>
               <div className="flex items-center gap-1.5">
                 <span className={`w-2 h-2 rounded-full ${
-                  subscriptionStatus?.hasAccess ? 'bg-emerald-500' : 'bg-rose-500'
+                  (isAdmin || subscriptionStatus?.hasAccess) ? 'bg-emerald-500' : 'bg-rose-500'
                 }`}></span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
-                  {subscriptionStatus?.isTrial
+                  {isAdmin
+                    ? 'Đang hoạt động (Toàn quyền quản trị)'
+                    : subscriptionStatus?.isTrial
                     ? (subscriptionStatus.hasAccess ? 'Đang dùng thử (Đầy đủ chức năng)' : 'Hết hạn dùng thử (Cần mua gói)')
                     : subscriptionStatus?.hasAccess ? 'Đang hoạt động (Đầy đủ chức năng)' : 'Tạm khóa (Cần gia hạn)'}
                 </span>
               </div>
               <span className="block text-[11px] text-slate-500 mt-0.5">
-                {subscriptionStatus?.hasAccess ? 'Mọi chức năng hệ thống đều khả dụng' : 'Vui lòng chọn gói để tiếp tục'}
+                {isAdmin || subscriptionStatus?.hasAccess ? 'Mọi chức năng hệ thống đều khả dụng' : 'Vui lòng chọn gói để tiếp tục'}
               </span>
             </div>
           </div>

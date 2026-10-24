@@ -155,6 +155,7 @@ const getInitialState = (): AppState => {
   
   let cachedUser: User | null = null;
   let cachedCollections: any = {};
+  let cachedSub: UserSubscriptionStatus | null = null;
   let token: string | null = null;
   let isGoogleCallback = false;
 
@@ -172,10 +173,30 @@ const getInitialState = (): AppState => {
     if (userStr) cachedUser = JSON.parse(userStr);
     const colStr = localStorage.getItem('lifeos_swr_collections');
     if (colStr) cachedCollections = JSON.parse(colStr);
+    const subStr = localStorage.getItem('lifeos_swr_sub');
+    if (subStr) cachedSub = JSON.parse(subStr);
   } catch (e) {}
 
   // If token and cachedUser exist OR returning from successful Google OAuth
   const hasAuth = Boolean((token && cachedUser) || (token && isGoogleCallback));
+
+  const userRole = (cachedUser?.role || '').toUpperCase();
+  const isAdmin = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
+  const effectiveSub: UserSubscriptionStatus | null = isAdmin
+    ? {
+        hasAccess: true,
+        lifecycleStatus: 'ACTIVE',
+        planId: 'ADMIN',
+        planType: 'TEAM',
+        planName: 'Quản trị viên Hệ thống',
+        status: 'ACTIVE',
+        remainingDays: 9999,
+        role: cachedUser?.role,
+        isTrial: false,
+        isTrialActive: false,
+        isTrialExpired: false
+      }
+    : cachedSub;
 
   let initialMode: WorkspaceMode = 'Advanced';
   let storedPrefs: OnboardingPreferences | null = null;
@@ -194,6 +215,7 @@ const getInitialState = (): AppState => {
     ...defaultState,
     isAuthenticated: hasAuth,
     currentUser: cachedUser,
+    subscriptionStatus: effectiveSub,
     hasCompletedOnboarding: !!cachedUser?.onboardingCompleted,
     onboardingPreferences: storedPrefs,
     workspaceMode: initialMode,
@@ -494,19 +516,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       localStorage.setItem('lifeos_swr_user', JSON.stringify(user));
     } catch (e) {}
+
+    const userRole = (user.role || '').toUpperCase();
+    const isAdmin = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
+    const initialSub: UserSubscriptionStatus | null = isAdmin
+      ? {
+          hasAccess: true,
+          lifecycleStatus: 'ACTIVE',
+          planId: 'ADMIN',
+          planType: 'TEAM',
+          planName: 'Quản trị viên Hệ thống',
+          status: 'ACTIVE',
+          remainingDays: 9999,
+          role: user.role,
+          isTrial: false,
+          isTrialActive: false,
+          isTrialExpired: false
+        }
+      : null;
+
+    if (initialSub) {
+      try {
+        localStorage.setItem('lifeos_swr_sub', JSON.stringify(initialSub));
+      } catch (e) {}
+    }
+
     // Authenticate user immediately and transition UI without delay
     setState(s => ({
       ...defaultState,
       isAuthenticated: true,
       currentUser: user,
+      subscriptionStatus: initialSub || s.subscriptionStatus,
       hasCompletedOnboarding: !!user.onboardingCompleted,
       theme: s.theme,
       language: s.language,
       isAppLoaded: true
     }));
-    // Background populate collections
-    loadAllData().catch(err => {
-      console.warn("Background loadAllData warning:", err);
+    // Background populate collections and fetch fresh subscription entitlement
+    Promise.allSettled([
+      loadAllData(),
+      fetchSubscriptionStatus()
+    ]).catch(err => {
+      console.warn("Background login revalidation warning:", err);
     });
   };
 
@@ -516,6 +567,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.removeItem('token');
       localStorage.removeItem('lifeos_swr_user');
       localStorage.removeItem('lifeos_swr_collections');
+      localStorage.removeItem('lifeos_swr_sub');
     } catch (e) {}
     setState(s => ({
       ...defaultState,
@@ -933,6 +985,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       const res = await apiCall('/api/payments/subscription');
       if (res && res.success) {
+        try {
+          localStorage.setItem('lifeos_swr_sub', JSON.stringify(res));
+        } catch (e) {}
         setState(s => ({ ...s, subscriptionStatus: res }));
         return res;
       }

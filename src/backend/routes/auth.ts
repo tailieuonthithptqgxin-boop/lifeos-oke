@@ -88,14 +88,16 @@ authRouter.post('/register', authRateLimiter, validateBody(RegisterSchema), asyn
     // Calculate exact 7-Day Free Trial (7 * 24 hours from creation)
     const now = new Date();
     const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const initialAdminEmail = (process.env.INITIAL_ADMIN_EMAIL || 'admin@lifeos.com').toLowerCase().trim();
+    const isInitialAdmin = cleanEmail === initialAdminEmail;
 
     // Create user in PostgreSQL with 7-Day Free Trial entitlement
     const newUser = await dbService.createUser({
       name: cleanName,
       email: cleanEmail,
       passwordHash,
-      role: 'USER',
-      plan: 'FREE',
+      role: isInitialAdmin ? 'SUPERADMIN' : 'USER',
+      plan: isInitialAdmin ? 'TEAM' : 'FREE',
       status: 'ACTIVE',
       trialStartedAt: now,
       trialEndsAt,
@@ -299,12 +301,24 @@ authRouter.post('/login', authRateLimiter, validateBody(LoginSchema), async (req
       { ip: clientIp, email: user.email }
     );
 
+    // If user is Admin or SuperAdmin, ensure their plan is not FREE
+    if (user.role === 'ADMIN' || user.role === 'SUPERADMIN') {
+      if (user.plan === 'FREE') {
+        const prisma = getPrisma();
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { plan: 'TEAM' }
+        });
+        user.plan = 'TEAM';
+      }
+    }
+
     const safeUser = {
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
-      plan: user.plan,
+      plan: (user.role === 'ADMIN' || user.role === 'SUPERADMIN') ? (user.plan && user.plan !== 'FREE' ? user.plan : 'TEAM') : user.plan,
       status: user.status,
       avatar: user.avatar,
       planExpiresAt: user.planExpiresAt,
@@ -379,8 +393,18 @@ authRouter.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
     const subStatus = await subscriptionService.checkUserSubscription(user.id);
 
     // Ensure user.plan aligns with active subscription
-    const verifiedPlan = user.role === 'ADMIN' || user.role === 'SUPERADMIN' 
-      ? user.plan 
+    const isAdmin = user.role === 'ADMIN' || user.role === 'SUPERADMIN';
+    if (isAdmin && user.plan === 'FREE') {
+      const prisma = getPrisma();
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { plan: 'TEAM' }
+      }).catch(err => console.warn('Failed to auto-heal admin plan:', err));
+      user.plan = 'TEAM';
+    }
+
+    const verifiedPlan = isAdmin 
+      ? (user.plan && user.plan !== 'FREE' ? user.plan : 'TEAM') 
       : (subStatus.hasAccess ? (subStatus.planType === 'TEAM' ? 'TEAM' : 'PRO') : 'FREE');
 
     res.json({
@@ -870,6 +894,9 @@ const handleGoogleCallback = async (req: Request, res: Response) => {
       }
     });
 
+    const initialAdminEmail = (process.env.INITIAL_ADMIN_EMAIL || 'admin@lifeos.com').toLowerCase().trim();
+    const isInitialAdmin = cleanEmail === initialAdminEmail;
+
     if (user) {
       // Check status
       if (user.status === 'SUSPENDED' || user.status === 'DISABLED') {
@@ -877,10 +904,16 @@ const handleGoogleCallback = async (req: Request, res: Response) => {
         return;
       }
 
-      // Link googleId or update avatar if missing
+      // Link googleId or update avatar if missing, or heal SuperAdmin role
       const updates: any = {};
       if (!user.googleId) updates.googleId = googleId;
       if (!user.avatar && avatarUrl) updates.avatar = avatarUrl;
+      if (isInitialAdmin && (user.role !== 'SUPERADMIN' || user.plan === 'FREE')) {
+        updates.role = 'SUPERADMIN';
+        updates.plan = 'TEAM';
+      } else if ((user.role === 'ADMIN' || user.role === 'SUPERADMIN') && user.plan === 'FREE') {
+        updates.plan = 'TEAM';
+      }
       if (Object.keys(updates).length > 0) {
         user = await prisma.user.update({
           where: { id: user.id },
@@ -903,8 +936,8 @@ const handleGoogleCallback = async (req: Request, res: Response) => {
         username: generatedUsername,
         passwordHash,
         googleId,
-        role: 'USER',
-        plan: 'FREE',
+        role: isInitialAdmin ? 'SUPERADMIN' : 'USER',
+        plan: isInitialAdmin ? 'TEAM' : 'FREE',
         status: 'ACTIVE',
         avatar: avatarUrl,
         trialStartedAt: now,

@@ -532,11 +532,11 @@ export function TopBar() {
                       {currentUser?.role || 'USER'}
                     </span>
                     <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                      subscriptionStatus?.hasAccess 
+                      (isAdmin || subscriptionStatus?.hasAccess)
                         ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' 
                         : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
                     }`}>
-                      {subscriptionStatus?.hasAccess ? (subscriptionStatus?.planName || t('Đã kích hoạt')) : t('Chưa kích hoạt gói')}
+                      {isAdmin ? 'Admin (Toàn quyền)' : subscriptionStatus?.hasAccess ? (subscriptionStatus?.planName || t('Đã kích hoạt')) : t('Chưa kích hoạt gói')}
                     </span>
                   </div>
                 </div>

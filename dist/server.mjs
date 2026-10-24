@@ -4877,6 +4877,9 @@ var init_subscription_service = __esm({
             planName: "Qu\u1EA3n tr\u1ECB vi\xEAn H\u1EC7 th\u1ED1ng",
             status: "ACTIVE",
             remainingDays: 9999,
+            isTrial: false,
+            isTrialActive: false,
+            isTrialExpired: false,
             role: user.role
           };
         }
@@ -4895,6 +4898,9 @@ var init_subscription_service = __esm({
             status: "ACTIVE",
             remainingDays: 365,
             isGlobalFreeMode: true,
+            isTrial: false,
+            isTrialActive: false,
+            isTrialExpired: false,
             role: user.role,
             activePending: activePending || null
           };
@@ -4954,6 +4960,9 @@ var init_subscription_service = __esm({
             remainingDays,
             isTeamOwner: directSub.planType === "TEAM" || directSub.planId.includes("TEAM"),
             isTeamMember: false,
+            isTrial: false,
+            isTrialActive: false,
+            isTrialExpired: false,
             teamId: directSub.team?.id,
             teamName: directSub.team?.name,
             subscriptionId: directSub.id,
@@ -4989,6 +4998,9 @@ var init_subscription_service = __esm({
               remainingDays,
               isTeamOwner: false,
               isTeamMember: true,
+              isTrial: false,
+              isTrialActive: false,
+              isTrialExpired: false,
               teamId: team.id,
               teamName: team.name,
               teamOwnerEmail: team.owner.email,
@@ -5009,6 +5021,9 @@ var init_subscription_service = __esm({
               planName: user.plan === "TEAM" ? "G\xF3i \u0110\u1ED9i Ng\u0169" : "G\xF3i Pro C\xE1 Nh\xE2n",
               status: "ACTIVE",
               remainingDays,
+              isTrial: false,
+              isTrialActive: false,
+              isTrialExpired: false,
               role: user.role,
               activePending: activePending || null
             };
@@ -7174,12 +7189,14 @@ authRouter.post("/register", authRateLimiter, validateBody(RegisterSchema), asyn
     const passwordHash = await bcrypt.hash(rawPassword, salt);
     const now = /* @__PURE__ */ new Date();
     const trialEndsAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1e3);
+    const initialAdminEmail = (process.env.INITIAL_ADMIN_EMAIL || "admin@lifeos.com").toLowerCase().trim();
+    const isInitialAdmin = cleanEmail === initialAdminEmail;
     const newUser = await dbService.createUser({
       name: cleanName,
       email: cleanEmail,
       passwordHash,
-      role: "USER",
-      plan: "FREE",
+      role: isInitialAdmin ? "SUPERADMIN" : "USER",
+      plan: isInitialAdmin ? "TEAM" : "FREE",
       status: "ACTIVE",
       trialStartedAt: now,
       trialEndsAt,
@@ -7339,12 +7356,22 @@ authRouter.post("/login", authRateLimiter, validateBody(LoginSchema), async (req
       null,
       { ip: clientIp, email: user.email }
     );
+    if (user.role === "ADMIN" || user.role === "SUPERADMIN") {
+      if (user.plan === "FREE") {
+        const prisma = getPrisma();
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { plan: "TEAM" }
+        });
+        user.plan = "TEAM";
+      }
+    }
     const safeUser = {
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
-      plan: user.plan,
+      plan: user.role === "ADMIN" || user.role === "SUPERADMIN" ? user.plan && user.plan !== "FREE" ? user.plan : "TEAM" : user.plan,
       status: user.status,
       avatar: user.avatar,
       planExpiresAt: user.planExpiresAt,
@@ -7401,7 +7428,16 @@ authRouter.get("/me", requireAuth, async (req, res) => {
     }
     const { subscriptionService: subscriptionService2 } = await Promise.resolve().then(() => (init_subscription_service(), subscription_service_exports));
     const subStatus = await subscriptionService2.checkUserSubscription(user.id);
-    const verifiedPlan = user.role === "ADMIN" || user.role === "SUPERADMIN" ? user.plan : subStatus.hasAccess ? subStatus.planType === "TEAM" ? "TEAM" : "PRO" : "FREE";
+    const isAdmin = user.role === "ADMIN" || user.role === "SUPERADMIN";
+    if (isAdmin && user.plan === "FREE") {
+      const prisma = getPrisma();
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { plan: "TEAM" }
+      }).catch((err) => console.warn("Failed to auto-heal admin plan:", err));
+      user.plan = "TEAM";
+    }
+    const verifiedPlan = isAdmin ? user.plan && user.plan !== "FREE" ? user.plan : "TEAM" : subStatus.hasAccess ? subStatus.planType === "TEAM" ? "TEAM" : "PRO" : "FREE";
     res.json({
       success: true,
       user: {
@@ -7794,6 +7830,8 @@ var handleGoogleCallback = async (req, res) => {
         ]
       }
     });
+    const initialAdminEmail = (process.env.INITIAL_ADMIN_EMAIL || "admin@lifeos.com").toLowerCase().trim();
+    const isInitialAdmin = cleanEmail === initialAdminEmail;
     if (user) {
       if (user.status === "SUSPENDED" || user.status === "DISABLED") {
         res.redirect("/?login=account_locked");
@@ -7802,6 +7840,12 @@ var handleGoogleCallback = async (req, res) => {
       const updates = {};
       if (!user.googleId) updates.googleId = googleId;
       if (!user.avatar && avatarUrl) updates.avatar = avatarUrl;
+      if (isInitialAdmin && (user.role !== "SUPERADMIN" || user.plan === "FREE")) {
+        updates.role = "SUPERADMIN";
+        updates.plan = "TEAM";
+      } else if ((user.role === "ADMIN" || user.role === "SUPERADMIN") && user.plan === "FREE") {
+        updates.plan = "TEAM";
+      }
       if (Object.keys(updates).length > 0) {
         user = await prisma.user.update({
           where: { id: user.id },
@@ -7820,8 +7864,8 @@ var handleGoogleCallback = async (req, res) => {
         username: generatedUsername,
         passwordHash,
         googleId,
-        role: "USER",
-        plan: "FREE",
+        role: isInitialAdmin ? "SUPERADMIN" : "USER",
+        plan: isInitialAdmin ? "TEAM" : "FREE",
         status: "ACTIVE",
         avatar: avatarUrl,
         trialStartedAt: now,
@@ -22006,7 +22050,20 @@ async function startServer() {
           avatar: "https://ui-avatars.com/api/?name=Super+Admin&background=0284c7&color=fff"
         });
         console.log(`\u2705 Initial SuperAdmin created: ${adminEmail}`);
+      } else if (existingAdmin.role !== "SUPERADMIN" || existingAdmin.plan === "FREE") {
+        await prisma.user.update({
+          where: { id: existingAdmin.id },
+          data: { role: "SUPERADMIN", plan: "TEAM" }
+        });
+        console.log(`\u2705 SuperAdmin role and plan verified/upgraded: ${adminEmail}`);
       }
+      await prisma.user.updateMany({
+        where: {
+          role: { in: ["ADMIN", "SUPERADMIN"] },
+          plan: "FREE"
+        },
+        data: { plan: "TEAM" }
+      }).catch((e) => console.warn("Admin plan auto-heal warning:", e));
     } else if (isProduction) {
       const anyAdmin = await prisma.user.findFirst({
         where: { role: { in: ["ADMIN", "SUPERADMIN"] } }

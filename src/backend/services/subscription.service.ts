@@ -401,6 +401,9 @@ export const subscriptionService = {
         planName: 'Quản trị viên Hệ thống',
         status: 'ACTIVE',
         remainingDays: 9999,
+        isTrial: false,
+        isTrialActive: false,
+        isTrialExpired: false,
         role: user.role
       };
     }
@@ -423,6 +426,9 @@ export const subscriptionService = {
         status: 'ACTIVE',
         remainingDays: 365,
         isGlobalFreeMode: true,
+        isTrial: false,
+        isTrialActive: false,
+        isTrialExpired: false,
         role: user.role,
         activePending: activePending || null
       };
@@ -490,6 +496,9 @@ export const subscriptionService = {
         remainingDays,
         isTeamOwner: directSub.planType === 'TEAM' || directSub.planId.includes('TEAM'),
         isTeamMember: false,
+        isTrial: false,
+        isTrialActive: false,
+        isTrialExpired: false,
         teamId: directSub.team?.id,
         teamName: directSub.team?.name,
         subscriptionId: directSub.id,
@@ -534,6 +543,9 @@ export const subscriptionService = {
           remainingDays,
           isTeamOwner: false,
           isTeamMember: true,
+          isTrial: false,
+          isTrialActive: false,
+          isTrialExpired: false,
           teamId: team.id,
           teamName: team.name,
           teamOwnerEmail: team.owner.email,
@@ -556,6 +568,9 @@ export const subscriptionService = {
           planName: user.plan === 'TEAM' ? 'Gói Đội Ngũ' : 'Gói Pro Cá Nhân',
           status: 'ACTIVE',
           remainingDays,
+          isTrial: false,
+          isTrialActive: false,
+          isTrialExpired: false,
           role: user.role,
           activePending: activePending || null
         };

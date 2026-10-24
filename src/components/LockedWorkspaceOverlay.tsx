@@ -20,8 +20,16 @@ interface LockedWorkspaceOverlayProps {
 }
 
 export function LockedWorkspaceOverlay({ featureName }: LockedWorkspaceOverlayProps) {
-  const { subscriptionStatus, setCurrentView, language } = useAppStore();
+  const { subscriptionStatus, setCurrentView, language, currentUser } = useAppStore();
   const t = useTranslation(language);
+
+  const userRole = (currentUser?.role || '').toUpperCase();
+  const isAdmin = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
+
+  // Admins or users with active subscription access MUST NEVER see a locked workspace overlay
+  if (isAdmin || subscriptionStatus?.hasAccess) {
+    return null;
+  }
 
   const status = subscriptionStatus?.lifecycleStatus || (subscriptionStatus?.status === 'EXPIRED' ? 'EXPIRED' : 'UNPAID');
   const isPending = status === 'PENDING' || !!subscriptionStatus?.activePending;
