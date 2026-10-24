@@ -145,7 +145,7 @@ export function ProjectsView() {
 
       {/* Projects Grid */}
       {filteredProjects.length === 0 ? (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-[#E2E8F0] dark:border-slate-800 p-12 text-center animate-page-enter">
+        <div className="bg-white dark:bg-[#141E30] rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] p-12 text-center animate-page-enter">
           <FolderKanban className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto mb-3 stroke-1" />
           <h3 className="font-semibold text-[#0F172A] dark:text-white">
             {isVi ? 'Chưa có dự án nào' : 'No projects found'}
@@ -169,7 +169,7 @@ export function ProjectsView() {
             return (
               <div
                 key={project.id}
-                className="bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-xl p-4 sm:p-5 space-y-4 shadow-2xs transition-colors w-full min-w-0 max-w-full overflow-hidden break-words"
+                className="bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] rounded-2xl p-4 sm:p-5 space-y-4 shadow-2xs transition-colors w-full min-w-0 max-w-full overflow-hidden break-words"
               >
                 <div className="flex items-start justify-between gap-2.5 sm:gap-3">
                   <div className="space-y-1">
@@ -321,7 +321,7 @@ export function ProjectsView() {
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="bg-white dark:bg-slate-900 rounded-xl max-w-md w-full p-5 border border-[#E2E8F0] dark:border-slate-800 shadow-lg space-y-4 animate-modal-enter"
+            className="bg-white dark:bg-[#141E30] rounded-2xl max-w-md w-full p-5 border border-[#E2E8F0] dark:border-white/[0.08] shadow-lg space-y-4 animate-modal-enter"
           >
             <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-base font-semibold text-[#0F172A] dark:text-white">
@@ -418,7 +418,7 @@ export function ProjectsView() {
         >
           <div 
             onClick={(e) => e.stopPropagation()}
-            className="bg-white dark:bg-slate-900 rounded-xl max-w-md w-full p-5 border border-[#E2E8F0] dark:border-slate-800 shadow-lg space-y-4 animate-modal-enter"
+            className="bg-white dark:bg-[#141E30] rounded-2xl max-w-md w-full p-5 border border-[#E2E8F0] dark:border-white/[0.08] shadow-lg space-y-4 animate-modal-enter"
           >
             <div className="flex items-center justify-between pb-1 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-base font-semibold text-[#0F172A] dark:text-white">

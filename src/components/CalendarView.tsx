@@ -24,7 +24,7 @@ export function CalendarView() {
   return (
     <div className="w-full min-w-0 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex flex-col space-y-4 sm:space-y-6 overflow-x-hidden">
       {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs shrink-0 w-full min-w-0">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-white dark:bg-[#141E30] p-4 sm:p-5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs shrink-0 w-full min-w-0">
         <div className="min-w-0">
           <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight truncate">{isVi ? 'Lịch biểu & Kế hoạch' : 'Calendar & Schedule'}</h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 break-words">{isVi ? 'Thời gian biểu time-blocking và quản lý sự kiện mỗi ngày.' : 'Time-blocking schedule and daily event management.'}</p>
@@ -70,7 +70,7 @@ export function CalendarView() {
       {viewMode === 'agenda' ? (
         <div className="space-y-6">
           {/* Today's Agenda */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
+          <div className="bg-white dark:bg-[#141E30] rounded-2xl shadow-xs border border-[#E2E8F0] dark:border-white/[0.08] p-4 sm:p-6">
             <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base mb-4">
               <CalendarIcon className="w-5 h-5 text-blue-600" /> {isVi ? `Sự kiện hôm nay (${new Date().toLocaleDateString('vi-VN')})` : `Today's Events (${new Date().toLocaleDateString('en-US')})`}
             </h3>
@@ -112,7 +112,7 @@ export function CalendarView() {
           </div>
 
           {/* Today's Tasks & Deadlines (Cross-Feature Integration) */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
+          <div className="bg-white dark:bg-[#141E30] rounded-2xl shadow-xs border border-[#E2E8F0] dark:border-white/[0.08] p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base">
                 <CheckSquare className="w-5 h-5 text-emerald-500" /> {isVi ? `Hạn công việc hôm nay (${todayTasks.length})` : `Tasks due today (${todayTasks.length})`}
@@ -187,7 +187,7 @@ export function CalendarView() {
           </div>
 
           {/* Upcoming Agenda */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 p-4 sm:p-6">
+          <div className="bg-white dark:bg-[#141E30] rounded-2xl shadow-xs border border-[#E2E8F0] dark:border-white/[0.08] p-4 sm:p-6">
             <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-base mb-4">
               <LayoutList className="w-5 h-5 text-indigo-600" /> {isVi ? 'Kế hoạch sắp tới' : 'Upcoming Agenda'}
             </h3>
@@ -228,8 +228,8 @@ export function CalendarView() {
       ) : (
       <div className="flex flex-col lg:flex-row gap-5 min-h-[640px] w-full min-w-0 max-w-full">
         {/* MAIN CALENDAR COLUMN (70% width) */}
-        <div className="flex-1 lg:w-[70%] bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col min-w-0 max-w-full">
-          <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-white dark:bg-slate-900 shrink-0">
+        <div className="flex-1 lg:w-[70%] bg-white dark:bg-[#141E30] rounded-2xl shadow-xs border border-[#E2E8F0] dark:border-white/[0.08] overflow-hidden flex flex-col min-w-0 max-w-full">
+          <div className="p-4 border-b border-slate-100 dark:border-white/[0.08] flex justify-between items-center bg-white dark:bg-[#141E30] shrink-0">
             <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-sm">
               <CalendarIcon className="w-4 h-4 text-emerald-600" /> {isVi ? `Hôm nay · ${new Date().toLocaleDateString('vi-VN', { weekday: 'long', day: 'numeric', month: 'numeric' })}` : `Today · ${new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}`}
             </h3>
@@ -324,7 +324,7 @@ export function CalendarView() {
 
         {/* RIGHT SIDEBAR COLUMN (30% width, full height) */}
         <div className="w-full lg:w-[30%] lg:max-w-sm shrink-0 flex flex-col gap-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 p-4 sm:p-5 flex flex-col">
+          <div className="bg-white dark:bg-[#141E30] rounded-2xl shadow-xs border border-[#E2E8F0] dark:border-white/[0.08] p-4 sm:p-5 flex flex-col">
             <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-100 dark:border-slate-800">
               <h3 className="font-bold text-slate-900 dark:text-white text-sm flex items-center gap-2">
                 <LayoutList className="w-4 h-4 text-emerald-600" /> {isVi ? 'Kế hoạch sắp tới' : 'Upcoming Agenda'}
@@ -452,7 +452,7 @@ function EventModal({ event, onClose, onSave, onDelete }: any) {
     >
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 animate-modal-enter"
+        className="bg-white dark:bg-[#141E30] rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-[#E2E8F0] dark:border-white/[0.08] animate-modal-enter"
       >
         <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center shrink-0">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white">{event ? (isVi ? 'Sửa sự kiện' : 'Edit Event') : (isVi ? 'Thêm sự kiện mới' : 'New Event')}</h3>

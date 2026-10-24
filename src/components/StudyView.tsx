@@ -186,7 +186,7 @@ export function StudyView() {
   return (
     <div className="flex-1 flex flex-col h-full bg-transparent overflow-hidden w-full min-w-0 max-w-full">
       {/* Top Header & Navigation Tabs */}
-      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 px-3.5 sm:px-6 pt-3.5 sm:pt-4 pb-2 shrink-0 w-full min-w-0 max-w-full overflow-hidden">
+      <div className="bg-white/90 dark:bg-[#0B1120]/90 backdrop-blur-xl border-b border-[#E2E8F0] dark:border-white/[0.08] px-3.5 sm:px-6 pt-3.5 sm:pt-4 pb-2 shrink-0 w-full min-w-0 max-w-full overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-3 w-full min-w-0">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <div className="w-10 h-10 sm:w-11 sm:h-11 bg-[#0D523F] text-white rounded-xl flex items-center justify-center shadow-xs shrink-0">

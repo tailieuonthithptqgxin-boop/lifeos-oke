@@ -72,7 +72,7 @@ export function GoalsView() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 pb-24 sm:pb-28 max-w-7xl mx-auto w-full min-w-0 max-w-full flex flex-col space-y-4 sm:space-y-6">
       {/* Header Bar */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shrink-0 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs w-full min-w-0">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shrink-0 bg-white dark:bg-[#141E30] p-4 sm:p-5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs w-full min-w-0">
         <div>
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 text-[#10B981] dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/60 flex items-center justify-center shrink-0">
@@ -280,7 +280,7 @@ function DashboardView({
     <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-full">
       {/* Overview Stat Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full min-w-0">
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between min-w-0">
+        <div className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Hoạt động</span>
             <Target className="w-4 h-4 text-slate-400" />
@@ -289,7 +289,7 @@ function DashboardView({
           <span className="text-[10px] text-slate-400 font-normal mt-1">{completedGoals.length} hoàn thành / {goals.length} tổng</span>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between min-w-0">
+        <div className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Tiến độ chung</span>
             <TrendingUp className="w-4 h-4 text-slate-400" />
@@ -300,7 +300,7 @@ function DashboardView({
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between min-w-0">
+        <div className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Goal Score</span>
             <Award className="w-4 h-4 text-slate-400" />
@@ -309,7 +309,7 @@ function DashboardView({
           <span className="text-[10px] text-slate-400 font-normal mt-1">Streak: {totalStreak} ngày</span>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between min-w-0">
+        <div className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Rủi ro</span>
             <ShieldAlert className="w-4 h-4 text-slate-400" />
@@ -323,7 +323,7 @@ function DashboardView({
       </div>
 
       {/* Goal Status Breakdown Banner - Clean White SaaS Card */}
-      <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-3 sm:gap-4 w-full min-w-0 max-w-full">
+      <div className="bg-white dark:bg-[#141E30] p-4 sm:p-5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs flex flex-col md:flex-row justify-between items-start md:items-center gap-3 sm:gap-4 w-full min-w-0 max-w-full">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 flex items-center justify-center shrink-0">
             <Crosshair className="w-5 h-5" />

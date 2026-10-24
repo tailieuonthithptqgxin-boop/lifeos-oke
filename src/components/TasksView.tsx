@@ -344,7 +344,7 @@ export function TasksView() {
       </div>
 
       {/* Unified Compact Toolbar: Filter Tabs + Search + View Switcher */}
-      <div className="bg-white dark:bg-slate-900 p-2 sm:p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5 shadow-xs">
+      <div className="bg-white dark:bg-[#141E30] p-2 sm:p-2.5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5 shadow-xs">
         {/* Left: Filter Tabs with Horizontal Scroll on Mobile */}
         <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1 lg:mx-0 lg:px-0">
           <FilterButton active={filterStatus === 'All'} count={counts.all} onClick={() => handleSelectFilter('All')}>
@@ -380,7 +380,7 @@ export function TasksView() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('Tìm kiếm công việc...')}
-              className="w-full pl-8 pr-7 py-1.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/50 transition-all"
+              className="w-full pl-8 pr-7 py-1.5 bg-slate-50/80 dark:bg-white/[0.05] border border-slate-200/80 dark:border-white/[0.08] rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/50 transition-all"
             />
             {searchQuery && (
               <button
@@ -396,7 +396,7 @@ export function TasksView() {
           </div>
 
           {/* View Mode Switcher */}
-          <div className="flex items-center gap-0.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl shrink-0 border border-slate-200/50 dark:border-slate-700/50">
+          <div className="flex items-center gap-0.5 bg-slate-100/70 dark:bg-white/[0.05] p-0.5 rounded-xl shrink-0 border border-slate-200/50 dark:border-white/[0.08]">
             <button 
               type="button" 
               id="tasks-view-list-btn"
@@ -543,9 +543,9 @@ export function TasksView() {
       {/* Main View Area */}
       <div className="flex-1 overflow-hidden flex flex-col">
         {viewMode === 'list' ? (
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xs border border-slate-200 dark:border-slate-800 overflow-hidden flex-1 flex flex-col">
+          <div className="bg-white dark:bg-[#141E30] rounded-2xl shadow-xs border border-[#E2E8F0] dark:border-white/[0.08] overflow-hidden flex-1 flex flex-col">
             {/* Linear Style Quick Add Task Input */}
-            <form onSubmit={handleQuickCreate} className="p-3 sm:p-3.5 border-b border-slate-100 dark:border-slate-800 flex flex-wrap sm:flex-nowrap items-center gap-2.5 bg-slate-50/70 dark:bg-slate-800/40">
+            <form onSubmit={handleQuickCreate} className="p-3 sm:p-3.5 border-b border-slate-100 dark:border-white/[0.08] flex flex-wrap sm:flex-nowrap items-center gap-2.5 bg-slate-50/70 dark:bg-white/[0.03]">
               <div className="flex items-center gap-2 flex-1 min-w-[220px]">
                 <Plus className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 ml-1" />
                 <input
@@ -740,10 +740,10 @@ function StatCard({ title, value, desc, icon: Icon, iconColor, iconBg, active, o
     <button
       type="button"
       onClick={onClick}
-      className={`p-3.5 sm:p-4 rounded-2xl text-left transition-all cursor-pointer bg-white dark:bg-slate-900 border ${
+      className={`p-3.5 sm:p-4 rounded-2xl text-left transition-all cursor-pointer bg-white dark:bg-[#141E30] border ${
         active 
           ? 'ring-2 ring-emerald-500/50 border-emerald-500 shadow-sm bg-emerald-50/30 dark:bg-emerald-950/20' 
-          : 'border-slate-200/80 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 hover:shadow-2xs'
+          : 'border-[#E2E8F0] dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/[0.15] hover:shadow-2xs'
       }`}
     >
       <div className="flex items-center justify-between mb-2">
@@ -990,7 +990,7 @@ function KanbanColumn({ title, status, tasks, onEdit, onDropTask, onTagClick, on
       className={`flex-1 min-w-[280px] flex flex-col rounded-2xl border transition-all overflow-hidden ${
         isDragOver 
           ? "bg-emerald-50/60 dark:bg-emerald-950/30 border-emerald-500 border-dashed ring-2 ring-emerald-400/40" 
-          : "bg-slate-50/70 dark:bg-slate-900/60 backdrop-blur-md border-slate-200/80 dark:border-slate-800 shadow-xs"
+          : "bg-slate-50/70 dark:bg-[#141E30]/70 backdrop-blur-md border-[#E2E8F0] dark:border-white/[0.08] shadow-xs"
       }`}
       onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
       onDragLeave={() => setIsDragOver(false)}
@@ -1022,7 +1022,7 @@ function KanbanColumn({ title, status, tasks, onEdit, onDropTask, onTagClick, on
             draggable
             onDragStart={(e) => e.dataTransfer.setData("taskId", task.id)} 
             onClick={() => onEdit(task)}
-            className="bg-white dark:bg-slate-900 p-3.5 rounded-xl shadow-xs border border-slate-200/80 dark:border-slate-800 cursor-grab active:cursor-grabbing hover:border-emerald-500/50 transition-all group"
+            className="bg-white dark:bg-[#1A2540] p-3.5 rounded-xl shadow-xs border border-slate-200/80 dark:border-white/[0.08] cursor-grab active:cursor-grabbing hover:border-emerald-500/50 transition-all group"
           >
             <div className="flex items-start justify-between gap-2 mb-2">
               <h4 className={`text-sm font-semibold leading-snug ${
@@ -1148,7 +1148,7 @@ function TimeboxingView({ tasks, onEditTask, onUpdateTask, localToday }: any) {
   return (
     <div className="flex-1 flex flex-col lg:flex-row gap-5 min-h-[500px]">
       {/* Left Tray: Unscheduled Tasks */}
-      <div className="lg:w-80 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-col">
+      <div className="lg:w-80 bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] rounded-2xl p-4 shadow-xs flex flex-col">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-3">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5 text-amber-500" />
@@ -1184,7 +1184,7 @@ function TimeboxingView({ tasks, onEditTask, onUpdateTask, localToday }: any) {
       </div>
 
       {/* Right Grid: 07:00 to 22:00 Timeboxing Schedule */}
-      <div className="flex-1 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs overflow-y-auto max-h-[650px] space-y-2">
+      <div className="flex-1 bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] rounded-2xl p-4 sm:p-5 shadow-xs overflow-y-auto max-h-[650px] space-y-2">
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-2">
           <div className="flex items-center gap-2">
             <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">

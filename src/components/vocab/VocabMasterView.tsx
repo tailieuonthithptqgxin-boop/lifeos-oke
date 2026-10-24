@@ -560,7 +560,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
     <div className="space-y-6 max-w-7xl mx-auto px-2 sm:px-4 pb-12">
       
       {/* 1. TOP HEADER & WORKSPACE SWITCHER */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-[#141E30] rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <span className="text-3xl p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700">
             {activeLang.flag}
@@ -623,7 +623,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
       </div>
 
       {/* 2. SUB-NAVIGATION TABS (SCIENTIFIC & CLEAN SEGMENTED CONTROL) */}
-      <div className="bg-slate-100/90 dark:bg-slate-900/90 backdrop-blur-md p-1.5 rounded-2xl border border-slate-200/80 dark:border-slate-800/80 flex items-center gap-1 overflow-x-auto no-scrollbar shadow-2xs">
+      <div className="bg-slate-100/90 dark:bg-[#141E30]/90 backdrop-blur-md p-1.5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] flex items-center gap-1 overflow-x-auto no-scrollbar shadow-2xs">
         
         {/* GROUP 1: HỌC TẬP & LUYỆN TẬP (STUDY & PRACTICE) */}
         

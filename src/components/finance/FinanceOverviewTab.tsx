@@ -91,7 +91,7 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
         {/* Charts Section */}
         <div className="lg:col-span-2 space-y-6">
           {/* Primary Comparison Chart: Đã chi tiêu vs Ngân sách vs Thu nhập */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xs border border-[#E2E8F0] dark:border-slate-800 p-5 sm:p-6 space-y-4">
+          <div className="bg-white dark:bg-[#141E30] rounded-2xl shadow-2xs border border-[#E2E8F0] dark:border-white/[0.08] p-5 sm:p-6 space-y-4">
             {/* Header with Title and Period Filter Segmented Control */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-100 dark:border-slate-800">
               <div>
@@ -247,7 +247,7 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
           </div>
 
           {/* Secondary Breakdown Chart: Cơ cấu Chi tiêu */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xs border border-[#E2E8F0] dark:border-slate-800 p-5 sm:p-6 space-y-4">
+          <div className="bg-white dark:bg-[#141E30] rounded-2xl shadow-2xs border border-[#E2E8F0] dark:border-white/[0.08] p-5 sm:p-6 space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
               <div>
                 <h3 className="font-semibold text-[#0F172A] dark:text-white text-base">
@@ -298,7 +298,7 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
         </div>
 
         {/* Accounts Summary */}
-        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xs border border-[#E2E8F0] dark:border-slate-800 p-5">
+        <div className="bg-white dark:bg-[#141E30] rounded-2xl shadow-2xs border border-[#E2E8F0] dark:border-white/[0.08] p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-[#0F172A] dark:text-white">
               {isVi ? 'Tài khoản & Ví tiền' : 'Accounts & Wallets'}
@@ -340,7 +340,7 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
         </div>
 
         {/* Budgets Summary */}
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-5 lg:col-span-2 interactive-card">
+        <div className="bg-white dark:bg-[#141E30] rounded-2xl shadow-sm border border-[#E2E8F0] dark:border-white/[0.08] p-5 lg:col-span-2 interactive-card">
           <h3 className="font-bold text-slate-900 dark:text-white mb-4">
             {isVi ? 'Ngân sách định mức tháng' : 'Monthly Budgets'}
           </h3>

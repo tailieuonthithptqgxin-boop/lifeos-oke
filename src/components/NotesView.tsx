@@ -267,7 +267,7 @@ export function NotesView() {
   return (
     <div className="w-full min-w-0 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 overflow-x-hidden">
       {/* HEADER BAR */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs w-full min-w-0">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 bg-white dark:bg-[#141E30] p-4 sm:p-5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs w-full min-w-0">
         <div className="min-w-0">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-[#4F46E5] dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-center shrink-0">
@@ -506,7 +506,7 @@ function NotesDashboardView({
     <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-full">
       {/* QUICK METRICS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full min-w-0">
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between min-w-0">
+        <div className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Hoạt động</span>
             <FileText className="w-4 h-4 text-slate-400" />
@@ -515,7 +515,7 @@ function NotesDashboardView({
           <span className="text-[10px] text-slate-400 font-normal mt-1">Tổng ghi chú</span>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between min-w-0">
+        <div className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Đã ghim</span>
             <Pin className="w-4 h-4 text-slate-400" />
@@ -524,7 +524,7 @@ function NotesDashboardView({
           <span className="text-[10px] text-slate-400 font-normal mt-1">Ưu tiên truy cập nhanh</span>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between min-w-0">
+        <div className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Yêu thích</span>
             <Star className="w-4 h-4 text-slate-400" />
@@ -533,7 +533,7 @@ function NotesDashboardView({
           <span className="text-[10px] text-slate-400 font-normal mt-1">Đánh dấu quan trọng</span>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between min-w-0">
+        <div className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between mb-2">
             <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Chờ xử lý</span>
             <ListCheck className="w-4 h-4 text-slate-400" />
@@ -596,7 +596,7 @@ function NotesDashboardView({
         {/* RIGHT COLUMN: QUICK CREATION & TAGS */}
         <div className="space-y-4 sm:space-y-5 min-w-0 w-full">
           {/* Quick Note Templates (Clean White SaaS Card) */}
-          <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3.5 w-full min-w-0">
+          <div className="bg-white dark:bg-[#141E30] p-4 sm:p-5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs space-y-3.5 w-full min-w-0">
             <div>
               <div className="flex items-center gap-2 font-bold text-sm sm:text-base text-slate-900 dark:text-white">
                 <Sparkles className="w-4 h-4 text-indigo-500 shrink-0" /> Quick Note Templates
@@ -639,7 +639,7 @@ function NotesDashboardView({
           </div>
 
           {/* TAG CLOUD */}
-          <div className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+          <div className="bg-white dark:bg-[#141E30] p-4 sm:p-5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs space-y-3">
             <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider flex items-center gap-2">
               <Tag className="w-3.5 h-3.5 text-slate-400" /> Tags Nổi bật
             </h4>
@@ -691,7 +691,7 @@ function NoteCard({
   return (
     <div 
       onClick={onClick}
-      className="bg-white dark:bg-slate-900 p-4 sm:p-5 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:border-blue-400 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between gap-3 relative group w-full min-w-0 max-w-full overflow-hidden break-words"
+      className="bg-white dark:bg-[#141E30] p-4 sm:p-5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] hover:border-emerald-400 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between gap-3 relative group w-full min-w-0 max-w-full overflow-hidden break-words"
     >
       <div className="w-full min-w-0">
         <div className="flex items-center justify-between gap-2 mb-2">
@@ -1324,7 +1324,7 @@ function NoteDetailModal({
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto animate-backdrop-fade">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden animate-modal-enter">
+      <div className="bg-white dark:bg-[#141E30] rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#E2E8F0] dark:border-white/[0.08] overflow-hidden animate-modal-enter">
         {/* HEADER */}
         <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
           <div className="flex items-center gap-2">
@@ -1591,7 +1591,7 @@ function NoteEditorModal({
       role="dialog"
       aria-modal="true"
     >
-      <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden animate-modal-enter my-auto">
+      <div className="bg-white dark:bg-[#141E30] rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#E2E8F0] dark:border-white/[0.08] overflow-hidden animate-modal-enter my-auto">
         {/* HEADER */}
         <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/40 shrink-0">
           <div>

@@ -478,7 +478,7 @@ export function FocusView() {
   const renderStatsCards = (extraClass = "") => (
     <div className={`grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 ${extraClass}`}>
       {/* 1. Thời gian Focus */}
-      <div className="py-2.5 px-3.5 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between gap-3">
+      <div className="py-2.5 px-3.5 bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] rounded-xl flex items-center justify-between gap-3 shadow-2xs">
         <div className="min-w-0 flex-1">
           <div className="flex items-center justify-between gap-1">
             <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate">
@@ -498,7 +498,7 @@ export function FocusView() {
       </div>
 
       {/* 2. Phiên hoàn thành */}
-      <div className="py-2.5 px-3.5 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between gap-3">
+      <div className="py-2.5 px-3.5 bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] rounded-xl flex items-center justify-between gap-3 shadow-2xs">
         <div className="min-w-0 flex-1">
           <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
             {isVi ? 'Phiên hoàn thành' : 'Completed Sessions'}
@@ -513,7 +513,7 @@ export function FocusView() {
       </div>
 
       {/* 3. Gián đoạn */}
-      <div className="py-2.5 px-3.5 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between gap-3">
+      <div className="py-2.5 px-3.5 bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] rounded-xl flex items-center justify-between gap-3 shadow-2xs">
         <div className="min-w-0 flex-1">
           <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
             {isVi ? 'Gián đoạn' : 'Interruptions'}
@@ -528,7 +528,7 @@ export function FocusView() {
       </div>
 
       {/* 4. Focus Streak */}
-      <div className="py-2.5 px-3.5 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-xl flex items-center justify-between gap-3">
+      <div className="py-2.5 px-3.5 bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] rounded-xl flex items-center justify-between gap-3 shadow-2xs">
         <div className="min-w-0 flex-1">
           <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
             Focus Streak
@@ -640,7 +640,7 @@ export function FocusView() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start flex-1 min-h-0">
         
         {/* CỘT TRÁI (7/12 CỘT TRÊN DESKTOP) - TRẠM ĐỒNG HỒ POMODORO (LINEAR / NOTION MINIMALIST) */}
-        <div className="order-1 lg:order-none lg:col-span-7 bg-white dark:bg-[#0F172A] border border-slate-200 dark:border-slate-800 rounded-2xl p-6 sm:p-8 flex flex-col justify-between items-center text-center space-y-5 relative">
+        <div className="order-1 lg:order-none lg:col-span-7 bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] rounded-2xl p-6 sm:p-8 flex flex-col justify-between items-center text-center space-y-5 relative shadow-sm">
           
           {/* Mode Switcher Tabs */}
           <div className="w-full flex items-center justify-center">
@@ -830,7 +830,7 @@ export function FocusView() {
 
           {/* History Card (Chiều cao thu gọn khi chưa có dữ liệu) */}
           {!isZenMode && (
-            <div className="bg-white dark:bg-[#0F172A] rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col">
+            <div className="bg-white dark:bg-[#141E30] rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] overflow-hidden flex flex-col shadow-sm">
               <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex items-center justify-between">
                 <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2 text-xs uppercase tracking-wider">
                   <Clock className="w-4 h-4 text-emerald-500" /> {isVi ? 'Lịch sử hôm nay' : "Today's History"}
