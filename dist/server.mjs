@@ -16045,7 +16045,7 @@ apiRouter.use(idempotencyMiddleware({ ttlHours: 24, autoHashPayload: true }));
 apiRouter.use(async (req, res, next) => {
   const path3 = req.path;
   const method = req.method.toUpperCase();
-  const isAlwaysAllowed = path3.startsWith("/payments") || path3.startsWith("/coupons") || path3.startsWith("/cart") || path3.startsWith("/data/cart") || path3.startsWith("/checkout") || path3.startsWith("/admin") || path3.startsWith("/notifications") || path3.startsWith("/supportTickets") || path3.startsWith("/settings") || path3.startsWith("/languages") || path3.startsWith("/life-harmony") || path3.startsWith("/journey") || path3.startsWith("/progression") || path3.startsWith("/leaderboard") || path3.startsWith("/team/my-team") || path3.startsWith("/team/join") || path3.startsWith("/referrals") || path3.startsWith("/r2/upload-base64") && req.body?.folder === "receipts";
+  const isAlwaysAllowed = path3.startsWith("/payments") || path3.startsWith("/coupons") || path3.startsWith("/cart") || path3.startsWith("/data/cart") || path3.startsWith("/data-batch") || path3.startsWith("/checkout") || path3.startsWith("/admin") || path3.startsWith("/notifications") || path3.startsWith("/supportTickets") || path3.startsWith("/settings") || path3.startsWith("/languages") || path3.startsWith("/life-harmony") || path3.startsWith("/journey") || path3.startsWith("/progression") || path3.startsWith("/leaderboard") || path3.startsWith("/team/my-team") || path3.startsWith("/team/join") || path3.startsWith("/referrals") || path3.startsWith("/r2/upload-base64") && req.body?.folder === "receipts";
   if (isAlwaysAllowed) {
     return next();
   }
@@ -16095,6 +16095,61 @@ var ALLOWED_COLLECTIONS = /* @__PURE__ */ new Set([
   "supportTickets",
   "notifications"
 ]);
+apiRouter.post("/data-batch", async (req, res) => {
+  const userId = req.userId;
+  const collections = Array.isArray(req.body?.collections) ? req.body.collections : [];
+  try {
+    const role = (req.userRole || "").toUpperCase();
+    const isAdmin = role === "ADMIN" || role === "SUPERADMIN";
+    const subStatus = await subscriptionService.checkUserSubscription(userId);
+    const hasAccess = isAdmin || Boolean(subStatus.hasAccess);
+    const results = {};
+    const fetchPromises = collections.map(async (col) => {
+      if (!ALLOWED_COLLECTIONS.has(col)) {
+        results[col] = [];
+        return;
+      }
+      const isFreeCollection = col === "products" || col === "notifications" || col === "supportTickets" || col === "cart" || col === "cartItems" || col === "orders";
+      if (!hasAccess && !isFreeCollection) {
+        results[col] = [];
+        return;
+      }
+      try {
+        if (col === "products") {
+          results[col] = await dbService.getSystemTemplates();
+        } else {
+          results[col] = await dbService.getUserCollection(col, userId);
+        }
+      } catch (err) {
+        console.warn(`[data-batch] Collection '${col}' query skipped:`, err?.message || err);
+        results[col] = [];
+      }
+    });
+    let userSettings = {};
+    const settingsPromise = (async () => {
+      try {
+        userSettings = await dbService.getUserSettings(userId);
+      } catch (e) {
+        userSettings = {};
+      }
+    })();
+    await Promise.allSettled([...fetchPromises, settingsPromise]);
+    res.json({
+      success: true,
+      data: {
+        ...results,
+        settings: userSettings
+      }
+    });
+  } catch (err) {
+    console.error("POST /api/data-batch critical error:", err);
+    res.status(500).json({
+      success: false,
+      error: { code: "BATCH_ERROR", message: err.message },
+      message: err.message
+    });
+  }
+});
 apiRouter.get("/data/:collection", async (req, res) => {
   const { collection } = req.params;
   const userId = req.userId;

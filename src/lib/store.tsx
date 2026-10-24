@@ -149,74 +149,62 @@ const defaultState: AppState = {
   clearSyncState: () => {}
 };
 
+// Technique 3: SWR (Stale-While-Revalidate) Synchronous Instant Hydration
+const getInitialState = (): AppState => {
+  if (typeof window === 'undefined') return { ...defaultState, isAppLoaded: true };
+  
+  let cachedUser: User | null = null;
+  let cachedCollections: any = {};
+  let token: string | null = null;
+
+  try {
+    token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('lifeos_swr_user');
+    if (userStr) cachedUser = JSON.parse(userStr);
+    const colStr = localStorage.getItem('lifeos_swr_collections');
+    if (colStr) cachedCollections = JSON.parse(colStr);
+  } catch (e) {}
+
+  const hasAuth = Boolean(token && cachedUser);
+
+  let initialMode: WorkspaceMode = 'Advanced';
+  let storedPrefs: OnboardingPreferences | null = null;
+  if (cachedUser?.id) {
+    try {
+      const raw = localStorage.getItem(`lifeos_user_onboarding_prefs_${cachedUser.id}`) || localStorage.getItem('lifeos_user_onboarding_prefs_current');
+      if (raw) storedPrefs = JSON.parse(raw);
+    } catch (e) {}
+    if (storedPrefs?.purpose === 'simple') initialMode = 'Simple';
+    else if (storedPrefs?.purpose === 'pro') initialMode = 'Power';
+    else if (storedPrefs?.domain === 'worker') initialMode = 'Work';
+    else if (storedPrefs?.domain === 'student') initialMode = 'Personal';
+  }
+
+  return {
+    ...defaultState,
+    isAuthenticated: hasAuth,
+    currentUser: cachedUser,
+    hasCompletedOnboarding: !!cachedUser?.onboardingCompleted,
+    onboardingPreferences: storedPrefs,
+    workspaceMode: initialMode,
+    isAppLoaded: true, // Non-blocking: 0ms initial load
+    ...(typeof cachedCollections === 'object' && cachedCollections ? cachedCollections : {})
+  };
+};
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [state, setState] = useState<AppState>(defaultState);
+  const [state, setState] = useState<AppState>(getInitialState);
 
   useEffect(() => {
-    const initApp = async () => {
-      try {
-        if (typeof window !== 'undefined') {
-          const params = new URLSearchParams(window.location.search);
-          const urlToken = params.get('token');
-          if (urlToken && urlToken.length > 20) {
-            try { localStorage.setItem('token', urlToken); } catch (e) {}
-          }
-        }
-        // Query backend directly using HttpOnly cookie session or Bearer token
-        const res = await apiCall('/api/auth/me');
-        if (res && (res.user || res.id)) {
-          const user = res.user || res;
-          if (res.token) {
-            try { localStorage.setItem('token', res.token); } catch (e) {}
-          }
-          let storedPrefs: OnboardingPreferences | null = null;
-          try {
-            const raw = localStorage.getItem(`lifeos_user_onboarding_prefs_${user.id}`) || localStorage.getItem('lifeos_user_onboarding_prefs_current');
-            if (raw) storedPrefs = JSON.parse(raw);
-          } catch (e) {}
-
-          let initialMode: WorkspaceMode = 'Advanced';
-          if (storedPrefs?.purpose === 'simple') initialMode = 'Simple';
-          else if (storedPrefs?.purpose === 'pro') initialMode = 'Power';
-          else if (storedPrefs?.domain === 'worker') initialMode = 'Work';
-          else if (storedPrefs?.domain === 'student') initialMode = 'Personal';
-
-          // 1. Mark as authenticated immediately (Auth is confirmed)
-          setState(s => ({
-            ...s,
-            isAuthenticated: true,
-            currentUser: user,
-            subscriptionStatus: res.subscriptionStatus || s.subscriptionStatus,
-            hasCompletedOnboarding: !!user.onboardingCompleted,
-            onboardingPreferences: storedPrefs,
-            workspaceMode: initialMode
-          }));
-
-          // 2. Load subscription status to verify active paid plan
-          fetchSubscriptionStatus().catch(() => {});
-
-          // 3. Load application collections in background without breaking auth state
-          loadAllData().catch((loadErr) => {
-            console.warn("Background data load completed with non-fatal warnings:", loadErr);
-            setState(s => ({ ...s, isAppLoaded: true }));
-          });
-        } else {
-          try { localStorage.removeItem('token'); } catch (e) {}
-          setState(s => ({ ...s, isAuthenticated: false, currentUser: null, isAppLoaded: true }));
-        }
-      } catch (err: any) {
-        // Only if unauthenticated or session expired: show public/login cleanly
-        try { localStorage.removeItem('token'); } catch (e) {}
-        setState(s => ({
-          ...s,
-          isAuthenticated: false,
-          currentUser: null,
-          isAppLoaded: true
-        }));
+    let urlToken: string | null = null;
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      urlToken = params.get('token');
+      if (urlToken && urlToken.length > 20) {
+        try { localStorage.setItem('token', urlToken); } catch (e) {}
       }
-    };
-
-    initApp();
+    }
+    const token = typeof window !== 'undefined' ? (urlToken || localStorage.getItem('token')) : null;
 
     const loadLanguages = async () => {
       try {
@@ -236,6 +224,83 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         // Keep default languages
       }
     };
+
+    const initApp = async () => {
+      // Technique 1 & 4: Zero unauthenticated penalty. If no token, visitor is immediately ready (0ms)
+      if (!token) {
+        setState(s => ({ ...s, isAuthenticated: false, currentUser: null, isAppLoaded: true }));
+        loadLanguages();
+        return;
+      }
+
+      try {
+        // Technique 2: Parallel Promise.allSettled execution for user auth + subscription
+        const [authRes, subRes] = await Promise.allSettled([
+          apiCall('/api/auth/me'),
+          fetchSubscriptionStatus()
+        ]);
+
+        if (authRes.status === 'fulfilled' && authRes.value && (authRes.value.user || authRes.value.id)) {
+          const user = authRes.value.user || authRes.value;
+          if (authRes.value.token) {
+            try { localStorage.setItem('token', authRes.value.token); } catch (e) {}
+          }
+          try {
+            localStorage.setItem('lifeos_swr_user', JSON.stringify(user));
+          } catch (e) {}
+
+          let storedPrefs: OnboardingPreferences | null = null;
+          try {
+            const raw = localStorage.getItem(`lifeos_user_onboarding_prefs_${user.id}`) || localStorage.getItem('lifeos_user_onboarding_prefs_current');
+            if (raw) storedPrefs = JSON.parse(raw);
+          } catch (e) {}
+
+          let initialMode: WorkspaceMode = 'Advanced';
+          if (storedPrefs?.purpose === 'simple') initialMode = 'Simple';
+          else if (storedPrefs?.purpose === 'pro') initialMode = 'Power';
+          else if (storedPrefs?.domain === 'worker') initialMode = 'Work';
+          else if (storedPrefs?.domain === 'student') initialMode = 'Personal';
+
+          setState(s => ({
+            ...s,
+            isAuthenticated: true,
+            currentUser: user,
+            subscriptionStatus: authRes.value.subscriptionStatus || (subRes.status === 'fulfilled' ? subRes.value : s.subscriptionStatus),
+            hasCompletedOnboarding: !!user.onboardingCompleted,
+            onboardingPreferences: storedPrefs,
+            workspaceMode: initialMode,
+            isAppLoaded: true
+          }));
+
+          // Background revalidation: Load all collections in background without blocking UI
+          loadAllData().catch((loadErr) => {
+            console.warn("Background data load completed with non-fatal warnings:", loadErr);
+            setState(s => ({ ...s, isAppLoaded: true }));
+          });
+        } else {
+          try {
+            localStorage.removeItem('token');
+            localStorage.removeItem('lifeos_swr_user');
+            localStorage.removeItem('lifeos_swr_collections');
+          } catch (e) {}
+          setState(s => ({ ...s, isAuthenticated: false, currentUser: null, isAppLoaded: true }));
+        }
+      } catch (err: any) {
+        try {
+          localStorage.removeItem('token');
+          localStorage.removeItem('lifeos_swr_user');
+          localStorage.removeItem('lifeos_swr_collections');
+        } catch (e) {}
+        setState(s => ({
+          ...s,
+          isAuthenticated: false,
+          currentUser: null,
+          isAppLoaded: true
+        }));
+      }
+    };
+
+    initApp();
     loadLanguages();
 
     const handleSessionExpired = () => {
@@ -339,6 +404,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         'automationConflicts', 'products', 'cart', 'orders', 'inbox', 'notifications'
       ];
       
+      // Technique 2 & 5: High-speed single batch HTTP request with server-side parallel execution
+      const batchRes = await apiCall('/api/data-batch', 'POST', { collections });
+      
+      let newState: Partial<AppState> = {};
+      if (batchRes && batchRes.success && batchRes.data) {
+        const data = batchRes.data;
+        collections.forEach(col => {
+          (newState as any)[col] = Array.isArray(data[col]) ? data[col] : [];
+        });
+
+        const settings = data.settings;
+        setState(s => ({
+          ...s,
+          ...newState,
+          ...(settings && settings.id && s.currentUser ? { currentUser: { ...s.currentUser, ...settings } } : {}),
+          isAppLoaded: true
+        }));
+
+        // Technique 3: SWR cache storage (keep up to 100 recent items per collection to ensure < 2MB footprint)
+        try {
+          const swrCache: any = {};
+          collections.forEach(col => {
+            if (Array.isArray(data[col])) {
+              swrCache[col] = data[col].slice(0, 100);
+            }
+          });
+          localStorage.setItem('lifeos_swr_collections', JSON.stringify(swrCache));
+        } catch (e) {}
+        return;
+      }
+
+      // Fallback: Concurrent Promise.allSettled across individual collections if batch is unavailable
       const promises = collections.map(col => apiCall(`/api/data/${col}`));
       promises.push(apiCall('/api/settings'));
       
@@ -347,7 +444,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const settings = settingsResult?.status === 'fulfilled' ? settingsResult.value : {};
 
       // Set user collections from settled results
-      const newState: Partial<AppState> = {};
       collections.forEach((col, idx) => {
         const itemRes = results[idx];
         (newState as any)[col] = (itemRes && itemRes.status === 'fulfilled' && Array.isArray(itemRes.value)) 
@@ -382,6 +478,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const login = async (user: User) => {
+    try {
+      localStorage.setItem('lifeos_swr_user', JSON.stringify(user));
+    } catch (e) {}
     // Authenticate user immediately and transition UI without delay
     setState(s => ({
       ...defaultState,
@@ -400,7 +499,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const logout = () => {
     apiCall('/api/auth/logout', 'POST').catch(console.error);
-    localStorage.removeItem('token');
+    try {
+      localStorage.removeItem('token');
+      localStorage.removeItem('lifeos_swr_user');
+      localStorage.removeItem('lifeos_swr_collections');
+    } catch (e) {}
     setState(s => ({
       ...defaultState,
       theme: s.theme,

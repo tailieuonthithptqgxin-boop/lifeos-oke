@@ -228,10 +228,10 @@ export function DashboardView() {
     };
   }, []);
 
-  // Filter Tasks for Selected Date
-  const todayTasks = (tasks || []).filter(t => t.dueDate && t.dueDate.startsWith(dateStr) && t.status !== 'Hủy' && t.status !== 'Cancelled');
-  const pendingTasks = todayTasks.filter(t => t.status !== 'Hoàn thành' && t.status !== 'Completed');
-  const completedTasks = todayTasks.filter(t => t.status === 'Hoàn thành' || t.status === 'Completed');
+  // Technique 5: Optimized Tasks Filtering (useMemo)
+  const todayTasks = useMemo(() => (tasks || []).filter(t => t.dueDate && t.dueDate.startsWith(dateStr) && t.status !== 'Hủy' && t.status !== 'Cancelled'), [tasks, dateStr]);
+  const pendingTasks = useMemo(() => todayTasks.filter(t => t.status !== 'Hoàn thành' && t.status !== 'Completed'), [todayTasks]);
+  const completedTasks = useMemo(() => todayTasks.filter(t => t.status === 'Hoàn thành' || t.status === 'Completed'), [todayTasks]);
 
   // Cognitive Load: count unfinished deep work tasks
   const deepWorkTasksCount = useMemo(() => {
@@ -333,59 +333,97 @@ export function DashboardView() {
     setPickingSlotIndex(null);
   };
 
-  // Finance metrics for selected date
-  const todayExpenses = (transactions || [])
-    .filter(t => (t.type === 'Chi tiêu' || t.type === 'Expense') && t.date && t.date.startsWith(dateStr))
-    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+  // Technique 5: Optimized Financial Metrics Calculations (useMemo)
+  const {
+    todayExpenses,
+    todayIncome,
+    totalBalance,
+    monthlyIncome,
+    monthlyExpense,
+    netMonthly,
+    dailySafeToSpendBudget,
+    safeToSpendTodayRemaining
+  } = useMemo(() => {
+    const tExp = (transactions || [])
+      .filter(t => (t.type === 'Chi tiêu' || t.type === 'Expense') && t.date && t.date.startsWith(dateStr))
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
-  const todayIncome = (transactions || [])
-    .filter(t => (t.type === 'Thu nhập' || t.type === 'Income') && t.date && t.date.startsWith(dateStr))
-    .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    const tInc = (transactions || [])
+      .filter(t => (t.type === 'Thu nhập' || t.type === 'Income') && t.date && t.date.startsWith(dateStr))
+      .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
-  const totalBalance = (financeAccounts || []).reduce((sum: number, a: any) => sum + (a.balance || 0), 0);
-  const now = new Date();
-  const currentMonth = now.getMonth();
-  const currentYear = now.getFullYear();
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const daysRemainingInMonth = Math.max(1, daysInMonth - now.getDate() + 1);
+    const bal = (financeAccounts || []).reduce((sum: number, a: any) => sum + (a.balance || 0), 0);
+    const nowObj = new Date();
+    const curMonth = nowObj.getMonth();
+    const curYear = nowObj.getFullYear();
+    const daysInM = new Date(curYear, curMonth + 1, 0).getDate();
+    const daysRemaining = Math.max(1, daysInM - nowObj.getDate() + 1);
 
-  const monthlyTx = (transactions || []).filter(t => {
-    if (!t.date) return false;
-    const d = new Date(t.date);
-    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-  });
-  const monthlyIncome = monthlyTx.filter(t => t.type === 'Thu nhập' || t.type === 'Income').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-  const monthlyExpense = monthlyTx.filter(t => t.type === 'Chi tiêu' || t.type === 'Expense').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
-  const netMonthly = monthlyIncome - monthlyExpense;
+    const mTx = (transactions || []).filter(t => {
+      if (!t.date) return false;
+      const d = new Date(t.date);
+      return d.getMonth() === curMonth && d.getFullYear() === curYear;
+    });
+    const mInc = mTx.filter(t => t.type === 'Thu nhập' || t.type === 'Income').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    const mExp = mTx.filter(t => t.type === 'Chi tiêu' || t.type === 'Expense').reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
+    const netM = mInc - mExp;
 
-  const totalConfiguredBudget = (budgets || []).reduce((sum: number, b: any) => sum + (Number(b.limit) || Number(b.amount) || 0), 0);
-  const hasBudgetBaseline = totalConfiguredBudget > 0 || monthlyIncome > 0;
-  const userMonthlyBudget = totalConfiguredBudget > 0 ? totalConfiguredBudget : (monthlyIncome > 0 ? monthlyIncome : 0);
-  const remainingBudgetMonth = Math.max(0, userMonthlyBudget - monthlyExpense);
-  const dailySafeToSpendBudget = hasBudgetBaseline ? Math.round(remainingBudgetMonth / daysRemainingInMonth) : 0;
-  const safeToSpendTodayRemaining = hasBudgetBaseline ? (dailySafeToSpendBudget - todayExpenses) : -todayExpenses;
+    const totalConfigBudget = (budgets || []).reduce((sum: number, b: any) => sum + (Number(b.limit) || Number(b.amount) || 0), 0);
+    const hasBaseline = totalConfigBudget > 0 || mInc > 0;
+    const userMBudget = totalConfigBudget > 0 ? totalConfigBudget : (mInc > 0 ? mInc : 0);
+    const remainingMonth = Math.max(0, userMBudget - mExp);
+    const dailySafe = hasBaseline ? Math.round(remainingMonth / daysRemaining) : 0;
+    const safeRemaining = hasBaseline ? (dailySafe - tExp) : -tExp;
 
-  // Focus & Study metrics
-  const todayFocusSessions = (focusSessions || []).filter(s => 
-    s.status === 'Completed' && (s.createdAt?.startsWith(dateStr) || s.startTime?.startsWith(dateStr))
-  );
-  const todayFocusMinutes = todayFocusSessions.reduce((sum, s) => sum + (s.actualDuration || 0), 0);
-  const dailyFocusGoal = (focusGoals || []).find(g => g.type === 'daily');
-  const targetStudyHours = dailyFocusGoal?.targetHours || 3;
-  const targetStudyMinutes = targetStudyHours * 60;
-  const studyHours = Math.floor(todayFocusMinutes / 60);
-  const studyMinutes = todayFocusMinutes % 60;
-  const studyDisplayValue = todayFocusMinutes > 0 
-    ? (studyHours > 0 ? `${studyHours}h ${studyMinutes > 0 ? `${studyMinutes}m` : ''}` : `${studyMinutes} phút`) 
-    : '0 phút';
-  const studySubtext = `/ ${targetStudyHours} giờ mục tiêu`;
-  const focusProgressPercent = Math.min(100, Math.round((todayFocusMinutes / (targetStudyMinutes || 180)) * 100));
+    return {
+      todayExpenses: tExp,
+      todayIncome: tInc,
+      totalBalance: bal,
+      monthlyIncome: mInc,
+      monthlyExpense: mExp,
+      netMonthly: netM,
+      dailySafeToSpendBudget: dailySafe,
+      safeToSpendTodayRemaining: safeRemaining
+    };
+  }, [transactions, financeAccounts, budgets, dateStr]);
 
-  // Habits metrics
-  const completedHabitsToday = (habits || []).filter(h => 
+  // Technique 5: Optimized Focus & Study Metrics (useMemo)
+  const {
+    todayFocusMinutes,
+    studyDisplayValue,
+    studySubtext,
+    focusProgressPercent,
+    targetStudyHours
+  } = useMemo(() => {
+    const todaySessions = (focusSessions || []).filter(s => 
+      s.status === 'Completed' && (s.createdAt?.startsWith(dateStr) || s.startTime?.startsWith(dateStr))
+    );
+    const mins = todaySessions.reduce((sum, s) => sum + (s.actualDuration || 0), 0);
+    const dailyGoal = (focusGoals || []).find(g => g.type === 'daily');
+    const targetHours = dailyGoal?.targetHours || 3;
+    const targetMins = targetHours * 60;
+    const hrs = Math.floor(mins / 60);
+    const remMins = mins % 60;
+    const displayVal = mins > 0 
+      ? (hrs > 0 ? `${hrs}h ${remMins > 0 ? `${remMins}m` : ''}` : `${remMins} phút`) 
+      : '0 phút';
+    const subtext = `/ ${targetHours} giờ mục tiêu`;
+    const progressPct = Math.min(100, Math.round((mins / (targetMins || 180)) * 100));
+
+    return {
+      todayFocusMinutes: mins,
+      studyDisplayValue: displayVal,
+      studySubtext: subtext,
+      focusProgressPercent: progressPct,
+      targetStudyHours: targetHours
+    };
+  }, [focusSessions, focusGoals, dateStr]);
+
+  // Technique 5: Optimized Habits Metrics (useMemo)
+  const completedHabitsToday = useMemo(() => (habits || []).filter(h => 
     h.completedDates?.includes(dateStr) || 
     (habitRecords || []).some(r => r.habitId === h.id && r.date === dateStr && r.status === 'Completed')
-  );
+  ), [habits, habitRecords, dateStr]);
 
   // Spaced Repetition Due Vocab
   const dueVocabCount = useMemo(() => {
@@ -401,13 +439,13 @@ export function DashboardView() {
     }
   }, [userId]);
 
-  // Projects summary
-  const recentProjects = [...(projects || [])]
+  // Technique 5: Optimized Projects Summary (useMemo)
+  const recentProjects = useMemo(() => [...(projects || [])]
     .sort((a, b) => new Date(b.updatedAt || b.createdAt || 0).getTime() - new Date(a.updatedAt || a.createdAt || 0).getTime())
-    .slice(0, 3);
+    .slice(0, 3), [projects]);
 
-  // 5D Harmony calculation
-  const harmonyOverview = compute5DHarmony({
+  // Technique 5: Optimized 5D Harmony Calculation (useMemo)
+  const harmonyOverview = useMemo(() => compute5DHarmony({
     tasks: tasks || [],
     habits: habits || [],
     habitRecords: habitRecords || [],
@@ -418,7 +456,7 @@ export function DashboardView() {
     financeAccounts: financeAccounts || [],
     goals: goals || [],
     selectedDate: dateStr
-  });
+  }), [tasks, habits, habitRecords, focusSessions, focusGoals, transactions, budgets, financeAccounts, goals, dateStr]);
 
   // Dynamic Greeting based on time
   const getGreeting = () => {

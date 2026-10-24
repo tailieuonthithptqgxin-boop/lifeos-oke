@@ -251,6 +251,7 @@ apiRouter.use(async (req: AuthRequest, res: Response, next: any) => {
     path.startsWith('/coupons') ||
     path.startsWith('/cart') ||
     path.startsWith('/data/cart') ||
+    path.startsWith('/data-batch') ||
     path.startsWith('/checkout') ||
     path.startsWith('/admin') ||
     path.startsWith('/notifications') ||
@@ -328,6 +329,72 @@ const ALLOWED_COLLECTIONS = new Set([
   'supportTickets',
   'notifications'
 ]);
+
+// --------------------------------------------------------------------------
+// BATCH USER-OWNED COLLECTION RETRIEVAL (Single Roundtrip High Performance)
+// --------------------------------------------------------------------------
+apiRouter.post('/data-batch', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const collections: string[] = Array.isArray(req.body?.collections) ? req.body.collections : [];
+
+  try {
+    const role = (req.userRole || '').toUpperCase();
+    const isAdmin = role === 'ADMIN' || role === 'SUPERADMIN';
+    const subStatus = await subscriptionService.checkUserSubscription(userId);
+    const hasAccess = isAdmin || Boolean(subStatus.hasAccess);
+
+    const results: Record<string, any[]> = {};
+    const fetchPromises = collections.map(async (col: string) => {
+      if (!ALLOWED_COLLECTIONS.has(col)) {
+        results[col] = [];
+        return;
+      }
+
+      const isFreeCollection = col === 'products' || col === 'notifications' || col === 'supportTickets' || col === 'cart' || col === 'cartItems' || col === 'orders';
+      if (!hasAccess && !isFreeCollection) {
+        results[col] = [];
+        return;
+      }
+
+      try {
+        if (col === 'products') {
+          results[col] = await dbService.getSystemTemplates();
+        } else {
+          results[col] = await dbService.getUserCollection(col, userId);
+        }
+      } catch (err: any) {
+        console.warn(`[data-batch] Collection '${col}' query skipped:`, err?.message || err);
+        results[col] = [];
+      }
+    });
+
+    let userSettings: any = {};
+    const settingsPromise = (async () => {
+      try {
+        userSettings = await dbService.getUserSettings(userId);
+      } catch (e: any) {
+        userSettings = {};
+      }
+    })();
+
+    await Promise.allSettled([...fetchPromises, settingsPromise]);
+
+    res.json({
+      success: true,
+      data: {
+        ...results,
+        settings: userSettings
+      }
+    });
+  } catch (err: any) {
+    console.error('POST /api/data-batch critical error:', err);
+    res.status(500).json({
+      success: false,
+      error: { code: 'BATCH_ERROR', message: err.message },
+      message: err.message
+    });
+  }
+});
 
 // --------------------------------------------------------------------------
 // GENERIC USER-OWNED COLLECTION CRUD (Strict Ownership Enforcement)
