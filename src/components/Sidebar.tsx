@@ -288,15 +288,19 @@ export function Sidebar() {
             )}
           </button>
 
-          <select
-            value={language}
-            onChange={(e) => setLanguage(e.target.value)}
-            aria-label={isVi ? 'Ngôn ngữ' : 'Language'}
-            className="flex-1 py-1.5 px-2 rounded-md border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300 outline-none cursor-pointer"
+          <button
+            type="button"
+            onClick={() => {
+              const nextLang = language === 'vi' ? 'en' : 'vi';
+              setLanguage(nextLang);
+            }}
+            className="flex-1 flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-md border border-[#E2E8F0] dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-750 active:scale-95 transition-all cursor-pointer shadow-2xs"
+            title={isVi ? 'Nhấp 1 chạm để đổi sang English' : 'Click 1-tap to switch to Tiếng Việt'}
+            aria-label={isVi ? 'Đổi ngôn ngữ sang English' : 'Switch language to Vietnamese'}
           >
-            <option value="vi">Tiếng Việt</option>
-            <option value="en">English</option>
-          </select>
+            <span className="text-sm shrink-0">{language === 'vi' ? '🇻🇳' : '🇬🇧'}</span>
+            <span>{language === 'vi' ? 'Tiếng Việt' : 'English'}</span>
+          </button>
         </div>
 
         {/* Footer profile & quick status */}

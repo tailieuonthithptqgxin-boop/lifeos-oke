@@ -712,21 +712,16 @@ export function TopBar() {
                   {/* Language Switcher */}
                   <div className="flex items-center justify-between px-3 py-1.5 text-slate-600 dark:text-slate-400">
                     <span>{t('Ngôn ngữ')}</span>
-                    <select
-                      value={language}
-                      onChange={(e) => setLanguage(e.target.value)}
-                      aria-label="Chọn ngôn ngữ giao diện"
-                      className="px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 font-semibold text-xs border border-transparent hover:border-slate-300 dark:hover:border-slate-600 outline-none cursor-pointer text-slate-800 dark:text-slate-200 transition-colors"
+                    <button
+                      type="button"
+                      onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')}
+                      aria-label="Đổi ngôn ngữ 1 chạm"
+                      className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 font-semibold text-xs border border-transparent hover:border-slate-300 dark:hover:border-slate-600 cursor-pointer text-slate-800 dark:text-slate-200 transition-all active:scale-95"
+                      title={language === 'vi' ? 'Chuyển sang English' : 'Chuyển sang Tiếng Việt'}
                     >
-                      {(activeLanguages && activeLanguages.length > 0 ? activeLanguages : [
-                        { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳' },
-                        { code: 'en', name: 'English', flag: '🇬🇧' }
-                      ]).map(l => (
-                        <option key={l.code} value={l.code}>
-                          {l.flag} {l.name}
-                        </option>
-                      ))}
-                    </select>
+                      <span>{language === 'vi' ? '🇻🇳 Tiếng Việt' : '🇬🇧 English'}</span>
+                      <span className="text-[10px] text-slate-400 font-normal">⮂</span>
+                    </button>
                   </div>
                 </div>
 
