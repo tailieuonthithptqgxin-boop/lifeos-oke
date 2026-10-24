@@ -21,6 +21,7 @@ import {
   Compass, 
   Target,
   Play,
+  Pause,
   Award,
   ChevronDown,
   Activity,
@@ -60,6 +61,8 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
 
   // Interactive Micro-Demo States
   const [demoLevel, setDemoLevel] = useState(2);
+  const [demoFocusPlaying, setDemoFocusPlaying] = useState(false);
+  const [demoFocusSeconds, setDemoFocusSeconds] = useState(25 * 60);
   const [demoXp, setDemoXp] = useState(80);
   const [completedTasks, setCompletedTasks] = useState<Record<number, boolean>>({});
   const [showLevelUpModal, setShowLevelUpModal] = useState(false);
@@ -375,60 +378,96 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
             </div>
           </div>
 
-          {/* Cột Phải: Interactive Micro-Demo (Thử Lên Cấp Ngay Trên Mobile/Desktop) */}
-          <div className="lg:col-span-6 w-full max-w-md mx-auto lg:max-w-none">
-            <div className="relative bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-3xl border border-slate-200/90 dark:border-slate-800 p-4 sm:p-6 shadow-xl shadow-slate-200/40 dark:shadow-none transition-all">
+          {/* Cột Phải: Interactive Micro-Demo (Bento Grid Architecture) */}
+          <div className="lg:col-span-6 w-full max-w-lg mx-auto lg:max-w-none">
+            <div className="relative bg-white/95 dark:bg-[#141E30]/95 backdrop-blur-xl rounded-3xl border border-slate-200/90 dark:border-white/[0.08] p-5 sm:p-6 shadow-2xl shadow-slate-200/50 dark:shadow-none space-y-4">
               
-              {/* Header Card: Mascot Lumi & Status */}
-              <div className="flex items-center justify-between pb-3.5 border-b border-slate-100 dark:border-slate-800 gap-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/60 flex items-center justify-center overflow-hidden shrink-0 shadow-2xs">
-                    <LiveMascotCharacter mood={mascotMood} size="compact" showAura={false} />
+              {/* BENTO CARD 1: MASCOT STATUS & STREAK */}
+              <div className="bg-slate-50/90 dark:bg-[#0B1120]/70 border border-slate-200/70 dark:border-white/[0.06] rounded-2xl p-4 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-13 h-13 rounded-2xl bg-gradient-to-tr from-amber-400 to-amber-200 p-0.5 shadow-md shadow-amber-500/20 flex items-center justify-center shrink-0">
+                    <div className="w-full h-full rounded-[14px] bg-white dark:bg-slate-900 flex items-center justify-center overflow-hidden">
+                      <LiveMascotCharacter mood={mascotMood} size="compact" showAura={false} />
+                    </div>
                   </div>
                   <div>
-                    <div className="flex items-center gap-1.5 sm:gap-2">
-                      <span className="font-extrabold text-slate-900 dark:text-white text-sm sm:text-base">
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-slate-900 dark:text-white text-base">
                         Bé Lumi
                       </span>
-                      <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300">
-                        Cấp {demoLevel} · {demoLevel === 2 ? 'Initiator' : 'Pathfinder'}
+                      <span className="px-2 py-0.5 rounded-full text-[11px] font-mono font-bold bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                        CẤP {demoLevel} · {demoLevel === 2 ? 'Initiator' : 'Champion'}
                       </span>
                     </div>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-1">
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       {demoLevel === 2 ? '"Chạm thử nhiệm vụ để nạp XP cho tớ nhé!"' : '"Hoan hô! Bạn vừa thăng cấp thật rồi!"'}
                     </p>
                   </div>
                 </div>
 
-                {/* Streak Pill */}
-                <div className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-50 dark:bg-amber-950/50 border border-amber-200/80 dark:border-amber-800/80 text-amber-700 dark:text-amber-400 font-mono text-xs font-bold shrink-0">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 font-mono text-xs font-bold shrink-0">
                   <Flame className="w-4 h-4 fill-current text-amber-500" />
                   <span>7 Ngày</span>
                 </div>
               </div>
 
-              {/* Live XP Progress Bar */}
-              <div className="my-3.5 space-y-1.5">
+              {/* LIVE XP PROGRESS BAR */}
+              <div className="space-y-1.5 px-1">
                 <div className="flex items-center justify-between text-xs font-semibold">
-                  <span className="text-slate-600 dark:text-slate-400 flex items-center gap-1">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-                    <span>Tiến trình lên Cấp {demoLevel + 1}</span>
+                  <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                    <span>Tiến trình thăng Cấp {demoLevel + 1}</span>
                   </span>
-                  <span className="font-mono text-emerald-600 dark:text-emerald-400 font-bold tabular-nums">
-                    {demoXp}/100 XP
+                  <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                    {demoXp} / 100 XP
                   </span>
                 </div>
-                <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden p-0.5">
+                <div className="w-full h-2.5 bg-slate-200/70 dark:bg-white/[0.08] rounded-full overflow-hidden p-0.5">
                   <div 
-                    className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500 shadow-xs"
+                    className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 rounded-full transition-all duration-500 shadow-sm"
                     style={{ width: `${demoXp}%` }}
                   />
                 </div>
               </div>
 
-              {/* Sample Tasks for Interactive Tick */}
+              {/* BENTO CARD 2: FOCUS ROOM & SYNERGY MINI-STATION */}
+              <div className="bg-slate-50/90 dark:bg-[#0B1120]/70 border border-slate-200/70 dark:border-white/[0.06] rounded-2xl p-3.5 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-500 shrink-0">
+                    <Headphones className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
+                        Focus Room • 25:00
+                      </span>
+                      {demoFocusPlaying && (
+                        <span className="flex items-end gap-0.5 h-3">
+                          <span className="w-0.5 h-2 bg-emerald-500 animate-pulse" />
+                          <span className="w-0.5 h-3 bg-emerald-500 animate-pulse delay-75" />
+                          <span className="w-0.5 h-1.5 bg-emerald-500 animate-pulse delay-150" />
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Lofi Beats • Nghỉ 5p tự động ôn 3 từ vựng FSRS
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setDemoFocusPlaying(!demoFocusPlaying)}
+                  className="w-8 h-8 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-white/10 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:text-emerald-500 transition-colors cursor-pointer shrink-0"
+                  aria-label="Phát nhạc Lofi Focus"
+                >
+                  {demoFocusPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+                </button>
+              </div>
+
+              {/* BENTO CARD 3: INTERACTIVE DOPAMINE TASK LIST */}
               <div className="space-y-2 pt-1">
-                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center justify-between px-1">
                   <span>Chạm để hoàn thành nhiệm vụ</span>
                   <span className="text-emerald-600 dark:text-emerald-400 font-semibold lowercase">nhận phản hồi tức thì</span>
                 </div>
@@ -444,10 +483,10 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
                       key={task.id}
                       type="button"
                       onClick={() => handleTaskToggle(task.id, task.xp)}
-                      className={`w-full min-h-[46px] p-2.5 sm:p-3 rounded-2xl border text-left transition-all flex items-center justify-between gap-2 cursor-pointer ${
+                      className={`w-full min-h-[46px] px-3.5 py-2.5 rounded-xl border text-left transition-all flex items-center justify-between gap-3 cursor-pointer ${
                         isDone
-                          ? 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-300 dark:border-emerald-800'
-                          : 'bg-slate-50/80 dark:bg-slate-800/50 hover:bg-white dark:hover:bg-slate-800 border-slate-200 dark:border-slate-700/80 shadow-2xs hover:border-emerald-400'
+                          ? 'bg-emerald-500/10 border-emerald-500/30 dark:border-emerald-500/30'
+                          : 'bg-white dark:bg-[#1A2540]/60 hover:bg-slate-50 dark:hover:bg-[#1A2540] border-slate-200/80 dark:border-white/[0.06] hover:border-emerald-500/40 hover:-translate-y-0.5 shadow-2xs'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
@@ -466,8 +505,8 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
                       </div>
                       <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-lg shrink-0 ${
                         isDone 
-                          ? 'bg-emerald-100 dark:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300' 
-                          : 'bg-amber-100/70 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400'
+                          ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300' 
+                          : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
                       }`}>
                         +{task.xp} XP
                       </span>
@@ -476,10 +515,10 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
                 })}
               </div>
 
-              {/* Hint footer */}
-              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
+              {/* HINT FOOTER */}
+              <div className="pt-2 border-t border-slate-100 dark:border-white/[0.05] flex items-center justify-between text-[11px] text-slate-400 dark:text-slate-500 px-1">
                 <span>⚡ Phản hồi dopamine kích thích hành động</span>
-                <span className="font-semibold text-emerald-600 dark:text-emerald-400">Interactive Demo</span>
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">Interactive Simulation</span>
               </div>
             </div>
           </div>
