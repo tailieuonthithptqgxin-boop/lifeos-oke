@@ -104,12 +104,23 @@ export interface User {
   onboardingPreferences?: OnboardingPreferences;
 }
 
+export interface TaskSubtask {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
+export type TaskEnergyLevel = 'deep_work' | 'shallow' | 'low_battery' | 'quick_win';
+
 export interface Task {
   id: string;
   title: string;
   description?: string;
   status: TaskStatus;
   priority: Priority;
+  energy?: TaskEnergyLevel;
+  subtasks?: TaskSubtask[];
+  timeSlot?: string;
   dueDate?: string;
   projectId?: string;
   goalId?: string;

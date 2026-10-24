@@ -19,6 +19,8 @@ import { triggerConfetti } from '../lib/confetti';
 import { webNotification } from '../lib/webNotification';
 import { WeeklyLeaderboardModal } from './dashboard/WeeklyLeaderboardModal';
 import { ShareStoryModal } from './ShareStoryModal';
+import { AmbientMixerWidget } from './focus/AmbientMixerWidget';
+import { SpeedMatchGameModal } from './vocab/SpeedMatchGameModal';
 
 export function FocusView() {
   const { 
@@ -39,6 +41,7 @@ export function FocusView() {
   const [showMusicPanel, setShowMusicPanel] = useState(true);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showShareStory, setShowShareStory] = useState(false);
+  const [showSpeedMatchBreak, setShowSpeedMatchBreak] = useState(false);
 
   // True Fullscreen & Zen Mode API handlers
   const toggleZenMode = async () => {
@@ -180,6 +183,7 @@ export function FocusView() {
       case 'Quick': return 5;
       case 'Standard': return 50;
       case 'Deep': return 90;
+      case 'Flowtime': return 0;
       case 'Custom': return 60;
       default: return 25;
     }
@@ -456,13 +460,19 @@ export function FocusView() {
   const FOCUS_MODES: { mode: FocusMode; label: string; duration: number }[] = [
     { mode: 'Pomodoro', label: '🍅 Pomodoro 25p', duration: 25 },
     { mode: 'Standard', label: '⚡ Deep Work 50p', duration: 50 },
+    { mode: 'Flowtime' as FocusMode, label: '🌊 Flowtime (Đếm xuôi)', duration: 0 },
     { mode: 'Quick', label: '☕ Nghỉ ngắn 5p', duration: 5 },
     { mode: 'Deep', label: '🚀 Siêu tập trung 90p', duration: 90 },
   ];
 
+  const isFlowtime = selectedMode === 'Flowtime';
   const currentPlannedMinutes = activeSession ? activeSession.plannedDuration : getDurationForMode(selectedMode);
-  const remainingSeconds = activeSession ? Math.max(0, activeSession.plannedDuration * 60 - elapsedSeconds) : currentPlannedMinutes * 60;
-  const progressFraction = activeSession ? Math.min(1, elapsedSeconds / (activeSession.plannedDuration * 60)) : 0;
+  const remainingSeconds = isFlowtime
+    ? elapsedSeconds
+    : (activeSession ? Math.max(0, activeSession.plannedDuration * 60 - elapsedSeconds) : currentPlannedMinutes * 60);
+  const progressFraction = activeSession 
+    ? (isFlowtime ? 1 : Math.min(1, elapsedSeconds / (activeSession.plannedDuration * 60))) 
+    : 0;
 
   // 4 Reusable Compact Metrics Cards (Minimalist Linear / Notion styling)
   const renderStatsCards = (extraClass = "") => (
@@ -774,6 +784,31 @@ export function FocusView() {
               </div>
             )}
           </div>
+
+          {/* Product Synergy: 5-minute break Speed Match prompt */}
+          {(selectedMode === 'Quick' || (activeSession && remainingSeconds === 0 && !isFlowtime)) && (
+            <div className="w-full mt-2 p-3 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-yellow-500/10 border border-amber-500/30 flex items-center justify-between gap-3 text-left animate-in fade-in">
+              <div>
+                <p className="text-xs font-bold text-amber-700 dark:text-amber-300 flex items-center gap-1.5">
+                  <span>☕</span>
+                  <span>Giờ nghỉ 5 phút: Tối ưu thời gian chết!</span>
+                </p>
+                <p className="text-[11px] text-amber-600/90 dark:text-amber-400 mt-0.5">
+                  Ôn nhanh 3-5 từ vựng với Speed Match 60s để vừa thư giãn vừa tăng trí nhớ.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  setShowSpeedMatchBreak(true);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs shrink-0 shadow-sm transition-all cursor-pointer active:scale-95"
+              >
+                Chơi ngay ⚡
+              </button>
+            </div>
+          )}
         </div>
 
         {/* THẺ THỐNG KÊ THU GỌN TRÊN MOBILE (< lg) - NẰM NGAY DƯỚI ĐỒNG HỒ */}
@@ -789,6 +824,9 @@ export function FocusView() {
           {showMusicPanel && (
             <YouTubeFocusPlayer />
           )}
+
+          {/* Procedural Web Audio Ambient Sound Mixer (Rain, Cafe, Keyboard, Alpha Waves) */}
+          <AmbientMixerWidget />
 
           {/* History Card (Chiều cao thu gọn khi chưa có dữ liệu) */}
           {!isZenMode && (
@@ -929,6 +967,12 @@ export function FocusView() {
       <ShareStoryModal
         isOpen={showShareStory}
         onClose={() => setShowShareStory(false)}
+      />
+
+      {/* Product Synergy: Pomodoro 5m Break Speed Match Mini-Game */}
+      <SpeedMatchGameModal
+        isOpen={showSpeedMatchBreak}
+        onClose={() => setShowSpeedMatchBreak(false)}
       />
 
     </div>

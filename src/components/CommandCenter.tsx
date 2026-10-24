@@ -9,6 +9,7 @@ import {
 import { formatCurrency, formatDate } from '../lib/utils';
 import { ViewState } from '../lib/types';
 import { soundEngine } from '../lib/soundEngine';
+import { parseCommand } from '../utils/commandParser';
 
 interface SearchResultItem {
   id: string;
@@ -448,6 +449,54 @@ export function CommandCenter() {
     // ==========================================
     // OMNI QUICK-CAPTURE NATURAL LANGUAGE PARSER
     // ==========================================
+
+    // 0. Frictionless Regex Command Bar: @time, #tag, !energy, ~duration (0ms Zero-AI)
+    const parsedTask = parseCommand(query);
+    if (parsedTask.hasSpecialTokens && parsedTask.title) {
+      list.unshift({
+        id: 'regex-frictionless-task',
+        title: `⚡ [${parsedTask.energyDisplay?.label || 'Task'}] "${parsedTask.title}"`,
+        subtitle: `${parsedTask.dueDisplay ? `📅 ${parsedTask.dueDisplay} · ` : ''}${parsedTask.tags.length ? `🏷️ #${parsedTask.tags.join(' #')} · ` : ''}${parsedTask.durationDisplay ? `⏱️ ${parsedTask.durationDisplay} · ` : ''}Nhấn Enter để thêm ngay`,
+        category: 'Lệnh nhanh',
+        icon: CheckSquare,
+        badge: parsedTask.energyDisplay?.label || '0ms Capture',
+        action: () => {
+          soundEngine.playPop();
+          addTask({
+            title: parsedTask.title,
+            status: 'Chưa làm',
+            priority: parsedTask.energy === 'deep_work' ? 'Khẩn cấp' : (parsedTask.energy === 'shallow' ? 'Trung bình' : 'Thấp'),
+            dueDate: parsedTask.dueDate || new Date().toISOString().split('T')[0],
+            estimatedHours: parsedTask.durationMinutes ? parsedTask.durationMinutes / 60 : undefined,
+            tags: parsedTask.tags,
+            notes: `Mức năng lượng: ${parsedTask.energyDisplay?.label || 'Chưa định'}`
+          });
+          setSuccessToast(`Đã tạo "${parsedTask.title}" (${parsedTask.energyDisplay?.label || 'Task'}) ⚡`);
+          setTimeout(() => { toggleCommand(); setSuccessToast(null); }, 600);
+        }
+      });
+    }
+
+    // 0.1. Zero-Effort Vocab Quick Ingestion (e.g. "vocab serendipity", "tra ephemeral", "từ resilience")
+    if (/^(vocab|tra|từ|word)\s+/i.test(q)) {
+      const wordTerm = q.replace(/^(vocab|tra|từ|word)\s+/i, '').trim();
+      if (wordTerm) {
+        list.unshift({
+          id: 'cmd-lookup-vocab',
+          title: `📖 Nạp từ vựng tự động: "${wordTerm}"`,
+          subtitle: 'Free Dictionary + Datamuse + Giphy meme (0ms Zero-AI)',
+          category: 'Lệnh nhanh',
+          icon: BookOpen,
+          badge: 'Zero-Effort Vocab',
+          action: () => {
+            soundEngine.playPop();
+            window.dispatchEvent(new CustomEvent('lifeos:quick-add-vocab', { detail: { word: wordTerm } }));
+            setCurrentView('study');
+            toggleCommand();
+          }
+        });
+      }
+    }
 
     // 1. Natural Language INCOME (e.g. "+15m Lương tháng", "lương 15m", "+500k thưởng")
     const isIncomeExplicit = q.startsWith('+') || /^(thu|lương|thưởng|nhận)\s+/i.test(q);

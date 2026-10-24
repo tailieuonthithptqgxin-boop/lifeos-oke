@@ -28,6 +28,12 @@ import { AiLifeBuddyCopilotModal } from './companion/AiLifeBuddyCopilotModal';
 import { QuickPersonaQuizModal } from './onboarding/QuickPersonaQuizModal';
 import { StreakResurrectionModal } from './dashboard/StreakResurrectionModal';
 import { WeeklyLeaderboardModal } from './dashboard/WeeklyLeaderboardModal';
+import { WordOfTheHourWidget } from './dashboard/WordOfTheHourWidget';
+import { ContributionHeatmap365 } from './dashboard/ContributionHeatmap365';
+import { ZeroEffortIngestionModal } from './vocab/ZeroEffortIngestionModal';
+import { SpeedMatchGameModal } from './vocab/SpeedMatchGameModal';
+import { GenZVocabStudyModal } from './vocab/GenZVocabStudyModal';
+import { FocusEconomyShopModal } from './dashboard/FocusEconomyShopModal';
 import { apiCall } from '../lib/apiClient';
 import { triggerConfetti } from '../lib/confetti';
 import { LiveMascotCharacter } from './companion/LiveMascotCharacter';
@@ -75,6 +81,13 @@ export function DashboardView() {
   const [showResurrectionModal, setShowResurrectionModal] = useState(false);
   const [zenFocusOpen, setZenFocusOpen] = useState(false);
   const [zenFocusTaskId, setZenFocusTaskId] = useState<string | undefined>(undefined);
+
+  // Next-Gen Gen Z Modals State
+  const [showZeroEffortVocab, setShowZeroEffortVocab] = useState(false);
+  const [zeroEffortInitialWord, setZeroEffortInitialWord] = useState('');
+  const [showSpeedMatch, setShowSpeedMatch] = useState(false);
+  const [showGenZVocabStudy, setShowGenZVocabStudy] = useState(false);
+  const [showEconomyShop, setShowEconomyShop] = useState(false);
   const [celebration, setCelebration] = useState<{
     title: string;
     subtitle: string;
@@ -219,6 +232,38 @@ export function DashboardView() {
   const todayTasks = (tasks || []).filter(t => t.dueDate && t.dueDate.startsWith(dateStr) && t.status !== 'Hủy' && t.status !== 'Cancelled');
   const pendingTasks = todayTasks.filter(t => t.status !== 'Hoàn thành' && t.status !== 'Completed');
   const completedTasks = todayTasks.filter(t => t.status === 'Hoàn thành' || t.status === 'Completed');
+
+  // Cognitive Load: count unfinished deep work tasks
+  const deepWorkTasksCount = useMemo(() => {
+    return (tasks || []).filter(t => {
+      const isDone = t.status === 'Hoàn thành' || t.status === 'Completed' || t.status === 'Done';
+      return !isDone && (t.energy === 'deep_work' || t.priority === 'Cao' || t.priority === 'High');
+    }).length;
+  }, [tasks]);
+
+  // Global events for Next-Gen Gen Z modals
+  useEffect(() => {
+    const handleQuickAddVocab = (e: any) => {
+      const word = e?.detail?.word || '';
+      setZeroEffortInitialWord(word);
+      setShowZeroEffortVocab(true);
+    };
+    const handleOpenSpeedMatch = () => setShowSpeedMatch(true);
+    const handleOpenGenZStudy = () => setShowGenZVocabStudy(true);
+    const handleOpenEconomyShop = () => setShowEconomyShop(true);
+
+    window.addEventListener('lifeos:quick-add-vocab', handleQuickAddVocab);
+    window.addEventListener('lifeos:open-speed-match', handleOpenSpeedMatch);
+    window.addEventListener('lifeos:open-genz-vocab-study', handleOpenGenZStudy);
+    window.addEventListener('lifeos:open-economy-shop', handleOpenEconomyShop);
+
+    return () => {
+      window.removeEventListener('lifeos:quick-add-vocab', handleQuickAddVocab);
+      window.removeEventListener('lifeos:open-speed-match', handleOpenSpeedMatch);
+      window.removeEventListener('lifeos:open-genz-vocab-study', handleOpenGenZStudy);
+      window.removeEventListener('lifeos:open-economy-shop', handleOpenEconomyShop);
+    };
+  }, []);
 
   // Auto-fill empty slots for Rule of 3 if available
   useEffect(() => {
@@ -1583,6 +1628,75 @@ export function DashboardView() {
 
         </div>
 
+        {/* ========================================================================= */}
+        {/* NEXT-GEN BENTO GRID: WORD OF THE HOUR + 365 CONTRIBUTION HEATMAP           */}
+        {/* ========================================================================= */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 pt-2">
+          {/* Word of the Hour (4 cols) */}
+          <div className="lg:col-span-4 flex flex-col">
+            <WordOfTheHourWidget
+              deepWorkTaskCount={deepWorkTasksCount}
+              onOpenStudy={() => setShowGenZVocabStudy(true)}
+            />
+          </div>
+
+          {/* 365-Day Contribution Heatmap (8 cols) */}
+          <div className="lg:col-span-8 flex flex-col">
+            <ContributionHeatmap365 />
+          </div>
+        </div>
+
+        {/* Quick Gen Z Action Bar */}
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1 pb-1">
+          <button
+            type="button"
+            onClick={() => {
+              soundEngine.playPop();
+              setShowZeroEffortVocab(true);
+            }}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-emerald-500/50 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 transition-all shadow-2xs shrink-0 cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
+            <span>Nạp từ tự động (0ms)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              soundEngine.playPop();
+              setShowSpeedMatch(true);
+            }}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-amber-500/50 hover:bg-amber-50/30 dark:hover:bg-amber-950/20 transition-all shadow-2xs shrink-0 cursor-pointer"
+          >
+            <Zap className="w-3.5 h-3.5 text-amber-500 fill-current" />
+            <span>Speed Match 60s</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              soundEngine.playPop();
+              setShowGenZVocabStudy(true);
+            }}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-indigo-500/50 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20 transition-all shadow-2xs shrink-0 cursor-pointer"
+          >
+            <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
+            <span>Phòng luyện FSRS</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              soundEngine.playPop();
+              setShowEconomyShop(true);
+            }}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-pink-500/50 hover:bg-pink-50/30 dark:hover:bg-pink-950/20 transition-all shadow-2xs shrink-0 cursor-pointer"
+          >
+            <Coins className="w-3.5 h-3.5 text-amber-500" />
+            <span>Đổi thưởng Coin Shop</span>
+          </button>
+        </div>
+
       </div>
 
       {/* ========================================================================= */}
@@ -1774,6 +1888,34 @@ export function DashboardView() {
           setShowLeaderboard(false);
           setShowShareStory(true);
         }}
+      />
+
+      {/* Next-Gen Zero-Effort Vocab Ingestion Modal */}
+      <ZeroEffortIngestionModal
+        isOpen={showZeroEffortVocab}
+        initialWord={zeroEffortInitialWord}
+        onClose={() => {
+          setShowZeroEffortVocab(false);
+          setZeroEffortInitialWord('');
+        }}
+      />
+
+      {/* Next-Gen Speed Match 60s Game Modal */}
+      <SpeedMatchGameModal
+        isOpen={showSpeedMatch}
+        onClose={() => setShowSpeedMatch(false)}
+      />
+
+      {/* Next-Gen Vocab Study Hub (4 Gamified Modes) */}
+      <GenZVocabStudyModal
+        isOpen={showGenZVocabStudy}
+        onClose={() => setShowGenZVocabStudy(false)}
+      />
+
+      {/* Focus Economy Reward Shop Modal */}
+      <FocusEconomyShopModal
+        isOpen={showEconomyShop}
+        onClose={() => setShowEconomyShop(false)}
       />
     </div>
   );

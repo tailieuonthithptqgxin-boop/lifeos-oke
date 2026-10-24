@@ -5,11 +5,12 @@ import {
   Check, Clock, AlertTriangle, Play, Square, Plus, Edit3,
   Calendar as CalendarIcon, Tag, FolderKanban, LayoutGrid, List as ListIcon, X, Trash2, Search, Target,
   Paperclip, Upload, Download, FileText, File, Loader2,
-  CalendarCheck, Flame, Layers, MoreVertical
+  CalendarCheck, Flame, Layers, MoreVertical, Zap, Sparkles, CheckSquare
 } from 'lucide-react';
-import { Task, TaskStatus, Priority } from '../lib/types';
+import { Task, TaskStatus, Priority, TaskEnergyLevel, TaskSubtask } from '../lib/types';
 import { formatCurrency, formatDate } from '../lib/utils';
 import { apiCall } from '../lib/apiClient';
+import { ENERGY_CONFIG, EnergyLevel } from '../utils/commandParser';
 
 export type NormalizedTaskStatus = 'Chưa làm' | 'Đang làm' | 'Đang chờ' | 'Hoàn thành' | 'Hủy';
 
@@ -86,8 +87,9 @@ export function TasksView() {
   const { tasks, projects, goals, addTask, updateTask, deleteTask, language } = useAppStore();
   const t = useTranslation(language);
   const isVi = language === 'vi';
-  const [viewMode, setViewMode] = useState<'list' | 'kanban'>('list');
+  const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'timeboxing'>('list');
   const [filterStatus, setFilterStatus] = useState<string>('All');
+  const [filterEnergy, setFilterEnergy] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [quickTitle, setQuickTitle] = useState('');
   const [quickPriority, setQuickPriority] = useState<Priority>('Trung bình');
@@ -204,6 +206,10 @@ export function TasksView() {
       result = result.filter(t => normalizeTaskStatus(t.status) === 'Đang chờ');
     }
 
+    if (filterEnergy !== 'all') {
+      result = result.filter(t => t.energy === filterEnergy);
+    }
+
     const q = searchQuery.trim().toLowerCase();
     if (q) {
       const cleanQ = q.startsWith('#') ? q.slice(1).trim() : q;
@@ -222,7 +228,7 @@ export function TasksView() {
       });
     }
     return result;
-  }, [tasks, filterStatus, searchQuery, localToday, utcToday]);
+  }, [tasks, filterStatus, filterEnergy, searchQuery, localToday, utcToday]);
 
   const handleSelectFilter = (targetStatus: string) => {
     setFilterStatus(targetStatus);
@@ -417,11 +423,84 @@ export function TasksView() {
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
+            <button 
+              type="button" 
+              id="tasks-view-timeboxing-btn"
+              onClick={() => setViewMode('timeboxing')} 
+              title={t('Timeboxing Calendar')}
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                viewMode === 'timeboxing' 
+                  ? 'bg-white dark:bg-slate-900 shadow-xs text-emerald-600 dark:text-emerald-400 font-bold' 
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+              }`}
+            >
+              <Clock className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Quick Tag Chips (if any) */}
+      {/* Energy Level Filter Bar */}
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs text-slate-500 py-1">
+        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 flex items-center gap-1">
+          <Zap className="w-3 h-3 text-amber-500" /> {t('Năng lượng:')}
+        </span>
+        <button
+          type="button"
+          onClick={() => setFilterEnergy('all')}
+          className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+            filterEnergy === 'all'
+              ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xs'
+              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-750'
+          }`}
+        >
+          {t('Tất cả')}
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilterEnergy('deep_work')}
+          className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
+            filterEnergy === 'deep_work'
+              ? 'bg-red-500 text-white border-red-500 shadow-2xs'
+              : 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20'
+          }`}
+        >
+          🔴 Deep Work
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilterEnergy('shallow')}
+          className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
+            filterEnergy === 'shallow'
+              ? 'bg-amber-500 text-white border-amber-500 shadow-2xs'
+              : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
+          }`}
+        >
+          🟡 Shallow Work
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilterEnergy('low_battery')}
+          className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
+            filterEnergy === 'low_battery'
+              ? 'bg-emerald-500 text-white border-emerald-500 shadow-2xs'
+              : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+          }`}
+        >
+          🟢 Low Battery
+        </button>
+        <button
+          type="button"
+          onClick={() => setFilterEnergy('quick_win')}
+          className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
+            filterEnergy === 'quick_win'
+              ? 'bg-purple-500 text-white border-purple-500 shadow-2xs'
+              : 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20'
+          }`}
+        >
+          ⚡ Quick Win
+        </button>
+      </div>
       {allTags.length > 0 && (
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs text-slate-500 -mt-1 px-1">
           <span className="flex items-center gap-1 text-slate-400 shrink-0 text-[11px]"><Tag className="w-3 h-3" /> {t('Thẻ:')}</span>
@@ -555,7 +634,7 @@ export function TasksView() {
               ))}
             </div>
           </div>
-        ) : (
+        ) : viewMode === 'kanban' ? (
           <div className="flex-1 flex flex-col min-h-0">
             {filterStatus !== 'All' && (
               <div className="mb-3 px-3.5 py-2 bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 rounded-xl flex items-center justify-between text-xs text-emerald-800 dark:text-emerald-300 shrink-0">
@@ -620,6 +699,13 @@ export function TasksView() {
               />
             </div>
           </div>
+        ) : (
+          <TimeboxingView
+            tasks={filteredTasks}
+            onEditTask={openEditTask}
+            onUpdateTask={(id: string, updates: any) => updateTask(id, updates)}
+            localToday={localToday}
+          />
         )}
       </div>
 
@@ -739,6 +825,18 @@ function getPriorityBadge(priority: string, t: any) {
   }
 }
 
+export function getEnergyBadge(energy?: string) {
+  if (!energy) return null;
+  const cfg = ENERGY_CONFIG[energy as EnergyLevel];
+  if (!cfg) return null;
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold border ${cfg.badgeClass}`}>
+      <span>{cfg.icon}</span>
+      <span>{cfg.label}</span>
+    </span>
+  );
+}
+
 function TaskRow({ task, onEdit, onDelete, onToggleStatus, timerActive, timerSeconds, onToggleTimer, formatTimer, projectName, goalTitle, onTagClick }: any) {
   const { language } = useAppStore();
   const t = useTranslation(language);
@@ -801,6 +899,14 @@ function TaskRow({ task, onEdit, onDelete, onToggleStatus, timerActive, timerSec
           )}
           
           {getPriorityBadge(task.priority, t)}
+          {getEnergyBadge(task.energy)}
+
+          {Array.isArray(task.subtasks) && task.subtasks.length > 0 && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md border border-slate-200/50 dark:border-slate-700/50">
+              <CheckSquare className="w-2.5 h-2.5 text-emerald-500" />
+              {task.subtasks.filter((s: any) => s.completed).length}/{task.subtasks.length}
+            </span>
+          )}
 
           {Boolean((task.estimatedHours && Number(task.estimatedHours) > 0) || (task.actualHours && Number(task.actualHours) > 0)) && (
             <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md font-medium border border-slate-200/50 dark:border-slate-700/50">
@@ -936,6 +1042,14 @@ function KanbanColumn({ title, status, tasks, onEdit, onDropTask, onTagClick, on
 
             <div className="flex flex-wrap items-center gap-1.5 mt-2 text-xs">
               {getPriorityBadge(task.priority, t)}
+          {getEnergyBadge(task.energy)}
+
+          {Array.isArray(task.subtasks) && task.subtasks.length > 0 && (
+            <span className="inline-flex items-center gap-1 text-[11px] font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-2 py-0.5 rounded-md border border-slate-200/50 dark:border-slate-700/50">
+              <CheckSquare className="w-2.5 h-2.5 text-emerald-500" />
+              {task.subtasks.filter((s: any) => s.completed).length}/{task.subtasks.length}
+            </span>
+          )}
 
               {task.dueDate && (
                 <span className="text-[10px] font-medium flex items-center gap-1 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md border border-slate-200/50 dark:border-slate-700/50">
@@ -969,6 +1083,209 @@ function KanbanColumn({ title, status, tasks, onEdit, onDropTask, onTagClick, on
   );
 }
 
+const TASK_TEMPLATES = [
+  {
+    name: '🎓 Tiểu luận',
+    title: 'Hoàn thành tiểu luận chuyên ngành',
+    energy: 'deep_work' as const,
+    estimatedHours: 4,
+    tags: ['tieu-luan', 'hoc-tap'],
+    subtasks: [
+      { id: '1', title: 'Thu thập & Đọc tài liệu tham khảo', completed: false },
+      { id: '2', title: 'Lập đề cương & dàn ý chi tiết', completed: false },
+      { id: '3', title: 'Viết bản thảo thô các chương', completed: false },
+      { id: '4', title: 'Trích dẫn nguồn & Format theo chuẩn APA', completed: false },
+      { id: '5', title: 'Soát lỗi chính tả & Nộp bài', completed: false }
+    ]
+  },
+  {
+    name: '📚 Ôn thi cuối kỳ',
+    title: 'Kế hoạch ôn thi kết thúc học phần',
+    energy: 'deep_work' as const,
+    estimatedHours: 3,
+    tags: ['on-thi', 'gpa-master'],
+    subtasks: [
+      { id: '1', title: 'Hệ thống hóa slide bài giảng & giáo trình', completed: false },
+      { id: '2', title: 'Tóm tắt công thức trọng tâm vào Mindmap', completed: false },
+      { id: '3', title: 'Làm 3 bộ đề thi của các năm trước', completed: false },
+      { id: '4', title: 'Luyện 50 flashcard thuật ngữ khó', completed: false },
+      { id: '5', title: 'Thi thử bấm giờ nghiêm túc', completed: false }
+    ]
+  },
+  {
+    name: '💻 Dự án Web',
+    title: 'Phát triển tính năng mới Web App',
+    energy: 'deep_work' as const,
+    estimatedHours: 5,
+    tags: ['coding', 'du-an'],
+    subtasks: [
+      { id: '1', title: 'Phác thảo Wireframe & Luồng UI Figma', completed: false },
+      { id: '2', title: 'Khởi tạo Git branch & Cấu hình Database', completed: false },
+      { id: '3', title: 'Xây dựng API Backend & Xử lý nghiệp vụ', completed: false },
+      { id: '4', title: 'Dựng Component giao diện Frontend', completed: false },
+      { id: '5', title: 'Viết Unit test & Triển khai Production', completed: false }
+    ]
+  }
+];
+
+function TimeboxingView({ tasks, onEditTask, onUpdateTask, localToday }: any) {
+  const { language } = useAppStore();
+  const t = useTranslation(language);
+  const hours = [
+    '07:00', '08:00', '09:00', '10:00', '11:00', '12:00',
+    '13:00', '14:00', '15:00', '16:00', '17:00', '18:00',
+    '19:00', '20:00', '21:00', '22:00'
+  ];
+
+  const currentHourStr = `${new Date().getHours().toString().padStart(2, '0')}:00`;
+
+  const todayTasks = (tasks || []).filter((t: any) => {
+    return t.dueDate === localToday || !t.dueDate;
+  });
+
+  const unscheduledTasks = todayTasks.filter((t: any) => !t.timeSlot && t.status !== 'Hoàn thành' && t.status !== 'Done');
+
+  return (
+    <div className="flex-1 flex flex-col lg:flex-row gap-5 min-h-[500px]">
+      {/* Left Tray: Unscheduled Tasks */}
+      <div className="lg:w-80 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-col">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-3">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-amber-500" />
+            <span>Chờ xếp khung giờ ({unscheduledTasks.length})</span>
+          </h3>
+        </div>
+
+        <div className="space-y-2 overflow-y-auto flex-1 max-h-[550px]">
+          {unscheduledTasks.length === 0 ? (
+            <div className="py-12 text-center text-xs text-slate-400 font-medium">
+              🎉 Tất cả công việc hôm nay đã được lên khung giờ!
+            </div>
+          ) : (
+            unscheduledTasks.map((task: any) => (
+              <div
+                key={task.id}
+                draggable
+                onDragStart={(e) => e.dataTransfer.setData('taskId', task.id)}
+                onClick={() => onEditTask(task)}
+                className="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/60 hover:border-emerald-500/50 transition-all cursor-grab active:cursor-grabbing group shadow-2xs"
+              >
+                <h4 className="text-xs font-semibold text-slate-800 dark:text-slate-200 line-clamp-2">
+                  {task.title}
+                </h4>
+                <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                  {getEnergyBadge(task.energy)}
+                  {getPriorityBadge(task.priority, t)}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Right Grid: 07:00 to 22:00 Timeboxing Schedule */}
+      <div className="flex-1 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xs overflow-y-auto max-h-[650px] space-y-2">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800 mb-2">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <CalendarIcon className="w-4 h-4" />
+            </span>
+            <div>
+              <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">
+                Lịch Phân Khung Thời Gian (Timeboxing Calendar)
+              </h3>
+              <p className="text-[10px] text-slate-400">Kéo thả hoặc gán công việc vào từng khung giờ cụ thể</p>
+            </div>
+          </div>
+          <span className="text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+            {localToday}
+          </span>
+        </div>
+
+        {hours.map(hour => {
+          const isCurrentHour = hour === currentHourStr;
+          const slotTasks = todayTasks.filter((t: any) => t.timeSlot === hour);
+
+          return (
+            <div
+              key={hour}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const taskId = e.dataTransfer.getData('taskId');
+                if (taskId) {
+                  onUpdateTask(taskId, { timeSlot: hour, dueDate: localToday });
+                }
+              }}
+              className={`flex items-start gap-3 p-2.5 rounded-xl border transition-all ${
+                isCurrentHour
+                  ? 'border-emerald-500/60 bg-emerald-50/20 dark:bg-emerald-950/20 ring-1 ring-emerald-500/30'
+                  : 'border-slate-100 dark:border-slate-800/80 hover:border-slate-300 dark:hover:border-slate-700 bg-slate-50/30 dark:bg-slate-850/30'
+              }`}
+            >
+              <div className="w-14 shrink-0 flex items-center gap-1.5 pt-1">
+                {isCurrentHour && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
+                <span className={`text-xs font-mono font-bold ${isCurrentHour ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
+                  {hour}
+                </span>
+              </div>
+
+              <div className="flex-1 flex flex-wrap items-center gap-2 min-h-[36px]">
+                {slotTasks.map((t: any) => {
+                  const isDone = t.status === 'Hoàn thành' || t.status === 'Done';
+                  return (
+                    <div
+                      key={t.id}
+                      onClick={() => onEditTask(t)}
+                      className={`px-3 py-1.5 rounded-xl border flex items-center gap-2 cursor-pointer shadow-2xs transition-all ${
+                        isDone
+                          ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 line-through border-transparent'
+                          : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-emerald-500/50 text-slate-800 dark:text-slate-100'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onUpdateTask(t.id, { status: isDone ? 'Chưa làm' : 'Hoàn thành' });
+                        }}
+                        className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center ${
+                          isDone ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-400'
+                        }`}
+                      >
+                        {isDone && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                      </button>
+                      <span className="text-xs font-semibold">{t.title}</span>
+                      {getEnergyBadge(t.energy)}
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onUpdateTask(t.id, { timeSlot: null });
+                        }}
+                        title="Bỏ xếp khung giờ"
+                        className="text-slate-400 hover:text-rose-500 p-0.5 rounded cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  );
+                })}
+
+                {slotTasks.length === 0 && (
+                  <span className="text-[11px] text-slate-300 dark:text-slate-600 italic select-none">
+                    Kéo thả việc vào đây để Timebox
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
   const { language } = useAppStore();
   const t = useTranslation(language);
@@ -985,7 +1302,38 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
     recurrence: task?.recurrence || task?.recurring || 'none',
     tags: Array.isArray(task?.tags) ? task.tags.join(', ') : (task?.tags || ''),
     notes: task?.notes || '',
+    timeSlot: task?.timeSlot || '',
   });
+
+  const [subtasks, setSubtasks] = useState<TaskSubtask[]>(task?.subtasks || []);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+  const [taskEnergy, setTaskEnergy] = useState<TaskEnergyLevel>(task?.energy || 'shallow');
+
+  const handleAddSubtask = () => {
+    const title = newSubtaskTitle.trim();
+    if (!title) return;
+    setSubtasks(prev => [...prev, { id: `st_${Date.now()}_${Math.random()}`, title, completed: false }]);
+    setNewSubtaskTitle('');
+  };
+
+  const toggleSubtask = (id: string) => {
+    setSubtasks(prev => prev.map(s => s.id === id ? { ...s, completed: !s.completed } : s));
+  };
+
+  const removeSubtask = (id: string) => {
+    setSubtasks(prev => prev.filter(s => s.id !== id));
+  };
+
+  const applyTemplate = (tpl: typeof TASK_TEMPLATES[0]) => {
+    setFormData((prev: any) => ({
+      ...prev,
+      title: tpl.title,
+      estimatedHours: tpl.estimatedHours,
+      tags: tpl.tags.join(', ')
+    }));
+    setTaskEnergy(tpl.energy);
+    setSubtasks(tpl.subtasks);
+  };
 
   // Attachments State (Cloudflare R2)
   const [attachments, setAttachments] = useState<any[]>([]);
@@ -1100,6 +1448,9 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
         description: mergedDescription,
         status: formData.status,
         priority: formData.priority,
+        energy: taskEnergy,
+        subtasks,
+        timeSlot: formData.timeSlot || null,
         dueDate: formData.dueDate || null,
         projectId: formData.projectId || null,
         linkedGoalId: formData.linkedGoalId || null,
@@ -1149,6 +1500,26 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
                 <span>{errorMessage}</span>
               </div>
             )}
+            {/* Pre-built Templates Bar */}
+            <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-800 flex items-center justify-between gap-2 flex-wrap">
+              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                Mẫu Template Có Sẵn:
+              </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {TASK_TEMPLATES.map(tpl => (
+                  <button
+                    key={tpl.name}
+                    type="button"
+                    onClick={() => applyTemplate(tpl)}
+                    className="px-2.5 py-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:border-emerald-500 hover:text-emerald-600 transition-all cursor-pointer shadow-2xs"
+                  >
+                    {tpl.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div>
               <label className="block text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-300 mb-1.5">
                 {t('Tên công việc')} <span className="text-red-500">*</span>
@@ -1160,6 +1531,34 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
                 className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-base sm:text-sm font-medium"
                 placeholder={t('VD: Soạn thảo đề xuất kế hoạch quý 4...')}
               />
+            </div>
+
+            {/* Energy Level Selector */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                {t('Mức năng lượng yêu cầu (Energy Tag)')}
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {(['deep_work', 'shallow', 'low_battery', 'quick_win'] as TaskEnergyLevel[]).map(lvl => {
+                  const cfg = ENERGY_CONFIG[lvl];
+                  const isSelected = taskEnergy === lvl;
+                  return (
+                    <button
+                      key={lvl}
+                      type="button"
+                      onClick={() => setTaskEnergy(lvl)}
+                      className={`p-2 rounded-xl border text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                        isSelected
+                          ? `${cfg.badgeClass} ring-2 ring-emerald-500/30 scale-102`
+                          : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 opacity-70 hover:opacity-100'
+                      }`}
+                    >
+                      <span>{cfg.icon}</span>
+                      <span>{cfg.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1257,6 +1656,20 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
               </div>
 
               <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">{t('Khung giờ Timeboxing')}</label>
+                <select
+                  value={formData.timeSlot || ''}
+                  onChange={e => setFormData({ ...formData, timeSlot: e.target.value })}
+                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-sm"
+                >
+                  <option value="">{t('Chưa xếp khung giờ')}</option>
+                  {['07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00'].map(h => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
                 <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">{t('Thẻ phân loại')}</label>
                 <div className="relative">
                   <Tag className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
@@ -1269,6 +1682,73 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
                   />
                 </div>
                 <p className="text-[11px] text-slate-400 mt-1">{t('Phân cách các thẻ bằng dấu phẩy (,)')}</p>
+              </div>
+            </div>
+
+            {/* Subtask Splitter & Checklist */}
+            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <CheckSquare className="w-3.5 h-3.5 text-emerald-500" />
+                  <span>Việc con & Checklist ({subtasks.filter(s => s.completed).length}/{subtasks.length})</span>
+                </label>
+                <span className="text-[10px] text-slate-400">Nhấn Enter để thêm việc con tiếp theo</span>
+              </div>
+
+              {subtasks.length > 0 && (
+                <div className="space-y-1.5 max-h-36 overflow-y-auto">
+                  {subtasks.map(st => (
+                    <div
+                      key={st.id}
+                      className="flex items-center justify-between p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/50 dark:border-slate-700/50 text-xs"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => toggleSubtask(st.id)}
+                        className="flex items-center gap-2 text-left min-w-0 flex-1 cursor-pointer"
+                      >
+                        <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
+                          st.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-400'
+                        }`}>
+                          {st.completed && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                        </span>
+                        <span className={`truncate ${st.completed ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                          {st.title}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeSubtask(st.id)}
+                        className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newSubtaskTitle}
+                  onChange={e => setNewSubtaskTitle(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddSubtask();
+                    }
+                  }}
+                  placeholder="Thêm việc con (Nhấn Enter để thêm liên tiếp)..."
+                  className="flex-1 px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddSubtask}
+                  className="px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                >
+                  Thêm
+                </button>
               </div>
             </div>
 
