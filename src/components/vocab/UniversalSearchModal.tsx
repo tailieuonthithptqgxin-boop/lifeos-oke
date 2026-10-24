@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search, X, Volume2, Star, Lightbulb, Pin, Play, Plus, BookOpen,
   Check, Sparkles, Layers, ArrowRight
@@ -44,6 +44,15 @@ export const UniversalSearchModal: React.FC<UniversalSearchModalProps> = ({
 
   const [query, setQuery] = useState('');
   const [selectedWordForCol, setSelectedWordForCol] = useState<VocabWord | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
   const [addedQueueWords, setAddedQueueWords] = useState<Set<string>>(new Set());
 
   const searchResults = useMemo(() => {
@@ -81,8 +90,16 @@ export const UniversalSearchModal: React.FC<UniversalSearchModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
+    <div 
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-150 cursor-default"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
+      >
         
         {/* Modal Header & Search Input */}
         <div className="p-5 border-b border-slate-100 dark:border-slate-800 space-y-3">

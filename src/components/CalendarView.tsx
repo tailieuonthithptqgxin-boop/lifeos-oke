@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../lib/store';
-import { Calendar as CalendarIcon, Clock, Plus, MapPin, Video, LayoutList, CheckSquare, Check, ChevronRight } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, Plus, MapPin, Video, LayoutList, CheckSquare, Check, ChevronRight, X } from 'lucide-react';
 import { Event } from '../lib/types';
 
 export function CalendarView() {
@@ -435,11 +435,35 @@ function EventModal({ event, onClose, onSave, onDelete }: any) {
   const { projects, language } = useAppStore();
   const isVi = language === 'vi';
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-backdrop-fade">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 animate-modal-enter">
+    <div 
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-backdrop-fade cursor-default"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-slate-200 dark:border-slate-800 animate-modal-enter"
+      >
         <div className="p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 flex justify-between items-center shrink-0">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white">{event ? (isVi ? 'Sửa sự kiện' : 'Edit Event') : (isVi ? 'Thêm sự kiện mới' : 'New Event')}</h3>
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            aria-label={isVi ? 'Đóng' : 'Close'}
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
         <div className="p-5 overflow-y-auto space-y-4">
           <div>

@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { KeyRound, X } from 'lucide-react';
 import { ManagedUser } from './types';
 
 interface ResetPasswordModalProps {
@@ -16,12 +17,39 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
   newPassword,
   setNewPassword
 }) => {
+  useEffect(() => {
+    if (!user) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [user, onClose]);
+
   if (!user) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-xs">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-sm w-full p-6 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
-        <h3 className="text-lg font-bold text-slate-900 dark:text-white">Đặt Lại Mật Khẩu</h3>
+    <div 
+      className="fixed inset-0 z-[80] bg-black/50 flex items-center justify-center p-4 backdrop-blur-xs"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white dark:bg-slate-900 rounded-2xl max-w-sm w-full p-6 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+          <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+            <KeyRound className="w-5 h-5 text-amber-500" />
+            Đặt Lại Mật Khẩu
+          </h3>
+          <button 
+            type="button" 
+            onClick={onClose}
+            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
         <p className="text-xs text-slate-500">
           Đặt lại mật khẩu cho tài khoản <strong>{user.email}</strong>. Các phiên đăng nhập hiện tại sẽ bị hủy ngay lập tức.
         </p>

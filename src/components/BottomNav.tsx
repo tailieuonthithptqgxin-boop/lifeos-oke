@@ -15,6 +15,16 @@ export function BottomNav() {
 
   const [showQuickActionSheet, setShowQuickActionSheet] = useState(false);
 
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && showQuickActionSheet) {
+        setShowQuickActionSheet(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showQuickActionSheet]);
+
   const pendingTaskCount = (tasks || []).filter(
     t => t.status !== 'Hoàn thành' && t.status !== 'Hủy' && t.status !== 'Completed' && t.status !== 'Cancelled'
   ).length;

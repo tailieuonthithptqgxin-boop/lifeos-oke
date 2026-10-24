@@ -346,14 +346,18 @@ export function NotesView() {
             notes={activeNotes} 
             pinnedNotes={pinnedNotes}
             favoriteNotes={favoriteNotes}
-          tags={allTags}
-          onOpenDetail={setDetailNote}
-          onOpenEdit={(n) => { setEditingNote(n); setIsEditorOpen(true); }}
-          onCreateNote={handleCreateNewNote}
-          onTogglePin={toggleNotePin}
-          onToggleFav={toggleNoteFavorite}
-        />
-      )}
+            tags={allTags}
+            onOpenDetail={setDetailNote}
+            onOpenEdit={(n) => { setEditingNote(n); setIsEditorOpen(true); }}
+            onCreateNote={handleCreateNewNote}
+            onTogglePin={toggleNotePin}
+            onToggleFav={toggleNoteFavorite}
+            onSelectTag={(tag) => {
+              setSelectedTag(tag);
+              setActiveTab('all');
+            }}
+          />
+        )}
 
       {activeTab === 'all' && (
         <AllNotesView 
@@ -476,7 +480,8 @@ function NotesDashboardView({
   onOpenEdit, 
   onCreateNote,
   onTogglePin,
-  onToggleFav 
+  onToggleFav,
+  onSelectTag
 }: {
   notes: Note[];
   pinnedNotes: Note[];
@@ -487,6 +492,7 @@ function NotesDashboardView({
   onCreateNote: (t?: NoteType) => void;
   onTogglePin: (id: string) => void;
   onToggleFav: (id: string) => void;
+  onSelectTag?: (tag: string) => void;
 }) {
   const recentNotes = useMemo(() => {
     return [...notes].sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime()).slice(0, 6);
@@ -639,7 +645,12 @@ function NotesDashboardView({
             </h4>
             <div className="flex flex-wrap gap-1.5">
               {tags.map(([tag, count]) => (
-                <span key={tag} className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium px-2.5 py-1 rounded-lg border border-slate-200/60 dark:border-slate-700 cursor-pointer transition-colors flex items-center gap-1">
+                <span 
+                  key={tag} 
+                  onClick={() => onSelectTag?.(tag)}
+                  className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-medium px-2.5 py-1 rounded-lg border border-slate-200/60 dark:border-slate-700 cursor-pointer transition-colors flex items-center gap-1 active:scale-95"
+                  title={`Lọc tất cả ghi chú có thẻ #${tag}`}
+                >
                   #{tag} <span className="text-[10px] text-slate-400 font-mono">({count})</span>
                 </span>
               ))}

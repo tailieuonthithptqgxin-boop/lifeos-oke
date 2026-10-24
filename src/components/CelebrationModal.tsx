@@ -29,8 +29,16 @@ export function CelebrationModal({
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative max-w-sm w-full bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-indigo-200/80 dark:border-indigo-800/80 shadow-2xl text-center overflow-hidden animate-in zoom-in-95 duration-200">
+    <div 
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-200 cursor-default"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="relative max-w-sm w-full bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-indigo-200/80 dark:border-indigo-800/80 shadow-2xl text-center overflow-hidden animate-in zoom-in-95 duration-200"
+      >
         {/* Ambient colored background lights */}
         <div className="absolute -top-20 -left-20 w-44 h-44 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -bottom-20 -right-20 w-44 h-44 bg-purple-500/15 rounded-full blur-3xl pointer-events-none" />

@@ -768,7 +768,14 @@ export function DecisionEngineView() {
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
                     So sánh MacBook vs Windows Laptop theo tiêu chí Pin, Hiệu năng, Giá và Độ bền.
                   </p>
-                  <button type="button" className="text-xs font-bold text-emerald-600 flex items-center gap-1 pt-1">
+                  <button 
+                    type="button" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      applyTemplate('tech');
+                    }}
+                    className="text-xs font-bold text-emerald-600 flex items-center gap-1 pt-1 cursor-pointer hover:underline"
+                  >
                     <span>Áp dụng mẫu này</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
@@ -790,7 +797,14 @@ export function DecisionEngineView() {
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
                     Đánh giá offer công việc theo Thu nhập, Thăng tiến, Văn hóa và Work-Life Balance.
                   </p>
-                  <button type="button" className="text-xs font-bold text-indigo-600 flex items-center gap-1 pt-1">
+                  <button 
+                    type="button" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      applyTemplate('career');
+                    }}
+                    className="text-xs font-bold text-indigo-600 flex items-center gap-1 pt-1 cursor-pointer hover:underline"
+                  >
                     <span>Áp dụng mẫu này</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
@@ -812,7 +826,14 @@ export function DecisionEngineView() {
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
                     Cân nhắc giữa Tự phát triển từ đầu (In-house) hay Tích hợp công cụ sẵn có (SaaS).
                   </p>
-                  <button type="button" className="text-xs font-bold text-amber-600 flex items-center gap-1 pt-1">
+                  <button 
+                    type="button" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      applyTemplate('strategy');
+                    }}
+                    className="text-xs font-bold text-amber-600 flex items-center gap-1 pt-1 cursor-pointer hover:underline"
+                  >
                     <span>Áp dụng mẫu này</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
@@ -834,7 +855,14 @@ export function DecisionEngineView() {
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
                     Căn hộ trung tâm tiện đi lại vs Nhà phố ngoại ô rộng rãi, yên tĩnh và tiết kiệm.
                   </p>
-                  <button type="button" className="text-xs font-bold text-teal-600 flex items-center gap-1 pt-1">
+                  <button 
+                    type="button" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      applyTemplate('housing');
+                    }}
+                    className="text-xs font-bold text-teal-600 flex items-center gap-1 pt-1 cursor-pointer hover:underline"
+                  >
                     <span>Áp dụng mẫu này</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
@@ -856,7 +884,14 @@ export function DecisionEngineView() {
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
                     Tích sản Quỹ ETF mở tăng trưởng vs Tiền gửi ngân hàng có kỳ hạn an toàn tuyệt đối.
                   </p>
-                  <button type="button" className="text-xs font-bold text-rose-600 flex items-center gap-1 pt-1">
+                  <button 
+                    type="button" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      applyTemplate('investment');
+                    }}
+                    className="text-xs font-bold text-rose-600 flex items-center gap-1 pt-1 cursor-pointer hover:underline"
+                  >
                     <span>Áp dụng mẫu này</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
@@ -878,7 +913,14 @@ export function DecisionEngineView() {
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
                     Xe máy điện cá nhân chủ động giờ giấc vs Xe buýt điện / Metro an toàn, tiết kiệm.
                   </p>
-                  <button type="button" className="text-xs font-bold text-blue-600 flex items-center gap-1 pt-1">
+                  <button 
+                    type="button" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      applyTemplate('transport');
+                    }}
+                    className="text-xs font-bold text-blue-600 flex items-center gap-1 pt-1 cursor-pointer hover:underline"
+                  >
                     <span>Áp dụng mẫu này</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>

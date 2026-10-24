@@ -72,6 +72,17 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
     return () => clearTimeout(handler);
   }, [requestSearch]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (approveConfirmTarget) setApproveConfirmTarget(null);
+        if (rejectModalTarget) setRejectModalTarget(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [approveConfirmTarget, rejectModalTarget]);
+
   const handleExportCSV = () => {
     if (requests.length === 0) {
       toast.warning('Không có dữ liệu giao dịch để xuất CSV.', 'Xuất dữ liệu');
@@ -534,8 +545,14 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
 
       {/* MODAL: DUYỆT THANH TOÁN */}
       {approveConfirmTarget && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-100">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150">
+        <div 
+          className="fixed inset-0 z-[80] bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-100"
+          onClick={() => setApproveConfirmTarget(null)}
+        >
+          <div 
+            className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-inner">
               <CheckCircle2 className="w-8 h-8" />
             </div>
@@ -602,8 +619,14 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
 
       {/* MODAL: TỪ CHỐI THANH TOÁN */}
       {rejectModalTarget && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-100">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150">
+        <div 
+          className="fixed inset-0 z-[80] bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-100"
+          onClick={() => setRejectModalTarget(null)}
+        >
+          <div 
+            className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="w-14 h-14 rounded-2xl bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto shadow-inner">
               <Ban className="w-8 h-8" />
             </div>

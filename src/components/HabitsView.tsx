@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Activity, Plus, Flame, Check, Trash2, X, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { Habit } from '../lib/types';
@@ -14,6 +14,15 @@ export function HabitsView() {
   const [newHabitCategory, setNewHabitCategory] = useState(isVi ? 'Cá nhân' : 'Personal');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!showAddModal) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isSubmitting) setShowAddModal(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showAddModal, isSubmitting]);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -212,11 +221,17 @@ export function HabitsView() {
       {/* Add Habit Modal */}
       {showAddModal && (
         <div 
-          className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-3 sm:p-4 backdrop-blur-sm animate-backdrop-fade"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isSubmitting) setShowAddModal(false);
+          }}
+          className="fixed inset-0 z-[80] bg-slate-900/60 flex items-center justify-center p-3 sm:p-4 backdrop-blur-sm animate-backdrop-fade cursor-default"
           role="dialog"
           aria-modal="true"
         >
-          <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-2xl space-y-4 animate-modal-enter my-auto">
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-2xl space-y-4 animate-modal-enter my-auto"
+          >
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
                 {isVi ? 'Thói Quen Mới' : 'New Habit'}
