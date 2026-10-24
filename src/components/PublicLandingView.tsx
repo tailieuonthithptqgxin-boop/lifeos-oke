@@ -145,7 +145,7 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
               <span className="font-extrabold text-lg sm:text-xl tracking-tight text-slate-900 dark:text-white">
                 Life<span className="text-emerald-600 dark:text-emerald-400">OS</span>
               </span>
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 uppercase tracking-wide">
+              <span className="hidden sm:inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/80 uppercase tracking-wide">
                 <Gift className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
                 <span>Trial 7 Ngày</span>
               </span>
@@ -200,12 +200,12 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
           </nav>
 
           {/* Right Action Group */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             {/* Login button */}
             <button 
               type="button"
               onClick={() => onLoginClick('login')}
-              className="min-h-[40px] px-3 sm:px-4 py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
+              className="min-h-[36px] sm:min-h-[40px] px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-xl text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white text-xs sm:text-sm font-semibold transition-colors cursor-pointer"
             >
               Đăng nhập
             </button>
@@ -214,7 +214,7 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
             <button 
               type="button"
               onClick={() => onLoginClick('register')}
-              className="min-h-[40px] bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-3.5 sm:px-4 py-2 text-xs sm:text-sm font-bold shadow-xs shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+              className="min-h-[36px] sm:min-h-[40px] bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl px-2.5 sm:px-4 py-1.5 sm:py-2 text-xs sm:text-sm font-bold shadow-xs shadow-emerald-600/20 transition-all flex items-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-[0.98] shrink-0"
             >
               <Zap className="w-3.5 h-3.5 fill-current shrink-0" />
               <span>Dùng thử 7 ngày</span>
@@ -224,10 +224,10 @@ export function PublicLandingView({ onLoginClick }: PublicLandingViewProps) {
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden w-10 h-10 rounded-xl flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200/80 dark:border-slate-800"
+              className="lg:hidden w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors border border-slate-200/80 dark:border-slate-800 shrink-0"
               aria-label="Mở menu điều hướng"
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileMenuOpen ? <X className="w-4 h-4 sm:w-5 sm:h-5" /> : <Menu className="w-4 h-4 sm:w-5 sm:h-5" />}
             </button>
           </div>
         </div>
