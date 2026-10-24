@@ -1,5 +1,6 @@
 import { getPrisma } from '../../db.js';
 import { notificationEngine } from './notificationEngine.service.js';
+import { syncUpcomingReminders } from './eventReminderEngine.js';
 
 export class NotificationSchedulerService {
   private timer: NodeJS.Timeout | null = null;
@@ -48,14 +49,14 @@ export class NotificationSchedulerService {
 
       const now = new Date();
 
-      // 1. Sweep Calendar Events
-      await this.sweepCalendarEvents(now);
-
-      // 2. Sweep Tasks (Approaching deadline & Overdue)
-      await this.sweepTasks(now);
-
-      // 3. Process Pending Deliveries & Retries
+      // 1. Process Pending Deliveries & Retries first so any due reminder is dispatched without delay
       await notificationEngine.processPendingDeliveries(100);
+
+      // 2. Synchronize 4-tier Event/Task reminders (T-5h, T-3h, T-30m, T=0)
+      await syncUpcomingReminders(now);
+
+      // 3. Sweep Tasks (daily approaching deadline & overdue)
+      await this.sweepTasks(now);
     } catch (tickErr) {
       console.warn('[NotificationScheduler] Tick warning:', tickErr);
     }

@@ -15069,6 +15069,7 @@ var gmailOAuthService = new GmailOAuthService();
 
 // src/backend/services/notification/providers/email.provider.ts
 init_mailer();
+init_emailQueue_service();
 var EmailNotificationProvider = class {
   constructor() {
     this.channel = "email";
@@ -15144,34 +15145,59 @@ var EmailNotificationProvider = class {
       }
     }
     try {
-      const systemRes = await sendEmail(recipientEmail, emailSubject, emailHtml);
-      if (systemRes.sent) {
-        return {
-          success: true,
-          channel: "email",
+      const queueId = await emailQueueService.enqueue({
+        recipient: recipientEmail,
+        subject: emailSubject,
+        htmlBody: emailHtml,
+        eventType: "EVENT_REMINDER_NOTIFICATION",
+        metadata: {
           deliveryId: delivery.id,
-          details: {
-            provider: "system_smtp",
-            recipient: recipientEmail,
-            message: systemRes.message
-          }
-        };
-      } else {
+          userId: delivery.userId,
+          priority: delivery.priority
+        }
+      });
+      return {
+        success: true,
+        channel: "email",
+        deliveryId: delivery.id,
+        details: {
+          provider: "email_queue",
+          queueId,
+          recipient: recipientEmail
+        }
+      };
+    } catch (queueErr) {
+      console.warn("[EmailProvider] Queue enqueue failed, fallback to direct sendEmail:", queueErr);
+      try {
+        const systemRes = await sendEmail(recipientEmail, emailSubject, emailHtml);
+        if (systemRes.sent) {
+          return {
+            success: true,
+            channel: "email",
+            deliveryId: delivery.id,
+            details: {
+              provider: "system_smtp",
+              recipient: recipientEmail,
+              message: systemRes.message
+            }
+          };
+        } else {
+          return {
+            success: false,
+            channel: "email",
+            deliveryId: delivery.id,
+            error: systemRes.message || "Kh\xF4ng th\u1EC3 g\u1EEDi qua k\xEAnh email h\u1EC7 th\u1ED1ng."
+          };
+        }
+      } catch (smtpErr) {
+        console.error("[EmailProvider] System email send error:", smtpErr);
         return {
           success: false,
           channel: "email",
           deliveryId: delivery.id,
-          error: systemRes.message || "Kh\xF4ng th\u1EC3 g\u1EEDi qua k\xEAnh email h\u1EC7 th\u1ED1ng."
+          error: smtpErr.message || "L\u1ED7i g\u1EEDi email kh\xF4ng x\xE1c \u0111\u1ECBnh."
         };
       }
-    } catch (smtpErr) {
-      console.error("[EmailProvider] System email send error:", smtpErr);
-      return {
-        success: false,
-        channel: "email",
-        deliveryId: delivery.id,
-        error: smtpErr.message || "L\u1ED7i g\u1EEDi email kh\xF4ng x\xE1c \u0111\u1ECBnh."
-      };
     }
   }
 };
@@ -15515,6 +15541,262 @@ var NotificationEngineService = class {
   }
 };
 var notificationEngine = new NotificationEngineService();
+
+// src/backend/services/notification/eventReminderEngine.ts
+init_db();
+var REMINDER_MILESTONES = [
+  {
+    key: "T_MINUS_5H",
+    offsetMinutes: -300,
+    // 5 hours prior
+    label: "5 gi\u1EDD",
+    eventType: "CALENDAR_UPCOMING",
+    priority: "HIGH",
+    title: (title, isTask) => isTask ? `\u23F0 Nh\u1EAFc nh\u1EDF tr\u01B0\u1EDBc 5 gi\u1EDD: "${title}"` : `\u23F0 Nh\u1EAFc nh\u1EDF tr\u01B0\u1EDBc 5 gi\u1EDD: "${title}"`,
+    message: (title, isTask) => isTask ? `Nhi\u1EC7m v\u1EE5 s\u1EBD b\u1EAFt \u0111\u1EA7u sau 5 gi\u1EDD.` : `S\u1EF1 ki\u1EC7n s\u1EBD b\u1EAFt \u0111\u1EA7u sau 5 gi\u1EDD.`
+  },
+  {
+    key: "T_MINUS_3H",
+    offsetMinutes: -180,
+    // 3 hours prior
+    label: "3 gi\u1EDD",
+    eventType: "CALENDAR_UPCOMING",
+    priority: "HIGH",
+    title: (title, isTask) => isTask ? `\u23F0 Nh\u1EAFc nh\u1EDF tr\u01B0\u1EDBc 3 gi\u1EDD: "${title}"` : `\u23F0 Nh\u1EAFc nh\u1EDF tr\u01B0\u1EDBc 3 gi\u1EDD: "${title}"`,
+    message: (title, isTask) => isTask ? `Nhi\u1EC7m v\u1EE5 s\u1EBD b\u1EAFt \u0111\u1EA7u sau 3 gi\u1EDD.` : `S\u1EF1 ki\u1EC7n s\u1EBD b\u1EAFt \u0111\u1EA7u sau 3 gi\u1EDD.`
+  },
+  {
+    key: "T_MINUS_30M",
+    offsetMinutes: -30,
+    // 30 minutes prior
+    label: "30 ph\xFAt",
+    eventType: "CALENDAR_UPCOMING",
+    priority: "HIGH",
+    title: (title, isTask) => isTask ? `\u23F0 Nh\u1EAFc nh\u1EDF tr\u01B0\u1EDBc 30 ph\xFAt: "${title}"` : `\u23F0 Nh\u1EAFc nh\u1EDF tr\u01B0\u1EDBc 30 ph\xFAt: "${title}"`,
+    message: (title, isTask) => isTask ? `Nhi\u1EC7m v\u1EE5 s\u1EBD b\u1EAFt \u0111\u1EA7u sau 30 ph\xFAt.` : `S\u1EF1 ki\u1EC7n s\u1EBD b\u1EAFt \u0111\u1EA7u sau 30 ph\xFAt.`
+  },
+  {
+    key: "T_ZERO",
+    offsetMinutes: 0,
+    // At event start
+    label: "B\u1EAFt \u0111\u1EA7u",
+    eventType: "CALENDAR_STARTING",
+    priority: "HIGH",
+    title: (title, isTask) => isTask ? `\u{1F3AF} Nhi\u1EC7m v\u1EE5 \u0111\xE3 b\u1EAFt \u0111\u1EA7u: "${title}"` : `\u{1F3AF} S\u1EF1 ki\u1EC7n \u0111\xE3 b\u1EAFt \u0111\u1EA7u: "${title}"`,
+    message: (title, isTask) => isTask ? `Nhi\u1EC7m v\u1EE5 \u0111\xE3 b\u1EAFt \u0111\u1EA7u.` : `S\u1EF1 ki\u1EC7n \u0111\xE3 b\u1EAFt \u0111\u1EA7u.`
+  }
+];
+function parseDateTimeInUserTz(dateStr, timeStr, timeZone = "Asia/Ho_Chi_Minh") {
+  if (!dateStr || typeof dateStr !== "string") return null;
+  let cleanDate = dateStr.trim();
+  let cleanTime = timeStr ? timeStr.trim() : "";
+  if (cleanDate.includes("T") || cleanDate.includes(" ")) {
+    const sep = cleanDate.includes("T") ? "T" : " ";
+    const parts = cleanDate.split(sep);
+    cleanDate = parts[0];
+    if (!cleanTime && parts[1]) {
+      cleanTime = parts[1].replace(/Z$/, "").slice(0, 5);
+    }
+  }
+  const dateParts = cleanDate.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (!dateParts) return null;
+  const year = parseInt(dateParts[1], 10);
+  const month = parseInt(dateParts[2], 10);
+  const day = parseInt(dateParts[3], 10);
+  let hour = 0;
+  let minute = 0;
+  if (cleanTime) {
+    const timeParts = cleanTime.match(/^(\d{1,2}):(\d{1,2})/);
+    if (timeParts) {
+      hour = parseInt(timeParts[1], 10);
+      minute = parseInt(timeParts[2], 10);
+    }
+  }
+  if (isNaN(year) || isNaN(month) || isNaN(day) || isNaN(hour) || isNaN(minute)) {
+    return null;
+  }
+  const utcGuess = new Date(Date.UTC(year, month - 1, day, hour, minute, 0));
+  try {
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: timeZone || "Asia/Ho_Chi_Minh",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+      hour: "numeric",
+      minute: "numeric",
+      second: "numeric",
+      hour12: false
+    });
+    const parts = formatter.formatToParts(utcGuess);
+    const tzYear = parseInt(parts.find((p) => p.type === "year")?.value || `${year}`, 10);
+    const tzMonth = parseInt(parts.find((p) => p.type === "month")?.value || `${month}`, 10);
+    const tzDay = parseInt(parts.find((p) => p.type === "day")?.value || `${day}`, 10);
+    let tzHour = parseInt(parts.find((p) => p.type === "hour")?.value || `${hour}`, 10);
+    if (tzHour === 24) tzHour = 0;
+    const tzMin = parseInt(parts.find((p) => p.type === "minute")?.value || `${minute}`, 10);
+    const tzAsUtc = Date.UTC(tzYear, tzMonth - 1, tzDay, tzHour, tzMin, 0);
+    const diffMs = tzAsUtc - utcGuess.getTime();
+    return new Date(utcGuess.getTime() - diffMs);
+  } catch (tzErr) {
+    return new Date(Date.UTC(year, month - 1, day, hour, minute, 0) - 7 * 3600 * 1e3);
+  }
+}
+function isEntityActive(entity) {
+  if (!entity) return false;
+  if (entity.deletedAt) return false;
+  const rawStatus = (entity.status || "").toString().toLowerCase().trim();
+  const finishedStatuses = [
+    "\u0111\xE3 xong",
+    "\u0111\xE3 h\u1EE7y",
+    "ho\xE0n th\xE0nh",
+    "h\u1EE7y",
+    "done",
+    "completed",
+    "cancelled",
+    "canceled"
+  ];
+  return !finishedStatuses.includes(rawStatus);
+}
+async function cancelEntityReminders(entityId) {
+  if (!entityId) return 0;
+  const prisma = getPrisma();
+  try {
+    const deleted = await prisma.notificationDelivery.deleteMany({
+      where: {
+        entityId,
+        status: "PENDING"
+      }
+    });
+    return deleted.count;
+  } catch (err) {
+    console.warn(`[EventReminderEngine] cancelEntityReminders failed for ${entityId}:`, err.message);
+    return 0;
+  }
+}
+async function scheduleEntityReminders(userId, entityType, entity, now = /* @__PURE__ */ new Date()) {
+  const result = { scheduled: 0, skipped: 0 };
+  if (!userId || !entity || !entity.id) return result;
+  if (!isEntityActive(entity)) {
+    await cancelEntityReminders(entity.id);
+    return result;
+  }
+  const pref = await notificationEngine.getUserPreferences(userId);
+  const timeZone = pref?.timezone || "Asia/Ho_Chi_Minh";
+  let startUtc = null;
+  const isTask = entityType === "task";
+  if (isTask) {
+    const rawTime = entity.startDate || entity.dueDate;
+    if (!rawTime) return result;
+    startUtc = parseDateTimeInUserTz(rawTime, null, timeZone);
+  } else {
+    if (!entity.date || !entity.startTime) return result;
+    startUtc = parseDateTimeInUserTz(entity.date, entity.startTime, timeZone);
+  }
+  if (!startUtc || isNaN(startUtc.getTime())) {
+    return result;
+  }
+  const safeTitle = (entity.title || (isTask ? "Nhi\u1EC7m v\u1EE5" : "S\u1EF1 ki\u1EC7n")).trim();
+  const appBaseUrl = (process.env.APP_URL || "https://www.quanlicanhan.online").replace(/\/$/, "");
+  const actionUrl = isTask ? `${appBaseUrl}/?view=tasks` : `${appBaseUrl}/?view=calendar`;
+  const actionLabel = isTask ? "Xem nhi\u1EC7m v\u1EE5" : "M\u1EDF l\u1ECBch bi\u1EC3u";
+  const startIso = startUtc.toISOString();
+  for (const milestone of REMINDER_MILESTONES) {
+    const scheduledFor = new Date(startUtc.getTime() + milestone.offsetMinutes * 60 * 1e3);
+    const cutoff = milestone.key === "T_ZERO" ? now.getTime() - 2 * 60 * 1e3 : now.getTime();
+    if (scheduledFor.getTime() <= cutoff) {
+      result.skipped++;
+      continue;
+    }
+    const triggerBucket = `${entity.id}_${milestone.key}_${startIso}`;
+    const titleText = milestone.title(safeTitle, isTask);
+    const messageText = milestone.message(safeTitle, isTask);
+    try {
+      await notificationEngine.emitEvent({
+        userId,
+        eventType: milestone.eventType,
+        entityId: entity.id,
+        title: titleText,
+        message: messageText,
+        priority: milestone.priority,
+        category: isTask ? "TASK" : "CALENDAR",
+        actionUrl,
+        actionLabel,
+        scheduledFor,
+        triggerBucket,
+        metadata: {
+          entityType,
+          milestoneKey: milestone.key,
+          offsetMinutes: milestone.offsetMinutes,
+          eventTitle: safeTitle,
+          startUtc: startIso,
+          timeZone,
+          categoryLabel: isTask ? "Nhi\u1EC7m v\u1EE5 & K\u1EBF ho\u1EA1ch" : "L\u1ECBch bi\u1EC3u & S\u1EF1 ki\u1EC7n",
+          categoryColor: isTask ? "#6366F1" : "#10B981",
+          eventDate: entity.date || entity.startDate?.slice(0, 10) || "",
+          eventTime: entity.startTime || ""
+        }
+      });
+      result.scheduled++;
+    } catch (emitErr) {
+      console.warn(`[EventReminderEngine] Failed to emit reminder ${milestone.key} for ${entity.id}:`, emitErr.message);
+    }
+  }
+  return result;
+}
+async function rescheduleEntityReminders(userId, entityType, entity) {
+  const cancelled = await cancelEntityReminders(entity.id);
+  const { scheduled } = await scheduleEntityReminders(userId, entityType, entity);
+  return { scheduled, cancelled };
+}
+async function syncUpcomingReminders(now = /* @__PURE__ */ new Date()) {
+  const prisma = getPrisma();
+  const result = { syncedEvents: 0, syncedTasks: 0 };
+  try {
+    const todayStr = now.toISOString().slice(0, 10);
+    const tomorrow = new Date(now.getTime() + 24 * 3600 * 1e3).toISOString().slice(0, 10);
+    const dayAfter = new Date(now.getTime() + 48 * 3600 * 1e3).toISOString().slice(0, 10);
+    const upcomingEvents = await prisma.calendarEvent.findMany({
+      where: {
+        date: { in: [todayStr, tomorrow, dayAfter] },
+        startTime: { not: null }
+      },
+      take: 200
+    });
+    for (const evt of upcomingEvents) {
+      if (!evt.userId || !evt.startTime) continue;
+      if (!isEntityActive(evt)) {
+        await cancelEntityReminders(evt.id);
+      } else {
+        await scheduleEntityReminders(evt.userId, "calendar", evt, now);
+        result.syncedEvents++;
+      }
+    }
+    const upcomingTasks = await prisma.task.findMany({
+      where: {
+        OR: [
+          { startDate: { not: null } },
+          { dueDate: { not: null } }
+        ]
+      },
+      take: 200
+    });
+    for (const task of upcomingTasks) {
+      if (!task.userId) continue;
+      if (!isEntityActive(task)) {
+        await cancelEntityReminders(task.id);
+      } else {
+        const rawTime = task.startDate || task.dueDate;
+        if (rawTime && (rawTime.includes(todayStr) || rawTime.includes(tomorrow) || rawTime.includes(dayAfter))) {
+          await scheduleEntityReminders(task.userId, "task", task, now);
+          result.syncedTasks++;
+        }
+      }
+    }
+  } catch (syncErr) {
+    console.warn("[EventReminderEngine] syncUpcomingReminders error:", syncErr.message);
+  }
+  return result;
+}
 
 // src/backend/routes/api.ts
 init_emailQueue_service();
@@ -16886,6 +17168,7 @@ apiRouter.post("/data/:collection", async (req, res) => {
       );
     }
     if (collection === "tasks" && created.title) {
+      scheduleEntityReminders(userId, "task", created).catch((err) => console.warn("[EventReminder] task schedule error:", err));
       notificationEngine.emitEvent({
         userId,
         eventType: "TASK_CREATED",
@@ -16897,6 +17180,8 @@ apiRouter.post("/data/:collection", async (req, res) => {
         actionUrl: `${getAppBaseUrl()}/?view=tasks`,
         actionLabel: "M\u1EDF danh s\xE1ch vi\u1EC7c"
       }).catch((err) => console.warn("[Notification Hook] task created error:", err));
+    } else if (collection === "calendarEvents") {
+      scheduleEntityReminders(userId, "calendar", created).catch((err) => console.warn("[EventReminder] calendar schedule error:", err));
     }
     res.status(201).json(created);
   } catch (err) {
@@ -17025,30 +17310,44 @@ apiRouter.put("/data/:collection/:id", async (req, res) => {
         }).catch((err) => console.warn("Progression hook error:", err));
       }
     }
-    if (collection === "tasks" && (updated.status === "Ho\xE0n th\xE0nh" || updated.status === "Done" || updated.status === "completed")) {
-      notificationEngine.emitEvent({
-        userId,
-        eventType: "TASK_COMPLETED",
-        entityId: id,
-        title: `Ho\xE0n th\xE0nh xu\u1EA5t s\u1EAFc: "${updated.title || "Nhi\u1EC7m v\u1EE5"}" \u{1F389}`,
-        message: `B\u1EA1n v\u1EEBa ho\xE0n th\xE0nh nhi\u1EC7m v\u1EE5 <strong>"${updated.title || "Nhi\u1EC7m v\u1EE5"}"</strong>! H\xE3y ti\u1EBFp t\u1EE5c duy tr\xEC phong \u0111\u1ED9 nh\xE9.`,
-        priority: "LOW",
-        category: "TASK",
-        actionUrl: `${getAppBaseUrl()}/?view=tasks`,
-        actionLabel: "Xem nhi\u1EC7m v\u1EE5"
-      }).catch((err) => console.warn("[Notification Hook] task completed error:", err));
+    if (collection === "tasks") {
+      const isCompletedOrCancelled = updated.status === "Ho\xE0n th\xE0nh" || updated.status === "Done" || updated.status === "completed" || updated.status === "H\u1EE7y" || updated.status === "Cancelled";
+      if (isCompletedOrCancelled) {
+        cancelEntityReminders(id).catch((err) => console.warn("[EventReminder] task cancel error:", err));
+        if (updated.status === "Ho\xE0n th\xE0nh" || updated.status === "Done" || updated.status === "completed") {
+          notificationEngine.emitEvent({
+            userId,
+            eventType: "TASK_COMPLETED",
+            entityId: id,
+            title: `Ho\xE0n th\xE0nh xu\u1EA5t s\u1EAFc: "${updated.title || "Nhi\u1EC7m v\u1EE5"}" \u{1F389}`,
+            message: `B\u1EA1n v\u1EEBa ho\xE0n th\xE0nh nhi\u1EC7m v\u1EE5 <strong>"${updated.title || "Nhi\u1EC7m v\u1EE5"}"</strong>! H\xE3y ti\u1EBFp t\u1EE5c duy tr\xEC phong \u0111\u1ED9 nh\xE9.`,
+            priority: "LOW",
+            category: "TASK",
+            actionUrl: `${getAppBaseUrl()}/?view=tasks`,
+            actionLabel: "Xem nhi\u1EC7m v\u1EE5"
+          }).catch((err) => console.warn("[Notification Hook] task completed error:", err));
+        }
+      } else {
+        rescheduleEntityReminders(userId, "task", updated).catch((err) => console.warn("[EventReminder] task reschedule error:", err));
+      }
     } else if (collection === "calendarEvents") {
-      notificationEngine.emitEvent({
-        userId,
-        eventType: "CALENDAR_CHANGED",
-        entityId: id,
-        title: `L\u1ECBch bi\u1EC3u \u0111\u01B0\u1EE3c c\u1EADp nh\u1EADt: "${updated.title || "S\u1EF1 ki\u1EC7n"}"`,
-        message: `S\u1EF1 ki\u1EC7n <strong>"${updated.title || "S\u1EF1 ki\u1EC7n"}"</strong> \u0111\xE3 \u0111\u01B0\u1EE3c \u0111i\u1EC1u ch\u1EC9nh ng\xE0y ho\u1EB7c th\u1EDDi gian (${updated.date} l\xFAc ${updated.startTime || ""}).`,
-        priority: "NORMAL",
-        category: "CALENDAR",
-        actionUrl: `${getAppBaseUrl()}/?view=calendar`,
-        actionLabel: "M\u1EDF l\u1ECBch bi\u1EC3u"
-      }).catch((err) => console.warn("[Notification Hook] calendar changed error:", err));
+      const isCancelledOrDone = updated.status === "\u0110\xE3 h\u1EE7y" || updated.status === "Cancelled" || updated.status === "\u0110\xE3 xong" || updated.status === "Completed";
+      if (isCancelledOrDone) {
+        cancelEntityReminders(id).catch((err) => console.warn("[EventReminder] calendar cancel error:", err));
+      } else {
+        rescheduleEntityReminders(userId, "calendar", updated).catch((err) => console.warn("[EventReminder] calendar reschedule error:", err));
+        notificationEngine.emitEvent({
+          userId,
+          eventType: "CALENDAR_CHANGED",
+          entityId: id,
+          title: `L\u1ECBch bi\u1EC3u \u0111\u01B0\u1EE3c c\u1EADp nh\u1EADt: "${updated.title || "S\u1EF1 ki\u1EC7n"}"`,
+          message: `S\u1EF1 ki\u1EC7n <strong>"${updated.title || "S\u1EF1 ki\u1EC7n"}"</strong> \u0111\xE3 \u0111\u01B0\u1EE3c \u0111i\u1EC1u ch\u1EC9nh ng\xE0y ho\u1EB7c th\u1EDDi gian (${updated.date} l\xFAc ${updated.startTime || ""}).`,
+          priority: "NORMAL",
+          category: "CALENDAR",
+          actionUrl: `${getAppBaseUrl()}/?view=calendar`,
+          actionLabel: "M\u1EDF l\u1ECBch bi\u1EC3u"
+        }).catch((err) => console.warn("[Notification Hook] calendar changed error:", err));
+      }
     }
     res.json(updated);
   } catch (err) {
@@ -17091,6 +17390,9 @@ apiRouter.delete("/data/:collection/:id", async (req, res) => {
   }
   try {
     await dbService.deleteUserCollectionItem(collection, userId, id, req.userRole);
+    if (collection === "calendarEvents" || collection === "tasks") {
+      cancelEntityReminders(id).catch((err) => console.warn("[EventReminder] cancel error on delete:", err));
+    }
     if (collection === "calendarEvents") {
       notificationEngine.emitEvent({
         userId,
@@ -21085,9 +21387,9 @@ var NotificationSchedulerService = class {
         return;
       }
       const now = /* @__PURE__ */ new Date();
-      await this.sweepCalendarEvents(now);
-      await this.sweepTasks(now);
       await notificationEngine.processPendingDeliveries(100);
+      await syncUpcomingReminders(now);
+      await this.sweepTasks(now);
     } catch (tickErr) {
       console.warn("[NotificationScheduler] Tick warning:", tickErr);
     }

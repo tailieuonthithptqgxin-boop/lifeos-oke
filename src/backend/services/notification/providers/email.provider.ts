@@ -2,6 +2,7 @@ import { DeliveryResult, NotificationProvider } from '../notification.types.js';
 import { gmailOAuthService } from '../gmailOAuth.service.js';
 import { buildNotificationEmailHtml } from '../emailTemplate.js';
 import { sendEmail } from '../../../mailer.js';
+import { emailQueueService } from '../../emailQueue.service.js';
 
 export class EmailNotificationProvider implements NotificationProvider {
   readonly channel = 'email' as const;
@@ -103,36 +104,62 @@ export class EmailNotificationProvider implements NotificationProvider {
       }
     }
 
-    // 2. Secondary fallback: Use System Mailer / SMTP
+    // 2. Secondary: Route via existing Email Queue (Outbox Pattern via emailQueueService)
     try {
-      const systemRes = await sendEmail(recipientEmail, emailSubject, emailHtml);
-      if (systemRes.sent) {
-        return {
-          success: true,
-          channel: 'email',
+      const queueId = await emailQueueService.enqueue({
+        recipient: recipientEmail,
+        subject: emailSubject,
+        htmlBody: emailHtml,
+        eventType: 'EVENT_REMINDER_NOTIFICATION',
+        metadata: {
           deliveryId: delivery.id,
-          details: {
-            provider: 'system_smtp',
-            recipient: recipientEmail,
-            message: systemRes.message
-          }
-        };
-      } else {
+          userId: delivery.userId,
+          priority: delivery.priority
+        }
+      });
+
+      return {
+        success: true,
+        channel: 'email',
+        deliveryId: delivery.id,
+        details: {
+          provider: 'email_queue',
+          queueId,
+          recipient: recipientEmail
+        }
+      };
+    } catch (queueErr: any) {
+      console.warn('[EmailProvider] Queue enqueue failed, fallback to direct sendEmail:', queueErr);
+      try {
+        const systemRes = await sendEmail(recipientEmail, emailSubject, emailHtml);
+        if (systemRes.sent) {
+          return {
+            success: true,
+            channel: 'email',
+            deliveryId: delivery.id,
+            details: {
+              provider: 'system_smtp',
+              recipient: recipientEmail,
+              message: systemRes.message
+            }
+          };
+        } else {
+          return {
+            success: false,
+            channel: 'email',
+            deliveryId: delivery.id,
+            error: systemRes.message || 'Không thể gửi qua kênh email hệ thống.'
+          };
+        }
+      } catch (smtpErr: any) {
+        console.error('[EmailProvider] System email send error:', smtpErr);
         return {
           success: false,
           channel: 'email',
           deliveryId: delivery.id,
-          error: systemRes.message || 'Không thể gửi qua kênh email hệ thống.'
+          error: smtpErr.message || 'Lỗi gửi email không xác định.'
         };
       }
-    } catch (smtpErr: any) {
-      console.error('[EmailProvider] System email send error:', smtpErr);
-      return {
-        success: false,
-        channel: 'email',
-        deliveryId: delivery.id,
-        error: smtpErr.message || 'Lỗi gửi email không xác định.'
-      };
     }
   }
 }

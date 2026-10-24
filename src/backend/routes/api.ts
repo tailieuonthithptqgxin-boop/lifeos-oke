@@ -21,6 +21,11 @@ import { announcementService } from '../services/announcement.service.js';
 import { notificationEngine } from '../services/notification/notificationEngine.service.js';
 import { gmailOAuthService } from '../services/notification/gmailOAuth.service.js';
 import { SYSTEM_NOTIFICATION_RULES, NotificationEventType } from '../services/notification/notification.types.js';
+import {
+  scheduleEntityReminders,
+  cancelEntityReminders,
+  rescheduleEntityReminders
+} from '../services/notification/eventReminderEngine.js';
 import { paymentRateLimiter, couponRateLimiter } from '../security/rateLimiter.js';
 import { emailQueueService } from '../services/emailQueue.service.js';
 import { SystemNotificationHelper } from '../services/systemNotification.helper.js';
@@ -1549,8 +1554,9 @@ apiRouter.post('/data/:collection', async (req: AuthRequest, res: Response) => {
       );
     }
 
-    // Notification Engine Event Hooks:
+    // Notification Engine Event Hooks & 4-Tier Reminder Scheduling (T-5h, T-3h, T-30m, T=0):
     if (collection === 'tasks' && created.title) {
+      scheduleEntityReminders(userId, 'task', created).catch(err => console.warn('[EventReminder] task schedule error:', err));
       notificationEngine.emitEvent({
         userId,
         eventType: 'TASK_CREATED',
@@ -1562,6 +1568,8 @@ apiRouter.post('/data/:collection', async (req: AuthRequest, res: Response) => {
         actionUrl: `${getAppBaseUrl()}/?view=tasks`,
         actionLabel: 'Mở danh sách việc'
       }).catch(err => console.warn('[Notification Hook] task created error:', err));
+    } else if (collection === 'calendarEvents') {
+      scheduleEntityReminders(userId, 'calendar', created).catch(err => console.warn('[EventReminder] calendar schedule error:', err));
     }
 
     res.status(201).json(created);
@@ -1703,31 +1711,46 @@ apiRouter.put('/data/:collection/:id', async (req: AuthRequest, res: Response) =
       }
     }
 
-    // Notification Engine Event Hooks:
-    if (collection === 'tasks' && (updated.status === 'Hoàn thành' || updated.status === 'Done' || updated.status === 'completed')) {
-      notificationEngine.emitEvent({
-        userId,
-        eventType: 'TASK_COMPLETED',
-        entityId: id,
-        title: `Hoàn thành xuất sắc: "${updated.title || 'Nhiệm vụ'}" 🎉`,
-        message: `Bạn vừa hoàn thành nhiệm vụ <strong>"${updated.title || 'Nhiệm vụ'}"</strong>! Hãy tiếp tục duy trì phong độ nhé.`,
-        priority: 'LOW',
-        category: 'TASK',
-        actionUrl: `${getAppBaseUrl()}/?view=tasks`,
-        actionLabel: 'Xem nhiệm vụ'
-      }).catch(err => console.warn('[Notification Hook] task completed error:', err));
+    // Notification Engine Event Hooks & Reminder Lifecycle:
+    if (collection === 'tasks') {
+      const isCompletedOrCancelled = updated.status === 'Hoàn thành' || updated.status === 'Done' || updated.status === 'completed' || updated.status === 'Hủy' || updated.status === 'Cancelled';
+      if (isCompletedOrCancelled) {
+        cancelEntityReminders(id).catch(err => console.warn('[EventReminder] task cancel error:', err));
+        if (updated.status === 'Hoàn thành' || updated.status === 'Done' || updated.status === 'completed') {
+          notificationEngine.emitEvent({
+            userId,
+            eventType: 'TASK_COMPLETED',
+            entityId: id,
+            title: `Hoàn thành xuất sắc: "${updated.title || 'Nhiệm vụ'}" 🎉`,
+            message: `Bạn vừa hoàn thành nhiệm vụ <strong>"${updated.title || 'Nhiệm vụ'}"</strong>! Hãy tiếp tục duy trì phong độ nhé.`,
+            priority: 'LOW',
+            category: 'TASK',
+            actionUrl: `${getAppBaseUrl()}/?view=tasks`,
+            actionLabel: 'Xem nhiệm vụ'
+          }).catch(err => console.warn('[Notification Hook] task completed error:', err));
+        }
+      } else {
+        // Reschedule reminders based on potentially updated date/time
+        rescheduleEntityReminders(userId, 'task', updated).catch(err => console.warn('[EventReminder] task reschedule error:', err));
+      }
     } else if (collection === 'calendarEvents') {
-      notificationEngine.emitEvent({
-        userId,
-        eventType: 'CALENDAR_CHANGED',
-        entityId: id,
-        title: `Lịch biểu được cập nhật: "${updated.title || 'Sự kiện'}"`,
-        message: `Sự kiện <strong>"${updated.title || 'Sự kiện'}"</strong> đã được điều chỉnh ngày hoặc thời gian (${updated.date} lúc ${updated.startTime || ''}).`,
-        priority: 'NORMAL',
-        category: 'CALENDAR',
-        actionUrl: `${getAppBaseUrl()}/?view=calendar`,
-        actionLabel: 'Mở lịch biểu'
-      }).catch(err => console.warn('[Notification Hook] calendar changed error:', err));
+      const isCancelledOrDone = updated.status === 'Đã hủy' || updated.status === 'Cancelled' || updated.status === 'Đã xong' || updated.status === 'Completed';
+      if (isCancelledOrDone) {
+        cancelEntityReminders(id).catch(err => console.warn('[EventReminder] calendar cancel error:', err));
+      } else {
+        rescheduleEntityReminders(userId, 'calendar', updated).catch(err => console.warn('[EventReminder] calendar reschedule error:', err));
+        notificationEngine.emitEvent({
+          userId,
+          eventType: 'CALENDAR_CHANGED',
+          entityId: id,
+          title: `Lịch biểu được cập nhật: "${updated.title || 'Sự kiện'}"`,
+          message: `Sự kiện <strong>"${updated.title || 'Sự kiện'}"</strong> đã được điều chỉnh ngày hoặc thời gian (${updated.date} lúc ${updated.startTime || ''}).`,
+          priority: 'NORMAL',
+          category: 'CALENDAR',
+          actionUrl: `${getAppBaseUrl()}/?view=calendar`,
+          actionLabel: 'Mở lịch biểu'
+        }).catch(err => console.warn('[Notification Hook] calendar changed error:', err));
+      }
     }
 
     res.json(updated);
@@ -1779,6 +1802,10 @@ apiRouter.delete('/data/:collection/:id', async (req: AuthRequest, res: Response
 
   try {
     await dbService.deleteUserCollectionItem(collection, userId, id, req.userRole);
+
+    if (collection === 'calendarEvents' || collection === 'tasks') {
+      cancelEntityReminders(id).catch(err => console.warn('[EventReminder] cancel error on delete:', err));
+    }
 
     if (collection === 'calendarEvents') {
       notificationEngine.emitEvent({
