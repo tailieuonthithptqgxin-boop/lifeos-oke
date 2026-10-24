@@ -9,8 +9,10 @@ import {
   CURATED_FOCUS_TRACKS, 
   extractYouTubeVideoId, 
   getYouTubeThumbnail, 
-  youtubeMusicService 
+  youtubeMusicService,
+  useFocusMusic 
 } from '../lib/youtubeMusicEngine';
+import { FocusVolumeControl } from './focus/FocusVolumeControl';
 
 interface YouTubeFocusPlayerProps {
   compact?: boolean;
@@ -35,52 +37,43 @@ export function YouTubeFocusPlayer({
   className = '',
   defaultExpanded = true
 }: YouTubeFocusPlayerProps) {
-  const [currentVideoId, setCurrentVideoId] = useState<string>(() => youtubeMusicService.getLastPlayedId());
+  const { 
+    currentTrack, 
+    isPlaying, 
+    isMuted, 
+    volume, 
+    togglePlay, 
+    loadTrack, 
+    nextTrack, 
+    prevTrack 
+  } = useFocusMusic();
+
   const [inputUrl, setInputUrl] = useState('');
   const [customTitle, setCustomTitle] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
   const [favorites, setFavorites] = useState<YouTubeTrack[]>(() => youtubeMusicService.getFavorites());
   const [recentTracks, setRecentTracks] = useState<YouTubeTrack[]>(() => youtubeMusicService.getRecentTracks());
   const [activeTab, setActiveTab] = useState<'curated' | 'favorites' | 'custom'>('curated');
 
-  // Active track info
-  const activeTrack = 
-    CURATED_FOCUS_TRACKS.find(t => t.id === currentVideoId) ||
-    favorites.find(t => t.id === currentVideoId) ||
-    recentTracks.find(t => t.id === currentVideoId) ||
-    {
-      id: currentVideoId,
-      url: `https://www.youtube.com/watch?v=${currentVideoId}`,
-      title: 'Rain & Lo-Fi Waves',
-      channel: 'Focus Mixtape',
-      thumbnailUrl: getYouTubeThumbnail(currentVideoId),
-      category: 'ambient' as const
-    };
+  const currentVideoId = currentTrack.id;
+  const activeTrack = currentTrack;
 
   const handleLoadTrack = (track: YouTubeTrack) => {
-    setCurrentVideoId(track.id);
-    youtubeMusicService.recordPlayed(track);
+    loadTrack(track, true);
     setRecentTracks(youtubeMusicService.getRecentTracks());
-    setIsPlaying(true);
     setErrorMsg(null);
     if (onTrackChange) onTrackChange(track);
   };
 
   const handleNextTrack = () => {
     const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : CURATED_FOCUS_TRACKS;
-    const currentIndex = list.findIndex(t => t.id === currentVideoId);
-    const nextIndex = (currentIndex + 1) % list.length;
-    handleLoadTrack(list[nextIndex]);
+    nextTrack(list);
   };
 
   const handlePrevTrack = () => {
     const list = activeTab === 'favorites' && favorites.length > 0 ? favorites : CURATED_FOCUS_TRACKS;
-    const currentIndex = list.findIndex(t => t.id === currentVideoId);
-    const prevIndex = (currentIndex - 1 + list.length) % list.length;
-    handleLoadTrack(list[prevIndex]);
+    prevTrack(list);
   };
 
   const handleCustomSubmit = (e: React.FormEvent) => {
@@ -122,21 +115,13 @@ export function YouTubeFocusPlayer({
   return (
     <div className={`rounded-2xl border border-slate-800 bg-[#0F172A] text-slate-100 shadow-sm overflow-hidden transition-all duration-300 ${className}`}>
       
-      {/* Hidden YouTube Engine (100% hides any clunky YouTube interface or ads UI) */}
-      <iframe
-        key={`${currentVideoId}-${isMuted}`}
-        src={`https://www.youtube-nocookie.com/embed/${currentVideoId}?autoplay=${isPlaying ? '1' : '0'}&mute=${isMuted ? '1' : '0'}&rel=0&controls=0&modestbranding=1`}
-        title="Ambient Sound Stream Engine"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        className="opacity-0 pointer-events-none absolute -top-[9999px] -left-[9999px] w-1 h-1"
-      />
-
       {/* Header mini bar with expand/collapse toggle */}
       <div className="px-4 py-3 flex items-center justify-between border-b border-slate-800/80 bg-[#0F172A]">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-          <span className="text-xs font-medium text-slate-300 tracking-tight">
-            Ambient Soundscape
+          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isPlaying ? 'bg-emerald-500 animate-pulse' : 'bg-slate-500'}`} />
+          <span className="text-xs font-medium text-slate-300 tracking-tight flex items-center gap-1.5">
+            <span>Ambient Soundscape</span>
+            {isPlaying && <EqualizerIcon />}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -172,7 +157,6 @@ export function YouTubeFocusPlayer({
                   alt={activeTrack.title}
                   className="w-full h-full object-cover filter brightness-75 contrast-125"
                   onError={(e) => {
-                    // Fallback to minimal dark placeholder
                     (e.target as HTMLElement).style.display = 'none';
                   }}
                 />
@@ -200,17 +184,17 @@ export function YouTubeFocusPlayer({
                 </div>
 
                 {/* Sleek Progress Line with Emerald Accent */}
-                <div className="mt-2.5 flex items-center gap-2">
+                <div className="mt-2 flex items-center gap-2">
                   <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden relative">
                     <div 
-                      className={`h-full bg-emerald-500 rounded-full transition-all duration-500 ${isPlaying ? 'w-2/3' : 'w-0'}`} 
+                      className={`h-full bg-emerald-500 rounded-full transition-all duration-500 ${isPlaying ? 'w-full animate-pulse' : 'w-0'}`} 
                     />
                   </div>
                 </div>
 
-                {/* Vector playback icons: Previous, Play/Pause, Next, Volume */}
-                <div className="mt-2.5 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                {/* Vector playback icons: Previous, Play/Pause, Next & Volume Controls */}
+                <div className="mt-2.5 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <button
                       type="button"
                       onClick={handlePrevTrack}
@@ -221,7 +205,7 @@ export function YouTubeFocusPlayer({
                     </button>
                     <button
                       type="button"
-                      onClick={() => setIsPlaying(!isPlaying)}
+                      onClick={togglePlay}
                       className="p-1 text-white hover:text-emerald-400 transition-colors cursor-pointer"
                       title={isPlaying ? 'Tạm dừng' : 'Phát'}
                     >
@@ -241,16 +225,8 @@ export function YouTubeFocusPlayer({
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setIsMuted(!isMuted)}
-                      className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
-                      title={isMuted ? 'Bật âm lượng' : 'Tắt tiếng'}
-                    >
-                      {isMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5" />}
-                    </button>
-                  </div>
+                  {/* Complete Volume Controls: Mute, Minus, Slider, Plus, Percentage */}
+                  <FocusVolumeControl sliderWidthClass="w-16 sm:w-20" />
                 </div>
               </div>
             </div>
@@ -381,7 +357,7 @@ export function YouTubeFocusPlayer({
                     if (errorMsg) setErrorMsg(null);
                   }}
                   placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-800 rounded-lg focus:outline-none focus:border-emerald-500 text-white placeholder-slate-500"
+                  className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-800 rounded-lg focus:outline-hidden focus:border-emerald-500 text-white placeholder-slate-500"
                 />
               </div>
 
@@ -391,7 +367,7 @@ export function YouTubeFocusPlayer({
                   value={customTitle}
                   onChange={e => setCustomTitle(e.target.value)}
                   placeholder="Tên âm thanh gợi nhớ (tùy chọn)"
-                  className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-800 rounded-lg focus:outline-none focus:border-emerald-500 text-white placeholder-slate-500"
+                  className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-800 rounded-lg focus:outline-hidden focus:border-emerald-500 text-white placeholder-slate-500"
                 />
               </div>
 

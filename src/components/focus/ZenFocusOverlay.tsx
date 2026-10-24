@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, Play, Pause, Square, Sparkles, Volume2, VolumeX, 
   Flame, Zap, Check, ChevronDown, Music, RotateCcw,
-  Target, Shield, Bell, Maximize, Minimize
+  Target, Shield, Bell, Maximize, Minimize, Minus, Plus
 } from 'lucide-react';
 import { useAppStore } from '../../lib/store';
 import { soundEngine } from '../../lib/soundEngine';
@@ -536,12 +536,53 @@ export function ZenFocusOverlay({ isOpen, onClose, defaultTaskId }: ZenFocusOver
             })}
           </div>
 
-          <button
-            onClick={() => setIsMuted(!isMuted)}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white cursor-pointer"
-          >
-            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-          </button>
+          <div className="flex items-center gap-1.5 bg-slate-900/80 border border-slate-800 px-2.5 py-1 rounded-xl text-xs">
+            <button
+              type="button"
+              onClick={() => setIsMuted(!isMuted)}
+              className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer"
+              title={isMuted ? 'Bật âm lượng' : 'Tắt tiếng'}
+            >
+              {isMuted ? <VolumeX className="w-3.5 h-3.5 text-rose-400" /> : <Volume2 className="w-3.5 h-3.5" />}
+            </button>
+            <button
+              type="button"
+              onClick={() => setVolume(v => Math.max(0, parseFloat((v - 0.05).toFixed(2))))}
+              disabled={isMuted || volume <= 0}
+              className="p-0.5 text-slate-400 hover:text-white disabled:opacity-30 cursor-pointer"
+              title="Giảm âm lượng 5%"
+            >
+              <Minus className="w-3 h-3" />
+            </button>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={isMuted ? 0 : volume}
+              onChange={(e) => {
+                setVolume(Number(e.target.value));
+                if (isMuted) setIsMuted(false);
+              }}
+              aria-label="Âm lượng nền"
+              className="w-16 h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setVolume(v => Math.min(1, parseFloat((v + 0.05).toFixed(2))));
+                if (isMuted) setIsMuted(false);
+              }}
+              disabled={isMuted || volume >= 1}
+              className="p-0.5 text-slate-400 hover:text-white disabled:opacity-30 cursor-pointer"
+              title="Tăng âm lượng 5%"
+            >
+              <Plus className="w-3 h-3" />
+            </button>
+            <span className="text-[11px] font-mono font-bold text-slate-300 w-8 text-right">
+              {Math.round((isMuted ? 0 : volume) * 100)}%
+            </span>
+          </div>
         </div>
 
       </div>

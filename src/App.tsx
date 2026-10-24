@@ -20,6 +20,7 @@ import { LoginView } from './components/LoginView';
 import { AccountStatusBanner } from './components/AccountStatusBanner';
 import { LockedWorkspaceOverlay } from './components/LockedWorkspaceOverlay';
 import { GlobalCompanionOverlay } from './components/companion/GlobalCompanionOverlay';
+import { GlobalFocusMusicPlayer } from './components/GlobalFocusMusicPlayer';
 import { PwaPromptBanner } from './components/PwaPromptBanner';
 import { PageSkeleton } from './components/Skeleton';
 import { ToastContainer } from './components/ToastContainer';
@@ -334,6 +335,7 @@ function AppContent() {
       </div>
       <GlobalCompanionOverlay />
       <PwaPromptBanner />
+      <GlobalFocusMusicPlayer />
     </div>
   );
 }

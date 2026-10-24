@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { FocusSession, FocusMode, FocusStatus, Task, Project } from '../lib/types';
 import { YouTubeFocusPlayer } from './YouTubeFocusPlayer';
+import { FocusVolumeControl } from './focus/FocusVolumeControl';
 import { CompanionMood } from '../lib/companionEngine';
 import { companionEventBus } from '../lib/companion/companionEventBus';
 import { retentionEngine } from '../lib/retentionEngine';
@@ -587,6 +588,11 @@ export function FocusView() {
             <span>{isVi ? 'Bảng Phong Thần' : 'Leaderboard'}</span>
           </button>
 
+          {/* Ambient Music Volume Control Pill */}
+          <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white text-slate-700 dark:bg-slate-800 dark:text-slate-200 border border-slate-200/80 dark:border-slate-700 shadow-xs">
+            <FocusVolumeControl sliderWidthClass="w-14 sm:w-20 md:w-24" />
+          </div>
+
           {/* Music Toggle Button */}
           <button
             type="button"
@@ -927,10 +933,6 @@ export function FocusView() {
 
     </div>
   );
-
-  if (isZenMode && typeof document !== 'undefined') {
-    return createPortal(focusContent, document.body);
-  }
 
   return focusContent;
 }
