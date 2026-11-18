@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Upload, X } from 'lucide-react';
 import { LearningLanguage, VocabCollection, VocabWord, parseWordsFromCsv } from '../../lib/vocabEngine';
 
@@ -18,6 +18,8 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
   const [csvText, setCsvText] = useState('');
   const [targetCollectionId, setTargetCollectionId] = useState(collections[0]?.id || '');
 
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -29,6 +31,7 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setErrorMsg(null);
     const reader = new FileReader();
     reader.onload = evt => {
       const text = evt.target?.result as string;
@@ -38,18 +41,32 @@ export const ImportExportModal: React.FC<ImportExportModalProps> = ({
   };
 
   const handleProcessImport = () => {
-    if (!csvText.trim()) return alert('Vui lòng dán nội dung CSV hoặc tải tệp lên!');
+    setErrorMsg(null);
+    if (!csvText.trim()) {
+      setErrorMsg('Vui lòng dán nội dung CSV hoặc tải tệp lên!');
+      return;
+    }
     const words = parseWordsFromCsv(csvText, activeLang.id, targetCollectionId);
     if (words.length === 0) {
-      return alert('Không thể tìm thấy dòng từ vựng hợp lệ. Hãy kiểm tra định dạng CSV!');
+      setErrorMsg('Không thể tìm thấy dòng từ vựng hợp lệ. Hãy kiểm tra định dạng CSV!');
+      return;
     }
     onImport(words);
   };
 
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
   return (
     <div 
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs"
-      onClick={onClose}
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs cursor-default"
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (mouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
     >
       <div 
         className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150"

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Menu, Moon, Sun, Search, Bell, Plus, Inbox, ShoppingCart, 
   Shield, CheckSquare, DollarSign, Calendar, Target, Zap, 
@@ -14,10 +14,10 @@ import { apiCall } from '../lib/apiClient';
 import { companionEngine, MASCOT_PROFILES } from '../lib/companionEngine';
 import { NotificationCenterModal } from './notifications/NotificationCenterModal';
 import { NotificationSettingsModal } from './notifications/NotificationSettingsModal';
+import { useSmartDismiss } from '../lib/useSmartDismiss';
 
 export function TopBar() {
   const [showNotifications, setShowNotifications] = useState(false);
-  const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showInboxModal, setShowInboxModal] = useState(false);
   const [showZenFocus, setShowZenFocus] = useState(false);
@@ -33,6 +33,26 @@ export function TopBar() {
   
   const t = useTranslation(language);
   const isVi = language === 'vi';
+
+  // Smart Dismiss Refs & Hooks for TopBar Dropdowns
+  const notifTriggerRef = useRef<HTMLButtonElement>(null);
+  const notifMenuRef = useRef<HTMLDivElement>(null);
+  const userTriggerRef = useRef<HTMLButtonElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+
+  useSmartDismiss({
+    isOpen: showNotifications,
+    onDismiss: () => setShowNotifications(false),
+    targetRef: notifMenuRef,
+    triggerRef: notifTriggerRef,
+  });
+
+  useSmartDismiss({
+    isOpen: showUserMenu,
+    onDismiss: () => setShowUserMenu(false),
+    targetRef: userMenuRef,
+    triggerRef: userTriggerRef,
+  });
 
   // Global Shift + F shortcut for Zen Focus Mode
   useEffect(() => {
@@ -83,9 +103,7 @@ export function TopBar() {
     const handleProgUpdate = (e: any) => {
       if (!isMounted) return;
       if (e?.detail) {
-        setProgressionData(e.detail);
-        const synced = retentionEngine.syncWithServer(e.detail, currentUser?.id);
-        if (synced) setRetentionProfile(synced);
+        setRetentionProfile(e.detail);
       } else {
         loadProg();
       }
@@ -99,12 +117,12 @@ export function TopBar() {
   }, [currentUser?.id, currentView]);
 
   const maxHabitStreak = (habits || []).reduce((max: number, h: any) => Math.max(max, h.streak || 0), 0);
-  const realStreak = progressionData?.currentStreak !== undefined
-    ? progressionData.currentStreak
-    : (maxHabitStreak > 0 ? maxHabitStreak : (retentionProfile?.streak ?? 0));
-  const realLevel = progressionData?.level ?? (retentionProfile?.level || 1);
-  const realXp = progressionData?.totalXp ?? (retentionProfile?.xp || 0);
-  const realCoins = progressionData?.coins ?? (retentionProfile?.coins || Math.floor(realLevel * 40 + 50));
+  const realStreak = currentUser?.streakDays !== undefined
+    ? currentUser.streakDays
+    : (progressionData?.currentStreak !== undefined ? progressionData.currentStreak : (maxHabitStreak > 0 ? maxHabitStreak : (retentionProfile?.streak ?? 0)));
+  const realLevel = currentUser?.level ?? progressionData?.level ?? (retentionProfile?.level || 1);
+  const realXp = currentUser?.xp ?? progressionData?.totalXp ?? (retentionProfile?.xp || 0);
+  const realCoins = progressionData?.coins ?? retentionProfile?.coins ?? 0;
   const realCp = Math.floor(realLevel * 35 + realStreak * 20 + realXp);
 
   const cartItemCount = (cart || []).reduce((sum, item) => sum + item.quantity, 0);
@@ -115,252 +133,45 @@ export function TopBar() {
   const inboxCount = inbox?.length || 0;
 
   return (
-    <header className="h-14 md:h-16 bg-white/90 dark:bg-[#0B1120]/90 backdrop-blur-md border-b border-[#E2E8F0] dark:border-white/[0.08] flex items-center justify-between px-3.5 sm:px-5 md:px-6 shrink-0 relative z-50 transition-colors">
+    <header className="h-auto min-h-[3.75rem] md:h-16 pt-[max(0.75rem,env(safe-area-inset-top))] md:pt-0 pb-2 md:pb-0 bg-white/80 dark:bg-[#07070C]/80 backdrop-blur-2xl border-b border-slate-200/80 dark:border-white/[0.08] shadow-sm flex items-center justify-between px-3.5 sm:px-5 md:px-6 shrink-0 sticky top-0 z-30 transition-colors">
       {/* Mobile Brand Logo */}
       <div className="flex md:hidden items-center gap-2 shrink-0">
         <img 
           src="/logo.png" 
-          alt="LifeOS Logo" 
+          alt="LifeOS - Hệ Điều Hành Cuộc Sống" 
+          width="28"
+          height="28"
+          decoding="async"
           className="w-7 h-7 rounded-lg object-contain shadow-xs shrink-0" 
         />
         <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-white">LifeOS</span>
       </div>
 
-      {/* Desktop Quick Search Bar (Hidden on Mobile) */}
-      <div className="hidden md:flex flex-1 max-w-lg min-w-0 mr-4">
-        <button 
-          type="button" 
-          onClick={toggleCommand}
-          className="w-full relative flex items-center text-left pl-9 pr-24 h-9 bg-slate-100/70 dark:bg-white/[0.05] border border-slate-200/80 dark:border-white/[0.08] rounded-full text-xs text-slate-500 hover:bg-white dark:hover:bg-white/[0.08] hover:border-slate-300 dark:hover:border-white/[0.15] hover:shadow-2xs transition-all group cursor-pointer"
-        >
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-emerald-600 transition-colors shrink-0" />
-          <span className="truncate max-w-[calc(100%-1rem)] font-normal text-slate-500">{t('Tìm kiếm nhanh hoặc mở Command Center...')}</span>
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-[10px] font-medium text-slate-500 shadow-2xs">Ctrl + K</kbd>
-          </div>
-        </button>
-      </div>
-      
-      {/* Global Free Trial Active Indicator */}
-      {subscriptionStatus?.isGlobalFreeMode && (
-        <div className="hidden lg:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold shrink-0 animate-pulse">
+      {/* Global Free Full Access Active Indicator */}
+      {subscriptionStatus?.isGlobalFreeMode ? (
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold shrink-0">
           <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-          <span>Dùng Thử Miễn Phí Toàn Hệ Thống</span>
+          <span>Trải nghiệm Miễn phí (Full Access)</span>
         </div>
-      )}
+      ) : <div />}
 
       {/* Right Action Cluster */}
       <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-        
-        {/* Mobile Search Icon Button */}
-        <button
-          type="button"
-          onClick={toggleCommand}
-          aria-label={t('Tìm kiếm')}
-          className="md:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-        >
-          <Search className="w-4 h-4" />
-        </button>
-
-        {/* Mobile Compact Gamification Pill */}
-        <button
-          type="button"
+        {/* Streak Flame Live Motivation Badge */}
+        <div 
           onClick={() => setCurrentView('journey')}
-          title={`Level ${realLevel} · ${realCp} CP · ${realStreak} ngày streak`}
-          className="md:hidden inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-50 dark:bg-white/[0.06] text-slate-800 dark:text-white border border-[#E2E8F0] dark:border-white/[0.08] font-semibold text-[10px] shadow-2xs shrink-0 cursor-pointer"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-400/30 text-amber-600 dark:text-amber-400 text-xs font-black shrink-0 cursor-pointer hover:bg-amber-500/20 active:scale-95 transition-all shadow-2xs"
+          title={`Chuỗi kỷ luật: ${realStreak} ngày liên tiếp 🔥`}
         >
-          <span className="text-amber-600 dark:text-amber-400 font-bold">LV.{realLevel}</span>
-          <span className="text-slate-300 dark:text-slate-700">·</span>
-          <span className="text-emerald-600 dark:text-emerald-400 font-mono tabular-nums font-medium">{realCp > 999 ? `${(realCp/1000).toFixed(1)}k` : realCp} CP</span>
-          <span className="text-slate-300 dark:text-slate-700">·</span>
-          <span className="text-rose-500 dark:text-rose-400 font-mono tabular-nums font-medium">{realStreak}d</span>
-        </button>
-
-        {/* Desktop Modern Gamification HUD Pill */}
-        <button
-          type="button"
-          onClick={() => setCurrentView('journey')}
-          title={`Level ${realLevel} · ${realCp} CP · ${realCoins} Coins · ${realStreak}d Streak`}
-          className="hidden md:inline-flex items-center gap-2.5 h-9 px-3.5 rounded-full bg-slate-50/70 dark:bg-white/[0.05] border border-[#E2E8F0] dark:border-white/[0.08] hover:border-slate-300 dark:hover:border-white/[0.15] text-xs text-slate-700 dark:text-slate-200 transition-all cursor-pointer shadow-2xs"
-        >
-          <span className="font-semibold text-slate-900 dark:text-white">
-            LV.{realLevel}
-          </span>
-          <span className="text-slate-200 dark:text-slate-700">|</span>
-          <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
-            <Zap className="w-3.5 h-3.5" />
-            <span className="font-mono tabular-nums text-[11px] font-medium">{realCp.toLocaleString()} CP</span>
-          </div>
-          <span className="text-slate-200 dark:text-slate-700">|</span>
-          <div className="flex items-center gap-1 text-amber-500">
-            <Award className="w-3.5 h-3.5" />
-            <span className="font-mono tabular-nums text-[11px] font-medium">{realCoins}</span>
-          </div>
-          <span className="text-slate-200 dark:text-slate-700">|</span>
-          <div className="flex items-center gap-1 text-rose-500">
-            <Flame className="w-3.5 h-3.5" />
-            <span className="font-mono tabular-nums text-[11px] font-medium">{realStreak}d</span>
-          </div>
-        </button>
-
-        {/* Desktop Primary Action Button: + Tạo mới (Hidden on mobile because it is on bottom nav) */}
-        <div className="hidden md:block relative">
-          <button 
-            type="button" 
-            onClick={() => {
-              setShowCreateMenu(!showCreateMenu);
-              setShowNotifications(false);
-              setShowUserMenu(false);
-            }}
-            aria-label={t('Tạo mới')}
-            className="h-9 px-4 rounded-full bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-sm shadow-emerald-600/25"
-          >
-            {!hasSubAccess ? <Lock className="w-3.5 h-3.5 text-white/80" /> : <Plus className="w-3.5 h-3.5 stroke-[2.5]" />}
-            <span>{t('Tạo mới')}</span>
-          </button>
-
-          {showCreateMenu && (
-            <>
-              <div className="fixed inset-0 z-[80] bg-slate-950/40 backdrop-blur-xs" onClick={() => setShowCreateMenu(false)}></div>
-              <div className="absolute top-full right-0 mt-2 w-64 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-[90] p-1.5 space-y-1 animate-in fade-in zoom-in-95 duration-100">
-                {!hasSubAccess ? (
-                  <div className="p-3 text-center space-y-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center mx-auto border border-amber-500/20">
-                      <Lock className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="font-bold text-xs text-slate-900 dark:text-white">
-                        {t('Tính năng đang khóa')}
-                      </div>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
-                        {t('Kích hoạt gói dịch vụ để tạo mới công việc, giao dịch tài chính, lịch và mục tiêu.')}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCurrentView('subscription');
-                        setShowCreateMenu(false);
-                      }}
-                      className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl shadow-xs transition-colors cursor-pointer"
-                    >
-                      {t('Mở khóa bản quyền')}
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCurrentView('tasks');
-                        setShowCreateMenu(false);
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
-                    >
-                      <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
-                        <CheckSquare className="w-4 h-4" />
-                      </div>
-                      <span>{t('Công việc mới')}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCurrentView('finance');
-                        setShowCreateMenu(false);
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
-                    >
-                      <div className="p-1.5 rounded-lg bg-teal-50 dark:bg-teal-950/60 text-teal-600 dark:text-teal-400">
-                        <DollarSign className="w-4 h-4" />
-                      </div>
-                      <span>{t('Khoản thu / chi tiêu')}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCurrentView('notes');
-                        setShowCreateMenu(false);
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
-                    >
-                      <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400">
-                        <FileText className="w-4 h-4" />
-                      </div>
-                      <span>{isVi ? 'Tạo ghi chú mới' : 'New Note'}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCurrentView('calendar');
-                        setShowCreateMenu(false);
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
-                    >
-                      <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400">
-                        <Calendar className="w-4 h-4" />
-                      </div>
-                      <span>{t('Sự kiện lịch')}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCurrentView('goals');
-                        setShowCreateMenu(false);
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors text-left"
-                    >
-                      <div className="p-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400">
-                        <Target className="w-4 h-4" />
-                      </div>
-                      <span>{t('Mục tiêu mới')}</span>
-                    </button>
-                  </>
-                )}
-              </div>
-            </>
-          )}
+          <Flame className="w-4 h-4 text-amber-500 animate-flame-glow shrink-0" />
+          <span>{realStreak} <span className="hidden sm:inline font-bold text-[11px] opacity-80">ngày</span></span>
         </div>
-
-        {/* AI Companion Quick Toggle Button */}
-        <button
-          type="button"
-          onClick={() => {
-            soundEngine.playPop();
-            const nextEnabled = !companionSettings.enabled;
-            const updated = companionEngine.saveSettings({ 
-              enabled: nextEnabled,
-              focusCompanionMode: nextEnabled ? 'normal' : 'off'
-            }, currentUser?.id);
-            setCompanionSettings(updated);
-            if (typeof window !== 'undefined') {
-              window.dispatchEvent(new CustomEvent('lifeos-companion-settings-updated', { detail: updated }));
-            }
-          }}
-          className={`hidden md:inline-flex h-9 px-3 rounded-full border text-xs font-medium transition-all cursor-pointer items-center gap-1.5 shadow-2xs ${
-            companionSettings.enabled && companionSettings.focusCompanionMode !== 'off'
-              ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/15'
-              : 'bg-slate-50/70 dark:bg-white/[0.05] border-[#E2E8F0] dark:border-white/[0.08] text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/[0.08]'
-          }`}
-          title={companionSettings.enabled && companionSettings.focusCompanionMode !== 'off'
-            ? `${MASCOT_PROFILES[companionSettings.mascotId]?.name || 'AI Companion'} ${t('is active · Click to hide')}`
-            : t('AI Companion is hidden · Click to open!')}
-          aria-label={t('Bật/Tắt nhân vật AI')}
-        >
-          <Bot className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-          <span className="hidden xl:inline text-xs font-medium">
-            {companionSettings.enabled && companionSettings.focusCompanionMode !== 'off' ? (isVi ? 'AI Bật' : 'AI On') : (isVi ? 'Mở AI' : 'Open AI')}
-          </span>
-        </button>
 
         {/* Quick Theme Toggle Button */}
         <button
           type="button"
           onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="hidden md:inline-flex h-9 w-9 items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.08] rounded-full border border-[#E2E8F0] dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.05] transition-all cursor-pointer shadow-2xs"
+          className="inline-flex h-10 w-10 sm:h-9 sm:w-9 min-h-[44px] min-w-[44px] items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.08] rounded-full border border-[#E2E8F0] dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.05] transition-all cursor-pointer shadow-2xs active:scale-95"
           title={theme === 'dark' ? t('Switch to Light Mode') : t('Switch to Dark Mode')}
           aria-label={t('Chuyển chế độ giao diện')}
         >
@@ -374,13 +185,18 @@ export function TopBar() {
         {/* Notifications Bell */}
         <div className="relative">
           <button 
+            ref={notifTriggerRef}
             type="button" 
             onClick={() => { 
-              setShowNotifications(!showNotifications); 
-              setShowCreateMenu(false); 
+              if (typeof window !== 'undefined' && window.innerWidth < 640) {
+                setIsNotificationCenterOpen(true);
+                setShowNotifications(false);
+              } else {
+                setShowNotifications(!showNotifications); 
+              }
               setShowUserMenu(false);
             }} 
-            className="h-9 w-9 flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.08] rounded-full border border-[#E2E8F0] dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.05] transition-all relative cursor-pointer shadow-2xs"
+            className="h-10 w-10 sm:h-9 sm:w-9 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.08] rounded-full border border-[#E2E8F0] dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.05] transition-all relative cursor-pointer shadow-2xs active:scale-95"
             aria-label={t('Thông báo')}
           >
             <Bell className="w-4 h-4" />
@@ -391,8 +207,8 @@ export function TopBar() {
           
           {showNotifications && (
             <>
-              <div className="fixed inset-0 z-[80] bg-slate-950/40 backdrop-blur-xs" onClick={() => setShowNotifications(false)}></div>
-              <div className="absolute top-full right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-[90] overflow-hidden animate-in fade-in zoom-in-95 duration-100">
+              <div className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-xs cursor-pointer" onClick={() => setShowNotifications(false)}></div>
+              <div ref={notifMenuRef} className="absolute top-full right-0 mt-2 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] max-h-[85dvh] overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100">
                 <div className="flex items-center justify-between px-3.5 py-2.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50">
                   <h3 className="font-semibold text-xs text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
                     <Bell className="w-3.5 h-3.5 text-slate-500" />
@@ -500,18 +316,22 @@ export function TopBar() {
         {/* Unified User & Settings Menu */}
         <div className="relative">
           <button 
+            ref={userTriggerRef}
             type="button" 
             onClick={() => {
               setShowUserMenu(!showUserMenu);
               setShowNotifications(false);
-              setShowCreateMenu(false);
             }}
-            className="flex items-center gap-2 h-9 p-1 pl-1.5 pr-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 border border-[#E2E8F0] dark:border-slate-800 transition-colors cursor-pointer"
+            className="flex items-center gap-2 h-10 sm:h-9 min-h-[44px] p-1 pl-1.5 pr-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 border border-[#E2E8F0] dark:border-slate-800 transition-colors cursor-pointer active:scale-95"
           >
             <img 
               src={currentUser?.avatar || 'https://ui-avatars.com/api/?name=LifeOS+SuperAdmin&background=10B981&color=fff'} 
-              alt="Avatar" 
-              className="w-6 h-6 rounded-md bg-slate-100 dark:bg-slate-800 object-cover" 
+              alt={currentUser?.name || 'Ảnh đại diện cá nhân'} 
+              loading="lazy"
+              decoding="async"
+              width="28"
+              height="28"
+              className="w-7 h-7 sm:w-6 sm:h-6 rounded-lg bg-slate-100 dark:bg-slate-800 object-cover" 
             />
             <span className="hidden sm:inline text-xs font-medium text-slate-700 dark:text-slate-200 max-w-[100px] truncate">
               {currentUser?.name?.split(' ')[0] || t('Tài khoản')}
@@ -521,8 +341,8 @@ export function TopBar() {
 
           {showUserMenu && (
             <>
-              <div className="fixed inset-0 z-[80] bg-slate-950/40 backdrop-blur-xs" onClick={() => setShowUserMenu(false)}></div>
-              <div className="absolute top-full right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-[90] p-2.5 space-y-2 text-xs animate-in fade-in zoom-in-95 duration-100">
+              <div className="fixed inset-0 z-40 bg-slate-950/40 backdrop-blur-xs cursor-pointer" onClick={() => setShowUserMenu(false)}></div>
+              <div ref={userMenuRef} className="absolute top-full right-0 mt-2 w-72 max-w-[calc(100vw-1.5rem)] max-h-[85dvh] overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50 p-2.5 space-y-2 text-xs animate-in fade-in zoom-in-95 duration-100">
                 {/* Header User Info */}
                 <div className="p-3 bg-slate-50 dark:bg-slate-800/70 border border-slate-100 dark:border-slate-800 rounded-xl space-y-1">
                   <div className="font-bold text-slate-900 dark:text-white truncate text-sm">{currentUser?.name || t('Người dùng')}</div>
@@ -565,25 +385,8 @@ export function TopBar() {
                   </div>
                 )}
 
-                {/* SaaS Subscription Checkout link */}
+                {/* User Menu Actions */}
                 <div className="space-y-1">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCurrentView('checkout');
-                      setShowUserMenu(false);
-                    }}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-emerald-700 dark:text-emerald-300 bg-emerald-50/70 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-950/70 font-bold transition-colors cursor-pointer border border-emerald-200/70 dark:border-emerald-800/50"
-                  >
-                    <div className="flex items-center gap-2">
-                      <Zap className="w-4 h-4 fill-emerald-600 text-emerald-600 shrink-0" />
-                      <span>{t('Nâng cấp Gói dịch vụ của tôi')}</span>
-                    </div>
-                    <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-emerald-200 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200">
-                      SaaS
-                    </span>
-                  </button>
-
                   {/* Inbox Modal Trigger */}
                   <button
                     type="button"
@@ -777,8 +580,14 @@ export function TopBar() {
 
       {/* Quick Inbox Modal */}
       {showInboxModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md p-5 border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-100">
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs cursor-pointer"
+          onClick={() => setShowInboxModal(false)}
+        >
+          <div 
+            className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl w-full max-w-md max-h-[85dvh] overflow-y-auto p-5 border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in-95 duration-100 cursor-default"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
                 <Inbox className="w-4 h-4 text-blue-600" />

@@ -17,6 +17,7 @@ import { rpgService } from '../services/rpg.service.js';
 import { r2Router } from './r2.routes.js';
 import { customModulesRouter } from './customModules.routes.js';
 import { vocabRouter } from './vocab.routes.js';
+import { aiRouter } from './ai.routes.js';
 import { announcementService } from '../services/announcement.service.js';
 import { notificationEngine } from '../services/notification/notificationEngine.service.js';
 import { gmailOAuthService } from '../services/notification/gmailOAuth.service.js';
@@ -29,7 +30,9 @@ import {
 import { paymentRateLimiter, couponRateLimiter } from '../security/rateLimiter.js';
 import { emailQueueService } from '../services/emailQueue.service.js';
 import { SystemNotificationHelper } from '../services/systemNotification.helper.js';
+import { postService } from '../services/post.service.js';
 import { idempotencyMiddleware } from '../security/idempotency.middleware.js';
+import { getVietnamDateString } from '../utils/vietnamTime.js';
 import {
   FinanceTransactionSchema,
   CouponValidateSchema,
@@ -74,6 +77,7 @@ apiRouter.use('/custom-modules', customModulesRouter);
 
 // Vocabulary & Spaced Repetition Mastery Sub-router
 apiRouter.use('/vocab', vocabRouter);
+apiRouter.use('/ai', aiRouter);
 
 // Publicly readable endpoints (languages configuration and pricing plans)
 apiRouter.get('/languages', async (req: any, res: Response) => {
@@ -126,6 +130,40 @@ apiRouter.get('/payments/plans', async (req: any, res: Response) => {
         quota: p.quota || (p.type === 'TEAM' ? 'Tối đa 5 thành viên' : 'Sử dụng cá nhân toàn diện')
       }))
     });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Public Community Feedback (Accessible to all guests & users without mandatory login)
+apiRouter.get('/feedback/public', async (req: any, res: Response) => {
+  try {
+    let userId = req.userId;
+    if (!userId && req.headers.authorization?.startsWith('Bearer ')) {
+      try {
+        const token = req.headers.authorization.split(' ')[1];
+        const jwt = await import('jsonwebtoken');
+        const decoded = (jwt.default || jwt).verify(token, process.env.JWT_SECRET || 'secret') as any;
+        userId = decoded?.userId || decoded?.id;
+      } catch {}
+    }
+    const list = await feedbackService.getPublicFeedbacks(userId);
+    res.json({
+      success: true,
+      feedbacks: list
+    });
+  } catch (err: any) {
+    console.error('GET /feedback/public error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Community Feed Posts (Paginated feed)
+apiRouter.get('/posts', async (req: any, res: Response) => {
+  try {
+    const { page, limit } = req.query;
+    const result = await postService.getPosts(Number(page) || 1, Number(limit) || 10);
+    res.json({ success: true, ...result });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -288,6 +326,36 @@ apiRouter.use(async (req: AuthRequest, res: Response, next: any) => {
   // 3. For all other workspace data (tasks, projects, calendarEvents, focus, finance, study, habits, goals, notes, decisions, automation, custom-modules, R2 backups):
   // Strictly enforce active subscription on server-side
   return requireActiveSubscription(req, res, next);
+});
+
+// Community Feed Actions
+apiRouter.post('/posts', async (req: AuthRequest, res: Response) => {
+  try {
+    const post = await postService.createPost(req.userId!, req.body);
+    res.json({ success: true, post });
+  } catch (err: any) {
+    res.status(400).json({ success: false, message: err?.message || 'Không thể tạo bài viết' });
+  }
+});
+
+apiRouter.post('/posts/:id/like', async (req: AuthRequest, res: Response) => {
+  try {
+    const post = await postService.likePost(req.params.id);
+    res.json({ success: true, post });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err?.message || 'Lỗi thích bài viết' });
+  }
+});
+
+apiRouter.delete('/posts/:id', async (req: AuthRequest, res: Response) => {
+  try {
+    const user = (req as any).user;
+    const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
+    const result = await postService.deletePost(req.params.id, req.userId!, isAdmin);
+    res.json({ success: true, ...result });
+  } catch (err: any) {
+    res.status(403).json({ success: false, message: err?.message || 'Không thể xóa bài viết' });
+  }
 });
 
 const ALLOWED_COLLECTIONS = new Set([
@@ -1444,7 +1512,7 @@ apiRouter.post('/habits/:id/toggle', async (req: AuthRequest, res: Response) => 
       return;
     }
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getVietnamDateString();
     let dates: string[] = [];
     try {
       dates = typeof habit.completedDates === 'string' ? JSON.parse(habit.completedDates || '[]') : (habit.completedDates || []);
@@ -1468,14 +1536,28 @@ apiRouter.post('/habits/:id/toggle', async (req: AuthRequest, res: Response) => 
       if (newStreak > newBest) newBest = newStreak;
     }
 
-    const updated = await prisma.habit.update({
-      where: { id: habitId },
-      data: {
-        completedDates: JSON.stringify(newDates),
-        streak: newStreak,
-        bestStreak: newBest
-      }
-    });
+    const [updated] = await prisma.$transaction([
+      prisma.habit.update({
+        where: { id: habitId },
+        data: {
+          completedDates: JSON.stringify(newDates),
+          streak: newStreak,
+          bestStreak: newBest
+        }
+      }),
+      wasCompleted
+        ? prisma.habitLog.deleteMany({
+            where: { habitId, date: todayStr }
+          })
+        : prisma.habitLog.create({
+            data: {
+              habitId,
+              date: todayStr,
+              completed: true,
+              notes: 'Hoàn thành thói quen hàng ngày'
+            }
+          })
+    ]);
 
     // Nếu vừa đánh dấu hoàn thành, thưởng XP & Coins
     let xpResult = null;
@@ -1607,6 +1689,17 @@ apiRouter.post('/data/:collection', async (req: AuthRequest, res: Response) => {
         sourceId: created.id,
         description: `Tập trung sâu: ${minutes} phút`
       }).catch(err => console.warn('Progression hook error:', err));
+
+      // Persist real study minutes into User model
+      const prisma = getPrisma();
+      prisma.user.update({
+        where: { id: userId },
+        data: {
+          totalStudyMinutes: { increment: minutes },
+          weeklyStudyMinutes: { increment: minutes },
+          lastStudyDate: new Date()
+        }
+      }).catch(err => console.warn('[FocusSession] user study minutes update error:', err));
     }
 
     // Audit log for state changes
@@ -4947,6 +5040,51 @@ apiRouter.put('/admin/users/:id/status', requireAdmin, validateBody(AdminUpdateS
   }
 });
 
+// Admin toggle affiliate status for user
+apiRouter.put('/admin/users/:id/affiliate', requireAdmin, async (req: AuthRequest, res: Response) => {
+  const { id } = req.params;
+  const { isAffiliate } = req.body;
+  try {
+    const prisma = getPrisma();
+    const user = await dbService.findUserById(id);
+    if (!user) {
+      res.status(404).json({ success: false, message: 'Không tìm thấy người dùng' });
+      return;
+    }
+
+    const targetAffiliate = Boolean(isAffiliate);
+    await prisma.$executeRawUnsafe(
+      `UPDATE "users" SET "is_affiliate" = $1, "updatedAt" = NOW() WHERE "id" = $2`,
+      targetAffiliate,
+      id
+    );
+
+    if (targetAffiliate) {
+      await referralService.getOrCreateProfile(id);
+    }
+
+    await dbService.createAuditLog(
+      req.userId!,
+      targetAffiliate ? 'ADMIN_GRANT_AFFILIATE' : 'ADMIN_REVOKE_AFFILIATE',
+      'users',
+      id,
+      { beforeAffiliate: (user as any).isAffiliate },
+      { isAffiliate: targetAffiliate }
+    );
+
+    res.json({
+      success: true,
+      message: targetAffiliate
+        ? `Đã nâng cấp tài khoản ${user.name} (${user.email}) lên Cộng tác viên (CTV) thành công!`
+        : `Đã thu hồi quyền Cộng tác viên của tài khoản ${user.name} (${user.email}) thành công!`,
+      isAffiliate: targetAffiliate
+    });
+  } catch (err: any) {
+    console.error('Error toggling affiliate:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 apiRouter.put('/admin/users/:id/plan', requireAdmin, validateBody(AdminChangePlanSchema), async (req: AuthRequest, res: Response) => {
   const { id } = req.params;
   const { plan, durationMonths, reason } = req.body;
@@ -5663,6 +5801,35 @@ apiRouter.post('/admin/email-queue/test', requireAdmin, async (req: AuthRequest,
 // REFERRAL PROGRAM API ENDPOINTS
 // ====================================================
 
+// In-memory cache for Top 5 Affiliates (60s TTL) to minimize database queries on free tier
+let cachedTopAffiliates: { timestamp: number; data: any[] } | null = null;
+
+// 0. Public/Auth: Get Top 5 Affiliates Leaderboard
+apiRouter.get('/referrals/top', async (_req: Request, res: Response) => {
+  try {
+    const now = Date.now();
+    if (cachedTopAffiliates && now - cachedTopAffiliates.timestamp < 60000) {
+      return res.json({
+        success: true,
+        topAffiliates: cachedTopAffiliates.data,
+        cached: true
+      });
+    }
+
+    const list = await referralService.getTopAffiliates(5);
+    cachedTopAffiliates = { timestamp: now, data: list };
+
+    res.json({
+      success: true,
+      topAffiliates: list,
+      cached: false
+    });
+  } catch (err: any) {
+    console.error('GET /referrals/top error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // 1. User: Get Referral Dashboard Stats
 apiRouter.get('/referrals/dashboard', async (req: AuthRequest, res: Response) => {
   try {
@@ -5674,6 +5841,41 @@ apiRouter.get('/referrals/dashboard', async (req: AuthRequest, res: Response) =>
     });
   } catch (err: any) {
     console.error('GET /referrals/dashboard error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// User: Apply to become an Affiliate (CTV)
+apiRouter.post('/referrals/apply', async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const user = await dbService.findUserById(userId);
+    if (!user) {
+      res.status(404).json({ success: false, message: 'Người dùng không tồn tại' });
+      return;
+    }
+
+    if ((user as any).isAffiliate) {
+      res.json({ success: true, message: 'Tài khoản của bạn đã là Cộng tác viên chính thức!', isAffiliate: true });
+      return;
+    }
+
+    const { note } = req.body || {};
+    await dbService.createAuditLog(
+      userId,
+      'USER_APPLY_AFFILIATE',
+      'users',
+      userId,
+      null,
+      { note: note || 'Người dùng gửi yêu cầu kích hoạt quyền CTV' }
+    );
+
+    res.json({
+      success: true,
+      message: 'Đã gửi yêu cầu đăng ký Cộng tác viên thành công! Admin sẽ duyệt và kích hoạt quyền CTV cho bạn.'
+    });
+  } catch (err: any) {
+    console.error('POST /referrals/apply error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
@@ -5790,6 +5992,64 @@ apiRouter.post('/admin/referrals/withdrawals/:id/reject', requireAdmin, async (r
     });
   } catch (err: any) {
     console.error('POST /admin/referrals/withdrawals/:id/reject error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 7b. Admin: Get Referral System Settings (e.g. Commission Rate)
+apiRouter.get('/admin/referrals/settings', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const rate = await referralService.getCommissionRate();
+    res.json({
+      success: true,
+      commissionRate: rate
+    });
+  } catch (err: any) {
+    console.error('GET /admin/referrals/settings error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 7c. Admin: Update Referral Commission Rate
+apiRouter.post('/admin/referrals/settings', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const rate = parseFloat(req.body.commissionRate);
+    if (isNaN(rate) || rate <= 0 || rate > 100) {
+      res.status(400).json({ success: false, message: 'Tỷ lệ hoa hồng phải là số từ 1 đến 100.' });
+      return;
+    }
+    const updated = await referralService.setCommissionRate(rate);
+    res.json({
+      success: true,
+      message: `Đã cập nhật tỷ lệ hoa hồng thành công: ${updated}%`,
+      commissionRate: updated
+    });
+  } catch (err: any) {
+    console.error('POST /admin/referrals/settings error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 7d. Admin: Manual Order Confirmation & Referral Commission Credit
+apiRouter.post('/admin/referrals/orders/confirm', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { orderId, customerEmail, amount } = req.body;
+    if (!orderId || !customerEmail) {
+      res.status(400).json({ success: false, message: 'Vui lòng cung cấp Mã đơn hàng và Email khách hàng.' });
+      return;
+    }
+    const result = await referralService.adminConfirmOrderCommission(
+      String(orderId).trim(),
+      String(customerEmail).trim(),
+      amount ? Number(amount) : undefined
+    );
+    res.json({
+      success: true,
+      message: `Đã xác nhận đơn hàng ${orderId} và cộng hoa hồng thành công cho Cộng tác viên!`,
+      commission: result
+    });
+  } catch (err: any) {
+    console.error('POST /admin/referrals/orders/confirm error:', err);
     res.status(400).json({ success: false, message: err.message });
   }
 });
@@ -5956,20 +6216,6 @@ apiRouter.get('/feedback/my', async (req: AuthRequest, res: Response) => {
     });
   } catch (err: any) {
     console.error('GET /feedback/my error:', err);
-    res.status(500).json({ success: false, message: err.message });
-  }
-});
-
-// 3. User & Public: Get community feedback wishlist & roadmap
-apiRouter.get('/feedback/public', async (req: AuthRequest, res: Response) => {
-  try {
-    const list = await feedbackService.getPublicFeedbacks(req.userId);
-    res.json({
-      success: true,
-      feedbacks: list
-    });
-  } catch (err: any) {
-    console.error('GET /feedback/public error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
@@ -6254,3 +6500,134 @@ apiRouter.post('/admin/announcements/:id/retry-failed', requireAdmin, async (req
 });
 
 
+
+
+// 13. Public/User: Get active published announcements & login alerts
+apiRouter.get('/announcements/active', async (req: AuthRequest, res: Response) => {
+  try {
+    const list = await announcementService.getActiveAnnouncements(req.userId);
+    res.json({ success: true, announcements: list });
+  } catch (err: any) {
+    console.error('GET /announcements/active error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// 14. User: Acknowledge announcement (Mark as read / do not pop up again)
+apiRouter.post('/announcements/:id/acknowledge', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const result = await announcementService.acknowledgeAnnouncement(req.params.id, req.userId!);
+    res.json(result);
+  } catch (err: any) {
+    console.error('POST /announcements/:id/acknowledge error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 15. User: Track CTA button click
+apiRouter.post('/announcements/:id/click', async (req: AuthRequest, res: Response) => {
+  try {
+    const result = await announcementService.trackClick(req.params.id, req.userId);
+    res.json(result);
+  } catch (err: any) {
+    console.error('POST /announcements/:id/click error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 16. Admin: Toggle Pin / Unpin
+apiRouter.post('/admin/announcements/:id/toggle-pin', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const adminUser = {
+      id: req.userId!,
+      name: req.user?.name || req.user?.email || 'Administrator'
+    };
+    const result = await announcementService.togglePin(req.params.id, adminUser);
+    res.json(result);
+  } catch (err: any) {
+    console.error('POST /admin/announcements/:id/toggle-pin error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 17. Admin: Remind unread recipients
+apiRouter.post('/admin/announcements/:id/remind-unread', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const adminUser = {
+      id: req.userId!,
+      name: req.user?.name || req.user?.email || 'Administrator'
+    };
+    const result = await announcementService.remindUnread(req.params.id, adminUser);
+    res.json(result);
+  } catch (err: any) {
+    console.error('POST /admin/announcements/:id/remind-unread error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 18. Admin: Get Read Receipts
+apiRouter.get('/admin/announcements/:id/receipts', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const result = await announcementService.getReadReceipts(req.params.id);
+    res.json(result);
+  } catch (err: any) {
+    console.error('GET /admin/announcements/:id/receipts error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 19. Admin: Preview HTML Email
+apiRouter.post('/admin/announcements/preview-email', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { buildAdminBroadcastGmailHTML } = await import('../services/broadcastEmailTemplate.service.js');
+    const html = buildAdminBroadcastGmailHTML({
+      title: req.body.title || 'Tiêu đề thông báo mẫu',
+      message: req.body.message || 'Nội dung thông báo mẫu gửi từ Quản trị viên LifeOS...',
+      type: req.body.type || 'GENERAL',
+      priority: req.body.priority || 'NORMAL',
+      imageUrl: req.body.imageUrl || null,
+      actionLabel: req.body.actionLabel || 'Xem trên LifeOS',
+      actionUrl: req.body.actionUrl || 'https://www.quanlicanhan.online',
+      recipientName: req.user?.name || 'Nguyễn Văn A',
+      recipientEmail: req.user?.email || 'user@example.com'
+    });
+    res.json({ success: true, html });
+  } catch (err: any) {
+    console.error('POST /admin/announcements/preview-email error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+// 20. Admin: WordPress REST API / SMTP Bridge Management
+apiRouter.get('/admin/wordpress/config', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { wordPressBridgeService } = await import('../services/wordpressBridge.service.js');
+    const config = await wordPressBridgeService.getConfig();
+    res.json({ success: true, config });
+  } catch (err: any) {
+    console.error('GET /admin/wordpress/config error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+apiRouter.post('/admin/wordpress/config', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { wordPressBridgeService } = await import('../services/wordpressBridge.service.js');
+    await wordPressBridgeService.saveConfig(req.body);
+    res.json({ success: true, message: 'Đã lưu cấu hình kết nối WordPress.' });
+  } catch (err: any) {
+    console.error('POST /admin/wordpress/config error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+apiRouter.post('/admin/wordpress/test', requireAdmin, async (req: AuthRequest, res: Response) => {
+  try {
+    const { wordPressBridgeService } = await import('../services/wordpressBridge.service.js');
+    const result = await wordPressBridgeService.testConnection(req.body);
+    res.json(result);
+  } catch (err: any) {
+    console.error('POST /admin/wordpress/test error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});

@@ -5,12 +5,14 @@ import {
   Check, Clock, AlertTriangle, Play, Square, Plus, Edit3,
   Calendar as CalendarIcon, Tag, FolderKanban, LayoutGrid, List as ListIcon, X, Trash2, Search, Target,
   Paperclip, Upload, Download, FileText, File, Loader2,
-  CalendarCheck, Flame, Layers, MoreVertical, Zap, Sparkles, CheckSquare
+  CalendarCheck, Flame, Layers, MoreVertical, Zap, Sparkles, CheckSquare, RotateCcw
 } from 'lucide-react';
 import { Task, TaskStatus, Priority, TaskEnergyLevel, TaskSubtask } from '../lib/types';
-import { formatCurrency, formatDate } from '../lib/utils';
+import { formatCurrency, formatDate, formatLocalDateKey } from '../lib/utils';
 import { apiCall } from '../lib/apiClient';
 import { ENERGY_CONFIG, EnergyLevel } from '../utils/commandParser';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+import { soundEngine } from '../lib/soundEngine';
 
 export type NormalizedTaskStatus = 'Chưa làm' | 'Đang làm' | 'Đang chờ' | 'Hoàn thành' | 'Hủy';
 
@@ -87,9 +89,59 @@ export function TasksView() {
   const { tasks, projects, goals, addTask, updateTask, deleteTask, language } = useAppStore();
   const t = useTranslation(language);
   const isVi = language === 'vi';
-  const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'timeboxing'>('list');
-  const [filterStatus, setFilterStatus] = useState<string>('All');
-  const [filterEnergy, setFilterEnergy] = useState<string>('all');
+  // View mode with F5 reload persistence
+  const [viewMode, setViewMode] = useState<'list' | 'kanban' | 'timeboxing'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_tasks_view_mode') as any;
+        if (saved && ['list', 'kanban', 'timeboxing'].includes(saved)) {
+          return saved;
+        }
+      } catch {}
+    }
+    return 'list';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_tasks_view_mode', viewMode);
+    } catch {}
+  }, [viewMode]);
+
+  // Filter status with F5 reload persistence
+  const [filterStatus, setFilterStatus] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_tasks_filter_status');
+        if (saved) return saved;
+      } catch {}
+    }
+    return 'All';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_tasks_filter_status', filterStatus);
+    } catch {}
+  }, [filterStatus]);
+
+  // Filter energy with F5 reload persistence
+  const [filterEnergy, setFilterEnergy] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_tasks_filter_energy');
+        if (saved) return saved;
+      } catch {}
+    }
+    return 'all';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_tasks_filter_energy', filterEnergy);
+    } catch {}
+  }, [filterEnergy]);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [quickTitle, setQuickTitle] = useState('');
   const [quickPriority, setQuickPriority] = useState<Priority>('Trung bình');
@@ -155,6 +207,8 @@ export function TasksView() {
       waiting: list.filter(t => normalizeTaskStatus(t.status) === 'Đang chờ').length,
       overdue: list.filter(t => isTaskOverdue(t, localToday, utcToday)).length,
       highRisk: list.filter(t => isTaskHighRisk(t, localToday, utcToday)).length,
+      highPriority: list.filter(t => ['cao', 'nghiêm trọng', 'khẩn cấp', 'high', 'critical', 'urgent'].includes(String(t.priority || '').toLowerCase())).length,
+      noSchedule: list.filter(t => !t.dueDate && !t.startDate && !t.timeSlot).length,
       activeTotal: list.filter(t => {
         const s = normalizeTaskStatus(t.status);
         return s !== 'Hoàn thành' && s !== 'Hủy';
@@ -204,6 +258,10 @@ export function TasksView() {
       result = result.filter(t => normalizeTaskStatus(t.status) === 'Hoàn thành');
     } else if (filterStatus === 'Đang chờ') {
       result = result.filter(t => normalizeTaskStatus(t.status) === 'Đang chờ');
+    } else if (filterStatus === 'HighPriority') {
+      result = result.filter(t => ['cao', 'nghiêm trọng', 'khẩn cấp', 'high', 'critical', 'urgent'].includes(String(t.priority || '').toLowerCase()));
+    } else if (filterStatus === 'NoSchedule') {
+      result = result.filter(t => !t.dueDate && !t.startDate && !t.timeSlot);
     }
 
     if (filterEnergy !== 'all') {
@@ -241,6 +299,33 @@ export function TasksView() {
   // Modals
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [undoTask, setUndoTask] = useState<Task | null>(null);
+  const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    };
+  }, []);
+
+  const handleDeleteTask = (task: Task) => {
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoTask(task);
+    deleteTask(task.id);
+    soundEngine.playPop();
+    undoTimerRef.current = setTimeout(() => {
+      setUndoTask(null);
+    }, 5000);
+  };
+
+  const handleUndoDelete = async () => {
+    if (undoTask) {
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+      await addTask(undoTask);
+      setUndoTask(null);
+      soundEngine.playSuccess();
+    }
+  };
 
   const openNewTask = () => {
     setEditingTask(null);
@@ -345,13 +430,10 @@ export function TasksView() {
 
       {/* Unified Compact Toolbar: Filter Tabs + Search + View Switcher */}
       <div className="bg-white dark:bg-[#141E30] p-2 sm:p-2.5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5 shadow-xs">
-        {/* Left: Filter Tabs with Horizontal Scroll on Mobile */}
-        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1 lg:mx-0 lg:px-0">
+        {/* Left: Compact Primary Filter Tabs + Quick Dropdown for Extras */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1 lg:mx-0 lg:px-0">
           <FilterButton active={filterStatus === 'All'} count={counts.all} onClick={() => handleSelectFilter('All')}>
             {t('Tất cả')}
-          </FilterButton>
-          <FilterButton active={filterStatus === 'Today'} count={counts.today} onClick={() => handleSelectFilter('Today')}>
-            {t('Hôm nay')}
           </FilterButton>
           <FilterButton active={filterStatus === 'Chưa làm'} count={counts.todo} onClick={() => handleSelectFilter('Chưa làm')}>
             {t('Chưa làm')}
@@ -362,12 +444,37 @@ export function TasksView() {
           <FilterButton active={filterStatus === 'Hoàn thành'} count={counts.completed} onClick={() => handleSelectFilter('Hoàn thành')}>
             {t('Hoàn thành')}
           </FilterButton>
-          <FilterButton active={filterStatus === 'Đang chờ'} count={counts.waiting} onClick={() => handleSelectFilter('Đang chờ')}>
-            {t('Đang chờ')}
-          </FilterButton>
-          <FilterButton active={filterStatus === 'Overdue'} count={counts.overdue} alert={counts.overdue > 0} onClick={() => handleSelectFilter('Overdue')}>
+          <FilterButton active={filterStatus === 'Overdue'} count={counts.overdue} onClick={() => handleSelectFilter('Overdue')}>
             {t('Quá hạn')}
           </FilterButton>
+          <FilterButton active={filterStatus === 'HighPriority'} count={counts.highPriority} onClick={() => handleSelectFilter('HighPriority')}>
+            {t('Ưu tiên cao')}
+          </FilterButton>
+          <FilterButton active={filterStatus === 'NoSchedule'} count={counts.noSchedule} onClick={() => handleSelectFilter('NoSchedule')}>
+            {t('Không có lịch')}
+          </FilterButton>
+
+          {/* Quick Select for Secondary Filters */}
+          <div className="relative shrink-0">
+            <select
+              value={['All', 'Chưa làm', 'Đang làm', 'Hoàn thành', 'Overdue', 'HighPriority', 'NoSchedule'].includes(filterStatus) ? '' : filterStatus}
+              onChange={(e) => {
+                if (e.target.value) handleSelectFilter(e.target.value as any);
+              }}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer outline-none ${
+                !['All', 'Chưa làm', 'Đang làm', 'Hoàn thành', 'Overdue', 'HighPriority', 'NoSchedule'].includes(filterStatus)
+                  ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              <option value="" disabled>
+                {t('Khác...')}
+              </option>
+              <option value="Today">{t('Hôm nay')} ({counts.today})</option>
+              <option value="Đang chờ">{t('Đang chờ')} ({counts.waiting})</option>
+              <option value="HighRisk">{t('Rủi ro cao')} ({counts.highRisk})</option>
+            </select>
+          </div>
         </div>
 
         {/* Right: Search Input + View Mode Switcher */}
@@ -439,68 +546,6 @@ export function TasksView() {
           </div>
         </div>
       </div>
-
-      {/* Energy Level Filter Bar */}
-      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs text-slate-500 py-1">
-        <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider shrink-0 flex items-center gap-1">
-          <Zap className="w-3 h-3 text-amber-500" /> {t('Năng lượng:')}
-        </span>
-        <button
-          type="button"
-          onClick={() => setFilterEnergy('all')}
-          className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
-            filterEnergy === 'all'
-              ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-2xs'
-              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-750'
-          }`}
-        >
-          {t('Tất cả')}
-        </button>
-        <button
-          type="button"
-          onClick={() => setFilterEnergy('deep_work')}
-          className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
-            filterEnergy === 'deep_work'
-              ? 'bg-red-500 text-white border-red-500 shadow-2xs'
-              : 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20'
-          }`}
-        >
-          🔴 Deep Work
-        </button>
-        <button
-          type="button"
-          onClick={() => setFilterEnergy('shallow')}
-          className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
-            filterEnergy === 'shallow'
-              ? 'bg-amber-500 text-white border-amber-500 shadow-2xs'
-              : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20'
-          }`}
-        >
-          🟡 Shallow Work
-        </button>
-        <button
-          type="button"
-          onClick={() => setFilterEnergy('low_battery')}
-          className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
-            filterEnergy === 'low_battery'
-              ? 'bg-emerald-500 text-white border-emerald-500 shadow-2xs'
-              : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-          }`}
-        >
-          🟢 Low Battery
-        </button>
-        <button
-          type="button"
-          onClick={() => setFilterEnergy('quick_win')}
-          className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer border ${
-            filterEnergy === 'quick_win'
-              ? 'bg-purple-500 text-white border-purple-500 shadow-2xs'
-              : 'bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20'
-          }`}
-        >
-          ⚡ Quick Win
-        </button>
-      </div>
       {allTags.length > 0 && (
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar text-xs text-slate-500 -mt-1 px-1">
           <span className="flex items-center gap-1 text-slate-400 shrink-0 text-[11px]"><Tag className="w-3 h-3" /> {t('Thẻ:')}</span>
@@ -552,6 +597,14 @@ export function TasksView() {
                   type="text"
                   value={quickTitle}
                   onChange={e => setQuickTitle(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (quickTitle.trim()) {
+                        handleQuickCreate(e);
+                      }
+                    }
+                  }}
                   placeholder={t('Thêm nhanh công việc mới... (Nhấn Enter để lưu)')}
                   className="w-full bg-transparent text-base sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden"
                 />
@@ -563,13 +616,13 @@ export function TasksView() {
                   type="date"
                   value={quickDueDate}
                   onChange={e => setQuickDueDate(e.target.value)}
-                  className="text-base sm:text-xs min-h-[38px] sm:min-h-[32px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-slate-600 dark:text-slate-300 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+                  className="text-base sm:text-xs min-h-[44px] sm:min-h-[36px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-slate-600 dark:text-slate-300 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
                   title={t('Hạn chót')}
                 />
                 <select
                   value={quickPriority}
                   onChange={e => setQuickPriority(e.target.value as Priority)}
-                  className="text-base sm:text-xs min-h-[38px] sm:min-h-[32px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-slate-600 dark:text-slate-300 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+                  className="text-base sm:text-xs min-h-[44px] sm:min-h-[36px] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-2.5 py-1 text-slate-600 dark:text-slate-300 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
                   title={t('Độ ưu tiên')}
                 >
                   <option value="Thấp">{t('Thấp')}</option>
@@ -579,9 +632,10 @@ export function TasksView() {
                 </select>
                 {quickTitle.trim() && (
                   <button
+                    id="btn-quick-create-task"
                     type="submit"
                     disabled={isQuickCreating}
-                    className="px-3.5 py-1.5 min-h-[38px] sm:min-h-[32px] bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 text-xs font-black rounded-xl shadow-xs transition-colors cursor-pointer shrink-0"
+                    className="px-3.5 py-1.5 min-h-[44px] sm:min-h-[36px] bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 text-xs font-black rounded-xl shadow-xs transition-colors cursor-pointer shrink-0 active:scale-95"
                   >
                     {isQuickCreating ? '...' : t('Thêm ↵')}
                   </button>
@@ -616,7 +670,12 @@ export function TasksView() {
                   key={task.id}
                   task={task} 
                   onEdit={() => openEditTask(task)}
-                  onDelete={() => deleteTask(task.id)}
+                  onDelete={() => handleDeleteTask(task)}
+                  onUpdateTitle={(newTitle: string) => {
+                    if (newTitle.trim() && newTitle.trim() !== task.title) {
+                      updateTask(task.id, { title: newTitle.trim() });
+                    }
+                  }}
                   onToggleStatus={() => {
                     const isDone = task.status === 'Hoàn thành' || task.status === 'Done';
                     updateTask(task.id, { 
@@ -668,7 +727,11 @@ export function TasksView() {
                 onEdit={openEditTask} 
                 onDropTask={(id: string, status: any) => updateTask(id, { status })} 
                 onTagClick={(tag: string) => setSearchQuery(tag)}
-                onDelete={(id: string) => deleteTask(id)}
+                onDelete={(id: string) => {
+                  const t = (tasks || []).find(item => item.id === id);
+                  if (t) handleDeleteTask(t);
+                  else deleteTask(id);
+                }}
               />
               <KanbanColumn 
                 title={t('Đang làm')} 
@@ -677,7 +740,11 @@ export function TasksView() {
                 onEdit={openEditTask} 
                 onDropTask={(id: string, status: any) => updateTask(id, { status })} 
                 onTagClick={(tag: string) => setSearchQuery(tag)}
-                onDelete={(id: string) => deleteTask(id)}
+                onDelete={(id: string) => {
+                  const t = (tasks || []).find(item => item.id === id);
+                  if (t) handleDeleteTask(t);
+                  else deleteTask(id);
+                }}
               />
               <KanbanColumn 
                 title={t('Đang chờ')} 
@@ -686,7 +753,11 @@ export function TasksView() {
                 onEdit={openEditTask} 
                 onDropTask={(id: string, status: any) => updateTask(id, { status })} 
                 onTagClick={(tag: string) => setSearchQuery(tag)}
-                onDelete={(id: string) => deleteTask(id)}
+                onDelete={(id: string) => {
+                  const t = (tasks || []).find(item => item.id === id);
+                  if (t) handleDeleteTask(t);
+                  else deleteTask(id);
+                }}
               />
               <KanbanColumn 
                 title={t('Hoàn thành')} 
@@ -695,7 +766,11 @@ export function TasksView() {
                 onEdit={openEditTask} 
                 onDropTask={(id: string, status: any) => updateTask(id, { status })} 
                 onTagClick={(tag: string) => setSearchQuery(tag)}
-                onDelete={(id: string) => deleteTask(id)}
+                onDelete={(id: string) => {
+                  const t = (tasks || []).find(item => item.id === id);
+                  if (t) handleDeleteTask(t);
+                  else deleteTask(id);
+                }}
               />
             </div>
           </div>
@@ -724,12 +799,42 @@ export function TasksView() {
             setShowTaskModal(false);
           }}
           onDelete={async (id: string) => {
-            await deleteTask(id);
+            const t = (tasks || []).find(item => item.id === id) || editingTask;
+            if (t) handleDeleteTask(t);
+            else await deleteTask(id);
             setShowTaskModal(false);
           }}
           projects={projects}
           goals={goals}
         />
+      )}
+
+      {/* Floating 5-Second Undo Toast */}
+      {undoTask && (
+        <div className="fixed bottom-6 right-6 z-[90] flex items-center gap-3 px-4 py-3 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-2xl shadow-2xl animate-page-enter border border-slate-700 dark:border-slate-200">
+          <span className="text-xs font-medium">
+            {isVi ? `Đã xóa công việc "${undoTask.title}"` : `Deleted task "${undoTask.title}"`}
+          </span>
+          <button
+            type="button"
+            onClick={handleUndoDelete}
+            className="px-2.5 py-1 text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>{isVi ? 'Hoàn tác (5s)' : 'Undo (5s)'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+              setUndoTask(null);
+            }}
+            className="p-1 text-slate-400 hover:text-white dark:hover:text-slate-900 transition-colors cursor-pointer"
+            aria-label="Đóng"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
       )}
     </div>
   );
@@ -769,7 +874,7 @@ function FilterButton({ active, count, alert, children, onClick }: any) {
     <button 
       type="button" 
       onClick={onClick}
-      className={`px-3 py-1.5 text-xs font-bold rounded-xl whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5
+      className={`px-3 py-1.5 min-h-[36px] sm:min-h-[32px] text-xs font-bold rounded-xl whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5
         ${active 
           ? 'bg-emerald-500 text-slate-950 font-black shadow-2xs' 
           : alert
@@ -837,13 +942,44 @@ export function getEnergyBadge(energy?: string) {
   );
 }
 
-function TaskRow({ task, onEdit, onDelete, onToggleStatus, timerActive, timerSeconds, onToggleTimer, formatTimer, projectName, goalTitle, onTagClick }: any) {
+function TaskRow({ task, onEdit, onDelete, onToggleStatus, timerActive, timerSeconds, onToggleTimer, formatTimer, projectName, goalTitle, onTagClick, onUpdateTitle }: any) {
   const { language } = useAppStore();
   const t = useTranslation(language);
   const isCompleted = task.status === 'Hoàn thành' || task.status === 'Done';
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = formatLocalDateKey(new Date());
   const isOverdue = task.dueDate && task.dueDate < todayStr && !isCompleted;
   
+  // Inline Click-to-Edit State
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editedTitle, setEditedTitle] = useState(task.title || '');
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setEditedTitle(task.title || '');
+  }, [task.title]);
+
+  useEffect(() => {
+    if (isEditingTitle && titleInputRef.current) {
+      titleInputRef.current.focus();
+      titleInputRef.current.select();
+    }
+  }, [isEditingTitle]);
+
+  const handleSaveInlineTitle = () => {
+    const trimmed = editedTitle.trim();
+    if (trimmed && trimmed !== task.title && onUpdateTitle) {
+      onUpdateTitle(trimmed);
+    } else {
+      setEditedTitle(task.title || '');
+    }
+    setIsEditingTitle(false);
+  };
+
+  const handleCancelInlineTitle = () => {
+    setEditedTitle(task.title || '');
+    setIsEditingTitle(false);
+  };
+
   return (
     <div 
       onClick={onEdit}
@@ -871,10 +1007,67 @@ function TaskRow({ task, onEdit, onDelete, onToggleStatus, timerActive, timerSec
       {/* Task Content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className={`font-semibold text-sm leading-snug break-words line-clamp-2 ${isCompleted ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-900 dark:text-white'}`}>
-            {t(task.title)}
-          </p>
-          {task.priority === 'Nghiêm trọng' && <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0 animate-wiggle" />}
+          {isEditingTitle ? (
+            <div 
+              className="flex items-center gap-1.5 w-full"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <input
+                ref={titleInputRef}
+                type="text"
+                value={editedTitle}
+                onChange={(e) => setEditedTitle(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleSaveInlineTitle();
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault();
+                    handleCancelInlineTitle();
+                  }
+                }}
+                onBlur={handleSaveInlineTitle}
+                maxLength={255}
+                className="w-full px-2.5 py-1 text-sm font-semibold text-slate-900 dark:text-white bg-white dark:bg-slate-800 border-2 border-emerald-500 rounded-lg shadow-xs outline-hidden ring-2 ring-emerald-500/20"
+                placeholder={t('Nhập tên công việc...')}
+              />
+              <button
+                type="button"
+                onClick={handleSaveInlineTitle}
+                className="p-1 rounded-md bg-emerald-500 text-slate-950 hover:bg-emerald-400 transition-colors shrink-0 cursor-pointer"
+                title={t('Lưu nhanh (Enter)')}
+              >
+                <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+              </button>
+            </div>
+          ) : (
+            <div 
+              onDoubleClick={(e) => {
+                e.stopPropagation();
+                setIsEditingTitle(true);
+              }}
+              title={t('Nhấp đúp để đổi tên nhanh')}
+              className="group/title flex items-center gap-2 cursor-text"
+            >
+              <p className={`font-semibold text-sm leading-snug break-words line-clamp-2 transition-colors ${
+                isCompleted ? 'text-slate-400 dark:text-slate-500 line-through' : 'text-slate-900 dark:text-white group-hover/title:text-emerald-600 dark:group-hover/title:text-emerald-400'
+              }`}>
+                {t(task.title)}
+              </p>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsEditingTitle(true);
+                }}
+                className="opacity-0 group-hover/title:opacity-100 p-0.5 text-slate-400 hover:text-emerald-500 transition-opacity rounded cursor-pointer shrink-0"
+                title={t('Đổi tên nhanh')}
+              >
+                <Edit3 className="w-3 h-3" />
+              </button>
+              {task.priority === 'Nghiêm trọng' && <AlertTriangle className="w-3.5 h-3.5 text-rose-500 shrink-0 animate-wiggle" />}
+            </div>
+          )}
         </div>
         
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mt-1 text-xs">
@@ -1286,7 +1479,8 @@ function TimeboxingView({ tasks, onEditTask, onUpdateTask, localToday }: any) {
   );
 }
 
-function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
+export function TaskModal({ task, initialDate, initialTimeSlot, onClose, onSave, onDelete, projects, goals }: any) {
+  useBodyScrollLock(true);
   const { language } = useAppStore();
   const t = useTranslation(language);
   const [formData, setFormData] = useState<any>({
@@ -1294,7 +1488,7 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
     description: task?.description || '',
     status: task?.status || 'Chưa làm',
     priority: task?.priority || 'Trung bình',
-    dueDate: task?.dueDate || '',
+    dueDate: task?.dueDate || initialDate || '',
     projectId: task?.projectId || '',
     linkedGoalId: task?.linkedGoalId || '',
     estimatedHours: task?.estimatedHours ?? '',
@@ -1302,12 +1496,58 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
     recurrence: task?.recurrence || task?.recurring || 'none',
     tags: Array.isArray(task?.tags) ? task.tags.join(', ') : (task?.tags || ''),
     notes: task?.notes || '',
-    timeSlot: task?.timeSlot || '',
+    timeSlot: task?.timeSlot || initialTimeSlot || (task?.startDate && /^\d{2}:\d{2}$/.test(task.startDate) ? task.startDate : ''),
+    startDate: task?.startDate || initialTimeSlot || '',
   });
 
   const [subtasks, setSubtasks] = useState<TaskSubtask[]>(task?.subtasks || []);
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const [taskEnergy, setTaskEnergy] = useState<TaskEnergyLevel>(task?.energy || 'shallow');
+  const [isShaking, setIsShaking] = useState(false);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isFormDirty = Boolean(
+    (formData.title || '').trim() !== (task?.title || '').trim() ||
+    (formData.description || '').trim() !== (task?.description || '').trim() ||
+    formData.status !== (task?.status || 'Chưa làm') ||
+    formData.priority !== (task?.priority || 'Trung bình') ||
+    (formData.dueDate || '') !== (task?.dueDate || initialDate || '') ||
+    (formData.projectId || '') !== (task?.projectId || '') ||
+    (formData.linkedGoalId || '') !== (task?.linkedGoalId || '') ||
+    (formData.timeSlot || '') !== (task?.timeSlot || initialTimeSlot || (task?.startDate && /^\d{2}:\d{2}$/.test(task.startDate) ? task.startDate : '')) ||
+    taskEnergy !== (task?.energy || 'shallow') ||
+    subtasks.length !== (task?.subtasks || []).length
+  );
+
+  const triggerShake = () => {
+    setIsShaking(true);
+    soundEngine.playPop();
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(50);
+    }
+    setTimeout(() => setIsShaking(false), 450);
+  };
+
+  const handleSafeClose = () => {
+    if (isSubmitting) return;
+    if (isFormDirty) {
+      triggerShake();
+      return;
+    }
+    onClose();
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        handleSafeClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFormDirty, isSubmitting]);
 
   const handleAddSubtask = () => {
     const title = newSubtaskTitle.trim();
@@ -1361,12 +1601,14 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
     }
   }, [task?.id]);
 
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !task?.id) return;
 
     if (file.size > 20 * 1024 * 1024) {
-      alert(t('Kích thước tệp không được vượt quá 20MB'));
+      setErrorMessage(t('Kích thước tệp không được vượt quá 20MB'));
       return;
     }
 
@@ -1395,7 +1637,7 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
 
           await loadAttachments(task.id);
         } catch (uploadErr: any) {
-          alert(t('Không thể tải tệp lên:') + ' ' + uploadErr.message);
+          setErrorMessage(t('Không thể tải tệp lên:') + ' ' + (uploadErr?.message || ''));
         } finally {
           setIsUploadingAttachment(false);
         }
@@ -1403,23 +1645,20 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
       reader.readAsDataURL(file);
     } catch (err: any) {
       setIsUploadingAttachment(false);
-      alert(t('Lỗi khi đọc tệp:') + ' ' + err.message);
+      setErrorMessage(t('Lỗi khi đọc tệp:') + ' ' + (err?.message || ''));
     }
     e.target.value = '';
   };
 
   const handleDeleteAttachment = async (attachmentId: string) => {
-    if (!task?.id || !window.confirm(t('Bạn có chắc chắn muốn xóa tệp này?'))) return;
+    if (!task?.id) return;
     try {
       await apiCall(`/api/tasks/${task.id}/attachments/${attachmentId}`, 'DELETE');
       await loadAttachments(task.id);
     } catch (err: any) {
-      alert(t('Lỗi khi xóa tệp:') + ' ' + err.message);
+      setErrorMessage(t('Lỗi khi xóa tệp:') + ' ' + (err?.message || ''));
     }
   };
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
@@ -1451,6 +1690,7 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
         energy: taskEnergy,
         subtasks,
         timeSlot: formData.timeSlot || null,
+        startDate: formData.timeSlot || formData.startDate || null,
         dueDate: formData.dueDate || null,
         projectId: formData.projectId || null,
         linkedGoalId: formData.linkedGoalId || null,
@@ -1461,14 +1701,33 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
       }));
     } catch (err: any) {
       setErrorMessage(err?.message || t('Lỗi khi lưu công việc'));
+    } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-slate-900/60 backdrop-blur-xs overflow-y-auto animate-backdrop-fade">
-      <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh] border border-slate-200 dark:border-slate-800 animate-modal-enter">
-        <div className="flex justify-between items-center p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (mouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+          handleSafeClose();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-6 bg-slate-950/70 backdrop-blur-xs overflow-y-auto animate-backdrop-fade cursor-default"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className={`bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[90dvh] border-t sm:border border-slate-200 dark:border-slate-800 transition-all duration-200 ${
+          isShaking ? 'animate-[shake_0.4s_ease-in-out]' : 'animate-modal-enter'
+        }`}
+      >
+        {/* Mobile Bottom Sheet Pull Bar */}
+        <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto my-2.5 sm:hidden shrink-0" />
+
+        <div className="flex justify-between items-center p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 shrink-0">
           <h3 className="text-lg font-bold text-slate-900 dark:text-white">{task ? t('Chỉnh sửa Công việc') : t('Thêm Công việc Mới')}</h3>
           <div className="flex items-center gap-2">
             {task && (
@@ -1483,7 +1742,7 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
             )}
             <button 
               type="button" 
-              onClick={onClose} 
+              onClick={handleSafeClose} 
               className="p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
               aria-label={t('Đóng')}
             >
@@ -1526,6 +1785,7 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
               </label>
               <input 
                 type="text" required autoFocus
+                maxLength={255}
                 value={formData.title} 
                 onChange={e => setFormData({ ...formData, title: e.target.value })}
                 className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-base sm:text-sm font-medium"
@@ -1756,9 +2016,10 @@ function TaskModal({ task, onClose, onSave, onDelete, projects, goals }: any) {
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">{t('Mô tả & Ghi chú chi tiết')}</label>
               <textarea 
                 value={formData.description} 
+                maxLength={5000}
                 onChange={e => setFormData({ ...formData, description: e.target.value })}
                 className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 min-h-[90px] text-slate-900 dark:text-white text-sm"
-                placeholder={t('Nội dung chi tiết, tài liệu tham khảo, tiêu chí hoàn thành...')}
+                placeholder={t('Nội dung chi tiết, tài liệu tham khảo, tiêu chí hoàn thành (tối đa 5000 ký tự)...')}
               ></textarea>
             </div>
 

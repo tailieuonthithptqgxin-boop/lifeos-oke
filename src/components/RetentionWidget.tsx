@@ -15,6 +15,7 @@ import { useAppStore } from '../lib/store';
 import { apiCall } from '../lib/apiClient';
 import { soundEngine } from '../lib/soundEngine';
 import { triggerConfetti } from '../lib/confetti';
+import { toast } from '../lib/toast';
 
 interface RetentionWidgetProps {
   onQuestClick?: (category: string) => void;
@@ -77,7 +78,7 @@ export function RetentionWidget({ onQuestClick, compact = false }: RetentionWidg
         await fetchProgression();
       }
     } catch (err: any) {
-      alert(err.message || 'Lỗi khi nhận thưởng');
+      toast.error(err.message || 'Lỗi khi nhận thưởng');
     }
   };
 
@@ -136,10 +137,10 @@ export function RetentionWidget({ onQuestClick, compact = false }: RetentionWidg
 
         <div className="text-right">
           <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">
-            {data.levelTitle.split(' · ')[0]}
+            {(data?.levelTitle || 'Initiator').split(' · ')[0]}
           </span>
           <span className="font-black text-white text-sm">
-            Level {data.level}
+            Level {data?.level || 1}
           </span>
         </div>
       </div>

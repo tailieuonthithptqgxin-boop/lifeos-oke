@@ -8,7 +8,7 @@ interface FinanceBudgetsTabProps {
   monthlyExpense: number;
   formatCurrency: (val: number) => string;
   onEditBudget: (budget: any) => void;
-  onDeleteBudget: (id: string) => void;
+  onDeleteBudget: (id: string, budget?: any) => void;
   onAddBudget: () => void;
 }
 
@@ -129,16 +129,9 @@ export const FinanceBudgetsTab: React.FC<FinanceBudgetsTabProps> = ({
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        const confirmMsg = isVi 
-                          ? `Bạn có chắc muốn xóa ngân sách "${budget.category}"?` 
-                          : `Are you sure you want to delete budget "${budget.category}"?`;
-                        if (window.confirm?.(confirmMsg)) {
-                          onDeleteBudget(budget.id);
-                        }
-                      }}
+                      onClick={() => onDeleteBudget(budget.id, budget)}
                       className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/40 rounded-lg transition-colors cursor-pointer"
-                      title={isVi ? 'Xóa ngân sách' : 'Delete budget'}
+                      title={isVi ? 'Xóa ngân sách (Có thể hoàn tác 5s)' : 'Delete budget (5s Undo)'}
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

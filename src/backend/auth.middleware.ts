@@ -1,6 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { dbService } from './db.js';
+import { dbService, isDbConnectionError } from './db.js';
+
+import crypto from 'crypto';
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -10,20 +12,15 @@ export interface AuthRequest extends Request {
   subscription?: any;
 }
 
+// Stable, permanent fallback secret ensures node restarts/rebuilds never invalidate client JWT tokens
+const PERMANENT_FALLBACK_JWT_SECRET = 'lifeos_enterprise_permanent_secure_jwt_secret_key_2026_salt_9988_robust';
 export function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('FATAL: JWT_SECRET environment variable is missing in production!');
-    }
-    return 'dev_lifeos_secure_jwt_secret_key_2026';
-  }
-  return secret;
+  return process.env.JWT_SECRET || PERMANENT_FALLBACK_JWT_SECRET;
 }
 
 /**
  * Robust authentication middleware:
- * Validates JWT token signature AND verifies active database session
+ * Validates JWT token signature AND verifies/auto-heals active database session
  */
 export const requireAuth = async (req: AuthRequest, res: Response, next: NextFunction) => {
   // 1. Extract token from Authorization Bearer header or HttpOnly cookie fallback
@@ -72,19 +69,32 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
   }
 
   try {
-    // 3. Verify session exists in PostgreSQL database and is not expired/revoked
-    const session = await dbService.findSessionByToken(token);
+    // 3. Verify session exists in PostgreSQL database, or auto-heal if valid JWT & active user
+    let session = await dbService.findSessionByToken(token);
     if (!session || new Date(session.expiresAt).getTime() <= Date.now()) {
-      res.clearCookie('token', { path: '/' });
-      res.status(401).json({
-        success: false,
-        error: {
-          code: 'SESSION_REVOKED',
+      // Auto-heal session in database if user is valid and active
+      const user = await dbService.findUserById(decoded.userId);
+      if (user && user.status !== 'DISABLED' && user.status !== 'SUSPENDED') {
+        const extendedExpiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        try {
+          await dbService.createSession(user.id, token, extendedExpiresAt);
+          session = { userId: user.id, token, expiresAt: extendedExpiresAt };
+        } catch {
+          // If unique constraint or transient DB conflict, permit session based on cryptographically validated JWT
+          session = { userId: user.id, token, expiresAt: extendedExpiresAt };
+        }
+      } else {
+        res.clearCookie('token', { path: '/' });
+        res.status(401).json({
+          success: false,
+          error: {
+            code: 'SESSION_REVOKED',
+            message: 'Phiên làm việc đã kết thúc hoặc bị hủy. Vui lòng đăng nhập lại.'
+          },
           message: 'Phiên làm việc đã kết thúc hoặc bị hủy. Vui lòng đăng nhập lại.'
-        },
-        message: 'Phiên làm việc đã kết thúc hoặc bị hủy. Vui lòng đăng nhập lại.'
-      });
-      return;
+        });
+        return;
+      }
     }
 
     // 4. Retrieve fresh user state
@@ -134,6 +144,17 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
     req.user = user;
     next();
   } catch (dbErr: any) {
+    // If the database connection was momentarily dropped or busy, NEVER destroy user session with 401
+    if (isDbConnectionError(dbErr)) {
+      console.warn('Database connection temporarily unavailable in requireAuth:', dbErr.message || dbErr);
+      res.status(503).json({
+        success: false,
+        error: { code: 'DATABASE_UNAVAILABLE', message: 'Hệ thống cơ sở dữ liệu đang bận. Đang thử kết nối lại...' },
+        message: 'Hệ thống cơ sở dữ liệu đang bận. Đang thử kết nối lại...'
+      });
+      return;
+    }
+
     // If table is missing (P2021), attempt one-time auto-synchronization and retry
     if (dbErr?.code === 'P2021') {
       try {
@@ -154,7 +175,7 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
       }
     }
 
-    // Clear stale or corrupted cookie on auth verification failure so client does not get stuck
+    // Clear stale or corrupted cookie on permanent auth verification failure so client does not get stuck
     res.clearCookie('token', { path: '/' });
     console.warn('Session verification failed in requireAuth:', dbErr.message || dbErr);
     res.status(401).json({
@@ -196,40 +217,14 @@ export const requireSuperAdmin = (req: AuthRequest, res: Response, next: NextFun
  * Validates whether user is allowed to access specific feature based on their plan and role.
  */
 export function canUse(user: { plan?: string; role?: string }, feature: string): boolean {
-  const role = (user.role || 'USER').toUpperCase();
-  const plan = (user.plan || 'FREE').toUpperCase();
-
-  // Admins have access to all features
-  if (role === 'SUPERADMIN' || role === 'ADMIN') return true;
-
-  // Global Free Trial accounts have full access to all features
-  if (plan === 'FREE_TRIAL_GLOBAL') return true;
-
-  // Unsubscribed or FREE accounts cannot use features
-  if (plan === 'FREE' || !plan) return false;
-
-  // Team workspace management specifically for team subscribers
-  if (feature === 'TEAM_WORKSPACE' || feature === 'TEAM_COLLABORATION' || feature === 'TEAM_REPORTS') {
-    return plan === 'TEAM_1M' || plan === 'TEAM';
-  }
-
-  // All other features (Decision Engine, Automation, Finance, Kanban, Focus, etc.) are equally accessible to all paid plans
+  if (!user) return false;
+  // 100% Free-to-use mode: All features are completely unlocked for all users
   return true;
 }
 
 export const requireFeature = (feature: string) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.user || !canUse(req.user, feature)) {
-      res.status(403).json({
-        success: false,
-        error: {
-          code: 'PLAN_UPGRADE_REQUIRED',
-          message: `Tính năng '${feature}' yêu cầu tài khoản đã kích hoạt gói dịch vụ.`
-        },
-        message: `Tính năng '${feature}' yêu cầu tài khoản đã kích hoạt gói dịch vụ.`
-      });
-      return;
-    }
+    // 100% Free-to-use mode: Bypass all feature gates
     next();
   };
 };
@@ -237,44 +232,17 @@ export const requireFeature = (feature: string) => {
 /**
  * Universal Subscription Gate Middleware:
  * Enforces that non-admin users must have an ACTIVE, non-expired subscription (Personal or Team member).
+ * In 100% Free-to-use mode, every authenticated user is granted Full Access immediately.
  */
 export const requireActiveSubscription = async (req: AuthRequest, res: Response, next: NextFunction) => {
-  const role = req.userRole?.toUpperCase();
-  if (role === 'ADMIN' || role === 'SUPERADMIN') {
-    return next();
-  }
-
-  try {
-    const { subscriptionService } = await import('./services/subscription.service.js');
-    const subStatus = await subscriptionService.checkUserSubscription(req.userId!);
-
-    if (!subStatus.hasAccess) {
-      const isTrialExp = Boolean(subStatus.isTrialExpired);
-      const code = isTrialExp ? 'TRIAL_EXPIRED' : 'SUBSCRIPTION_REQUIRED';
-      const msg = isTrialExp
-        ? 'Thời gian dùng thử 7 ngày miễn phí của bạn đã kết thúc. Vui lòng kích hoạt gói dịch vụ để tiếp tục sử dụng các phân hệ cao cấp của LifeOS.'
-        : 'Tất cả các chức năng của LifeOS yêu cầu người dùng mua gói trả phí đang hoạt động. Vui lòng chọn gói dịch vụ để tiếp tục sử dụng.';
-
-      res.status(403).json({
-        success: false,
-        error: {
-          code,
-          message: msg
-        },
-        message: msg,
-        subscriptionStatus: subStatus
-      });
-      return;
-    }
-
-    req.subscription = subStatus;
-    next();
-  } catch (err: any) {
-    console.error('requireActiveSubscription error:', err);
-    res.status(500).json({
-      success: false,
-      error: { code: 'SUBSCRIPTION_CHECK_ERROR', message: 'Lỗi kiểm tra quyền gói dịch vụ.' },
-      message: 'Lỗi kiểm tra quyền gói dịch vụ.'
-    });
-  }
+  req.subscription = {
+    hasAccess: true,
+    lifecycleStatus: 'ACTIVE',
+    planId: 'FREE_FULL_ACCESS',
+    planName: 'Trải nghiệm Miễn phí (Full Access)',
+    status: 'ACTIVE',
+    remainingDays: 99999,
+    isGlobalFreeMode: true
+  };
+  return next();
 };

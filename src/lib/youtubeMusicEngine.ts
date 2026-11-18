@@ -4,6 +4,8 @@
  * global playback state, volume management, and zero-reload iframe communication.
  */
 import React, { useState, useEffect } from 'react';
+import { safeJsonParse } from './utils';
+import { globalVolumeManager } from './globalVolumeManager';
 
 export interface YouTubeTrack {
   id: string; // YouTube 11-char Video ID
@@ -163,6 +165,19 @@ class YouTubeMusicEngine {
       isMuted: savedMuted,
       previousVolume: savedPrevVol
     };
+
+    if (typeof window !== 'undefined') {
+      globalVolumeManager.subscribe((volState) => {
+        const effMusic = globalVolumeManager.getEffectiveMusicVolume();
+        const shouldMute = volState.isMuted || effMusic === 0;
+        if (this.state.isMuted !== shouldMute || this.state.volume !== effMusic) {
+          this.state.volume = effMusic;
+          this.state.isMuted = shouldMute;
+          this.syncIframeSettings();
+          this.notify();
+        }
+      });
+    }
   }
 
   private resolveInitialTrack(): YouTubeTrack {
@@ -326,6 +341,11 @@ class YouTubeMusicEngine {
     safeSetItem(STORAGE_KEY_PREV_VOL, String(this.state.previousVolume));
 
     this.notify();
+    try {
+      if (globalVolumeManager.getState().musicVolume !== clamped) {
+        globalVolumeManager.setMusicVolume(clamped);
+      }
+    } catch {}
   }
 
   public adjustVolume(delta: number) {
@@ -394,7 +414,7 @@ class YouTubeMusicEngine {
   // Favorites & History (Preserving backward compatibility)
   public getFavorites(): YouTubeTrack[] {
     const data = safeGetItem(STORAGE_KEY_FAVORITES);
-    return data ? JSON.parse(data) : [];
+    return safeJsonParse<YouTubeTrack[]>(data, []);
   }
 
   public addFavorite(track: YouTubeTrack): YouTubeTrack[] {
@@ -419,7 +439,7 @@ class YouTubeMusicEngine {
 
   public getRecentTracks(): YouTubeTrack[] {
     const data = safeGetItem(STORAGE_KEY_RECENT);
-    return data ? JSON.parse(data) : [];
+    return safeJsonParse<YouTubeTrack[]>(data, []);
   }
 
   public recordPlayed(track: YouTubeTrack) {

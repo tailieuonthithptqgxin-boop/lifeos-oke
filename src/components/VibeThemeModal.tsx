@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Sparkles, Check, Palette, Volume2 } from 'lucide-react';
 import { VIBE_THEMES, VibeThemeId, vibeThemeEngine } from '../lib/vibeThemeEngine';
 import { soundEngine, SOUNDPACKS, SoundpackId } from '../lib/soundEngine';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface VibeThemeModalProps {
   isOpen: boolean;
@@ -9,8 +10,19 @@ interface VibeThemeModalProps {
 }
 
 export function VibeThemeModal({ isOpen, onClose }: VibeThemeModalProps) {
+  useBodyScrollLock(isOpen);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
   const [selectedTheme, setSelectedTheme] = useState<VibeThemeId>(() => vibeThemeEngine.getTheme());
   const [selectedSoundpack, setSelectedSoundpack] = useState<SoundpackId>(() => soundEngine.getSoundpack());
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -26,8 +38,20 @@ export function VibeThemeModal({ isOpen, onClose }: VibeThemeModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
-      <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-white p-5 sm:p-6 space-y-4">
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150 cursor-default"
+    >
+      <div 
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-white p-5 sm:p-6 space-y-4"
+      >
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-800">
           <div className="flex items-center gap-2.5">
@@ -36,104 +60,83 @@ export function VibeThemeModal({ isOpen, onClose }: VibeThemeModalProps) {
             </div>
             <div>
               <span className="text-[10px] font-black uppercase tracking-wider text-purple-400">Aesthetic Visuals</span>
-              <h2 className="text-base font-black text-white">Chọn Vibe Thẩm Mỹ Cho LifeOS 🎨</h2>
+              <h3 className="text-base font-black text-white">Vibe & Theme Studio</h3>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center hover:bg-slate-700 transition-colors"
+            className="w-10 h-10 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer shrink-0"
+            aria-label="Đóng"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Theme Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {(Object.keys(VIBE_THEMES) as VibeThemeId[]).map((id) => {
-            const theme = VIBE_THEMES[id];
-            const isSelected = selectedTheme === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                onClick={() => handleSelect(id)}
-                className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-3 relative overflow-hidden group ${
-                  isSelected
-                    ? `${theme.cardBorder} bg-slate-800/90 ring-2 ring-emerald-400/50 shadow-lg`
-                    : 'border-slate-800 bg-slate-800/40 hover:bg-slate-800/70'
-                }`}
-              >
-                <div className="flex items-center justify-between w-full">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">{theme.emoji}</span>
-                    <span className="font-black text-xs text-white">{theme.name}</span>
-                  </div>
-                  {isSelected && (
-                    <div className="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center shadow-xs">
-                      <Check className="w-3 h-3 stroke-[3]" />
-                    </div>
-                  )}
-                </div>
-
-                <p className="text-[11px] text-slate-400 leading-relaxed">
-                  {theme.description}
-                </p>
-
-                {/* Accent Color Dot & Vibe Tag */}
-                <div className="flex items-center justify-between w-full pt-1">
-                  <span className={`text-[9px] font-black px-2 py-0.5 rounded-full border ${theme.badgeBg}`}>
-                    {theme.vibe}
-                  </span>
-                  <div 
-                    className="w-3 h-3 rounded-full shadow-md"
-                    style={{ backgroundColor: theme.accentColor }}
-                  />
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* ASMR Soundpack Selection Section */}
-        <div className="pt-2 border-t border-slate-800 space-y-2.5">
-          <div className="flex items-center gap-2">
-            <Volume2 className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs font-black text-white">Bộ Âm Thanh ASMR Khi Bấm (Soundpack)</span>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {(Object.keys(SOUNDPACKS) as SoundpackId[]).map((pId) => {
-              const pack = SOUNDPACKS[pId];
-              const isPackSelected = selectedSoundpack === pId;
+        {/* Themes List */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-slate-300 block">
+            Giao diện cảm hứng (Vibe Theme)
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {Object.values(VIBE_THEMES).map((theme) => {
+              const isSelected = selectedTheme === theme.id;
               return (
                 <button
-                  key={pId}
                   type="button"
-                  onClick={() => handleSelectSoundpack(pId)}
-                  className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1 ${
-                    isPackSelected
-                      ? 'bg-emerald-500/20 border-emerald-500 text-white font-black ring-1 ring-emerald-500/40'
-                      : 'bg-slate-800/40 border-slate-700/60 text-slate-300 hover:bg-slate-800'
+                  key={theme.id}
+                  onClick={() => handleSelect(theme.id)}
+                  className={`p-3 min-h-[48px] rounded-2xl border text-left flex items-start gap-2.5 transition-all cursor-pointer ${
+                    isSelected
+                      ? 'border-purple-500 bg-purple-500/10 shadow-lg shadow-purple-500/10'
+                      : 'border-slate-800 bg-slate-800/40 hover:bg-slate-800'
                   }`}
                 >
-                  <span className="text-xl">{pack.emoji}</span>
-                  <span className="text-[10px] font-bold truncate w-full">{pack.name}</span>
+                  <span className="text-xl">{theme.emoji || (theme as any).icon || '✨'}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs text-white truncate">{theme.name}</span>
+                      {isSelected && <Check className="w-3.5 h-3.5 text-purple-400" />}
+                    </div>
+                    <p className="text-[10px] text-slate-400 truncate">{theme.vibe || (theme as any).description}</p>
+                  </div>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="pt-2 flex justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs transition-all shadow-md cursor-pointer"
-          >
-            Áp dụng Thiết lập này ✨
-          </button>
+        {/* Soundpack Selector */}
+        <div className="space-y-2 pt-2 border-t border-slate-800">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+              <Volume2 className="w-3.5 h-3.5 text-purple-400" />
+              <span>Gói âm thanh xúc giác (Tactile Soundpack)</span>
+            </label>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {Object.values(SOUNDPACKS).map((sp) => {
+              const isSelected = selectedSoundpack === sp.id;
+              return (
+                <button
+                  type="button"
+                  key={sp.id}
+                  onClick={() => handleSelectSoundpack(sp.id)}
+                  className={`p-2.5 min-h-[44px] rounded-xl border text-left transition-all cursor-pointer ${
+                    isSelected
+                      ? 'border-purple-500 bg-purple-500/15 text-white'
+                      : 'border-slate-800 bg-slate-800/40 text-slate-300 hover:bg-slate-800'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-xs truncate">{sp.name}</span>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-purple-400" />}
+                  </div>
+                  <p className="text-[10px] text-slate-400 truncate mt-0.5">{sp.description}</p>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

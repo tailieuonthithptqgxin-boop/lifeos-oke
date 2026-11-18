@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Sparkles, Coins, Gift, X, Star, Crown, Shield, Zap } from 'lucide-react';
 import { soundEngine } from '../../lib/soundEngine';
 import { triggerConfetti } from '../../lib/confetti';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 interface DailyMysteryChestModalProps {
   isOpen: boolean;
@@ -21,6 +22,25 @@ export function DailyMysteryChestModal({
 }: DailyMysteryChestModalProps) {
   const [revealed, setRevealed] = useState(false);
   const [opening, setOpening] = useState(false);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useBodyScrollLock(isOpen);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setRevealed(false);
+      setOpening(false);
+      return;
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   if (!isOpen || !reward) return null;
 
@@ -81,13 +101,26 @@ export function DailyMysteryChestModal({
   const RarityIcon = rarityConfig.icon;
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className={`relative w-full max-w-sm rounded-3xl bg-slate-900 border ${rarityConfig.border} shadow-2xl p-6 sm:p-7 text-white text-center overflow-hidden transition-all duration-300`}>
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (mouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+          handleClose();
+        }
+      }}
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 cursor-default"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className={`relative w-full max-w-sm rounded-3xl bg-slate-900 border ${rarityConfig.border} shadow-2xl p-6 sm:p-7 text-white text-center overflow-hidden transition-all duration-300`}
+      >
         
         {/* Glow ambient mesh */}
         <div className="absolute -top-20 -right-20 w-56 h-56 bg-gradient-to-br from-amber-500/20 to-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <button
+        <button type="button"
           onClick={handleClose}
           className="absolute top-4 right-4 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer z-10"
         >
@@ -105,8 +138,8 @@ export function DailyMysteryChestModal({
             {/* 3D Chest Visual */}
             <div 
               onClick={handleOpenClick}
-              className={`relative mx-auto w-32 h-32 flex items-center justify-center rounded-3xl bg-gradient-to-tr from-amber-600 to-yellow-400 p-1 shadow-2xl shadow-amber-500/30 cursor-pointer select-none transition-transform active:scale-95 ${
-                opening ? 'animate-bounce' : 'hover:scale-105'
+              className={`w-36 h-36 mx-auto cursor-pointer p-1 rounded-3xl bg-gradient-to-tr from-amber-500 via-yellow-300 to-amber-600 shadow-2xl shadow-amber-500/40 relative group transition duration-300 ${
+                opening ? 'animate-bounce scale-105' : 'hover:scale-105 active:scale-95'
               }`}
             >
               <div className="w-full h-full rounded-[22px] bg-slate-900 flex flex-col items-center justify-center relative overflow-hidden border border-amber-300/40">
@@ -128,7 +161,7 @@ export function DailyMysteryChestModal({
               </p>
             </div>
 
-            <button
+            <button type="button"
               onClick={handleOpenClick}
               disabled={opening}
               className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-amber-500/30 active:scale-95 transition cursor-pointer flex items-center justify-center gap-2"
@@ -175,7 +208,7 @@ export function DailyMysteryChestModal({
               </div>
             </div>
 
-            <button
+            <button type="button"
               onClick={handleClose}
               className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 active:scale-95 transition cursor-pointer"
             >

@@ -613,15 +613,55 @@ export function DedicatedVocabFocusView({
                         )}
 
                         {currentWord.exampleSentence && (
-                          <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 text-xs text-left space-y-1">
+                          <div className="p-3.5 rounded-xl bg-white/5 border border-white/10 text-xs text-left space-y-1.5">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                                📝 Ví dụ ngữ cảnh
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  speakWord(currentWord.exampleSentence!, 'en-US');
+                                }}
+                                className="px-2 py-0.5 rounded-md bg-white/10 hover:bg-white/15 text-indigo-300 text-[10px] font-semibold flex items-center gap-1 cursor-pointer transition-colors"
+                                title="Nghe câu ví dụ"
+                              >
+                                <Volume2 className="w-3 h-3" />
+                                <span>Đọc câu</span>
+                              </button>
+                            </div>
                             <p className="font-medium text-slate-200 italic">
                               "{currentWord.exampleSentence}"
                             </p>
                             {currentWord.exampleTranslation && (
-                              <p className="text-indigo-300">
+                              <p className="text-emerald-400/90 font-medium">
                                 → {currentWord.exampleTranslation}
                               </p>
                             )}
+                          </div>
+                        )}
+
+                        {/* Collocations */}
+                        {(currentWord as any).collocations && (currentWord as any).collocations.length > 0 && (
+                          <div className="p-2.5 rounded-xl bg-slate-900/60 border border-white/5 text-left space-y-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
+                              Cụm từ hay gặp (Collocations)
+                            </span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {((currentWord as any).collocations as string[]).map((c, i) => (
+                                <span key={i} className="px-2 py-0.5 rounded-lg bg-white/5 border border-white/10 text-[11px] text-slate-300">
+                                  {c}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Mnemonic / Tip */}
+                        {(currentWord as any).mnemonic && (
+                          <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-xs text-indigo-300 text-left">
+                            {(currentWord as any).mnemonic}
                           </div>
                         )}
                       </div>

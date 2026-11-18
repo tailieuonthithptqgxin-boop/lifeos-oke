@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { ChapterNodeItem } from '../../backend/services/progression.service';
 import { X, Star, Skull, Shield, Coins, Sparkles, ArrowRight, Zap, Play } from 'lucide-react';
 import { soundEngine } from '../../lib/soundEngine';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 interface StageBattleModalProps {
   node: ChapterNodeItem | null;
@@ -18,6 +19,21 @@ export function StageBattleModal({
   onClose,
   onGoToModule
 }: StageBattleModalProps) {
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useBodyScrollLock(!!node);
+
+  useEffect(() => {
+    if (!node) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [node]);
+
   if (!node) return null;
 
   const percent = Math.min(100, Math.round((node.current / node.target) * 100));
@@ -50,8 +66,21 @@ export function StageBattleModal({
     node.category === 'finance' ? 'Cơn Bốc Đồng Chi Tiêu (Impulse Fiend)' : 'Chúa Tể Trì Hoãn (Lord of Procrastination)';
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-lg rounded-3xl bg-slate-900 border border-slate-700 shadow-2xl p-6 sm:p-7 text-white overflow-hidden space-y-5">
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (mouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 cursor-default"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-lg rounded-3xl bg-slate-900 border border-slate-700 shadow-2xl p-6 sm:p-7 text-white overflow-hidden space-y-5"
+      >
         
         {/* Glow ambient */}
         <div className={`absolute -top-24 -right-24 w-60 h-60 ${
@@ -71,7 +100,7 @@ export function StageBattleModal({
             </span>
           </div>
 
-          <button
+          <button type="button"
             onClick={onClose}
             className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
           >
@@ -169,14 +198,14 @@ export function StageBattleModal({
 
         {/* Action Button */}
         <div className="flex items-center justify-end gap-3 pt-2">
-          <button
+          <button type="button"
             onClick={onClose}
             className="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition cursor-pointer"
           >
             Đóng
           </button>
 
-          <button
+          <button type="button"
             onClick={handleEnterBattle}
             className="flex-1 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 active:scale-95 transition cursor-pointer flex items-center justify-center gap-2"
           >

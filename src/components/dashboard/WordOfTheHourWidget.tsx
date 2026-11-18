@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Volume2, Sparkles, BookOpen, ArrowRight, Zap } from 'lucide-react';
 import { OXFORD_3000_WORDS } from '../../lib/vocabEngine';
-import { soundEngine } from '../../lib/soundEngine';
+import { pronunciationService } from '../../lib/pronunciationService';
 import { useAppStore } from '../../lib/store';
+import { soundEngine } from '../../lib/soundEngine';
 
 interface WordOfTheHourWidgetProps {
   onOpenStudy?: () => void;
@@ -24,11 +25,9 @@ export function WordOfTheHourWidget({ onOpenStudy, deepWorkTaskCount = 0 }: Word
 
   const playSpeech = (e: React.MouseEvent) => {
     e.stopPropagation();
-    soundEngine.playPop();
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      const utter = new SpeechSynthesisUtterance(word.term);
-      utter.lang = 'en-US';
-      window.speechSynthesis.speak(utter);
+    if (word?.term) {
+      soundEngine.playPop();
+      pronunciationService.speak(word.term, { voiceCode: 'en-US' });
     }
   };
 
@@ -58,8 +57,9 @@ export function WordOfTheHourWidget({ onOpenStudy, deepWorkTaskCount = 0 }: Word
           <button
             type="button"
             onClick={playSpeech}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer"
+            className="w-10 h-10 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors cursor-pointer"
             title="Phát âm từ vựng"
+            aria-label="Phát âm từ vựng"
           >
             <Volume2 className="w-4 h-4" />
           </button>
@@ -68,10 +68,10 @@ export function WordOfTheHourWidget({ onOpenStudy, deepWorkTaskCount = 0 }: Word
         {/* Word and IPA */}
         <div className="space-y-1">
           <div className="flex items-baseline gap-2">
-            <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white capitalize tracking-tight">
+            <h3 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white capitalize tracking-tight break-words">
               {word.term}
             </h3>
-            <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500">
+            <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 shrink-0">
               {word.pos || 'n.'}
             </span>
           </div>
@@ -81,7 +81,7 @@ export function WordOfTheHourWidget({ onOpenStudy, deepWorkTaskCount = 0 }: Word
         </div>
 
         {/* Meaning */}
-        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium mt-2.5 line-clamp-2 leading-relaxed">
+        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 font-medium mt-2.5 line-clamp-2 leading-relaxed break-words">
           {word.meaning}
         </p>
 
@@ -100,12 +100,13 @@ export function WordOfTheHourWidget({ onOpenStudy, deepWorkTaskCount = 0 }: Word
         <button
           type="button"
           onClick={handleStudy}
-          className="flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline group-hover:translate-x-0.5 transition-transform cursor-pointer"
+          className="min-h-[44px] px-2 flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 hover:underline group-hover:translate-x-0.5 transition-transform cursor-pointer"
         >
           <span>Luyện từ này</span>
-          <ArrowRight className="w-3 h-3" />
+          <ArrowRight className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>
   );
 }
+export default WordOfTheHourWidget;

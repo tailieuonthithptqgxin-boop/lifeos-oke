@@ -21,11 +21,11 @@ export const CompanionSpeechBubble: React.FC<CompanionSpeechBubbleProps> = ({
 
   return (
     <div 
-      className={`relative w-auto max-w-[calc(100vw-2.5rem)] sm:max-w-sm p-3.5 rounded-xl shadow-lg border border-[#E2E8F0] dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 text-xs sm:text-sm font-normal animate-in fade-in zoom-in-95 duration-200 z-50 ${className}`}
+      className={`relative w-auto max-w-[260px] sm:max-w-xs p-3 rounded-2xl shadow-xl border border-slate-200/90 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md text-slate-800 dark:text-slate-100 text-xs sm:text-[13px] font-normal animate-in fade-in zoom-in-95 duration-200 z-50 ${className}`}
     >
       {/* Speech tail pointer */}
       <div 
-        className="absolute w-2.5 h-2.5 bg-white dark:bg-slate-900 border-b border-r border-[#E2E8F0] dark:border-slate-800 transform rotate-45"
+        className="absolute w-2.5 h-2.5 bg-white/95 dark:bg-slate-900/95 border-b border-r border-slate-200/90 dark:border-slate-800 transform rotate-45"
         style={{
           bottom: position === 'top' ? '-5px' : undefined,
           right: position === 'top' ? '24px' : undefined
@@ -40,8 +40,11 @@ export const CompanionSpeechBubble: React.FC<CompanionSpeechBubbleProps> = ({
 
         <button
           type="button"
-          onClick={onDismiss}
-          className="p-1 -mr-1 -mt-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDismiss();
+          }}
+          className="p-1 -mr-1 -mt-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           title="Đóng lời thoại"
         >
           <X className="w-3.5 h-3.5" />

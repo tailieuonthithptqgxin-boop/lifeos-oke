@@ -5,6 +5,7 @@ import {
 import { apiCall } from '../../lib/apiClient';
 import { formatCurrency } from '../../lib/utils';
 import { ServicePlan, PlanAuditLog } from './types';
+import { AdminConfirmModal } from './AdminConfirmModal';
 
 interface AdminPlansTabProps {
   onShowMessage?: (msg: { text: string; type: 'success' | 'error' }) => void;
@@ -23,6 +24,15 @@ export function AdminPlansTab({ onShowMessage }: AdminPlansTabProps) {
   // Global Free Mode Toggle State
   const [isGlobalFreeMode, setIsGlobalFreeMode] = useState<boolean>(false);
   const [isTogglingFreeMode, setIsTogglingFreeMode] = useState<boolean>(false);
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    description: React.ReactNode;
+    confirmLabel?: string;
+    variant?: 'danger' | 'warning' | 'info';
+    isProcessing?: boolean;
+    onConfirm: () => Promise<void>;
+  } | null>(null);
 
   const fetchPlans = async () => {
     try {
@@ -61,34 +71,68 @@ export function AdminPlansTab({ onShowMessage }: AdminPlansTabProps) {
   };
 
   useEffect(() => {
-    fetchPlans();
-    fetchPlanAuditLogs();
-    fetchGlobalFreeMode();
+    let isMounted = true;
+    const loadAll = async () => {
+      try {
+        setIsLoadingPlans(true);
+        const [plansRes, logsRes, freeRes] = await Promise.allSettled([
+          apiCall('/api/admin/plans'),
+          apiCall('/api/admin/plans/audit-history'),
+          apiCall('/api/admin/settings/global-free-mode')
+        ]);
+        if (!isMounted) return;
+        if (plansRes.status === 'fulfilled' && plansRes.value?.success) {
+          setPlans(plansRes.value.plans || []);
+        }
+        if (logsRes.status === 'fulfilled' && logsRes.value?.success) {
+          setPlanAuditLogs(logsRes.value.logs || []);
+        }
+        if (freeRes.status === 'fulfilled' && freeRes.value?.success) {
+          setIsGlobalFreeMode(Boolean(freeRes.value.enabled));
+        }
+      } catch (err: any) {
+        if (isMounted) onShowMessage?.({ text: err.message || 'Lỗi khi tải cấu hình gói', type: 'error' });
+      } finally {
+        if (isMounted) setIsLoadingPlans(false);
+      }
+    };
+    loadAll();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  const handleToggleGlobalFreeMode = async () => {
+  const handleToggleGlobalFreeMode = () => {
     const nextState = !isGlobalFreeMode;
     const confirmMsg = nextState
-      ? 'XÁC NHẬN BẬT CHẾ ĐỘ DÙNG THỬ FREE TOÀN HỆ THỐNG?\n\n- Tất cả người dùng (kể cả chưa mua gói) sẽ được mở khóa 100% tính năng ngay lập tức.\n- Dữ liệu gói của khách hàng đã mua thật vẫn được bảo toàn nguyên vẹn.\n- Email cảnh báo an ninh sẽ tự động gửi đến Ban Quản trị.'
-      : 'XÁC NHẬN TẮT CHẾ ĐỘ DÙNG THỬ FREE?\n\n- Hệ thống sẽ khóa lại ngay lập tức đối với người dùng chưa mua gói.\n- Khách hàng đã mua gói còn hạn vẫn tiếp tục sử dụng bình thường.\n- Email cảnh báo an ninh sẽ tự động gửi đến Ban Quản trị.';
+      ? 'Tất cả người dùng (kể cả chưa mua gói) sẽ được mở khóa 100% tính năng ngay lập tức. Dữ liệu gói của khách hàng đã mua thật vẫn được bảo toàn nguyên vẹn. Email cảnh báo an ninh sẽ tự động gửi đến Ban Quản trị.'
+      : 'Hệ thống sẽ khóa lại ngay lập tức đối với người dùng chưa mua gói. Khách hàng đã mua gói còn hạn vẫn tiếp tục sử dụng bình thường. Email cảnh báo an ninh sẽ tự động gửi đến Ban Quản trị.';
 
-    if (!window.confirm(confirmMsg)) return;
-
-    try {
-      setIsTogglingFreeMode(true);
-      const res = await apiCall('/api/admin/settings/global-free-mode', 'POST', { enabled: nextState });
-      if (res && res.success) {
-        setIsGlobalFreeMode(nextState);
-        onShowMessage?.({
-          text: res.message || `Đã ${nextState ? 'BẬT' : 'TẮT'} chế độ dùng thử Free toàn hệ thống!`,
-          type: 'success'
-        });
+    setConfirmConfig({
+      isOpen: true,
+      title: nextState ? 'Bật chế độ dùng thử Free toàn hệ thống?' : 'Tắt chế độ dùng thử Free toàn hệ thống?',
+      description: confirmMsg,
+      confirmLabel: nextState ? 'Bật dùng thử' : 'Tắt dùng thử',
+      variant: nextState ? 'info' : 'warning',
+      onConfirm: async () => {
+        try {
+          setIsTogglingFreeMode(true);
+          const res = await apiCall('/api/admin/settings/global-free-mode', 'POST', { enabled: nextState });
+          if (res && res.success) {
+            setIsGlobalFreeMode(nextState);
+            onShowMessage?.({
+              text: res.message || `Đã ${nextState ? 'BẬT' : 'TẮT'} chế độ dùng thử Free toàn hệ thống!`,
+              type: 'success'
+            });
+          }
+        } catch (err: any) {
+          onShowMessage?.({ text: err.message || 'Lỗi khi thay đổi công tắc dùng thử Free', type: 'error' });
+        } finally {
+          setIsTogglingFreeMode(false);
+          setConfirmConfig(null);
+        }
       }
-    } catch (err: any) {
-      onShowMessage?.({ text: err.message || 'Lỗi khi thay đổi công tắc dùng thử Free', type: 'error' });
-    } finally {
-      setIsTogglingFreeMode(false);
-    }
+    });
   };
 
   const handleSavePlan = async (e: React.FormEvent) => {
@@ -129,28 +173,35 @@ export function AdminPlansTab({ onShowMessage }: AdminPlansTabProps) {
     }
   };
 
-  const handleResetPlans = async () => {
-    if (!window.confirm('Bạn có chắc chắn muốn khôi phục và đồng bộ danh sách gói dịch vụ trong quản trị về cấu hình chính thức (Cá nhân 1T, Cá nhân 3T, Team 1T)?')) {
-      return;
-    }
-    try {
-      setIsResettingPlans(true);
-      const res = await apiCall('/api/admin/plans/reset-defaults', 'POST');
-      if (res && res.success) {
-        onShowMessage?.({
-          text: 'Đã đồng bộ và cập nhật danh sách gói dịch vụ về chuẩn chính thức thành công!',
-          type: 'success'
-        });
-        await fetchPlans();
-        await fetchPlanAuditLogs();
-      } else {
-        throw new Error(res?.message || 'Không thể khôi phục gói');
+  const handleResetPlans = () => {
+    setConfirmConfig({
+      isOpen: true,
+      title: 'Khôi phục và đồng bộ gói dịch vụ',
+      description: 'Bạn có chắc chắn muốn khôi phục và đồng bộ danh sách gói dịch vụ trong quản trị về cấu hình chính thức (Cá nhân 1T, Cá nhân 3T, Team 1T)?',
+      confirmLabel: 'Khôi phục ngay',
+      variant: 'warning',
+      onConfirm: async () => {
+        try {
+          setIsResettingPlans(true);
+          const res = await apiCall('/api/admin/plans/reset-defaults', 'POST');
+          if (res && res.success) {
+            onShowMessage?.({
+              text: 'Đã đồng bộ và cập nhật danh sách gói dịch vụ về chuẩn chính thức thành công!',
+              type: 'success'
+            });
+            await fetchPlans();
+            await fetchPlanAuditLogs();
+          } else {
+            throw new Error(res?.message || 'Không thể khôi phục gói');
+          }
+        } catch (err: any) {
+          onShowMessage?.({ text: err.message || 'Lỗi khi khôi phục gói', type: 'error' });
+        } finally {
+          setIsResettingPlans(false);
+          setConfirmConfig(null);
+        }
       }
-    } catch (err: any) {
-      onShowMessage?.({ text: err.message || 'Lỗi khi khôi phục gói', type: 'error' });
-    } finally {
-      setIsResettingPlans(false);
-    }
+    });
   };
 
   const handleAddFeature = () => {
@@ -669,6 +720,19 @@ export function AdminPlansTab({ onShowMessage }: AdminPlansTabProps) {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {confirmConfig && (
+        <AdminConfirmModal
+          isOpen={confirmConfig.isOpen}
+          title={confirmConfig.title}
+          description={confirmConfig.description}
+          confirmLabel={confirmConfig.confirmLabel}
+          variant={confirmConfig.variant}
+          onConfirm={confirmConfig.onConfirm}
+          onClose={() => setConfirmConfig(null)}
+        />
       )}
     </div>
   );

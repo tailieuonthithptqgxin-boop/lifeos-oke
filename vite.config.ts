@@ -12,11 +12,14 @@ export default defineConfig(() => {
       },
     },
     server: {
+      allowedHosts: true,
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      watch: process.env.DISABLE_HMR === 'true' ? null : {
+        ignored: ['**/data/**', '**/.local_postgres_data/**', '**/pg_wal/**', '**/*.pid', '**/backups/**', '**/*.zip']
+      },
     },
     json: {
       stringify: true,
@@ -51,8 +54,29 @@ export default defineConfig(() => {
             if (id.includes('japaneseJlptWords.json')) {
               return 'data-japanese-jlpt';
             }
+            if (
+              id.includes('node_modules/three') ||
+              id.includes('node_modules/@react-three') ||
+              id.includes('node_modules/postprocessing')
+            ) {
+              return 'vendor-three';
+            }
+            if (
+              id.includes('node_modules/framer-motion') ||
+              id.includes('node_modules/motion') ||
+              id.includes('node_modules/gsap')
+            ) {
+              return 'vendor-motion';
+            }
             if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
               return 'vendor-charts';
+            }
+            if (
+              id.includes('node_modules/react/') ||
+              id.includes('node_modules/react-dom/') ||
+              id.includes('node_modules/react-is/')
+            ) {
+              return 'vendor-react';
             }
             if (id.includes('node_modules/lucide-react')) {
               return 'vendor-icons';

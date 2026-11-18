@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, Volume2, Bookmark, CheckCircle2, AlertTriangle, 
   Clock, Calendar, Award, BookOpen, Brain, Edit3, Save, 
@@ -10,6 +10,7 @@ import {
   MasteryState, 
   speakWord 
 } from '../../lib/vocabEngine';
+import { pronunciationService } from '../../lib/pronunciationService';
 import { verifyWord } from '../../lib/vocabVerificationEngine';
 
 interface WordDetailModalProps {
@@ -86,6 +87,11 @@ export function WordDetailModal({
 
   const isJapanese = word.languageId === 'ja' || word.id.startsWith('ja_');
   const isChinese = word.languageId === 'zh' || word.id.startsWith('zh_');
+  const isKorean = word.languageId === 'ko' || word.id.startsWith('ko_');
+  const isFrench = word.languageId === 'fr';
+  const isGerman = word.languageId === 'de';
+  const isSpanish = word.languageId === 'es';
+  const isVietnamese = word.languageId === 'vi';
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -95,10 +101,17 @@ export function WordDetailModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
   return (
     <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (mouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+          onClose();
+        }
       }}
       className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-xs overflow-y-auto cursor-default"
     >
@@ -135,7 +148,7 @@ export function WordDetailModal({
                 {isJapanese ? (
                   <button
                     type="button"
-                    onClick={() => speakWord(word.furigana || word.phonetic || word.term, 'ja-JP')}
+                    onClick={() => speakWord(word, 'ja-JP')}
                     className="px-2.5 py-1 rounded-xl bg-emerald-100 hover:bg-emerald-200 dark:bg-emerald-950/60 dark:hover:bg-emerald-900 text-emerald-700 dark:text-emerald-300 font-bold text-xs transition cursor-pointer flex items-center gap-1"
                     title="Phát âm tiếng Nhật chuẩn (ja-JP)"
                   >
@@ -144,17 +157,62 @@ export function WordDetailModal({
                 ) : isChinese ? (
                   <button
                     type="button"
-                    onClick={() => speakWord(word.term, 'zh-CN')}
+                    onClick={() => speakWord(word, 'zh-CN')}
                     className="px-2.5 py-1 rounded-xl bg-rose-100 hover:bg-rose-200 dark:bg-rose-950/60 dark:hover:bg-rose-900 text-rose-700 dark:text-rose-300 font-bold text-xs transition cursor-pointer flex items-center gap-1"
                     title="Phát âm tiếng Trung chuẩn (zh-CN)"
                   >
                     <Volume2 className="w-3.5 h-3.5" /> 🇨🇳 zh-CN
                   </button>
+                ) : isKorean ? (
+                  <button
+                    type="button"
+                    onClick={() => speakWord(word, 'ko-KR')}
+                    className="px-2.5 py-1 rounded-xl bg-purple-100 hover:bg-purple-200 dark:bg-purple-950/60 dark:hover:bg-purple-900 text-purple-700 dark:text-purple-300 font-bold text-xs transition cursor-pointer flex items-center gap-1"
+                    title="Phát âm tiếng Hàn chuẩn (ko-KR)"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" /> 🇰🇷 ko-KR
+                  </button>
+                ) : isFrench ? (
+                  <button
+                    type="button"
+                    onClick={() => speakWord(word, 'fr-FR')}
+                    className="px-2.5 py-1 rounded-xl bg-blue-100 hover:bg-blue-200 dark:bg-blue-950/60 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold text-xs transition cursor-pointer flex items-center gap-1"
+                    title="Phát âm tiếng Pháp chuẩn (fr-FR)"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" /> 🇫🇷 fr-FR
+                  </button>
+                ) : isGerman ? (
+                  <button
+                    type="button"
+                    onClick={() => speakWord(word, 'de-DE')}
+                    className="px-2.5 py-1 rounded-xl bg-amber-100 hover:bg-amber-200 dark:bg-amber-950/60 dark:hover:bg-amber-900 text-amber-700 dark:text-amber-300 font-bold text-xs transition cursor-pointer flex items-center gap-1"
+                    title="Phát âm tiếng Đức chuẩn (de-DE)"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" /> 🇩🇪 de-DE
+                  </button>
+                ) : isSpanish ? (
+                  <button
+                    type="button"
+                    onClick={() => speakWord(word, 'es-ES')}
+                    className="px-2.5 py-1 rounded-xl bg-orange-100 hover:bg-orange-200 dark:bg-orange-950/60 dark:hover:bg-orange-900 text-orange-700 dark:text-orange-300 font-bold text-xs transition cursor-pointer flex items-center gap-1"
+                    title="Phát âm tiếng Tây Ban Nha chuẩn (es-ES)"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" /> 🇪🇸 es-ES
+                  </button>
+                ) : isVietnamese ? (
+                  <button
+                    type="button"
+                    onClick={() => speakWord(word, 'vi-VN')}
+                    className="px-2.5 py-1 rounded-xl bg-red-100 hover:bg-red-200 dark:bg-red-950/60 dark:hover:bg-red-900 text-red-700 dark:text-red-300 font-bold text-xs transition cursor-pointer flex items-center gap-1"
+                    title="Phát âm tiếng Việt chuẩn (vi-VN)"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" /> 🇻🇳 vi-VN
+                  </button>
                 ) : (
                   <>
                     <button
                       type="button"
-                      onClick={() => speakWord(word.term, 'en-US')}
+                      onClick={() => speakWord(word, 'en-US')}
                       className="px-2.5 py-1 rounded-xl bg-blue-100 hover:bg-blue-200 dark:bg-blue-950/60 dark:hover:bg-blue-900 text-blue-700 dark:text-blue-300 font-bold text-xs transition cursor-pointer flex items-center gap-1"
                       title="Nghe giọng chuẩn Anh-Mỹ (US)"
                     >
@@ -162,7 +220,7 @@ export function WordDetailModal({
                     </button>
                     <button
                       type="button"
-                      onClick={() => speakWord(word.term, 'en-GB')}
+                      onClick={() => speakWord(word, 'en-GB')}
                       className="px-2.5 py-1 rounded-xl bg-indigo-100 hover:bg-indigo-200 dark:bg-indigo-950/60 dark:hover:bg-indigo-900 text-indigo-700 dark:text-indigo-300 font-bold text-xs transition cursor-pointer flex items-center gap-1"
                       title="Nghe giọng chuẩn Anh-Anh (UK)"
                     >
@@ -188,7 +246,8 @@ export function WordDetailModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+            aria-label="Đóng chi tiết từ vựng"
+            className="w-11 h-11 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
@@ -215,9 +274,22 @@ export function WordDetailModal({
           {/* CÂU VÍ DỤ NẾU CÓ */}
           {(word.exampleSentence || word.exampleTranslation) && (
             <div className="space-y-2">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
-                Ví dụ sử dụng trong ngữ cảnh
-              </span>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">
+                  Ví dụ sử dụng trong ngữ cảnh
+                </span>
+                {word.exampleSentence && (
+                  <button
+                    type="button"
+                    onClick={() => pronunciationService.speakSentence(word.exampleSentence!, word.languageId || 'en')}
+                    className="p-1 rounded-lg text-indigo-600 hover:bg-indigo-100 dark:text-indigo-400 dark:hover:bg-indigo-950/60 transition cursor-pointer flex items-center gap-1 text-xs font-semibold"
+                    title="Phát âm nguyên câu ví dụ chuẩn ngữ điệu"
+                  >
+                    <Volume2 className="w-3.5 h-3.5" />
+                    <span>Nghe câu ví dụ</span>
+                  </button>
+                )}
+              </div>
               <div className="p-4 rounded-2xl bg-indigo-50/40 dark:bg-indigo-950/20 border border-indigo-100/60 dark:border-indigo-900/40 space-y-1">
                 {word.exampleSentence && (
                   <p className="font-semibold text-slate-900 dark:text-slate-100 italic">
@@ -496,7 +568,7 @@ export function WordDetailModal({
               value={personalNotes}
               onChange={e => setPersonalNotes(e.target.value)}
               placeholder="Ví dụ: Gặp trong bài đọc đề thi thử; Mẹo nhớ bằng hình ảnh..."
-              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-base sm:text-xs font-medium focus:ring-2 focus:ring-blue-500 focus:outline-none min-h-[56px]"
             />
 
             {onSaveNotes && (
@@ -505,7 +577,7 @@ export function WordDetailModal({
                   type="button"
                   onClick={handleSaveNotes}
                   disabled={isSavingNotes}
-                  className="px-4 py-1.5 bg-slate-900 hover:bg-black dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-xs font-bold rounded-xl flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                  className="px-4 py-2.5 min-h-[44px] bg-slate-900 hover:bg-black dark:bg-slate-700 dark:hover:bg-slate-600 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
                 >
                   <Save className="w-3.5 h-3.5" /> Lưu ghi chú
                 </button>
@@ -550,11 +622,11 @@ export function WordDetailModal({
         </div>
 
         {/* FOOTER ACTIONS */}
-        <div className="p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition cursor-pointer"
+            className="px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 transition cursor-pointer flex items-center justify-center"
           >
             Đóng
           </button>
@@ -566,7 +638,7 @@ export function WordDetailModal({
                 onClose();
                 onStartStudy(word);
               }}
-              className="px-5 py-2.5 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2 transition cursor-pointer shadow-md shadow-blue-500/20"
+              className="px-5 py-2.5 min-h-[44px] rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-2 transition cursor-pointer shadow-md shadow-blue-500/20"
             >
               <Brain className="w-4 h-4" /> Luyện tập từ này ngay
             </button>

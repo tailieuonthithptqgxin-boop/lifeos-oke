@@ -3,7 +3,7 @@ import {
   Users, Gift, TrendingUp, Award, DollarSign, Search, 
   CheckCircle2, Clock, XCircle, ArrowUpRight, ShieldCheck,
   Wallet, ArrowDownToLine, Check, AlertTriangle, RefreshCw,
-  QrCode, ZoomIn, Copy, X
+  QrCode, ZoomIn, Copy, X, Sparkles
 } from 'lucide-react';
 import { apiCall } from '../../lib/apiClient';
 import { formatCurrency } from '../../lib/utils';
@@ -38,6 +38,18 @@ export function AdminReferralsTab() {
   const [zoomedQrTitle, setZoomedQrTitle] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
+  // Commission Rate Config
+  const [commissionRate, setCommissionRate] = useState<number>(20);
+  const [savingRate, setSavingRate] = useState(false);
+  const [rateFeedback, setRateFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Manual Order Commission Credit
+  const [manualOrderId, setManualOrderId] = useState('');
+  const [manualCustomerEmail, setManualCustomerEmail] = useState('');
+  const [manualOrderAmount, setManualOrderAmount] = useState('199000');
+  const [confirmingOrder, setConfirmingOrder] = useState(false);
+  const [orderFeedback, setOrderFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   const handleQuickCopy = (text: string, key: string) => {
     navigator.clipboard.writeText(text);
     setCopiedKey(key);
@@ -47,14 +59,72 @@ export function AdminReferralsTab() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const res = await apiCall('/api/admin/referrals/overview');
+      const [res, settingsRes] = await Promise.all([
+        apiCall('/api/admin/referrals/overview'),
+        apiCall('/api/admin/referrals/settings').catch(() => ({ commissionRate: 20 }))
+      ]);
       if (res && res.success) {
         setData(res);
+      }
+      if (settingsRes && settingsRes.commissionRate) {
+        setCommissionRate(settingsRes.commissionRate);
       }
     } catch (err) {
       console.error('Error loading admin referrals:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveCommissionRate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingRate(true);
+    setRateFeedback(null);
+    try {
+      const res = await apiCall('/api/admin/referrals/settings', 'POST', {
+        commissionRate
+      });
+      if (res && res.success) {
+        setRateFeedback({ type: 'success', text: `Đã lưu tỷ lệ hoa hồng mới: ${commissionRate}%!` });
+        triggerConfetti();
+        await loadData();
+      } else {
+        setRateFeedback({ type: 'error', text: res?.message || 'Có lỗi xảy ra' });
+      }
+    } catch (err: any) {
+      setRateFeedback({ type: 'error', text: err?.message || 'Lỗi kết nối' });
+    } finally {
+      setSavingRate(false);
+    }
+  };
+
+  const handleConfirmManualOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manualOrderId.trim() || !manualCustomerEmail.trim()) {
+      setOrderFeedback({ type: 'error', text: 'Vui lòng nhập Mã đơn hàng và Email khách hàng.' });
+      return;
+    }
+    setConfirmingOrder(true);
+    setOrderFeedback(null);
+    try {
+      const res = await apiCall('/api/admin/referrals/orders/confirm', 'POST', {
+        orderId: manualOrderId.trim(),
+        customerEmail: manualCustomerEmail.trim(),
+        amount: Number(manualOrderAmount) || 199000
+      });
+      if (res && res.success) {
+        setOrderFeedback({ type: 'success', text: res.message || 'Đã xác nhận đơn hàng và cộng hoa hồng thành công!' });
+        triggerConfetti();
+        setManualOrderId('');
+        setManualCustomerEmail('');
+        await Promise.all([loadData(), loadWithdrawals()]);
+      } else {
+        setOrderFeedback({ type: 'error', text: res?.message || 'Không thể xác nhận đơn hàng.' });
+      }
+    } catch (err: any) {
+      setOrderFeedback({ type: 'error', text: err?.message || 'Lỗi xử lý đơn hàng.' });
+    } finally {
+      setConfirmingOrder(false);
     }
   };
 
@@ -209,9 +279,114 @@ export function AdminReferralsTab() {
         </div>
       </div>
 
+      {/* Admin Fast Actions: 1) Tỷ lệ Hoa hồng & 2) Xác nhận đơn hàng thủ công */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Panel 1: Cấu hình % hoa hồng */}
+        <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+              <Award className="w-4 h-4 text-emerald-500" />
+              <span>Cấu hình Tỷ lệ Hoa hồng CTV (%)</span>
+            </h3>
+            <span className="text-xs font-black px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+              Hiện tại: {commissionRate}%
+            </span>
+          </div>
+
+          <form onSubmit={handleSaveCommissionRate} className="space-y-3">
+            <p className="text-xs text-slate-500">
+              Tỷ lệ hoa hồng tự động trích từ đơn hàng thanh toán thành công của khách được giới thiệu để cộng vào ví CTV.
+            </p>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="number"
+                  min={1}
+                  max={100}
+                  step={1}
+                  required
+                  value={commissionRate}
+                  onChange={(e) => setCommissionRate(Number(e.target.value))}
+                  className="w-full h-11 px-3 text-sm font-bold text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                  placeholder="20"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-slate-400">%</span>
+              </div>
+              <button
+                type="submit"
+                disabled={savingRate}
+                className="h-11 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-sm transition-colors cursor-pointer flex items-center gap-1.5"
+              >
+                {savingRate ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                <span>Lưu tỷ lệ</span>
+              </button>
+            </div>
+            {rateFeedback && (
+              <p className={`text-xs font-semibold ${rateFeedback.type === 'success' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                {rateFeedback.text}
+              </p>
+            )}
+          </form>
+        </div>
+
+        {/* Panel 2: Xác nhận đơn hàng & tính hoa hồng thủ công */}
+        <div className="p-5 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
+              <Gift className="w-4 h-4 text-purple-500" />
+              <span>Xác nhận Đơn hàng & Tính Hoa hồng</span>
+            </h3>
+            <span className="text-[11px] font-bold text-slate-400">Dành cho thanh toán thủ công</span>
+          </div>
+
+          <form onSubmit={handleConfirmManualOrder} className="space-y-2.5">
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="text"
+                required
+                placeholder="Mã đơn hàng (Order ID)"
+                value={manualOrderId}
+                onChange={(e) => setManualOrderId(e.target.value)}
+                className="w-full h-10 px-3 text-xs font-mono font-medium text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+              />
+              <input
+                type="number"
+                placeholder="Số tiền (199,000₫)"
+                value={manualOrderAmount}
+                onChange={(e) => setManualOrderAmount(e.target.value)}
+                className="w-full h-10 px-3 text-xs font-mono font-medium text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="email"
+                required
+                placeholder="Email khách hàng thanh toán"
+                value={manualCustomerEmail}
+                onChange={(e) => setManualCustomerEmail(e.target.value)}
+                className="flex-1 h-10 px-3 text-xs font-medium text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+              />
+              <button
+                type="submit"
+                disabled={confirmingOrder}
+                className="h-10 px-4 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs shadow-sm transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+              >
+                {confirmingOrder ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                <span>Duyệt & Cộng hoa hồng</span>
+              </button>
+            </div>
+            {orderFeedback && (
+              <p className={`text-xs font-semibold ${orderFeedback.type === 'success' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                {orderFeedback.text}
+              </p>
+            )}
+          </form>
+        </div>
+      </div>
+
       {/* Sub Tabs */}
       <div className="flex flex-wrap items-center gap-2 border-b border-purple-100 dark:border-slate-800 pb-3">
-        <button
+        <button type="button"
           onClick={() => setActiveSubTab('withdrawals')}
           className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer ${
             activeSubTab === 'withdrawals'
@@ -223,7 +398,7 @@ export function AdminReferralsTab() {
           <span>{isVi ? 'Yêu Cầu Rút Tiền' : 'Withdrawal Requests'} ({withdrawals.filter(w => w.status === 'PENDING').length} {isVi ? 'Chờ Duyệt' : 'Pending'})</span>
         </button>
 
-        <button
+        <button type="button"
           onClick={() => setActiveSubTab('paymentQrs')}
           className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer ${
             activeSubTab === 'paymentQrs'
@@ -235,7 +410,7 @@ export function AdminReferralsTab() {
           <span>{isVi ? 'Duyệt QR Khách Hàng' : 'Review Customer QRs'}</span>
         </button>
 
-        <button
+        <button type="button"
           onClick={() => setActiveSubTab('leaderboard')}
           className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer ${
             activeSubTab === 'leaderboard'
@@ -247,7 +422,7 @@ export function AdminReferralsTab() {
           <span>{isVi ? 'Bảng Xếp Hạng Giới Thiệu' : 'Referral Leaderboard'}</span>
         </button>
 
-        <button
+        <button type="button"
           onClick={() => setActiveSubTab('commissions')}
           className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-black transition-all flex items-center gap-2 cursor-pointer ${
             activeSubTab === 'commissions'
@@ -277,7 +452,7 @@ export function AdminReferralsTab() {
             {/* Filter buttons */}
             <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl text-xs font-bold">
               {(['ALL', 'PENDING', 'PAID', 'REJECTED'] as const).map((st) => (
-                <button
+                <button type="button"
                   key={st}
                   onClick={() => setWithdrawalFilter(st)}
                   className={`px-3 py-1 rounded-lg transition-all cursor-pointer ${
@@ -292,7 +467,8 @@ export function AdminReferralsTab() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop Withdrawals Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-bold">
@@ -382,26 +558,28 @@ export function AdminReferralsTab() {
                       <td className="py-3 text-right">
                         {w.status === 'PENDING' ? (
                           <div className="flex items-center justify-end gap-1.5">
-                            <button
+                            <button type="button"
                               onClick={() => {
                                 setSelectedWithdrawal(w);
+                                actionTypeRef.current = 'APPROVE';
                                 setActionType('APPROVE');
                                 setTxReference(`TXN-${Date.now().toString().slice(-6)}`);
                                 setActionMessage(null);
                               }}
-                              className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 cursor-pointer shadow-xs btn-squishy"
+                              className="px-2.5 py-1.5 min-h-[36px] rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center gap-1 cursor-pointer shadow-xs btn-squishy"
                             >
-                              <Check className="w-3 h-3" />
-                              <span>Duyệt & Chi trả</span>
+                              <Check className="w-3.5 h-3.5" />
+                              <span>Duyệt CK</span>
                             </button>
-                            <button
+                            <button type="button"
                               onClick={() => {
                                 setSelectedWithdrawal(w);
+                                actionTypeRef.current = 'REJECT';
                                 setActionType('REJECT');
                                 setRejectReason('');
                                 setActionMessage(null);
                               }}
-                              className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs flex items-center gap-1 cursor-pointer border border-rose-200"
+                              className="px-2.5 py-1.5 min-h-[36px] rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs flex items-center gap-1 cursor-pointer border border-rose-200"
                             >
                               <XCircle className="w-3 h-3" />
                               <span>Từ chối</span>
@@ -417,6 +595,100 @@ export function AdminReferralsTab() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Withdrawals Cards (Rule 3 & 4) */}
+          <div className="md:hidden space-y-3">
+            {withdrawals.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 text-xs bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800 p-4">
+                {isVi ? 'Không có yêu cầu rút tiền nào trong bộ lọc này' : 'No withdrawal requests found in this filter'}
+              </div>
+            ) : (
+              withdrawals.map((w: any) => (
+                <div
+                  key={`withdraw-mobile-${w.id}`}
+                  className="p-4 rounded-2xl border border-purple-100 dark:border-purple-950/40 bg-slate-50/70 dark:bg-slate-800/40 space-y-3"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-extrabold text-sm text-slate-900 dark:text-white">{w.user?.name}</div>
+                      <div className="text-[11px] text-slate-400">{w.user?.email}</div>
+                    </div>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black inline-flex items-center gap-1 ${
+                      w.status === 'PAID'
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                        : w.status === 'REJECTED'
+                        ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                        : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                    }`}>
+                      {w.status === 'PAID' ? 'Đã thanh toán' : w.status === 'REJECTED' ? 'Đã từ chối' : 'Chờ xử lý'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 block uppercase">Số tiền rút</span>
+                      <span className="font-black text-base text-emerald-600 dark:text-emerald-400">
+                        {formatCurrency(w.amount)}
+                      </span>
+                    </div>
+                    {w.paymentQrUrl && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setZoomedQrUrl(w.paymentQrUrl);
+                          setZoomedQrTitle(`${w.user?.name || ''} - ${w.bankName || ''}`);
+                        }}
+                        className="px-2.5 py-1.5 rounded-xl bg-purple-50 dark:bg-purple-950 text-purple-700 dark:text-purple-300 text-xs font-bold border border-purple-200 dark:border-purple-800 flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <QrCode className="w-3.5 h-3.5" />
+                        <span>Xem QR</span>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="text-xs space-y-1 text-slate-600 dark:text-slate-300">
+                    <div className="font-semibold">{w.bankName} - {w.bankAccount}</div>
+                    <div className="text-[11px] text-slate-400 uppercase font-bold">{w.accountHolder}</div>
+                    {w.transferNote && <div className="text-[11px] text-slate-500">Nội dung: {w.transferNote}</div>}
+                    <div className="text-[10px] text-slate-400">{new Date(w.createdAt).toLocaleString('vi-VN')}</div>
+                  </div>
+
+                  {w.status === 'PENDING' && (
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedWithdrawal(w);
+                          actionTypeRef.current = 'APPROVE';
+                          setActionType('APPROVE');
+                          setTxReference(`TXN-${Date.now().toString().slice(-6)}`);
+                          setActionMessage(null);
+                        }}
+                        className="min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>Duyệt CK</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedWithdrawal(w);
+                          actionTypeRef.current = 'REJECT';
+                          setActionType('REJECT');
+                          setRejectReason('');
+                          setActionMessage(null);
+                        }}
+                        className="min-h-[44px] rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer border border-rose-200 dark:border-rose-900"
+                      >
+                        <XCircle className="w-4 h-4" />
+                        <span>Từ chối</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 
@@ -428,7 +700,8 @@ export function AdminReferralsTab() {
             <span>Bảng Xếp Hạng Người Giới Thiệu Hàng Đầu</span>
           </h3>
 
-          <div className="overflow-x-auto">
+          {/* Desktop Leaderboard Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-bold">
@@ -475,6 +748,51 @@ export function AdminReferralsTab() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Leaderboard Cards (Rule 3) */}
+          <div className="md:hidden space-y-3">
+            {(!data?.profiles || data.profiles.length === 0) ? (
+              <div className="py-6 text-center text-slate-400 text-xs bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800 p-4">
+                Chưa có đối tác giới thiệu nào
+              </div>
+            ) : (
+              data.profiles.map((p: any) => (
+                <div
+                  key={`profile-mobile-${p.id}`}
+                  className="p-4 rounded-2xl border border-purple-100 dark:border-purple-950/40 bg-slate-50/70 dark:bg-slate-800/40 space-y-2.5"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-extrabold text-xs text-slate-900 dark:text-white">{p.user?.name}</div>
+                      <div className="text-[10px] text-slate-400">{p.user?.email}</div>
+                    </div>
+                    <span className="font-mono font-bold text-xs px-2 py-0.5 rounded-lg bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300">
+                      {p.referralCode}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs pt-1">
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-400 block">Đã mời</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">{p.totalReferred} bạn</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-400 block">Doanh số</span>
+                      <span className="font-bold text-slate-800 dark:text-slate-200">{formatCurrency(p.totalSales)}</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-400 block">Tổng hoa hồng</span>
+                      <span className="font-black text-emerald-600 dark:text-emerald-400">{formatCurrency(p.totalCommission)}</span>
+                    </div>
+                    <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+                      <span className="text-[10px] text-slate-400 block">Khả dụng</span>
+                      <span className="font-bold text-amber-500">{formatCurrency(p.approvedReward)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 
@@ -494,12 +812,23 @@ export function AdminReferralsTab() {
                 placeholder="Tìm theo mã đơn hoặc người giới thiệu..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
+                className="pl-9 pr-8 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400"
               />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  title="Xóa tìm kiếm"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          {/* Desktop Commissions Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-bold">
@@ -555,26 +884,76 @@ export function AdminReferralsTab() {
               </tbody>
             </table>
           </div>
+
+          {/* Mobile Commissions Cards (Rule 3) */}
+          <div className="md:hidden space-y-2.5">
+            {filteredCommissions.length === 0 ? (
+              <div className="py-6 text-center text-slate-400 text-xs bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-slate-100 dark:border-slate-800 p-4">
+                Không tìm thấy bản ghi hoa hồng nào
+              </div>
+            ) : (
+              filteredCommissions.map((c: any) => (
+                <div
+                  key={`comm-mobile-${c.id}`}
+                  className="p-3.5 rounded-2xl border border-purple-100 dark:border-purple-950/40 bg-slate-50/70 dark:bg-slate-800/40 space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono font-bold text-xs text-purple-600 dark:text-purple-400">
+                      {c.orderId}
+                    </span>
+                    <span className={`px-2 py-0.2 rounded-full text-[10px] font-bold inline-flex items-center gap-1 ${
+                      c.status === 'Approved'
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                        : c.status === 'Cancelled'
+                        ? 'bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300'
+                        : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300'
+                    }`}>
+                      {c.status === 'Approved' ? 'Đã duyệt' : c.status === 'Cancelled' ? 'Đã hủy' : 'Đang xử lý'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs">
+                    <div>
+                      <div className="font-bold text-slate-900 dark:text-white">{c.referrer?.name}</div>
+                      <div className="text-[10px] text-slate-400">{c.referrer?.email}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[10px] text-slate-400">Đơn: {formatCurrency(c.orderAmount)}</div>
+                      <div className="font-black text-xs text-emerald-600 dark:text-emerald-400">
+                        +{formatCurrency(c.rewardAmount)}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-[10px] text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800/60">
+                    {new Date(c.createdAt).toLocaleDateString('vi-VN')}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       )}
 
-      {/* MODAL DUYỆT RÚT TIỀN (APPROVE) */}
+      {/* MODAL DUYỆT RÚT TIỀN (APPROVE - Mobile Bottom Sheet) */}
       {selectedWithdrawal && actionType === 'APPROVE' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-md w-full border border-emerald-200 dark:border-emerald-950 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 max-w-md w-full border border-emerald-200 dark:border-emerald-950 shadow-2xl space-y-4 max-h-[90dvh] overflow-y-auto animate-bottom-sheet">
+            <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto sm:hidden mb-1" />
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600">
                   <Check className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-black text-slate-900 dark:text-white">Duyệt & Xác Nhận Chuyển Khoản</h4>
+                  <h4 className="font-black text-slate-900 dark:text-white text-sm sm:text-base">Duyệt & Xác Nhận Chuyển Khoản</h4>
                   <p className="text-xs text-slate-400">Yêu cầu rút của: {selectedWithdrawal.user?.name}</p>
                 </div>
               </div>
-              <button
+              <button type="button"
                 onClick={() => { setSelectedWithdrawal(null); setActionType(null); }}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
+                className="w-10 h-10 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-600 cursor-pointer"
+                aria-label="Đóng"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -730,7 +1109,7 @@ export function AdminReferralsTab() {
                   className="px-5 py-2 rounded-xl text-xs font-black bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50"
                 >
                   {processingAction ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
-                  <span>Xác nhận đã chuyển</span>
+                  <span>Xác nhận Duyệt đã chuyển khoản</span>
                 </button>
               </div>
             </form>
@@ -738,23 +1117,25 @@ export function AdminReferralsTab() {
         </div>
       )}
 
-      {/* MODAL TỪ CHỐI RÚT TIỀN (REJECT & REFUND) */}
+      {/* MODAL TỪ CHỐI RÚT TIỀN (REJECT & REFUND - Mobile Bottom Sheet) */}
       {selectedWithdrawal && actionType === 'REJECT' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-md w-full border border-rose-200 dark:border-rose-950 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 max-w-md w-full border border-rose-200 dark:border-rose-950 shadow-2xl space-y-4 max-h-[90dvh] overflow-y-auto animate-bottom-sheet">
+            <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto sm:hidden mb-1" />
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-xl bg-rose-100 dark:bg-rose-950 text-rose-600">
                   <AlertTriangle className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-black text-slate-900 dark:text-white">Từ Chối Yêu Cầu & Hoàn Tiền</h4>
+                  <h4 className="font-black text-slate-900 dark:text-white text-sm sm:text-base">Từ Chối Yêu Cầu & Hoàn Tiền</h4>
                   <p className="text-xs text-slate-400">Yêu cầu rút: {formatCurrency(selectedWithdrawal.amount)}</p>
                 </div>
               </div>
-              <button
+              <button type="button"
                 onClick={() => { setSelectedWithdrawal(null); setActionType(null); }}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600"
+                className="w-10 h-10 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-600 cursor-pointer"
+                aria-label="Đóng"
               >
                 <XCircle className="w-5 h-5" />
               </button>
@@ -822,7 +1203,7 @@ export function AdminReferralsTab() {
                 <QrCode className="w-4 h-4 text-purple-600" />
                 <span>{zoomedQrTitle || (isVi ? 'Mã QR Nhận Tiền' : 'Payment QR')}</span>
               </span>
-              <button
+              <button type="button"
                 onClick={() => { setZoomedQrUrl(null); setZoomedQrTitle(null); }}
                 className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
               >

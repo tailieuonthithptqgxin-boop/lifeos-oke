@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Bookmark, Plus, Check, Layers } from 'lucide-react';
 import { VocabCollection } from '../../lib/vocabEngine';
 
@@ -35,10 +35,19 @@ export function AddToCollectionModal({
     onClose();
   };
 
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
   return (
     <div 
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs"
-      onClick={onClose}
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs cursor-default"
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (mouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
     >
       <div 
         className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95 duration-150"

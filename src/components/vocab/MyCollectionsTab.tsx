@@ -11,6 +11,7 @@ import {
   systemWordToVocabWord 
 } from '../../lib/vocabEngine';
 import { useAppStore } from '../../lib/store';
+import { formatLocalDateKey } from '../../lib/utils';
 
 interface MyCollectionsTabProps {
   collections: VocabCollection[];
@@ -111,7 +112,7 @@ export function MyCollectionsTab({
           const colWords = getCollectionWords(col.id);
           const personalCount = (personalWords || []).filter(w => w.collectionId === col.id).length;
           const bookmarkedCount = colWords.length - personalCount;
-          const today = new Date().toISOString().split('T')[0];
+          const today = formatLocalDateKey(new Date());
           const dueCount = colWords.filter(w => w.state !== 'new' && w.nextReviewAt <= today).length;
 
           return (
@@ -151,12 +152,7 @@ export function MyCollectionsTab({
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
-                          const msg = isVi 
-                            ? `Bạn có chắc muốn xóa bộ sưu tập "${col.title}"?` 
-                            : `Delete collection "${col.title}"?`;
-                          if (confirm(msg)) {
-                            onDeleteCollection(col.id);
-                          }
+                          onDeleteCollection(col.id);
                         }}
                         className="p-1 text-slate-300 hover:text-rose-500 rounded-lg transition"
                         title={isVi ? 'Xóa bộ sưu tập' : 'Delete set'}

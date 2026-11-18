@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   Mail,
@@ -20,11 +20,14 @@ import {
   RefreshCw,
   LogOut,
   ChevronRight,
-  Info
+  Info,
+  Copy
 } from 'lucide-react';
 import { useAppStore } from '../../lib/store';
 import { apiCall } from '../../lib/apiClient';
 import { toast } from '../../lib/toast';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { AdminConfirmModal } from '../admin/AdminConfirmModal';
 
 interface NotificationSettingsModalProps {
   isOpen: boolean;
@@ -32,11 +35,16 @@ interface NotificationSettingsModalProps {
 }
 
 export function NotificationSettingsModal({ isOpen, onClose }: NotificationSettingsModalProps) {
+  useBodyScrollLock(isOpen);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
   const { currentUser } = useAppStore();
 
   const [activeTab, setActiveTab] = useState<'gmail' | 'general' | 'rules' | 'history'>('gmail');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
+  const [isDisconnecting, setIsDisconnecting] = useState(false);
 
   // General & Preferences State
   const [preferences, setPreferences] = useState({
@@ -61,6 +69,22 @@ export function NotificationSettingsModal({ isOpen, onClose }: NotificationSetti
     scope?: string;
     oauthConfigured?: boolean;
   }>({ connected: false });
+
+  // Email Gateway Config (Apps Script Webhook / EmailJS / SMTP)
+  const [emailConfig, setEmailConfig] = useState({
+    enabled: true,
+    serviceType: 'webhook' as 'webhook' | 'emailjs' | 'smtp' | 'resend',
+    webhookUrl: '',
+    emailjsServiceId: '',
+    emailjsTemplateId: '',
+    emailjsPublicKey: '',
+    user: '',
+    appPassword: '',
+    fromName: 'LifeOS Notification Assistant',
+    fromEmail: ''
+  });
+  const [isSavingEmailConfig, setIsSavingEmailConfig] = useState(false);
+  const [copiedScript, setCopiedScript] = useState(false);
 
   // Test Email State
   const [testTargetEmail, setTestTargetEmail] = useState('');
@@ -132,11 +156,38 @@ export function NotificationSettingsModal({ isOpen, onClose }: NotificationSetti
           setSystemRules(res.systemRules);
         }
       }
+
+      // Load Email Gateway Config
+      try {
+        const configRes = await apiCall<{ success: boolean; config: any }>('/api/notifications/email-config', 'GET');
+        if (configRes && configRes.success && configRes.config) {
+          setEmailConfig(prev => ({
+            ...prev,
+            ...configRes.config
+          }));
+        }
+      } catch (e) {}
     } catch (err: any) {
       console.error('Failed to load notification settings:', err);
       toast.error('Không thể tải cấu hình thông báo: ' + (err.message || ''), 'Lỗi');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSaveEmailConfig = async () => {
+    setIsSavingEmailConfig(true);
+    try {
+      const res = await apiCall<{ success: boolean; message?: string }>('/api/notifications/email-config', 'POST', emailConfig);
+      if (res && res.success) {
+        toast.success('Đã lưu cấu hình cổng gửi Gmail tự động thành công!', 'Cổng Gửi Gmail');
+      } else {
+        toast.error(res?.message || 'Không thể lưu cấu hình cổng gửi Gmail.', 'Lỗi');
+      }
+    } catch (err: any) {
+      toast.error(err?.message || 'Lỗi lưu cấu hình cổng gửi Gmail.', 'Lỗi');
+    } finally {
+      setIsSavingEmailConfig(false);
     }
   };
 
@@ -188,11 +239,9 @@ export function NotificationSettingsModal({ isOpen, onClose }: NotificationSetti
   };
 
   // Disconnect Gmail
-  const handleDisconnectGmail = async () => {
-    if (!window.confirm('Bạn có chắc chắn muốn ngắt kết nối tài khoản Gmail này khỏi LifeOS?')) {
-      return;
-    }
+  const confirmDisconnectGmail = async () => {
     try {
+      setIsDisconnecting(true);
       const res = await apiCall<{ success: boolean; message: string }>(
         '/api/notifications/gmail/disconnect',
         'POST'
@@ -203,6 +252,9 @@ export function NotificationSettingsModal({ isOpen, onClose }: NotificationSetti
       }
     } catch (err: any) {
       toast.error(err.message || 'Không thể ngắt kết nối Gmail.', 'Lỗi');
+    } finally {
+      setIsDisconnecting(false);
+      setShowDisconnectConfirm(false);
     }
   };
 
@@ -296,13 +348,19 @@ export function NotificationSettingsModal({ isOpen, onClose }: NotificationSetti
 
   return (
     <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) {
+          onClose();
+        }
       }}
       className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-5 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-150 cursor-default"
     >
       <div 
         className="w-full max-w-4xl max-h-[92vh] bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-150"
+        onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -452,7 +510,7 @@ export function NotificationSettingsModal({ isOpen, onClose }: NotificationSetti
                     {gmailStatus.connected ? (
                       <button
                         type="button"
-                        onClick={handleDisconnectGmail}
+                        onClick={() => setShowDisconnectConfirm(true)}
                         className="px-3.5 py-2 rounded-xl border border-rose-200 dark:border-rose-900/60 bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-xs font-bold transition-colors flex items-center gap-1.5"
                       >
                         <LogOut className="w-3.5 h-3.5" />
@@ -496,6 +554,199 @@ export function NotificationSettingsModal({ isOpen, onClose }: NotificationSetti
                     </div>
                   </div>
                 )}
+              </div>
+
+              {/* Universal Free Email Gateway Config: Google Apps Script Webhook & SMTP */}
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                        Cổng Gửi Gmail Tự Động Siêu Tốc (100% Miễn Phí)
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Hỗ trợ Google Apps Script Webhook (Port 443 HTTPS - không bao giờ bị chặn mạng) hoặc SMTP
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300">
+                    Khuyên Dùng Cho Gói Free
+                  </span>
+                </div>
+
+                {/* Service Type Selection */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setEmailConfig(c => ({ ...c, serviceType: 'webhook' }))}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      emailConfig.serviceType === 'webhook'
+                        ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 shadow-2xs'
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <span className="font-bold block text-xs">🌐 Google Apps Script</span>
+                    <span className="text-[10px] opacity-80 block mt-0.5">Webhook HTTPS Port 443, 0đ, không chặn SMTP</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setEmailConfig(c => ({ ...c, serviceType: 'emailjs' }))}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      emailConfig.serviceType === 'emailjs'
+                        ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 shadow-2xs'
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <span className="font-bold block text-xs">⚡ EmailJS Service</span>
+                    <span className="text-[10px] opacity-80 block mt-0.5">API REST trực tiếp, 200 mail/tháng miễn phí</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setEmailConfig(c => ({ ...c, serviceType: 'smtp' }))}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      emailConfig.serviceType === 'smtp'
+                        ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 shadow-2xs'
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <span className="font-bold block text-xs">✉️ Gmail SMTP</span>
+                    <span className="text-[10px] opacity-80 block mt-0.5">Dùng Mật khẩu Ứng dụng (App Password)</span>
+                  </button>
+                </div>
+
+                {/* Branch 1: Google Apps Script Webhook Configuration */}
+                {emailConfig.serviceType === 'webhook' && (
+                  <div className="space-y-3 pt-2 text-xs">
+                    <div>
+                      <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">
+                        URL Webhook Google Apps Script (Exec URL):
+                      </label>
+                      <input
+                        type="url"
+                        value={emailConfig.webhookUrl}
+                        onChange={(e) => setEmailConfig(c => ({ ...c, webhookUrl: e.target.value }))}
+                        placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+                        className="w-full h-10 px-3.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-mono"
+                      />
+                    </div>
+
+                    {/* 3-Step Setup Guide */}
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                      <span className="font-bold text-slate-900 dark:text-white block">
+                        Hướng dẫn tạo Webhook 3 bước đơn giản (Không cần cài đặt phức tạp):
+                      </span>
+                      <ol className="list-decimal list-inside space-y-1.5 text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                        <li>
+                          Truy cập <a href="https://script.google.com" target="_blank" rel="noopener noreferrer" className="text-emerald-600 dark:text-emerald-400 underline font-semibold">script.google.com</a> bằng tài khoản Gmail của bạn và nhấn <strong>Dự án mới (New Project)</strong>.
+                        </li>
+                        <li>
+                          Dán đoạn mã bên dưới vào trình soạn thảo rồi nhấn <strong>Lưu (Save)</strong>.
+                        </li>
+                        <li>
+                          Nhấn <strong>Triển khai (Deploy) &gt; Tùy chọn triển khai mới (New deployment)</strong>. Chọn loại là <strong>Ứng dụng web (Web app)</strong>, ở mục <em>Ai có quyền truy cập (Who has access)</em> chọn <strong>Bất kỳ ai (Anyone)</strong>, sau đó nhấn <strong>Triển khai</strong> và sao chép <em>Web app URL</em> dán vào ô trên!
+                        </li>
+                      </ol>
+
+                      <div className="pt-2 flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const code = `function doPost(e) {\\n  try {\\n    var data = JSON.parse(e.postData.contents);\\n    MailApp.sendEmail({\\n      to: data.to,\\n      subject: data.subject || "Thông báo từ LifeOS",\\n      htmlBody: data.html || data.body || ""\\n    });\\n    return ContentService.createTextOutput(JSON.stringify({ success: true, message: "Email sent" }))\\n      .setMimeType(ContentService.MimeType.JSON);\\n  } catch (error) {\\n    return ContentService.createTextOutput(JSON.stringify({ success: false, error: error.toString() }))\\n      .setMimeType(ContentService.MimeType.JSON);\\n  }\\n}`;
+                            navigator.clipboard.writeText(code);
+                            setCopiedScript(true);
+                            toast.success('Đã sao chép mã Google Apps Script vào bộ nhớ tạm!', 'Sao chép');
+                            setTimeout(() => setCopiedScript(false), 2500);
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors"
+                        >
+                          {copiedScript ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{copiedScript ? 'Đã sao chép mã!' : 'Sao chép mã Google Apps Script'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Branch 2: EmailJS Configuration */}
+                {emailConfig.serviceType === 'emailjs' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
+                    <div>
+                      <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">EmailJS Service ID:</label>
+                      <input
+                        type="text"
+                        value={emailConfig.emailjsServiceId}
+                        onChange={(e) => setEmailConfig(c => ({ ...c, emailjsServiceId: e.target.value }))}
+                        placeholder="service_xxx"
+                        className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">EmailJS Template ID:</label>
+                      <input
+                        type="text"
+                        value={emailConfig.emailjsTemplateId}
+                        onChange={(e) => setEmailConfig(c => ({ ...c, emailjsTemplateId: e.target.value }))}
+                        placeholder="template_xxx"
+                        className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">Public Key:</label>
+                      <input
+                        type="text"
+                        value={emailConfig.emailjsPublicKey}
+                        onChange={(e) => setEmailConfig(c => ({ ...c, emailjsPublicKey: e.target.value }))}
+                        placeholder="user_xxx"
+                        className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Branch 3: SMTP App Password Configuration */}
+                {emailConfig.serviceType === 'smtp' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs">
+                    <div>
+                      <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">Tài khoản Gmail gửi:</label>
+                      <input
+                        type="email"
+                        value={emailConfig.user}
+                        onChange={(e) => setEmailConfig(c => ({ ...c, user: e.target.value }))}
+                        placeholder="your-email@gmail.com"
+                        className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">Mật khẩu ứng dụng (16 ký tự):</label>
+                      <input
+                        type="password"
+                        value={emailConfig.appPassword}
+                        onChange={(e) => setEmailConfig(c => ({ ...c, appPassword: e.target.value }))}
+                        placeholder="xxxx xxxx xxxx xxxx"
+                        className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Save Gateway Config Button */}
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleSaveEmailConfig}
+                    disabled={isSavingEmailConfig}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
+                  >
+                    {isSavingEmailConfig ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                    <span>Lưu Cấu Hình Cổng Gửi</span>
+                  </button>
+                </div>
               </div>
 
               {/* Test Email Section */}
@@ -733,6 +984,199 @@ export function NotificationSettingsModal({ isOpen, onClose }: NotificationSetti
                     </label>
                   </div>
                 )}
+              </div>
+
+              {/* Universal Free Email Gateway Config: Google Apps Script Webhook & SMTP */}
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm text-slate-900 dark:text-white">
+                        Cổng Gửi Gmail Tự Động Siêu Tốc (100% Miễn Phí)
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Hỗ trợ Google Apps Script Webhook (Port 443 HTTPS - không bao giờ bị chặn mạng) hoặc SMTP
+                      </p>
+                    </div>
+                  </div>
+
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300">
+                    Khuyên Dùng Cho Gói Free
+                  </span>
+                </div>
+
+                {/* Service Type Selection */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setEmailConfig(c => ({ ...c, serviceType: 'webhook' }))}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      emailConfig.serviceType === 'webhook'
+                        ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 shadow-2xs'
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <span className="font-bold block text-xs">🌐 Google Apps Script</span>
+                    <span className="text-[10px] opacity-80 block mt-0.5">Webhook HTTPS Port 443, 0đ, không chặn SMTP</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setEmailConfig(c => ({ ...c, serviceType: 'emailjs' }))}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      emailConfig.serviceType === 'emailjs'
+                        ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 shadow-2xs'
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <span className="font-bold block text-xs">⚡ EmailJS Service</span>
+                    <span className="text-[10px] opacity-80 block mt-0.5">API REST trực tiếp, 200 mail/tháng miễn phí</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setEmailConfig(c => ({ ...c, serviceType: 'smtp' }))}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      emailConfig.serviceType === 'smtp'
+                        ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/30 text-emerald-900 dark:text-emerald-200 shadow-2xs'
+                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/40 text-slate-600 dark:text-slate-400'
+                    }`}
+                  >
+                    <span className="font-bold block text-xs">✉️ Gmail SMTP</span>
+                    <span className="text-[10px] opacity-80 block mt-0.5">Dùng Mật khẩu Ứng dụng (App Password)</span>
+                  </button>
+                </div>
+
+                {/* Branch 1: Google Apps Script Webhook Configuration */}
+                {emailConfig.serviceType === 'webhook' && (
+                  <div className="space-y-3 pt-2 text-xs">
+                    <div>
+                      <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">
+                        URL Webhook Google Apps Script (Exec URL):
+                      </label>
+                      <input
+                        type="url"
+                        value={emailConfig.webhookUrl}
+                        onChange={(e) => setEmailConfig(c => ({ ...c, webhookUrl: e.target.value }))}
+                        placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+                        className="w-full h-10 px-3.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 font-mono"
+                      />
+                    </div>
+
+                    {/* 3-Step Setup Guide */}
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-2">
+                      <span className="font-bold text-slate-900 dark:text-white block">
+                        Hướng dẫn tạo Webhook 3 bước đơn giản (Không cần cài đặt phức tạp):
+                      </span>
+                      <ol className="list-decimal list-inside space-y-1.5 text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                        <li>
+                          Truy cập <a href="https://script.google.com" target="_blank" rel="noopener noreferrer" className="text-emerald-600 dark:text-emerald-400 underline font-semibold">script.google.com</a> bằng tài khoản Gmail của bạn và nhấn <strong>Dự án mới (New Project)</strong>.
+                        </li>
+                        <li>
+                          Dán đoạn mã bên dưới vào trình soạn thảo rồi nhấn <strong>Lưu (Save)</strong>.
+                        </li>
+                        <li>
+                          Nhấn <strong>Triển khai (Deploy) &gt; Tùy chọn triển khai mới (New deployment)</strong>. Chọn loại là <strong>Ứng dụng web (Web app)</strong>, ở mục <em>Ai có quyền truy cập (Who has access)</em> chọn <strong>Bất kỳ ai (Anyone)</strong>, sau đó nhấn <strong>Triển khai</strong> và sao chép <em>Web app URL</em> dán vào ô trên!
+                        </li>
+                      </ol>
+
+                      <div className="pt-2 flex items-center justify-between gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const code = `function doPost(e) {\\n  try {\\n    var data = JSON.parse(e.postData.contents);\\n    MailApp.sendEmail({\\n      to: data.to,\\n      subject: data.subject || "Thông báo từ LifeOS",\\n      htmlBody: data.html || data.body || ""\\n    });\\n    return ContentService.createTextOutput(JSON.stringify({ success: true, message: "Email sent" }))\\n      .setMimeType(ContentService.MimeType.JSON);\\n  } catch (error) {\\n    return ContentService.createTextOutput(JSON.stringify({ success: false, error: error.toString() }))\\n      .setMimeType(ContentService.MimeType.JSON);\\n  }\\n}`;
+                            navigator.clipboard.writeText(code);
+                            setCopiedScript(true);
+                            toast.success('Đã sao chép mã Google Apps Script vào bộ nhớ tạm!', 'Sao chép');
+                            setTimeout(() => setCopiedScript(false), 2500);
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors"
+                        >
+                          {copiedScript ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                          <span>{copiedScript ? 'Đã sao chép mã!' : 'Sao chép mã Google Apps Script'}</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Branch 2: EmailJS Configuration */}
+                {emailConfig.serviceType === 'emailjs' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
+                    <div>
+                      <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">EmailJS Service ID:</label>
+                      <input
+                        type="text"
+                        value={emailConfig.emailjsServiceId}
+                        onChange={(e) => setEmailConfig(c => ({ ...c, emailjsServiceId: e.target.value }))}
+                        placeholder="service_xxx"
+                        className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">EmailJS Template ID:</label>
+                      <input
+                        type="text"
+                        value={emailConfig.emailjsTemplateId}
+                        onChange={(e) => setEmailConfig(c => ({ ...c, emailjsTemplateId: e.target.value }))}
+                        placeholder="template_xxx"
+                        className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">Public Key:</label>
+                      <input
+                        type="text"
+                        value={emailConfig.emailjsPublicKey}
+                        onChange={(e) => setEmailConfig(c => ({ ...c, emailjsPublicKey: e.target.value }))}
+                        placeholder="user_xxx"
+                        className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Branch 3: SMTP App Password Configuration */}
+                {emailConfig.serviceType === 'smtp' && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs">
+                    <div>
+                      <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">Tài khoản Gmail gửi:</label>
+                      <input
+                        type="email"
+                        value={emailConfig.user}
+                        onChange={(e) => setEmailConfig(c => ({ ...c, user: e.target.value }))}
+                        placeholder="your-email@gmail.com"
+                        className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">Mật khẩu ứng dụng (16 ký tự):</label>
+                      <input
+                        type="password"
+                        value={emailConfig.appPassword}
+                        onChange={(e) => setEmailConfig(c => ({ ...c, appPassword: e.target.value }))}
+                        placeholder="xxxx xxxx xxxx xxxx"
+                        className="w-full h-9 px-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Save Gateway Config Button */}
+                <div className="pt-2 flex justify-end">
+                  <button
+                    type="button"
+                    onClick={handleSaveEmailConfig}
+                    disabled={isSavingEmailConfig}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 transition-colors shadow-2xs cursor-pointer disabled:opacity-50"
+                  >
+                    {isSavingEmailConfig ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <CheckCircle2 className="w-3.5 h-3.5" />}
+                    <span>Lưu Cấu Hình Cổng Gửi</span>
+                  </button>
+                </div>
               </div>
 
               {/* Save Preferences Button */}
@@ -981,6 +1425,18 @@ export function NotificationSettingsModal({ isOpen, onClose }: NotificationSetti
           </button>
         </div>
       </div>
+
+      <AdminConfirmModal
+        isOpen={showDisconnectConfirm}
+        title="Ngắt kết nối Gmail"
+        message="Bạn có chắc chắn muốn ngắt kết nối tài khoản Gmail này khỏi LifeOS không? Sau khi ngắt, hệ thống sẽ tạm dừng gửi thông báo qua tài khoản này."
+        confirmText="Ngắt kết nối"
+        cancelText="Hủy bỏ"
+        variant="warning"
+        isLoading={isDisconnecting}
+        onConfirm={confirmDisconnectGmail}
+        onCancel={() => setShowDisconnectConfirm(false)}
+      />
     </div>
   );
 }

@@ -18,7 +18,7 @@ export function ToastContainer() {
     <div 
       aria-live="polite"
       aria-label="Thông báo hệ thống"
-      className="fixed top-4 inset-x-0 sm:top-5 sm:right-6 sm:left-auto z-[9999] flex flex-col items-center sm:items-end gap-2.5 px-4 pointer-events-none max-w-full sm:max-w-md w-full"
+      className="fixed top-4 inset-x-0 sm:top-5 sm:right-6 sm:left-auto z-60 flex flex-col items-center sm:items-end gap-2.5 px-4 pointer-events-none max-w-full sm:max-w-md w-full"
     >
       {toasts.map((item) => {
         const isSuccess = item.type === 'success';

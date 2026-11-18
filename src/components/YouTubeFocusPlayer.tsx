@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Play, Pause, Volume2, VolumeX, Star, Trash2, 
   ExternalLink, ChevronDown, ChevronUp, Music, AlertCircle, Plus,
-  SkipBack, SkipForward, Radio, Disc
+  SkipBack, SkipForward, Radio, Disc, X
 } from 'lucide-react';
 import { 
   YouTubeTrack, 
@@ -54,7 +54,23 @@ export function YouTubeFocusPlayer({
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
   const [favorites, setFavorites] = useState<YouTubeTrack[]>(() => youtubeMusicService.getFavorites());
   const [recentTracks, setRecentTracks] = useState<YouTubeTrack[]>(() => youtubeMusicService.getRecentTracks());
-  const [activeTab, setActiveTab] = useState<'curated' | 'favorites' | 'custom'>('curated');
+  const [activeTab, setActiveTab] = useState<'curated' | 'favorites' | 'custom'>(() => {
+    try {
+      const saved = localStorage.getItem('lifeos_focus_music_tab');
+      if (saved === 'curated' || saved === 'favorites' || saved === 'custom') return saved;
+    } catch {
+      // ignore
+    }
+    return 'curated';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_focus_music_tab', activeTab);
+    } catch {
+      // ignore
+    }
+  }, [activeTab]);
 
   const currentVideoId = currentTrack.id;
   const activeTrack = currentTrack;
@@ -113,14 +129,14 @@ export function YouTubeFocusPlayer({
   const isCurrentFavorite = youtubeMusicService.isFavorite(currentVideoId);
 
   return (
-    <div className={`rounded-2xl border border-slate-800 bg-[#0F172A] text-slate-100 shadow-sm overflow-hidden transition-all duration-300 ${className}`}>
+    <div className={`rounded-3xl border border-slate-200/80 dark:border-white/[0.08] bg-white/90 dark:bg-[#0B1120]/95 backdrop-blur-xl text-slate-800 dark:text-slate-100 shadow-md overflow-hidden transition-all duration-300 ${className}`}>
       
       {/* Header mini bar with expand/collapse toggle */}
-      <div className="px-4 py-3 flex items-center justify-between border-b border-slate-800/80 bg-[#0F172A]">
+      <div className="px-4 py-3 flex items-center justify-between border-b border-slate-100 dark:border-white/[0.06] bg-slate-50/70 dark:bg-black/30">
         <div className="flex items-center gap-2 min-w-0">
-          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isPlaying ? 'bg-emerald-500 animate-pulse' : 'bg-slate-500'}`} />
-          <span className="text-xs font-medium text-slate-300 tracking-tight flex items-center gap-1.5">
-            <span>Ambient Soundscape</span>
+          <span className={`w-2 h-2 rounded-full shrink-0 ${isPlaying ? 'bg-emerald-500 animate-ping' : 'bg-slate-400'}`} />
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 tracking-tight flex items-center gap-1.5 font-mono">
+            <span>AMBIENT SOUNDSCAPE</span>
             {isPlaying && <EqualizerIcon />}
           </span>
         </div>
@@ -128,7 +144,7 @@ export function YouTubeFocusPlayer({
           <button
             type="button"
             onClick={() => setIsExpanded(!isExpanded)}
-            className="p-1 text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
+            className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
             title={isExpanded ? 'Thu gọn' : 'Mở rộng'}
           >
             {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -154,7 +170,11 @@ export function YouTubeFocusPlayer({
               <div className="relative w-14 h-14 rounded-lg overflow-hidden shrink-0 border border-slate-800 bg-slate-900">
                 <img 
                   src={activeTrack.thumbnailUrl} 
-                  alt={activeTrack.title}
+                  alt={activeTrack.title || 'Ảnh bài hát âm thanh tập trung'}
+                  loading="lazy"
+                  decoding="async"
+                  width="56"
+                  height="56"
                   className="w-full h-full object-cover filter brightness-75 contrast-125"
                   onError={(e) => {
                     (e.target as HTMLElement).style.display = 'none';
@@ -273,19 +293,19 @@ export function YouTubeFocusPlayer({
           {/* BOTTOM SECTION: SLEEK TRACKLIST WITH THIN DIVIDERS & TINY EQUALIZER       */}
           {/* ========================================================================= */}
           {activeTab === 'curated' && (
-            <div className="divide-y divide-slate-800/80">
+            <div className="divide-y divide-slate-100 dark:divide-white/[0.06]">
               {CURATED_FOCUS_TRACKS.map(track => {
                 const isSelected = track.id === currentVideoId;
                 return (
                   <div
                     key={track.id}
                     onClick={() => handleLoadTrack(track)}
-                    className="flex items-center justify-between py-2.5 px-2 hover:bg-slate-800/40 rounded-lg cursor-pointer transition-colors group"
+                    className="flex items-center justify-between py-2.5 px-2 hover:bg-emerald-500/10 dark:hover:bg-white/[0.05] rounded-xl cursor-pointer transition-colors group"
                   >
                     <span className={`text-xs truncate transition-colors ${
                       isSelected 
-                        ? 'text-emerald-400 font-medium' 
-                        : 'text-slate-300 group-hover:text-white'
+                        ? 'text-emerald-600 dark:text-emerald-400 font-semibold' 
+                        : 'text-slate-700 dark:text-slate-300 group-hover:text-emerald-600 dark:group-hover:text-white'
                     }`}>
                       {track.title}
                     </span>
@@ -348,17 +368,29 @@ export function YouTubeFocusPlayer({
                 <label className="block text-[11px] font-medium text-slate-300 mb-1">
                   Đường dẫn YouTube:
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={inputUrl}
-                  onChange={e => {
-                    setInputUrl(e.target.value);
-                    if (errorMsg) setErrorMsg(null);
-                  }}
-                  placeholder="https://www.youtube.com/watch?v=..."
-                  className="w-full px-3 py-2 text-xs bg-slate-900 border border-slate-800 rounded-lg focus:outline-hidden focus:border-emerald-500 text-white placeholder-slate-500"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={inputUrl}
+                    onChange={e => {
+                      setInputUrl(e.target.value);
+                      if (errorMsg) setErrorMsg(null);
+                    }}
+                    placeholder="https://www.youtube.com/watch?v=..."
+                    className="w-full pl-3 pr-8 py-2 text-xs bg-slate-900 border border-slate-800 rounded-lg focus:outline-hidden focus:border-emerald-500 text-white placeholder-slate-500"
+                  />
+                  {inputUrl && (
+                    <button
+                      type="button"
+                      onClick={() => setInputUrl('')}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                      title="Xóa đường dẫn"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div>

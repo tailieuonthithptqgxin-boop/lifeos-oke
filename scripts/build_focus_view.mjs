@@ -1,0 +1,1405 @@
+import fs from 'fs';
+import path from 'path';
+
+const focusViewContent = `import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import { useAppStore } from '../lib/store';
+import { 
+  Play, Square, Pause, RotateCcw, 
+  Target, Zap, Clock, ShieldAlert, CheckCircle2,
+  ListTodo, FolderKanban, Briefcase, FileText,
+  Maximize2, Minimize2, Sparkles, Volume2, Music,
+  X, Check, Coffee, Plus, Trash2, Flame, Bell,
+  Sliders, SkipForward, Award, ChevronDown, ChevronUp,
+  VolumeX, AlertCircle
+} from 'lucide-react';
+import { FocusSession, FocusMode, FocusStatus, Task, Project } from '../lib/types';
+import { YouTubeFocusPlayer } from './YouTubeFocusPlayer';
+import { FocusVolumeControl } from './focus/FocusVolumeControl';
+import { CompanionMood } from '../lib/companionEngine';
+import { companionEventBus } from '../lib/companion/companionEventBus';
+import { retentionEngine } from '../lib/retentionEngine';
+import { analytics } from '../lib/analytics';
+import { soundEngine } from '../lib/soundEngine';
+import { triggerConfetti } from '../lib/confetti';
+import { webNotification } from '../lib/webNotification';
+import { notifyStudyCommunity } from '../lib/unifiedNotificationEngine';
+import { WeeklyLeaderboardModal } from './dashboard/WeeklyLeaderboardModal';
+import { ShareStoryModal } from './ShareStoryModal';
+import { AmbientMixerWidget } from './focus/AmbientMixerWidget';
+import { SpeedMatchGameModal } from './vocab/SpeedMatchGameModal';
+import { SpatialBentoCard } from './spatial/SpatialBentoCard';
+import { recordUserActivity } from '../lib/globalUserSync';
+import { formatLocalDateKey } from '../lib/utils';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+import { FocusPetWidget } from './pet/FocusPetWidget';
+import { 
+  playPomodoroAlarm, 
+  unlockAudioContext, 
+  PomodoroSoundType 
+} from '../lib/pomodoroSoundSynthesizer';
+
+// --------------------------------------------------------------------------
+// Custom Pomodoro Settings & Runtime Types
+// --------------------------------------------------------------------------
+export interface PomodoroCustomSettings {
+  focusMinutes: number;   // 1 to 180 min
+  breakMinutes: number;   // 1 to 60 min
+  targetRounds: number;   // 1 to 10 rounds
+  soundType: PomodoroSoundType; // 'zen' | 'energetic' | 'bell'
+  volume: number;         // 0.05 to 1.0
+}
+
+export type PomodoroPhase = 'FOCUS' | 'CHIME_TRANSITION' | 'BREAK' | 'IDLE' | 'COMPLETED';
+
+const SETTINGS_STORAGE_KEY = 'lifeos_pomodoro_custom_settings';
+const RUNTIME_STORAGE_KEY = 'lifeos_pomodoro_runtime_v3';
+
+const DEFAULT_SETTINGS: PomodoroCustomSettings = {
+  focusMinutes: 25,
+  breakMinutes: 5,
+  targetRounds: 4,
+  soundType: 'zen',
+  volume: 0.85
+};
+
+export function FocusView() {
+  const { 
+    focusSessions, focusGoals, tasks, projects, 
+    addFocusSession, updateFocusSession, deleteFocusSession, addTask, updateTask,
+    dailyCapacity, currentUser, language, theme
+  } = useAppStore();
+  const isVi = language === 'vi';
+
+  // -------------------------------------------------------------------------
+  // 1. CUSTOM SETTINGS STATE (Persisted to localStorage)
+  // -------------------------------------------------------------------------
+  const [settings, setSettings] = useState<PomodoroCustomSettings>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(SETTINGS_STORAGE_KEY);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          return {
+            focusMinutes: Math.max(1, Math.min(180, Number(parsed.focusMinutes) || 25)),
+            breakMinutes: Math.max(1, Math.min(60, Number(parsed.breakMinutes) || 5)),
+            targetRounds: Math.max(1, Math.min(10, Number(parsed.targetRounds) || 4)),
+            soundType: (['zen', 'energetic', 'bell'].includes(parsed.soundType) ? parsed.soundType : 'zen') as PomodoroSoundType,
+            volume: typeof parsed.volume === 'number' ? Math.max(0.1, Math.min(1, parsed.volume)) : 0.85
+          };
+        }
+      } catch {}
+    }
+    return DEFAULT_SETTINGS;
+  });
+
+  const [showSettingsDrawer, setShowSettingsDrawer] = useState(false);
+  const [isPlayingPreview, setIsPlayingPreview] = useState(false);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    } catch {}
+  }, [settings]);
+
+  // -------------------------------------------------------------------------
+  // 2. RUNTIME ENGINE (Timestamp-Based, F5 & Screen Sleep Proof)
+  // -------------------------------------------------------------------------
+  const [isRunning, setIsRunning] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [phase, setPhase] = useState<PomodoroPhase>('IDLE');
+  const [currentRound, setCurrentRound] = useState(1);
+  const [targetEndTime, setTargetEndTime] = useState<number | null>(null);
+  const [remainingSeconds, setRemainingSeconds] = useState(settings.focusMinutes * 60);
+  const [totalPhaseSeconds, setTotalPhaseSeconds] = useState(settings.focusMinutes * 60);
+  const [isQuickTest, setIsQuickTest] = useState(false);
+
+  // Selected task to tie real work to focus
+  const [selectedTaskId, setSelectedTaskId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return localStorage.getItem('lifeos_focus_selected_task_id') || '';
+      } catch {}
+    }
+    return '';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_focus_selected_task_id', selectedTaskId);
+    } catch {}
+  }, [selectedTaskId]);
+
+  const [activeSession, setActiveSession] = useState<FocusSession | null>(null);
+  const currentSessionIdRef = useRef<string | null>(null);
+  const chimeTimeoutRef = useRef<any>(null);
+
+  // -------------------------------------------------------------------------
+  // Restore runtime state from localStorage on load / mount
+  // -------------------------------------------------------------------------
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const savedRuntime = localStorage.getItem(RUNTIME_STORAGE_KEY);
+      if (savedRuntime) {
+        const parsed = JSON.parse(savedRuntime);
+        if (parsed.isRunning && parsed.targetEndTime) {
+          const now = Date.now();
+          const secsLeft = Math.max(0, Math.ceil((parsed.targetEndTime - now) / 1000));
+          setIsRunning(true);
+          setIsPaused(Boolean(parsed.isPaused));
+          setPhase(parsed.phase || 'FOCUS');
+          setCurrentRound(parsed.currentRound || 1);
+          setTargetEndTime(parsed.targetEndTime);
+          setRemainingSeconds(secsLeft);
+          setTotalPhaseSeconds(parsed.totalPhaseSeconds || (parsed.phase === 'BREAK' ? settings.breakMinutes * 60 : settings.focusMinutes * 60));
+          setIsQuickTest(Boolean(parsed.isQuickTest));
+          if (parsed.sessionId) {
+            currentSessionIdRef.current = parsed.sessionId;
+            const existing = (focusSessions || []).find(s => s.id === parsed.sessionId);
+            if (existing) setActiveSession(existing);
+          }
+        }
+      }
+    } catch {}
+  }, []);
+
+  // Persist active runtime state
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (isRunning && targetEndTime) {
+        localStorage.setItem(RUNTIME_STORAGE_KEY, JSON.stringify({
+          isRunning,
+          isPaused,
+          phase,
+          currentRound,
+          targetEndTime,
+          totalPhaseSeconds,
+          isQuickTest,
+          sessionId: currentSessionIdRef.current
+        }));
+      } else {
+        localStorage.removeItem(RUNTIME_STORAGE_KEY);
+      }
+    } catch {}
+  }, [isRunning, isPaused, phase, currentRound, targetEndTime, totalPhaseSeconds, isQuickTest]);
+
+  // If idle, update remainingSeconds whenever settings change
+  useEffect(() => {
+    if (!isRunning && phase === 'IDLE') {
+      setRemainingSeconds(settings.focusMinutes * 60);
+      setTotalPhaseSeconds(settings.focusMinutes * 60);
+    }
+  }, [settings.focusMinutes, isRunning, phase]);
+
+  // -------------------------------------------------------------------------
+  // 3. PRECISION 250ms TICK LOOP & PHASE TRANSITION CONTROLLER
+  // -------------------------------------------------------------------------
+  useEffect(() => {
+    if (!isRunning || isPaused || !targetEndTime || phase === 'CHIME_TRANSITION') return;
+
+    const timer = setInterval(() => {
+      const now = Date.now();
+      const secs = Math.max(0, Math.ceil((targetEndTime - now) / 1000));
+      setRemainingSeconds(secs);
+
+      if (secs === 0) {
+        handlePhaseZeroReached();
+      }
+    }, 250);
+
+    return () => clearInterval(timer);
+  }, [isRunning, isPaused, targetEndTime, phase, currentRound, isQuickTest, settings]);
+
+  /**
+   * Automatic Phase Zero Transition:
+   * When Focus hits 0:
+   * 1. Plays audible chime & phone haptic vibration
+   * 2. Sets Phase to CHIME_TRANSITION (~2.8s celebratory pause)
+   * 3. Syncs real study minutes to User Stats & Emits Bell Notification
+   * 4. Automatically switches to BREAK without user pressing anything!
+   *
+   * When Break hits 0:
+   * 1. Plays break-end reminder chime
+   * 2. Automatically advances to next Focus Round!
+   */
+  const handlePhaseZeroReached = async () => {
+    if (phase === 'FOCUS') {
+      // 1. Enter Chime Transition
+      setPhase('CHIME_TRANSITION');
+      triggerConfetti();
+
+      // Synthesize chime alarm
+      playPomodoroAlarm(settings.soundType, 'FOCUS_END', settings.volume).catch(() => {});
+
+      // Calculate completed study minutes
+      const completedMins = isQuickTest ? 1 : settings.focusMinutes;
+      const targetTask = (tasks || []).find(t => t.id === selectedTaskId);
+      const taskTitle = targetTask ? targetTask.title : 'Phiên tập trung';
+
+      // 2. Real System Data Integration: Increment study minutes & fire sync
+      try {
+        recordUserActivity('focus', completedMins);
+        notifyStudyCommunity('POMODORO_FINISHED', {
+          durationMinutes: completedMins,
+          title: taskTitle
+        }).catch(() => {});
+        retentionEngine.addXp(35, \`Hoàn thành hiệp học Pomodoro (\${completedMins} phút)\`);
+      } catch (e) {
+        console.warn('Real study record sync notice:', e);
+      }
+
+      // Update current focus session record in DB / store
+      if (currentSessionIdRef.current) {
+        try {
+          updateFocusSession(currentSessionIdRef.current, {
+            actualDuration: completedMins,
+            status: 'Completed',
+            endTime: new Date().toISOString()
+          });
+        } catch {}
+      }
+
+      // 3. Automatic transition into BREAK after 2.8 seconds of chime
+      if (chimeTimeoutRef.current) clearTimeout(chimeTimeoutRef.current);
+      chimeTimeoutRef.current = setTimeout(() => {
+        const breakSecs = isQuickTest ? 5 : settings.breakMinutes * 60;
+        const newEndTime = Date.now() + breakSecs * 1000;
+        setPhase('BREAK');
+        setTotalPhaseSeconds(breakSecs);
+        setRemainingSeconds(breakSecs);
+        setTargetEndTime(newEndTime);
+        toast.info(
+          isVi ? 'Đang nghỉ giải lao. Hãy đứng dậy vươn vai và uống nước nhé!' : 'Break time started. Take a stretch and drink water!',
+          '☕ Giờ Giải Lao'
+        );
+      }, 2800);
+
+    } else if (phase === 'BREAK') {
+      // End of Break reached!
+      playPomodoroAlarm(settings.soundType, 'BREAK_END', settings.volume).catch(() => {});
+
+      if (currentRound < settings.targetRounds) {
+        // Automatically start next Focus round
+        const nextRound = currentRound + 1;
+        setCurrentRound(nextRound);
+        const focusSecs = isQuickTest ? 5 : settings.focusMinutes * 60;
+        const newEndTime = Date.now() + focusSecs * 1000;
+        setPhase('FOCUS');
+        setTotalPhaseSeconds(focusSecs);
+        setRemainingSeconds(focusSecs);
+        setTargetEndTime(newEndTime);
+
+        toast.success(
+          isVi ? \`Bắt đầu Hiệp \${nextRound}/\${settings.targetRounds}! Cố gắng nhé.\` : \`Starting Round \${nextRound}/\${settings.targetRounds}!\`,
+          '🔥 Vào Bàn Học'
+        );
+      } else {
+        // All target rounds completed!
+        setIsRunning(false);
+        setPhase('COMPLETED');
+        setTargetEndTime(null);
+        triggerConfetti();
+        soundEngine.playSuccess();
+        toast.success(
+          isVi ? \`Xuất sắc! Bạn đã hoàn thành trọn vẹn \${settings.targetRounds} hiệp học hôm nay!\` : 'Congratulations on finishing all focus rounds!',
+          '🏆 Mục Tiêu Hoàn Thành'
+        );
+      }
+    }
+  };
+
+  // -------------------------------------------------------------------------
+  // 4. CONTROL HANDLERS
+  // -------------------------------------------------------------------------
+
+  /**
+   * Start or resume Focus Pomodoro
+   */
+  const handleStartFocus = () => {
+    unlockAudioContext();
+    soundEngine.playPop();
+
+    const focusSecs = settings.focusMinutes * 60;
+    const endTime = Date.now() + focusSecs * 1000;
+
+    const sessionId = \`foc_\${Date.now()}_\${Math.random().toString(36).substring(2, 7)}\`;
+    currentSessionIdRef.current = sessionId;
+
+    const targetTask = (tasks || []).find(t => t.id === selectedTaskId);
+    const newSession: FocusSession = {
+      id: sessionId,
+      title: targetTask ? targetTask.title : (isVi ? 'Phiên tập trung' : 'Deep Focus'),
+      mode: 'Pomodoro',
+      status: 'Running',
+      plannedDuration: settings.focusMinutes,
+      actualDuration: 0,
+      startTime: new Date().toISOString(),
+      taskId: selectedTaskId || null,
+      interruptions: [],
+      createdAt: new Date().toISOString()
+    };
+
+    try {
+      addFocusSession(newSession);
+    } catch {}
+    setActiveSession(newSession);
+
+    setIsRunning(true);
+    setIsPaused(false);
+    setIsQuickTest(false);
+    setPhase('FOCUS');
+    setCurrentRound(1);
+    setTotalPhaseSeconds(focusSecs);
+    setRemainingSeconds(focusSecs);
+    setTargetEndTime(endTime);
+
+    // Companion reaction
+    setCompanionMood('focus');
+    setCompanionDialogueKey('focusStart');
+  };
+
+  /**
+   * Quick 5-Second Test Mode (5s Focus -> Chime -> 5s Break -> Chime -> Finish)
+   */
+  const handleStartQuickTest = () => {
+    unlockAudioContext();
+    soundEngine.playPop();
+
+    const testSecs = 5;
+    const endTime = Date.now() + testSecs * 1000;
+
+    setIsRunning(true);
+    setIsPaused(false);
+    setIsQuickTest(true);
+    setPhase('FOCUS');
+    setCurrentRound(1);
+    setTotalPhaseSeconds(testSecs);
+    setRemainingSeconds(testSecs);
+    setTargetEndTime(endTime);
+
+    toast.info('⚡ Bắt đầu chạy thử: 5 giây Học -> Tự kêu chuông -> 5 giây Nghỉ -> Kêu chuông hết giờ.', 'Chạy Thử Nghiệm Thu');
+  };
+
+  const handlePause = () => {
+    if (!isRunning || isPaused) return;
+    soundEngine.playPop();
+    setIsPaused(true);
+    // Freeze remaining seconds
+    setTargetEndTime(null);
+  };
+
+  const handleResume = () => {
+    if (!isRunning || !isPaused) return;
+    unlockAudioContext();
+    soundEngine.playPop();
+    const newEndTime = Date.now() + remainingSeconds * 1000;
+    setTargetEndTime(newEndTime);
+    setIsPaused(false);
+  };
+
+  const handleSkipBreak = () => {
+    soundEngine.playPop();
+    if (chimeTimeoutRef.current) clearTimeout(chimeTimeoutRef.current);
+
+    if (currentRound < settings.targetRounds) {
+      const nextRound = currentRound + 1;
+      setCurrentRound(nextRound);
+      const focusSecs = isQuickTest ? 5 : settings.focusMinutes * 60;
+      setPhase('FOCUS');
+      setTotalPhaseSeconds(focusSecs);
+      setRemainingSeconds(focusSecs);
+      setTargetEndTime(Date.now() + focusSecs * 1000);
+      toast.success(isVi ? \`Đã bỏ qua giờ nghỉ. Bắt đầu Hiệp \${nextRound}!\` : 'Skipped break!');
+    } else {
+      setIsRunning(false);
+      setPhase('COMPLETED');
+      setTargetEndTime(null);
+    }
+  };
+
+  const handleCancelSession = () => {
+    soundEngine.playPop();
+    if (chimeTimeoutRef.current) clearTimeout(chimeTimeoutRef.current);
+    setIsRunning(false);
+    setIsPaused(false);
+    setIsQuickTest(false);
+    setPhase('IDLE');
+    setTargetEndTime(null);
+    setRemainingSeconds(settings.focusMinutes * 60);
+    setTotalPhaseSeconds(settings.focusMinutes * 60);
+    setCurrentRound(1);
+    setActiveSession(null);
+    try {
+      localStorage.removeItem(RUNTIME_STORAGE_KEY);
+    } catch {}
+    toast.info(isVi ? 'Đã dừng phiên tập trung.' : 'Session stopped.');
+  };
+
+  const handlePreviewAlarm = async (sound: PomodoroSoundType) => {
+    unlockAudioContext();
+    setIsPlayingPreview(true);
+    try {
+      await playPomodoroAlarm(sound, 'PREVIEW', settings.volume);
+    } finally {
+      setIsPlayingPreview(false);
+    }
+  };
+
+  // -------------------------------------------------------------------------
+  // 5. PROGRESS CALCULATION FOR SVG RING
+  // -------------------------------------------------------------------------
+  const ringRadius = 92;
+  const ringCircumference = 2 * Math.PI * ringRadius; // ~578.05
+  const progressRatio = totalPhaseSeconds > 0 ? (totalPhaseSeconds - remainingSeconds) / totalPhaseSeconds : 0;
+  const strokeDashoffset = ringCircumference * (1 - Math.min(1, Math.max(0, progressRatio)));
+
+  const formatDisplayTime = (secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return \`\${m.toString().padStart(2, '0')}:\${s.toString().padStart(2, '0')}\`;
+  };
+
+  // -------------------------------------------------------------------------
+  // 6. SECONDARY STATE & MODALS (Leaderboard, Stories, Ambient, Pet)
+  // -------------------------------------------------------------------------
+  const [isZenMode, setIsZenMode] = useState(false);
+  const [showMusicPanel, setShowMusicPanel] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_focus_show_music');
+        if (saved !== null) return saved === 'true';
+      } catch {}
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_focus_show_music', String(showMusicPanel));
+    } catch {}
+  }, [showMusicPanel]);
+
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [showShareStory, setShowShareStory] = useState(false);
+  const [showSpeedMatchBreak, setShowSpeedMatchBreak] = useState(false);
+
+  // Quick Task Creation
+  const [isQuickCreatingTask, setIsQuickCreatingTask] = useState(false);
+  const [quickTaskTitle, setQuickTaskTitle] = useState('');
+
+  const handleQuickCreateAndSelectTask = async (e?: React.FormEvent | React.MouseEvent) => {
+    if (e && typeof e.preventDefault === 'function') e.preventDefault();
+    const trimmed = quickTaskTitle.trim();
+    if (!trimmed) return;
+    try {
+      const created = await addTask({
+        title: trimmed,
+        priority: 'Cao',
+        status: 'Chưa làm',
+        dueDate: new Date().toISOString().split('T')[0]
+      });
+      const assignedId = (created as any)?.id;
+      if (assignedId) setSelectedTaskId(assignedId);
+      setQuickTaskTitle('');
+      setIsQuickCreatingTask(false);
+      soundEngine.playPop();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Undo delete session
+  const [undoDeletedSession, setUndoDeletedSession] = useState<FocusSession | null>(null);
+  const undoDeleteTimerRef = useRef<any>(null);
+
+  const handleDeleteSessionWithUndo = (sessionId: string) => {
+    const target = focusSessions.find(s => s.id === sessionId);
+    if (!target) return;
+    deleteFocusSession(sessionId);
+    soundEngine.playPop();
+
+    if (undoDeleteTimerRef.current) clearTimeout(undoDeleteTimerRef.current);
+    setUndoDeletedSession(target);
+    undoDeleteTimerRef.current = setTimeout(() => {
+      setUndoDeletedSession(null);
+    }, 5000);
+  };
+
+  const handleRestoreDeletedSession = () => {
+    if (!undoDeletedSession) return;
+    if (undoDeleteTimerRef.current) clearTimeout(undoDeleteTimerRef.current);
+    addFocusSession(undoDeletedSession);
+    soundEngine.playSuccess();
+    setUndoDeletedSession(null);
+  };
+
+  // Zen Mode toggle
+  const toggleZenMode = async () => {
+    const nextZen = !isZenMode;
+    setIsZenMode(nextZen);
+    soundEngine.playPop();
+    try {
+      if (nextZen) {
+        if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+          await document.documentElement.requestFullscreen();
+        }
+      } else {
+        if (document.fullscreenElement && document.exitFullscreen) {
+          await document.exitFullscreen();
+        }
+      }
+    } catch {}
+  };
+
+  useEffect(() => {
+    if (isZenMode) {
+      document.documentElement.classList.add('dark');
+      return () => {
+        if (theme !== 'dark') document.documentElement.classList.remove('dark');
+      };
+    }
+  }, [isZenMode, theme]);
+
+  // Companion
+  const [companionMood, setCompanionMood] = useState<CompanionMood>('idle');
+  const [companionDialogueKey, setCompanionDialogueKey] = useState<any>('greeting');
+  
+  useEffect(() => {
+    if (companionMood) {
+      companionEventBus.emit({
+        type: 'mood_change',
+        mood: companionMood,
+        category: companionDialogueKey
+      });
+    }
+  }, [companionMood, companionDialogueKey]);
+
+  // Stats
+  const todayDate = formatLocalDateKey(new Date());
+  const todaySessions = (focusSessions || []).filter(s => {
+    const d = s.createdAt || s.startTime;
+    return d ? formatLocalDateKey(new Date(d)) === todayDate : false;
+  });
+  const completedToday = todaySessions.filter(s => s.status === 'Completed');
+  const totalMinutesToday = completedToday.reduce((acc, curr) => acc + (curr.actualDuration || 0), 0);
+
+  const isAnyFocusModalOpen = showLeaderboard || showShareStory || showSpeedMatchBreak;
+  useBodyScrollLock(isAnyFocusModalOpen);
+
+  // -------------------------------------------------------------------------
+  // RENDER STATS CARDS
+  // -------------------------------------------------------------------------
+  const renderStatsCards = (extraClass = '') => (
+    <div className={\`grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 \${extraClass}\`}>
+      {/* 1. Thời gian Focus */}
+      <div className="py-2.5 px-3.5 bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] rounded-2xl flex items-center justify-between gap-3 shadow-xs">
+        <div className="min-w-0 flex-1">
+          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider truncate block">
+            {isVi ? 'Thời gian Focus Hôm Nay' : 'Today Focus Time'}
+          </span>
+          <div className="text-lg font-black text-slate-900 dark:text-white font-mono tracking-tight leading-none mt-1">
+            {Math.floor(totalMinutesToday / 60)}h {totalMinutesToday % 60}m
+          </div>
+        </div>
+        <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-200/50 dark:border-emerald-800/50">
+          <Clock className="w-4 h-4" />
+        </div>
+      </div>
+
+      {/* 2. Phiên hoàn thành */}
+      <div className="py-2.5 px-3.5 bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] rounded-2xl flex items-center justify-between gap-3 shadow-xs">
+        <div className="min-w-0 flex-1">
+          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
+            {isVi ? 'Phiên Hoàn Thành' : 'Completed Sessions'}
+          </span>
+          <div className="text-lg font-black text-slate-900 dark:text-white font-mono tracking-tight leading-none mt-1">
+            {completedToday.length} <span className="text-xs font-normal text-slate-400 font-sans">/{todaySessions.length}</span>
+          </div>
+        </div>
+        <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-700">
+          <Target className="w-4 h-4" />
+        </div>
+      </div>
+
+      {/* 3. Hiệp mục tiêu */}
+      <div className="py-2.5 px-3.5 bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] rounded-2xl flex items-center justify-between gap-3 shadow-xs">
+        <div className="min-w-0 flex-1">
+          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
+            {isVi ? 'Tiến Độ Hiệp' : 'Target Rounds'}
+          </span>
+          <div className="text-lg font-black text-orange-500 font-mono tracking-tight leading-none mt-1">
+            {isRunning ? currentRound : 0} <span className="text-xs font-normal text-slate-400 font-sans">/{settings.targetRounds}</span>
+          </div>
+        </div>
+        <div className="w-8 h-8 rounded-xl bg-orange-50 dark:bg-orange-950/40 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0 border border-orange-200/50 dark:border-orange-800/50">
+          <Flame className="w-4 h-4" />
+        </div>
+      </div>
+
+      {/* 4. Focus Streak */}
+      <div 
+        onClick={() => {
+          soundEngine.playPop();
+          setShowLeaderboard(true);
+        }}
+        className="py-2.5 px-3.5 bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] hover:border-amber-500/40 rounded-2xl flex items-center justify-between gap-3 shadow-xs cursor-pointer transition-all hover:shadow-md active:scale-[0.98]"
+        title={isVi ? "Xem Bảng Phong Thần Kỷ Luật" : "Open Leaderboard"}
+      >
+        <div className="min-w-0 flex-1">
+          <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block truncate">
+            Focus Streak
+          </span>
+          <div className="text-lg font-black text-amber-500 dark:text-amber-400 font-mono tracking-tight leading-none mt-1">
+            {currentUser?.streakDays ?? 1} <span className="text-[10px] font-normal text-slate-400 font-sans">{isVi ? 'ngày' : 'days'}</span>
+          </div>
+        </div>
+        <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/50 dark:border-amber-800/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+          <span className="text-xs">🔥</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className={\`w-full min-w-0 max-w-7xl mx-auto flex flex-col space-y-3.5 sm:space-y-4 overflow-x-hidden \${
+      isZenMode ? 'dark fixed inset-0 z-[99999] w-screen h-screen bg-slate-950 text-slate-100 max-w-none p-4 sm:p-12 overflow-y-auto' : 'p-3 sm:p-6 lg:p-8'
+    }\`}>
+      
+      {/* ========================================================================= */}
+      {/* 1. HEADER ROW & ACTION BAR                                                */}
+      {/* ========================================================================= */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 bg-white dark:bg-[#141E30] p-4 sm:p-5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-orange-500 to-amber-500 text-white flex items-center justify-center shadow-md shadow-orange-500/20 shrink-0">
+            <Flame className="w-5 h-5 fill-white text-white" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight truncate text-slate-900 dark:text-white">
+                {isVi ? 'Đồng Hồ Tập Trung (Pomodoro Timer)' : 'Smart Pomodoro Timer Station'}
+              </h1>
+              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-600 dark:text-orange-400 border border-orange-500/20 shrink-0">
+                <Sparkles className="w-3 h-3 text-orange-500" /> Tự Động Chuyển Giờ Nghỉ
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
+              {isVi ? 'Tùy chỉnh thời gian Học & Nghỉ • Chuông báo Web Audio không cần MP3 ngoài' : 'Custom focus & break intervals • Native AudioContext alarms'}
+            </p>
+          </div>
+        </div>
+
+        {/* Action Bar */}
+        <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto shrink-0">
+          {/* Quick Test 5-Second Button */}
+          <button
+            type="button"
+            onClick={handleStartQuickTest}
+            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-100 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+            title="Kiểm tra chuông kêu & tự nhảy sang giờ nghỉ trong 10 giây (5s Học -> 5s Nghỉ)"
+          >
+            <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+            <span>⚡ Chạy thử nhanh (5s)</span>
+          </button>
+
+          {/* Music Toggle Button */}
+          <button
+            type="button"
+            onClick={() => {
+              soundEngine.playPop();
+              setShowMusicPanel(!showMusicPanel);
+            }}
+            className={\`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 \${
+              showMusicPanel 
+                ? 'bg-purple-600 text-white shadow-purple-500/25' 
+                : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-200 dark:border-slate-700'
+            }\`}
+          >
+            <Music className={\`w-3.5 h-3.5 \${showMusicPanel ? 'text-white' : 'text-purple-500'}\`} />
+            <span>{showMusicPanel ? (isVi ? 'Ẩn nhạc' : 'Hide Music') : (isVi ? 'Hiện nhạc' : 'Show Music')}</span>
+          </button>
+
+          {/* Zen Fullscreen Button */}
+          <button
+            type="button"
+            onClick={toggleZenMode}
+            className={\`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 \${
+              isZenMode 
+                ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white' 
+                : 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white'
+            }\`}
+          >
+            {isZenMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+            <span>{isZenMode ? (isVi ? 'Thoát Zen' : 'Exit') : (isVi ? 'Toàn màn hình' : 'Zen')}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* 2. STATS CARDS */}
+      {!isZenMode && renderStatsCards("hidden lg:grid")}
+
+      {/* ========================================================================= */}
+      {/* 3. MAIN 2-COLUMN GRID                                                     */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start flex-1 min-h-0">
+        
+        {/* LEFT COLUMN (7/12) - THE NEW POMODORO TIMER STATION (ZERO 3D) */}
+        <div id="pomodoro-timer-station" className="order-1 lg:order-none lg:col-span-7 w-full min-w-0 space-y-4">
+          <SpatialBentoCard className="w-full flex flex-col items-center text-center p-5 sm:p-7 relative overflow-hidden">
+            
+            {/* 1-Tap Quick Presets Banner */}
+            <div className="w-full flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-slate-100 dark:border-slate-800">
+              <span className="text-xs font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                Gợi ý 1-chạm:
+              </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {[
+                  { label: '🔥 25p Học / 5p Nghỉ', f: 25, b: 5 },
+                  { label: '⚡ 45p Học / 10p Nghỉ', f: 45, b: 10 },
+                  { label: '🚀 60p Học / 15p Nghỉ', f: 60, b: 15 }
+                ].map((preset, idx) => {
+                  const isCur = settings.focusMinutes === preset.f && settings.breakMinutes === preset.b;
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      disabled={isRunning}
+                      onClick={() => {
+                        soundEngine.playPop();
+                        setSettings(s => ({ ...s, focusMinutes: preset.f, breakMinutes: preset.b }));
+                        if (!isRunning) {
+                          setRemainingSeconds(preset.f * 60);
+                          setTotalPhaseSeconds(preset.f * 60);
+                        }
+                      }}
+                      className={\`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[36px] active:scale-95 disabled:opacity-50 \${
+                        isCur
+                          ? 'bg-orange-600 text-white shadow-xs'
+                          : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
+                      }\`}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* SVG CIRCULAR PROGRESS RING */}
+            <div className="relative my-4 sm:my-6 flex items-center justify-center">
+              {/* Pulsing Aura */}
+              <div className={\`absolute inset-4 rounded-full blur-2xl opacity-20 pointer-events-none transition-colors duration-500 \${
+                phase === 'BREAK'
+                  ? 'bg-emerald-500'
+                  : phase === 'CHIME_TRANSITION'
+                    ? 'bg-amber-400 animate-pulse'
+                    : 'bg-orange-500'
+              }\`} />
+
+              <svg className="w-64 h-64 sm:w-72 sm:h-72 transform -rotate-90" viewBox="0 0 200 200">
+                {/* Background Ring Track */}
+                <circle
+                  cx="100"
+                  cy="100"
+                  r={ringRadius}
+                  stroke="currentColor"
+                  strokeWidth="10"
+                  fill="transparent"
+                  className="text-slate-100 dark:text-slate-800/80"
+                />
+
+                {/* Gradient Defs */}
+                <defs>
+                  <linearGradient id="focusGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#F97316" />
+                    <stop offset="100%" stopColor="#EF4444" />
+                  </linearGradient>
+                  <linearGradient id="breakGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#10B981" />
+                    <stop offset="100%" stopColor="#06B6D4" />
+                  </linearGradient>
+                  <linearGradient id="chimeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#F59E0B" />
+                    <stop offset="100%" stopColor="#D97706" />
+                  </linearGradient>
+                </defs>
+
+                {/* Animated Progress Ring */}
+                <circle
+                  cx="100"
+                  cy="100"
+                  r={ringRadius}
+                  stroke={
+                    phase === 'BREAK' 
+                      ? 'url(#breakGradient)' 
+                      : phase === 'CHIME_TRANSITION'
+                        ? 'url(#chimeGradient)'
+                        : 'url(#focusGradient)'
+                  }
+                  strokeWidth="10"
+                  strokeLinecap="round"
+                  fill="transparent"
+                  strokeDasharray={ringCircumference}
+                  strokeDashoffset={strokeDashoffset}
+                  className="transition-[stroke-dashoffset] duration-300 ease-linear"
+                />
+              </svg>
+
+              {/* Inside Ring Center Information */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-4 select-none">
+                
+                {/* Dynamic Phase Status Badge */}
+                <div className="mb-1 pointer-events-auto">
+                  {phase === 'BREAK' ? (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-100 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-300 border border-emerald-300 animate-pulse">
+                      ☕ ĐANG NGHỈ GIẢI LAO • HIỆP {currentRound}/{settings.targetRounds}
+                    </span>
+                  ) : phase === 'CHIME_TRANSITION' ? (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-300 border border-amber-300 animate-bounce">
+                      🔔 HẾT GIỜ HỌC • CHUÔNG BÁO!
+                    </span>
+                  ) : isRunning ? (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-extrabold bg-orange-100 dark:bg-orange-950/80 text-orange-800 dark:text-orange-300 border border-orange-300">
+                      🔥 ĐANG TẬP TRUNG • HIỆP {currentRound}/{settings.targetRounds}
+                    </span>
+                  ) : phase === 'COMPLETED' ? (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-black bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-300">
+                      🏆 HOÀN THÀNH TOÀN BỘ HIỆP HỌC!
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                      🍅 SẴN SÀNG TẬP TRUNG
+                    </span>
+                  )}
+                </div>
+
+                {/* Big Monospace Numbers */}
+                <div className={\`text-5xl sm:text-6xl md:text-7xl font-light font-mono tracking-tighter tabular-nums \${
+                  phase === 'BREAK'
+                    ? 'text-emerald-600 dark:text-emerald-400'
+                    : isPaused
+                      ? 'text-amber-500'
+                      : phase === 'CHIME_TRANSITION'
+                        ? 'text-amber-500'
+                        : 'text-slate-900 dark:text-white'
+                }\`}>
+                  {formatDisplayTime(remainingSeconds)}
+                </div>
+
+                {/* Subtitle / Encouragement */}
+                <p className="text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 max-w-[210px] text-center mt-1">
+                  {phase === 'BREAK' 
+                    ? 'Hãy đứng dậy vươn vai, uống nước và thư giãn mắt nhé!' 
+                    : phase === 'CHIME_TRANSITION'
+                      ? 'Chuẩn bị chuyển sang giờ giải lao tự động...'
+                      : isPaused
+                        ? 'Đang tạm dừng phiên học'
+                        : isRunning
+                          ? \`Mục tiêu: \${settings.focusMinutes} phút • Hiệp \${currentRound}/\${settings.targetRounds}\`
+                          : \`\${settings.focusMinutes}p Học • \${settings.breakMinutes}p Nghỉ • \${settings.targetRounds} Hiệp\`
+                  }
+                </p>
+
+                {/* Quick Task Goal inside Circle */}
+                <div className="mt-2 pointer-events-auto">
+                  {selectedTaskId ? (
+                    <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/80 text-[11px] font-bold text-slate-700 dark:text-slate-300 max-w-[190px] truncate">
+                      <Target className="w-3 h-3 text-emerald-500 shrink-0" />
+                      <span className="truncate">{(tasks || []).find(t => t.id === selectedTaskId)?.title || 'Mục tiêu'}</span>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+
+            {/* MAIN PLAYBACK CONTROL BUTTONS */}
+            <div className="w-full flex flex-col items-center justify-center gap-3 pt-1">
+              {!isRunning ? (
+                <div className="w-full sm:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                  <button
+                    type="button"
+                    onClick={handleStartFocus}
+                    className="min-h-[48px] px-8 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 active:scale-95 text-slate-950 font-black text-sm rounded-2xl shadow-md shadow-orange-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  >
+                    <Play className="w-4 h-4 fill-slate-950" />
+                    <span>Bắt đầu phiên học ({settings.focusMinutes} phút)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowSettingsDrawer(!showSettingsDrawer)}
+                    className="min-h-[48px] px-4 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold rounded-2xl transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Sliders className="w-4 h-4 text-slate-500" />
+                    <span>{showSettingsDrawer ? 'Đóng Cài Đặt' : 'Tự Chỉnh Giờ & Chuông'}</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="w-full flex flex-wrap items-center justify-center gap-2.5">
+                  {isPaused ? (
+                    <button
+                      type="button"
+                      onClick={handleResume}
+                      className="min-h-[44px] px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                    >
+                      <Play className="w-4 h-4 fill-current" />
+                      <span>Tiếp tục</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handlePause}
+                      className="min-h-[44px] px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                    >
+                      <Pause className="w-4 h-4 fill-current" />
+                      <span>Tạm dừng</span>
+                    </button>
+                  )}
+
+                  {/* Skip Break Button during Break Phase */}
+                  {phase === 'BREAK' && (
+                    <button
+                      type="button"
+                      onClick={handleSkipBreak}
+                      className="min-h-[44px] px-4 py-2.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-bold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                      title="Bỏ qua giờ nghỉ và bắt đầu hiệp học tiếp theo ngay"
+                    >
+                      <SkipForward className="w-4 h-4" />
+                      <span>Bỏ qua nghỉ</span>
+                    </button>
+                  )}
+
+                  {/* Cancel / Stop session */}
+                  <button
+                    type="button"
+                    onClick={handleCancelSession}
+                    className="min-h-[44px] px-4 py-2.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-bold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                  >
+                    <Square className="w-3.5 h-3.5 fill-current" />
+                    <span>Hủy phiên</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Task Selector Dropdown / Quick Create */}
+              {!isRunning && (
+                <div className="w-full max-w-md pt-2 flex items-center justify-center">
+                  {isQuickCreatingTask ? (
+                    <div className="w-full flex items-center gap-1.5 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-orange-500/50">
+                      <Target className="w-4 h-4 text-orange-500 shrink-0" />
+                      <input
+                        type="text"
+                        autoFocus
+                        value={quickTaskTitle}
+                        onChange={e => setQuickTaskTitle(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') handleQuickCreateAndSelectTask();
+                          if (e.key === 'Escape') setIsQuickCreatingTask(false);
+                        }}
+                        placeholder="Nhập tên việc cần tập trung... (Enter để tạo)"
+                        className="flex-1 bg-transparent border-none outline-none text-xs font-semibold text-slate-800 dark:text-slate-200"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleQuickCreateAndSelectTask}
+                        disabled={!quickTaskTitle.trim()}
+                        className="px-2.5 py-1 rounded-lg bg-orange-600 text-white text-xs font-bold disabled:opacity-40 cursor-pointer"
+                      >
+                        Tạo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsQuickCreatingTask(false)}
+                        className="p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="w-full flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 text-xs">
+                      <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                        <Target className="w-4 h-4 text-orange-500 shrink-0" />
+                        <span className="font-bold text-slate-600 dark:text-slate-400 shrink-0">Mục tiêu:</span>
+                        <select
+                          value={selectedTaskId}
+                          onChange={e => setSelectedTaskId(e.target.value)}
+                          className="bg-transparent border-0 outline-none text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer truncate flex-1 min-w-0"
+                        >
+                          <option value="" className="dark:bg-slate-900">-- Chọn bài tập / việc cần làm --</option>
+                          {tasks.filter(t => t.status !== 'Hoàn thành' && t.status !== 'Hủy').map(t => (
+                            <option key={t.id} value={t.id} className="dark:bg-slate-900">{t.title}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          soundEngine.playPop();
+                          setIsQuickCreatingTask(true);
+                        }}
+                        className="px-2 py-1 rounded-lg text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-950/40 text-xs font-bold transition-colors cursor-pointer shrink-0"
+                        title="Tạo nhanh bài mới"
+                      >
+                        + Tạo việc
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* ============================================================= */}
+            {/* COLLAPSIBLE CUSTOM POMODORO SETTINGS PANEL (MOBILE-FIRST)     */}
+            {/* ============================================================= */}
+            {showSettingsDrawer && !isRunning && (
+              <div className="w-full mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 text-left space-y-4 animate-in fade-in duration-150">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <Sliders className="w-4 h-4 text-orange-500" />
+                    <span>Cài Đặt Thời Gian & Chuông Báo Pomodoro</span>
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setSettings(DEFAULT_SETTINGS)}
+                    className="text-[11px] text-slate-400 hover:text-orange-500 font-bold underline cursor-pointer"
+                  >
+                    Khôi phục mặc định
+                  </button>
+                </div>
+
+                {/* 3 Steppers: Focus, Break, Rounds (Height >= 44px, Font >= 16px) */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  
+                  {/* Stepper 1: Focus Minutes */}
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-2">
+                      ⏱️ Thời gian Học (phút)
+                    </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          soundEngine.playPop();
+                          setSettings(s => ({ ...s, focusMinutes: Math.max(1, s.focusMinutes - 5) }));
+                        }}
+                        className="w-11 h-11 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-lg font-black text-slate-800 dark:text-white flex items-center justify-center hover:bg-slate-100 active:scale-95 cursor-pointer"
+                      >
+                        -
+                      </button>
+                      <div className="text-xl font-black font-mono text-orange-600 dark:text-orange-400 tabular-nums">
+                        {settings.focusMinutes} <span className="text-xs font-normal text-slate-400">phút</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          soundEngine.playPop();
+                          setSettings(s => ({ ...s, focusMinutes: Math.min(180, s.focusMinutes + 5) }));
+                        }}
+                        className="w-11 h-11 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-lg font-black text-slate-800 dark:text-white flex items-center justify-center hover:bg-slate-100 active:scale-95 cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Stepper 2: Break Minutes */}
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-2">
+                      ☕ Thời gian Nghỉ (phút)
+                    </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          soundEngine.playPop();
+                          setSettings(s => ({ ...s, breakMinutes: Math.max(1, s.breakMinutes - 1) }));
+                        }}
+                        className="w-11 h-11 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-lg font-black text-slate-800 dark:text-white flex items-center justify-center hover:bg-slate-100 active:scale-95 cursor-pointer"
+                      >
+                        -
+                      </button>
+                      <div className="text-xl font-black font-mono text-emerald-600 dark:text-emerald-400 tabular-nums">
+                        {settings.breakMinutes} <span className="text-xs font-normal text-slate-400">phút</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          soundEngine.playPop();
+                          setSettings(s => ({ ...s, breakMinutes: Math.min(60, s.breakMinutes + 1) }));
+                        }}
+                        className="w-11 h-11 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-lg font-black text-slate-800 dark:text-white flex items-center justify-center hover:bg-slate-100 active:scale-95 cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Stepper 3: Target Rounds */}
+                  <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80">
+                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300 block mb-2">
+                      🎯 Số hiệp mục tiêu (Rounds)
+                    </span>
+                    <div className="flex items-center justify-between gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          soundEngine.playPop();
+                          setSettings(s => ({ ...s, targetRounds: Math.max(1, s.targetRounds - 1) }));
+                        }}
+                        className="w-11 h-11 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-lg font-black text-slate-800 dark:text-white flex items-center justify-center hover:bg-slate-100 active:scale-95 cursor-pointer"
+                      >
+                        -
+                      </button>
+                      <div className="text-xl font-black font-mono text-indigo-600 dark:text-indigo-400 tabular-nums">
+                        {settings.targetRounds} <span className="text-xs font-normal text-slate-400">hiệp</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          soundEngine.playPop();
+                          setSettings(s => ({ ...s, targetRounds: Math.min(10, s.targetRounds + 1) }));
+                        }}
+                        className="w-11 h-11 rounded-xl bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-lg font-black text-slate-800 dark:text-white flex items-center justify-center hover:bg-slate-100 active:scale-95 cursor-pointer"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Alarm Sound Picker with Preview Button */}
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <span className="text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center gap-1.5">
+                      <Bell className="w-4 h-4 text-orange-500" />
+                      <span>Âm thanh chuông báo khi hết giờ:</span>
+                    </span>
+                    <span className="text-[11px] text-slate-400">
+                      Chuông Web Audio trong trẻo, không phụ thuộc file MP3 ngoài
+                    </span>
+                  </div>
+
+                  {/* 3 Sound Choices */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {[
+                      { id: 'zen', label: '🔔 Chuông Thiền êm dịu' },
+                      { id: 'energetic', label: '✨ Tiếng Tinh Tinh năng lượng' },
+                      { id: 'bell', label: '⏰ Chuông báo rõ ràng' }
+                    ].map(snd => {
+                      const isSel = settings.soundType === snd.id;
+                      return (
+                        <div
+                          key={snd.id}
+                          className={\`p-3 rounded-xl border flex items-center justify-between gap-2 transition-all \${
+                            isSel 
+                              ? 'border-orange-500 bg-orange-50/60 dark:bg-orange-950/40 text-orange-900 dark:text-orange-200 shadow-2xs font-bold'
+                              : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300'
+                          }\`}
+                        >
+                          <label className="flex items-center gap-2 flex-1 cursor-pointer text-xs">
+                            <input
+                              type="radio"
+                              name="sound_picker"
+                              checked={isSel}
+                              onChange={() => {
+                                soundEngine.playPop();
+                                setSettings(s => ({ ...s, soundType: snd.id as PomodoroSoundType }));
+                              }}
+                              className="text-orange-600 focus:ring-orange-500"
+                            />
+                            <span>{snd.label}</span>
+                          </label>
+
+                          <button
+                            type="button"
+                            onClick={() => handlePreviewAlarm(snd.id as PomodoroSoundType)}
+                            disabled={isPlayingPreview}
+                            className="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 flex items-center gap-1 cursor-pointer shrink-0 transition-colors"
+                            title="Nghe thử âm thanh chuông"
+                          >
+                            <Volume2 className={\`w-3 h-3 \${isPlayingPreview && isSel ? 'animate-bounce text-orange-500' : ''}\`} />
+                            <span>Nghe thử</span>
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Volume Slider */}
+                  <div className="pt-2 flex items-center gap-3">
+                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400 shrink-0">
+                      Âm lượng chuông:
+                    </span>
+                    <input
+                      type="range"
+                      min="0.1"
+                      max="1.0"
+                      step="0.05"
+                      value={settings.volume}
+                      onChange={e => setSettings(s => ({ ...s, volume: parseFloat(e.target.value) }))}
+                      className="flex-1 accent-orange-500 cursor-pointer h-2 bg-slate-200 dark:bg-slate-700 rounded-lg"
+                    />
+                    <span className="text-xs font-mono font-bold text-slate-700 dark:text-slate-300 w-10 text-right">
+                      {Math.round(settings.volume * 100)}%
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowSettingsDrawer(false);
+                      toast.success('Đã lưu cấu hình Pomodoro thành công!', 'Cài Đặt');
+                    }}
+                    className="px-5 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-xs cursor-pointer active:scale-95"
+                  >
+                    Hoàn tất cài đặt
+                  </button>
+                </div>
+              </div>
+            )}
+          </SpatialBentoCard>
+        </div>
+
+        {/* MOBILE METRICS */}
+        {!isZenMode && (
+          <div className="order-2 lg:hidden w-full">
+            {renderStatsCards()}
+          </div>
+        )}
+
+        {/* RIGHT COLUMN (5/12) - AMBIENT AUDIO, PET COMPANION & SESSIONS HISTORY */}
+        <div className="order-3 lg:order-none lg:col-span-5 space-y-4 flex flex-col w-full min-w-0">
+          {/* Mascot Cheer & Motivation Buddy */}
+          <FocusPetWidget
+            embedded={true}
+            studyContext={{
+              isRunning,
+              timerStatus: isRunning ? (isPaused ? 'PAUSED' : 'RUNNING') : 'IDLE',
+              title: (tasks || []).find(t => t.id === selectedTaskId)?.title || 'Tập trung Pomodoro'
+            }}
+          />
+
+          {/* YouTube Focus Music Player */}
+          {showMusicPanel && (
+            <YouTubeFocusPlayer />
+          )}
+
+          {/* Procedural Web Audio Ambient Sound Mixer */}
+          <AmbientMixerWidget />
+
+          {/* Today History Card */}
+          {!isZenMode && (
+            <div id="today-history-card" className="bg-white dark:bg-[#141E30] rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] overflow-hidden flex flex-col shadow-xs">
+              <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 flex items-center justify-between">
+                <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 text-xs uppercase tracking-wider">
+                  <Clock className="w-4 h-4 text-orange-500" /> {isVi ? 'Lịch sử hôm nay' : "Today's History"}
+                </h3>
+                <span className="text-[11px] font-bold text-slate-400">
+                  {todaySessions.length} {isVi ? 'phiên' : 'sessions'}
+                </span>
+              </div>
+              <div className="p-3 sm:p-4 space-y-2.5 max-h-56 overflow-y-auto">
+                {todaySessions.length === 0 ? (
+                  <div className="text-center py-5 text-xs text-slate-400 font-medium">
+                    {isVi ? 'Chưa có phiên nào hôm nay. Hãy bắt đầu ngay! ✨' : 'No focus sessions yet today. Start right now! ✨'}
+                  </div>
+                ) : (
+                  todaySessions.map(session => (
+                    <div key={session.id} className="p-2.5 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-100 dark:border-slate-800 text-xs transition-colors hover:border-slate-300 dark:hover:border-slate-700">
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <h4 className="font-bold text-slate-800 dark:text-slate-200 truncate">{session.title}</h4>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className={\`text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0 \${
+                            session.status === 'Completed' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/60' : 
+                            session.status === 'Cancelled' ? 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400' :
+                            'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/60'
+                          }\`}>
+                            {isVi ? (session.status === 'Completed' ? 'Hoàn thành' : session.status === 'Cancelled' ? 'Đã hủy' : session.status) : (session.status === 'Completed' ? 'Completed' : session.status === 'Cancelled' ? 'Cancelled' : session.status)}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteSessionWithUndo(session.id)}
+                            className="p-1 rounded-lg text-slate-300 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                            title={isVi ? "Xóa phiên này (Hoàn tác 5s)" : "Delete session (5s undo)"}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-3 text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                        <span className="flex items-center gap-1"><Target className="w-3 h-3 text-orange-500" /> {session.plannedDuration}m</span>
+                        <span className="flex items-center gap-1"><Clock className="w-3 h-3 text-slate-400" /> {isVi ? 'Thực:' : 'Actual:'} {session.actualDuration}m</span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* ========================================================================= */}
+      {/* MODALS & UNDO FLOATING TOASTS                                             */}
+      {/* ========================================================================= */}
+
+      {/* Weekly Hall of Fame Leaderboard Modal */}
+      <WeeklyLeaderboardModal
+        isOpen={showLeaderboard}
+        onClose={() => setShowLeaderboard(false)}
+        onShare={() => {
+          setShowLeaderboard(false);
+          setShowShareStory(true);
+        }}
+      />
+
+      {/* Aesthetic Story Share Modal */}
+      <ShareStoryModal
+        isOpen={showShareStory}
+        onClose={() => setShowShareStory(false)}
+        userName={currentUser?.name}
+      />
+
+      {/* Product Synergy: Pomodoro 5m Break Speed Match Mini-Game */}
+      <SpeedMatchGameModal
+        isOpen={showSpeedMatchBreak}
+        onClose={() => setShowSpeedMatchBreak(false)}
+      />
+
+      {/* 5-Second Floating Undo Toast for Deleted Sessions */}
+      {undoDeletedSession && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 rounded-2xl shadow-2xl border border-slate-700/50 backdrop-blur-md animate-slide-up text-xs font-semibold">
+          <span>{isVi ? \`Đã xóa phiên "\${undoDeletedSession.title}"\` : 'Focus session deleted'}</span>
+          <button
+            type="button"
+            onClick={handleRestoreDeletedSession}
+            className="flex items-center gap-1 px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl font-bold cursor-pointer transition-colors shadow-xs"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>{isVi ? 'Hoàn tác (5s)' : 'Undo (5s)'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (undoDeleteTimerRef.current) clearTimeout(undoDeleteTimerRef.current);
+              setUndoDeletedSession(null);
+            }}
+            className="p-1 text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+export default FocusView;
+`;
+
+fs.writeFileSync('src/components/FocusView.tsx', focusViewContent, 'utf8');
+console.log('Successfully written complete FocusView.tsx!');

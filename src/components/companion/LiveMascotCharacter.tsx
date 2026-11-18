@@ -1,26 +1,34 @@
 import React, { useState, useEffect } from 'react';
-import { CompanionMood, CompanionMascotId } from '../../lib/companionEngine';
+import { CompanionMood, CompanionMascotId, COMPANION_ACCESSORIES } from '../../lib/companionEngine';
 import { Sparkles, Star } from 'lucide-react';
 
 export interface LiveMascotCharacterProps {
   mood: CompanionMood;
   mascotId?: CompanionMascotId;
-  size?: 'compact' | 'normal' | 'prominent';
+  companionId?: CompanionMascotId;
+  size?: 'compact' | 'normal' | 'prominent' | 'sm' | 'md' | 'lg' | 'small' | 'large' | string;
+  equippedAccessoryId?: string;
   onClick?: () => void;
   className?: string;
   showAura?: boolean;
+  isSpeaking?: boolean;
 }
 
 export const LiveMascotCharacter: React.FC<LiveMascotCharacterProps> = ({
   mood = 'idle',
   mascotId = 'lumi',
+  companionId,
   size = 'normal',
+  equippedAccessoryId = 'none',
   onClick,
   className = '',
-  showAura = true
+  showAura = true,
+  isSpeaking = false
 }) => {
-  // Normalize character id
-  const activeChar = (mascotId === 'kitsu' ? 'fox' : mascotId === 'nova' ? 'lumi' : mascotId) as CompanionMascotId;
+  const accessory = COMPANION_ACCESSORIES.find(a => a.id === equippedAccessoryId);
+  // Normalize character id from mascotId or companionId fallback
+  const rawId = companionId || mascotId || 'lumi';
+  const activeChar = (rawId === 'kitsu' ? 'fox' : rawId === 'nova' ? 'lumi' : rawId) as CompanionMascotId;
 
   // Continuous micro-animation states
   const [blink, setBlink] = useState(false);
@@ -111,12 +119,19 @@ export const LiveMascotCharacter: React.FC<LiveMascotCharacterProps> = ({
     return () => clearTimeout(waveTimeout);
   }, [mood]);
 
-  // Size styling dimensions
-  const sizeConfig = {
+  // Size styling dimensions with bulletproof fallbacks and optional chaining
+  const sizeMap: Record<string, { width: number; height: number; container: string }> = {
     compact: { width: 72, height: 86, container: 'w-[72px] h-[86px]' },
+    sm: { width: 72, height: 86, container: 'w-[72px] h-[86px]' },
+    small: { width: 72, height: 86, container: 'w-[72px] h-[86px]' },
     normal: { width: 110, height: 132, container: 'w-[110px] h-[132px]' },
-    prominent: { width: 148, height: 178, container: 'w-[148px] h-[178px]' }
-  }[size];
+    md: { width: 110, height: 132, container: 'w-[110px] h-[132px]' },
+    medium: { width: 110, height: 132, container: 'w-[110px] h-[132px]' },
+    prominent: { width: 148, height: 178, container: 'w-[148px] h-[178px]' },
+    lg: { width: 148, height: 178, container: 'w-[148px] h-[178px]' },
+    large: { width: 148, height: 178, container: 'w-[148px] h-[178px]' }
+  };
+  const sizeConfig = (size && sizeMap[size]) ? sizeMap[size] : sizeMap.normal;
 
   // Gaze offset for eyes in SVG
   const getGazeOffset = () => {
@@ -157,6 +172,7 @@ export const LiveMascotCharacter: React.FC<LiveMascotCharacterProps> = ({
       case 'bear': return 'rgba(217, 119, 6, 0.35)';
       case 'fox': return 'rgba(234, 88, 12, 0.35)';
       case 'panda': return 'rgba(13, 148, 136, 0.35)';
+      case 'capybara': return 'rgba(180, 83, 9, 0.35)';
       default: return 'rgba(249, 115, 22, 0.35)';
     }
   };
@@ -164,7 +180,7 @@ export const LiveMascotCharacter: React.FC<LiveMascotCharacterProps> = ({
   return (
     <div
       onClick={onClick}
-      className={`relative select-none flex items-center justify-center cursor-pointer transition-all duration-300 ${sizeConfig.container} ${getMoodAnimClass()} ${className}`}
+      className={`relative select-none flex items-center justify-center cursor-pointer transition-all duration-300 ${sizeConfig?.container ?? 'w-[110px] h-[132px]'} ${getMoodAnimClass()} ${className}`}
       style={{
         transform: `rotate(${headTilt}deg) translateX(${bodySway}px)`,
         touchAction: 'manipulation'
@@ -297,6 +313,20 @@ export const LiveMascotCharacter: React.FC<LiveMascotCharacterProps> = ({
             <stop offset="0%" stopColor="#FFFFFF" />
             <stop offset="60%" stopColor="#F1F5F9" />
             <stop offset="100%" stopColor="#E2E8F0" />
+          </radialGradient>
+
+          {/* Capybara Toasted Caramel Body */}
+          <radialGradient id="gradCapyBody" cx="45%" cy="35%" r="65%">
+            <stop offset="0%" stopColor="#D97706" />
+            <stop offset="45%" stopColor="#B45309" />
+            <stop offset="85%" stopColor="#92400E" />
+            <stop offset="100%" stopColor="#78350F" />
+          </radialGradient>
+
+          {/* Capybara Snout */}
+          <radialGradient id="gradCapySnout" cx="50%" cy="40%" r="60%">
+            <stop offset="0%" stopColor="#854D0E" />
+            <stop offset="100%" stopColor="#451A03" />
           </radialGradient>
 
           {/* Golden Glow Grad */}
@@ -453,8 +483,53 @@ export const LiveMascotCharacter: React.FC<LiveMascotCharacterProps> = ({
             </>
           )}
 
-          {/* 6. LUMI (Bé Sao Nhỏ) - Default */}
-          {(activeChar === 'lumi' || (!['bunny', 'cat', 'bear', 'fox', 'panda'].includes(activeChar))) && (
+          {/* 6. CAPYBARA (Capy Chiến Thần) */}
+          {activeChar === 'capybara' && (
+            <>
+              {/* Cute Capy Round Ears */}
+              <ellipse cx="38" cy="46" rx="9" ry="11" fill="url(#gradCapyBody)" stroke="#59361B" strokeWidth="1.5" />
+              <ellipse cx="38" cy="46" rx="5" ry="6" fill="#451A03" opacity="0.6" />
+              <ellipse cx="122" cy="46" rx="9" ry="11" fill="url(#gradCapyBody)" stroke="#59361B" strokeWidth="1.5" />
+              <ellipse cx="122" cy="46" rx="5" ry="6" fill="#451A03" opacity="0.6" />
+
+              {/* Capy Body */}
+              <path
+                d="M80 40 C118 40 134 68 134 110 C134 148 116 164 80 164 C44 164 26 148 26 110 C26 68 42 40 80 40 Z"
+                fill="url(#gradCapyBody)"
+                stroke="#59361B"
+                strokeWidth="1.5"
+              />
+
+              {/* Signature Capybara Broad Snout */}
+              <rect
+                x="54"
+                y="86"
+                width="52"
+                height="34"
+                rx="14"
+                fill="url(#gradCapySnout)"
+                stroke="#3D200E"
+                strokeWidth="1.2"
+              />
+              {/* Nostrils */}
+              <ellipse cx="73" cy="99" rx="2.5" ry="3.5" fill="#2E1609" />
+              <ellipse cx="87" cy="99" rx="2.5" ry="3.5" fill="#2E1609" />
+
+              {/* Signature Yuzu orange / Mandarin on head */}
+              <g className="prop-float">
+                <ellipse cx="80" cy="30" rx="10" ry="9" fill="#F59E0B" stroke="#D97706" strokeWidth="1" />
+                {/* Yuzu leaf */}
+                <path d="M80 21 C85 16 91 18 89 23 C85 24 81 21 80 21 Z" fill="#10B981" />
+              </g>
+
+              {/* Chill Feet */}
+              <ellipse cx="58" cy="163" rx="12" ry="8" fill="#78350F" opacity="0.85" />
+              <ellipse cx="102" cy="163" rx="12" ry="8" fill="#78350F" opacity="0.85" />
+            </>
+          )}
+
+          {/* 7. LUMI (Bé Sao Nhỏ) - Default */}
+          {(activeChar === 'lumi' || (!['bunny', 'cat', 'bear', 'fox', 'panda', 'capybara'].includes(activeChar))) && (
             <>
               {/* Wings */}
               <path d="M32 88 C18 82 10 92 14 104 C18 112 28 114 34 106 Z" fill="#FFEDD5" stroke="#FDBA74" strokeWidth="1.5" />
@@ -524,20 +599,36 @@ export const LiveMascotCharacter: React.FC<LiveMascotCharacterProps> = ({
           {/* Left Paw */}
           <path
             d={isWaving ? "M46 102 C38 90 40 76 52 74 C58 74 62 82 56 96 Z" : "M44 104 C40 114 56 122 68 116 C72 114 74 108 68 104 C60 100 50 100 44 104 Z"}
-            fill={activeChar === 'panda' ? '#1E293B' : activeChar === 'bunny' ? '#FFFFFF' : activeChar === 'cat' ? '#C7D2FE' : '#FB923C'}
-            stroke={activeChar === 'panda' ? '#0F172A' : activeChar === 'bunny' ? '#A7F3D0' : '#FB923C'}
+            fill={activeChar === 'panda' ? '#1E293B' : activeChar === 'capybara' ? '#92400E' : activeChar === 'bunny' ? '#FFFFFF' : activeChar === 'cat' ? '#C7D2FE' : '#FB923C'}
+            stroke={activeChar === 'panda' ? '#0F172A' : activeChar === 'capybara' ? '#59361B' : activeChar === 'bunny' ? '#A7F3D0' : '#FB923C'}
             strokeWidth="1.2"
           />
 
           {/* Right Paw */}
           <path
             d="M116 104 C120 114 104 122 92 116 C88 114 86 108 92 104 C100 100 110 100 116 104 Z"
-            fill={activeChar === 'panda' ? '#1E293B' : activeChar === 'bunny' ? '#FFFFFF' : activeChar === 'cat' ? '#C7D2FE' : '#FB923C'}
-            stroke={activeChar === 'panda' ? '#0F172A' : activeChar === 'bunny' ? '#A7F3D0' : '#FB923C'}
+            fill={activeChar === 'panda' ? '#1E293B' : activeChar === 'capybara' ? '#92400E' : activeChar === 'bunny' ? '#FFFFFF' : activeChar === 'cat' ? '#C7D2FE' : '#FB923C'}
+            stroke={activeChar === 'panda' ? '#0F172A' : activeChar === 'capybara' ? '#59361B' : activeChar === 'bunny' ? '#A7F3D0' : '#FB923C'}
             strokeWidth="1.2"
           />
         </g>
       </svg>
+
+      {/* Equipped Accessory Overlay */}
+      {accessory && accessory.id !== 'none' && (
+        <div 
+          className="absolute pointer-events-none select-none z-20 flex items-center justify-center drop-shadow-md transition-all duration-300"
+          style={{
+            top: accessory.id === 'grad_cap' ? '-8px' : accessory.id === 'glasses' ? '28%' : accessory.id === 'crown' ? '-10px' : '65%',
+            left: accessory.id === 'glasses' ? '50%' : accessory.id === 'medal' ? '30%' : '50%',
+            transform: 'translateX(-50%)',
+            fontSize: size === 'compact' ? '18px' : size === 'prominent' ? '32px' : '26px'
+          }}
+          title={accessory.name}
+        >
+          {accessory.icon}
+        </div>
+      )}
     </div>
   );
 };

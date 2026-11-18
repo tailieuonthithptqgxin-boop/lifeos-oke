@@ -44,9 +44,12 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
       const originUrl = new URL(origin);
       const isLocal = originUrl.hostname === 'localhost' || originUrl.hostname === '127.0.0.1';
       const isSameHost = host && (originUrl.host === host || originUrl.hostname === host.split(':')[0]);
-      const isCloudRun = originUrl.hostname.endsWith('.run.app') || originUrl.hostname.endsWith('.pages.dev');
+      const isCloudPlatform = originUrl.hostname.endsWith('.run.app') || 
+        originUrl.hostname.endsWith('.pages.dev') || 
+        originUrl.hostname.endsWith('.workers.dev') || 
+        originUrl.hostname.endsWith('.trycloudflare.com');
 
-      if (!isLocal && !isSameHost && !isCloudRun) {
+      if (!isLocal && !isSameHost && !isCloudPlatform) {
         // Check if APP_URL is defined
         if (process.env.APP_URL) {
           const appUrl = new URL(process.env.APP_URL);
@@ -75,9 +78,12 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
       const refererUrl = new URL(referer);
       const isLocal = refererUrl.hostname === 'localhost' || refererUrl.hostname === '127.0.0.1';
       const isSameHost = host && (refererUrl.host === host || refererUrl.hostname === host.split(':')[0]);
-      const isCloudRun = refererUrl.hostname.endsWith('.run.app') || refererUrl.hostname.endsWith('.pages.dev');
+      const isCloudPlatform = refererUrl.hostname.endsWith('.run.app') || 
+        refererUrl.hostname.endsWith('.pages.dev') || 
+        refererUrl.hostname.endsWith('.workers.dev') || 
+        refererUrl.hostname.endsWith('.trycloudflare.com');
 
-      if (!isLocal && !isSameHost && !isCloudRun && process.env.APP_URL) {
+      if (!isLocal && !isSameHost && !isCloudPlatform && process.env.APP_URL) {
         const appUrl = new URL(process.env.APP_URL);
         if (refererUrl.host !== appUrl.host) {
           res.status(403).json({

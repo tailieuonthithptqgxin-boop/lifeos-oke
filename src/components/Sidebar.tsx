@@ -10,8 +10,7 @@ import {
   Target,
   FileText,
   Activity,
-  GitBranch,
-  Cpu,
+    Cpu,
   User,
   ShoppingBag,
   Shield,
@@ -25,14 +24,21 @@ import {
   Sliders,
   CreditCard,
   Layers,
-  Gift,
-  MessageSquare,
-  Compass
+    MessageSquare,
+  Compass,
+  CalendarDays,
+  Users,
+  Share2,
+  Globe,
+  Video,
+  Gift
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { useTranslation } from '../lib/i18n';
 import { ViewState } from '../lib/types';
 import { apiCall } from '../lib/apiClient';
+import { formatLocalDateKey } from '../lib/utils';
+import { useSmartDismiss } from '../lib/useSmartDismiss';
 
 import { SidebarCustomizerModal, getVisibleNavModules } from './SidebarCustomizerModal';
 
@@ -47,29 +53,27 @@ interface NavItem {
 // 1. Daily Rhythm
 const DAILY_RHYTHM_ITEMS: NavItem[] = [
   { id: 'dashboard', label: 'Today', icon: LayoutDashboard },
-  { id: 'focus', label: 'Focus', icon: Zap },
+  { id: 'focus', label: 'Phòng Tập Trung', icon: Zap },
   { id: 'journey', label: 'Journey', icon: Compass },
 ];
 
 // 2. Spaces
 const SPACES_ITEMS: NavItem[] = [
-  { id: 'tasks', label: 'Tasks', icon: CheckSquare },
-  { id: 'projects', label: 'Projects (P.A.R.A)', icon: FolderKanban },
-  { id: 'habits', label: 'Habits', icon: Target },
-  { id: 'finance', label: 'Finance', icon: DollarSign },
-  { id: 'study', label: 'Study & Vocab', icon: BookOpen },
-  { id: 'notes', label: 'Journal & Notes', icon: FileText },
-  { id: 'goals', label: 'Goals', icon: Target },
-  { id: 'calendar', label: 'Calendar', icon: Calendar },
+  { id: 'tasks', label: 'Lịch & Công việc', icon: CalendarDays },
+  { id: 'projects', label: 'Kho Dự Án & Second Brain', icon: FolderKanban },
+  { id: 'habits', label: 'Thói quen kỷ luật', icon: Target },
+  { id: 'finance', label: 'Tài chính & Hũ Tiết Kiệm', icon: DollarSign },
+  { id: 'study', label: 'Học Tập & Từ Vựng (FSRS)', icon: BookOpen },
+  { id: 'connect', label: 'Bảng Tin Cộng Đồng', icon: Globe },
+  { id: 'notes', label: 'Sổ tay & Ghi chú (Vault)', icon: FileText },
+  { id: 'goals', label: 'Mục tiêu', icon: Target },
 ];
 
 // 3. Ecosystem & Tools
 const SYSTEM_ITEMS: NavItem[] = [
   { id: 'marketplace', label: 'Templates Marketplace', icon: ShoppingBag },
+  { id: 'referral', label: 'Cộng tác viên (Affiliate)', icon: Gift },
   { id: 'automation', label: 'Automation Rules', icon: Cpu },
-  { id: 'decision', label: 'Decision Engine', icon: GitBranch },
-  { id: 'subscription', label: 'Plans & Team', icon: CreditCard },
-  { id: 'referral', label: 'Referral 20%', icon: Gift },
   { id: 'feedback', label: 'Feedback & Support', icon: MessageSquare },
   { id: 'admin', label: 'System Admin', icon: Shield, adminOnly: true }
 ];
@@ -87,7 +91,11 @@ export function Sidebar() {
     language,
     setLanguage,
     activeLanguages,
-    subscriptionStatus
+    subscriptionStatus,
+    tasks,
+    habits,
+    habitRecords,
+    notes
   } = useAppStore();
 
   const isVi = language === 'vi';
@@ -96,6 +104,38 @@ export function Sidebar() {
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [visibleModules, setVisibleModules] = useState<string[]>(() => getVisibleNavModules());
   const [customModules, setCustomModules] = useState<Array<{ id: string; name: string; slug: string; icon: string }>>([]);
+
+  const sidebarRef = React.useRef<HTMLElement>(null);
+  useSmartDismiss({
+    isOpen: isMobileMenuOpen,
+    onDismiss: toggleMobileMenu,
+    targetRef: sidebarRef,
+    closeOnEscape: true,
+  });
+
+  const localToday = formatLocalDateKey(new Date());
+
+  // Real-time Dynamic Badge Counters (E2E Data Flow)
+  const pendingTasksCount = React.useMemo(() => {
+    return (tasks || []).filter(t => {
+      const isDone = t.status === 'Hoàn thành' || t.status === 'Completed' || t.status === 'Done';
+      const isToday = t.dueDate && t.dueDate.startsWith(localToday);
+      const isOverdue = t.dueDate && t.dueDate < localToday;
+      return !isDone && (isToday || isOverdue);
+    }).length;
+  }, [tasks, localToday]);
+
+  const incompleteHabitsCount = React.useMemo(() => {
+    return (habits || []).filter(h => {
+      const isDone = h.completedDates?.includes(localToday) || 
+        (habitRecords || []).some(r => r.habitId === h.id && r.date === localToday && r.status === 'Completed');
+      return !isDone;
+    }).length;
+  }, [habits, habitRecords, localToday]);
+
+  const activeNotesCount = React.useMemo(() => {
+    return (notes || []).filter(n => !n.inTrash && !n.archived).length;
+  }, [notes]);
 
   React.useEffect(() => {
     apiCall<{ success: boolean; modules: any[] }>('/api/custom-modules')
@@ -110,7 +150,7 @@ export function Sidebar() {
   const userRole = (currentUser?.role || '').toUpperCase();
   const isAdmin = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
 
-  const isVisible = (id: string) => id === 'dashboard' || visibleModules.includes(id);
+  const isVisible = (id: string) => id === 'dashboard' || id === 'connect' || id === 'admin' || visibleModules.includes(id);
 
   const availableDailyItems = DAILY_RHYTHM_ITEMS.filter(item => isVisible(item.id));
   const availableSpacesItems = SPACES_ITEMS.filter(item => isVisible(item.id));
@@ -118,7 +158,7 @@ export function Sidebar() {
 
   const renderNavButton = (item: NavItem) => {
     const Icon = item.icon;
-    const isActive = currentView === item.id;
+    const isActive = currentView === item.id || (item.id === 'connect' && (currentView === 'feed' || currentView === 'study-space' || currentView === 'classroom'));
 
     return (
       <button
@@ -129,7 +169,7 @@ export function Sidebar() {
           setCurrentView(item.id);
           if (isMobileMenuOpen) toggleMobileMenu();
         }}
-        className={`w-full relative flex items-center gap-2.5 px-3 py-2 rounded-xl text-[13px] font-medium transition-all text-left cursor-pointer group ${
+        className={`w-full relative flex items-center gap-2.5 px-3 py-2.5 min-h-[44px] rounded-xl text-[13px] font-medium transition-all text-left cursor-pointer group ${
           isActive
             ? 'bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-semibold shadow-2xs'
             : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/60 hover:text-slate-900 dark:hover:text-slate-100'
@@ -138,11 +178,43 @@ export function Sidebar() {
         {isActive && (
           <span className="absolute left-1 top-2.5 bottom-2.5 w-1 rounded-full bg-emerald-500" />
         )}
-        <Icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? 'text-emerald-600 dark:text-emerald-400 scale-105 ml-1' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'}`} />
-        <span className="truncate flex-1">{t(item.label)}</span>
-        {item.id === 'subscription' && (
-          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
-            {isAdmin ? 'Admin' : subscriptionStatus?.hasAccess ? `${subscriptionStatus.remainingDays || 0}d` : 'Free'}
+        <Icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? 'text-emerald-600 dark:text-emerald-400 scale-105' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'}`} />
+        <span className="truncate flex-1 md:hidden lg:inline">
+          {item.id === 'referral' && (currentUser?.isAffiliate || isAdmin)
+            ? '⭐ Cổng Quản Lý CTV'
+            : t(item.label)}
+        </span>
+        {item.id === 'referral' && (currentUser?.isAffiliate || isAdmin) && (
+          <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 to-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-300/60 dark:border-purple-800 flex items-center gap-1 shadow-2xs">
+            <span>⭐</span>
+            <span>CTV</span>
+          </span>
+        )}
+        {item.id === 'connect' && (
+          <span className="text-[9px] font-black px-1 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 flex items-center gap-1 shrink-0 ml-auto">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            LIVE
+          </span>
+        )}
+        {item.id === 'tasks' && pendingTasksCount > 0 && (
+          <>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 md:hidden lg:inline">
+              {pendingTasksCount}
+            </span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 hidden md:block lg:hidden absolute top-2 right-2 ring-2 ring-white dark:ring-[#07070C]" />
+          </>
+        )}
+        {item.id === 'habits' && incompleteHabitsCount > 0 && (
+          <>
+            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 md:hidden lg:inline">
+              {incompleteHabitsCount}
+            </span>
+            <span className="w-2 h-2 rounded-full bg-rose-500 hidden md:block lg:hidden absolute top-2 right-2 ring-2 ring-white dark:ring-[#07070C]" />
+          </>
+        )}
+        {item.id === 'notes' && activeNotesCount > 0 && (
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+            {activeNotesCount}
           </span>
         )}
       </button>
@@ -154,14 +226,15 @@ export function Sidebar() {
       {/* Mobile backdrop */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-slate-950/40 md:hidden backdrop-blur-xs transition-opacity"
+          className="fixed inset-0 z-40 bg-slate-950/50 md:hidden backdrop-blur-xs transition-opacity cursor-pointer"
           onClick={toggleMobileMenu}
         />
       )}
 
       <aside
+        ref={sidebarRef}
         id="app-sidebar"
-        className={`fixed md:static inset-y-0 left-0 z-50 flex flex-col w-[240px] md:w-[240px] shrink-0 bg-white dark:bg-[#0B1120] border-r border-[#E2E8F0] dark:border-white/[0.08] transition-transform duration-200 ease-in-out ${
+        className={`fixed md:static inset-y-0 left-0 z-50 flex flex-col w-[280px] max-w-[85vw] md:w-[76px] lg:w-[250px] h-screen h-[100dvh] max-h-[100dvh] shrink-0 bg-white/95 dark:bg-[#07070C]/95 backdrop-blur-2xl border-r border-slate-200/80 dark:border-white/[0.08] shadow-2xl transition-transform duration-200 ease-in-out ${
           isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
         }`}
       >
@@ -171,14 +244,17 @@ export function Sidebar() {
             <div className="relative p-1 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-white/[0.08] shadow-2xs">
               <img 
                 src="/logo.png" 
-                alt="LifeOS Logo" 
+                alt="LifeOS - Ứng dụng Quản lý Cuộc sống Toàn diện" 
+                width="24"
+                height="24"
+                decoding="async"
                 className="w-6 h-6 rounded-lg object-contain shrink-0" 
               />
             </div>
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 md:hidden lg:flex">
               <span className="font-bold text-sm text-[#0F172A] dark:text-white tracking-tight">LifeOS</span>
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                PRO
+                FREE 100%
               </span>
             </div>
           </div>
@@ -189,9 +265,9 @@ export function Sidebar() {
               type="button"
               onClick={() => setShowCustomizer(true)}
               title={isVi ? 'Cá nhân hóa danh mục' : 'Customize Sidebar'}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="w-10 h-10 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <Sliders className="w-3.5 h-3.5" />
+              <Sliders className="w-4 h-4" />
             </button>
 
             {/* Close button on mobile */}
@@ -199,9 +275,9 @@ export function Sidebar() {
               type="button"
               onClick={toggleMobileMenu}
               aria-label={isVi ? 'Đóng danh mục' : 'Close Menu'}
-              className="md:hidden p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+              className="md:hidden w-10 h-10 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -326,17 +402,21 @@ export function Sidebar() {
               <div className="relative shrink-0">
                 <img
                   src={currentUser?.avatar || 'https://ui-avatars.com/api/?name=LifeOS+SuperAdmin&background=10B981&color=fff'}
-                  alt={currentUser?.name || 'LifeOS SuperAdmin'}
+                  alt={currentUser?.name ? `Ảnh đại diện của ${currentUser.name}` : 'Ảnh đại diện người dùng LifeOS'}
+                  width="32"
+                  height="32"
+                  loading="lazy"
+                  decoding="async"
                   className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 object-cover border border-slate-200/80 dark:border-white/[0.08] shadow-2xs"
                 />
                 <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#141E30]" />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 md:hidden lg:block">
                 <p className="text-xs font-semibold text-slate-800 dark:text-slate-100 truncate group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
                   {currentUser?.name || 'LifeOS SuperAdmin'}
                 </p>
                 <p className="text-[10px] text-slate-500 dark:text-slate-400 font-normal truncate">
-                  {isAdmin ? 'Quản trị viên (Admin)' : (currentUser?.plan || 'Free')}
+                  {isAdmin ? 'Quản trị viên (Admin)' : 'Trải nghiệm Miễn phí (Full Access)'}
                 </p>
               </div>
             </button>

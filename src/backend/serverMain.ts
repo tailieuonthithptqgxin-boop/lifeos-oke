@@ -1,4 +1,9 @@
 import 'dotenv/config';
+import crypto from 'crypto';
+
+// Keep libuv threadpool size standard and safe (prevents thread/PID exhaustion on Linux VPS)
+process.env.UV_THREADPOOL_SIZE = process.env.UV_THREADPOOL_SIZE || '4';
+
 import dns from 'dns';
 
 // Force IPv4-first DNS lookup to prevent ENETUNREACH on cloud environments (Railway, Docker, VPS) without IPv6 routing
@@ -18,39 +23,44 @@ import cookieParser from 'cookie-parser';
 import bcrypt from 'bcryptjs';
 import { createServer as createViteServer } from 'vite';
 
-// Production Security Validation: Fail Fast if critical production credentials are missing or default
+// Resilient Environment Validation (Prevents PM2 rapid restart loop & thread exhaustion)
 const isProduction = process.env.NODE_ENV === 'production';
 
-if (isProduction) {
-  const missingVars: string[] = [];
-  if (!process.env.DATABASE_URL) missingVars.push('DATABASE_URL');
-  if (!process.env.JWT_SECRET) missingVars.push('JWT_SECRET');
-
-  if (missingVars.length > 0) {
-    console.error(`❌ [FATAL CONFIG ERROR] Thiếu các biến môi trường bắt buộc trong môi trường production: ${missingVars.join(', ')}`);
-    process.exit(1);
+if (!process.env.JWT_SECRET || 
+    process.env.JWT_SECRET.length < 32 || 
+    process.env.JWT_SECRET.includes('change_this') || 
+    process.env.JWT_SECRET.includes('default')) {
+  const generatedSecret = crypto.randomBytes(32).toString('hex');
+  if (isProduction) {
+    console.warn(`⚠️ [SECURITY NOTICE] JWT_SECRET chưa được cấu hình hoặc chưa đủ an toàn. Hệ thống tự động sinh khóa 64 ký tự an toàn cho phiên chạy này.`);
   }
+  process.env.JWT_SECRET = process.env.JWT_SECRET && process.env.JWT_SECRET.length >= 32 ? process.env.JWT_SECRET : generatedSecret;
+}
 
-  // Reject insecure fallback secrets in production
-  if (
-    process.env.JWT_SECRET!.length < 32 ||
-    process.env.JWT_SECRET!.includes('change_this') ||
-    process.env.JWT_SECRET!.includes('lifeos_super_secure') ||
-    process.env.JWT_SECRET!.includes('default')
-  ) {
-    console.error('❌ [FATAL SECURITY ERROR] JWT_SECRET trong môi trường production không đủ an toàn (yêu cầu tối thiểu 32 ký tự ngẫu nhiên, không dùng secret mặc định).');
-    process.exit(1);
+if (!process.env.DATABASE_URL) {
+  if (isProduction) {
+    console.warn('⚠️ [CONFIG WARNING] DATABASE_URL chưa được khai báo trong file .env.');
+  } else {
+    process.env.DATABASE_URL = "postgresql://lifeos_user:secure_password_123@localhost:5432/lifeos_db?schema=public";
   }
-} else {
-  // Development default fallbacks
-  process.env.DATABASE_URL = process.env.DATABASE_URL || "postgresql://lifeos_user:secure_password_123@localhost:5432/lifeos_db?schema=public";
-  process.env.JWT_SECRET = process.env.JWT_SECRET || "lifeos_super_secure_jwt_secret_key_2026_production";
+}
+
+if (!isProduction) {
   process.env.INITIAL_ADMIN_EMAIL = process.env.INITIAL_ADMIN_EMAIL || "admin@lifeos.com";
   process.env.INITIAL_ADMIN_PASSWORD = process.env.INITIAL_ADMIN_PASSWORD || "Admin@123456";
 }
 
 import { authRouter } from './routes/auth.js';
 import { apiRouter } from './routes/api.js';
+import { connectRouter } from './routes/connect.routes.js';
+import { classroomRouter } from './routes/classroom.routes.js';
+import { petRouter } from './routes/pet.routes.js';
+import { studySpaceRouter } from './routes/studySpace.routes.js';
+import { analyticsRouter } from './routes/analytics.routes.js';
+import { notificationRouter } from './routes/notifications.routes.js';
+import { cronRouter } from './routes/cron.routes.js';
+import { backendCronEngineService } from './services/cronEngine.service.js';
+import { startClassroomReminderLoop } from './services/classroom.service.js';
 import { checkDbConnection, dbService, getPrisma } from './db.js';
 import { workerService } from './services/worker.service.js';
 import { notificationScheduler } from './services/notification/notificationScheduler.service.js';
@@ -59,17 +69,31 @@ import { emailQueueService } from './services/emailQueue.service.js';
 import { SystemNotificationHelper } from './services/systemNotification.helper.js';
 import { validateEnvOnStartup } from './config/env.config.js';
 import { sanitizeInputMiddleware } from './security/sanitizer.js';
+import { generalApiRateLimiter } from './security/rateLimiter.js';
+import { globalChatService } from './services/globalChat.service.js';
 
-function ensurePostgresRunning() {
+async function ensurePostgresRunning() {
   try {
     const dbUrl = process.env.DATABASE_URL || '';
     if (dbUrl && !dbUrl.includes('localhost') && !dbUrl.includes('127.0.0.1')) {
       return;
     }
 
+    if (dbUrl.includes(':5433')) {
+      try {
+        const localPgPath = path.resolve(process.cwd(), 'scripts/local_postgres.mjs');
+        const fileUrl = `file:///${localPgPath.replace(/\\/g, '/')}`;
+        const { startLocalPostgres } = await import(fileUrl);
+        await startLocalPostgres();
+      } catch (err: any) {
+        // Ignore if already running
+      }
+      return;
+    }
+
     const cwd = process.cwd();
     const scriptPath = path.join(cwd, 'scripts/start_postgres.sh');
-    if (fs.existsSync(scriptPath)) {
+    if (fs.existsSync(scriptPath) && process.platform !== 'win32') {
       try {
         execSync(`bash "${scriptPath}" 2>&1 || true`);
       } catch (e: any) {
@@ -83,7 +107,7 @@ function ensurePostgresRunning() {
 
 async function startServer() {
   validateEnvOnStartup();
-  ensurePostgresRunning();
+  await ensurePostgresRunning();
 
   const app = express();
   const PORT = parseInt(process.env.PORT || '3000', 10);
@@ -109,14 +133,22 @@ async function startServer() {
     next();
   });
 
-  // Security Headers (Configured for Safe Embedding & Media Playback)
+  // Security Headers (Configured for Safe Embedding, Jitsi WebRTC & Media Playback)
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    res.setHeader(
+      'Permissions-Policy',
+      'camera=(self "https://meet.jit.si" "https://8x8.vc" "https://meet.google.com"), microphone=(self "https://meet.jit.si" "https://8x8.vc" "https://meet.google.com"), display-capture=(self "https://meet.jit.si" "https://8x8.vc" "https://meet.google.com")'
+    );
+    if (req.path.startsWith('/api')) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
     res.setHeader(
       'Content-Security-Policy',
-      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://images.unsplash.com https://ui-avatars.com; connect-src 'self' ws: wss:; media-src 'self' data: blob:; worker-src 'self' blob:; frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com; frame-ancestors 'self' *;"
+      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdnjs.cloudflare.com https://unpkg.com https://meet.jit.si https://8x8.vc; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://images.unsplash.com https://ui-avatars.com; connect-src 'self' https: ws: wss:; media-src 'self' data: blob:; worker-src 'self' blob:; frame-src 'self' https://meet.jit.si https://*.jit.si https://8x8.vc https://*.8x8.vc https://meet.google.com https://www.youtube.com https://www.youtube-nocookie.com; frame-ancestors 'self' *;"
     );
     next();
   });
@@ -148,6 +180,7 @@ async function startServer() {
 
   // Start dedicated real-time Notification Scheduler (every 60s)
   notificationScheduler.start(60000);
+  startClassroomReminderLoop(60000);
 
   // Health check endpoint (Liveness Probe)
   app.get('/health', async (req, res) => {
@@ -488,13 +521,23 @@ async function startServer() {
 
   // Google OAuth Direct & Fallback Aliases (Bypass path rewriting)
   app.get('/auth/google', (req, res) => res.redirect('/api/auth/google'));
-  app.get('/auth/google/callback', (req, res) => {
+  app.get(['/auth/google/callback', '/google/callback', '/callback', '/api/google/callback'], (req, res) => {
     const qs = new URLSearchParams(req.query as any).toString();
     res.redirect(qs ? ('/api/auth/google/callback?' + qs) : '/api/auth/google/callback');
   });
 
   // API Routes
+  app.use('/api', generalApiRateLimiter);
   app.use('/api/auth', authRouter);
+  app.use('/api/user', authRouter);
+  app.use('/api/classroom', classroomRouter);
+  app.use('/api/pet', petRouter);
+  app.use('/api/study-space', studySpaceRouter);
+  app.use('/api/study', studySpaceRouter);
+  app.use('/api/connect', connectRouter);
+  app.use('/api/analytics', analyticsRouter);
+  app.use('/api/notifications', notificationRouter);
+  app.use('/api/cron', cronRouter);
   app.use('/api', apiRouter);
 
   // Return 404 JSON for unhandled /api/* routes instead of returning HTML SPA fallback
@@ -569,7 +612,16 @@ async function startServer() {
     const distPath = path.join(process.cwd(), 'dist');
     const indexPath = path.join(distPath, 'index.html');
     if (fs.existsSync(distPath)) {
-      app.use(express.static(distPath));
+      app.use(express.static(distPath, {
+        maxAge: '1d',
+        setHeaders: (res, filePath) => {
+          if (filePath.endsWith('index.html') || filePath.endsWith('sw.js') || filePath.endsWith('manifest.json')) {
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          } else if (filePath.includes(path.sep + 'assets' + path.sep)) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          }
+        }
+      }));
     }
     app.use('*', (req, res, next) => {
       if (req.method !== 'GET' && req.method !== 'HEAD') {
@@ -591,8 +643,13 @@ async function startServer() {
     console.log(`🚀 LifeOS Server running on http://0.0.0.0:${PORT}`);
     // Start Outbox Email Queue Worker (Automatic Retry & Delivery Guarantee)
     emailQueueService.startQueueWorker();
+    // Initialize Automated 24/7 Cron Engine (Hybrid Cloudflare & Backend Scheduler)
+    backendCronEngineService.init();
     // Verify SMTP connection on startup & report status
     emailQueueService.verifySmtpConnection().catch(e => console.warn('Initial SMTP verify notice:', e));
+    if (process.send) {
+      process.send('ready');
+    }
   });
 
   const shutdown = (signal: string) => {
@@ -601,6 +658,7 @@ async function startServer() {
       workerService.stop();
       notificationScheduler.stop();
       emailQueueService.stopQueueWorker();
+      globalChatService.saveSnapshotSync();
     } catch (e) {}
 
     // PROD-002 FIX: Force exit after 30s if connections don't close

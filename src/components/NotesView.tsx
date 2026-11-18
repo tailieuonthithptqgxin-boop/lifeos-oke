@@ -1,6 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useAppStore } from '../lib/store';
 import { useTranslation } from '../lib/i18n';
+import { formatLocalDateKey } from '../lib/utils';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+import { soundEngine } from '../lib/soundEngine';
 import { 
   Note, 
   NoteType, 
@@ -66,6 +69,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { apiCall } from '../lib/apiClient';
+import { saveNoteDraft, loadNoteDraft, clearNoteDraft } from '../lib/learningAutoSave';
 
 const NOTE_TYPES: { type: NoteType; label: string; icon: any; color: string; bg: string }[] = [
   { type: 'Normal', label: 'Standard', icon: FileText, color: 'text-slate-600', bg: 'bg-slate-100' },
@@ -171,17 +175,158 @@ export function NotesView() {
 
   const t = useTranslation(language);
 
-  const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
+  // F5 Persistence for Notes Subtab
+  const [activeTab, setActiveTab] = useState<ActiveTab>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_notes_active_tab') as ActiveTab;
+        if (saved && ['dashboard', 'all', 'daily', 'meetings', 'graph', 'templates', 'analytics', 'archive'].includes(saved)) {
+          return saved;
+        }
+      } catch {}
+    }
+    return 'dashboard';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_notes_active_tab', activeTab);
+    } catch {}
+  }, [activeTab]);
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [selectedType, setSelectedType] = useState<string>('All');
+
+  const [selectedCategory, setSelectedCategory] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return localStorage.getItem('lifeos_notes_category') || 'All';
+      } catch {}
+    }
+    return 'All';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_notes_category', selectedCategory);
+    } catch {}
+  }, [selectedCategory]);
+
+  const [selectedType, setSelectedType] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return localStorage.getItem('lifeos_notes_type') || 'All';
+      } catch {}
+    }
+    return 'All';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_notes_type', selectedType);
+    } catch {}
+  }, [selectedType]);
+
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_notes_view_mode') as 'grid' | 'list';
+        if (saved === 'grid' || saved === 'list') return saved;
+      } catch {}
+    }
+    return 'grid';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_notes_view_mode', viewMode);
+    } catch {}
+  }, [viewMode]);
+
+  // Quick Omnibar & Toast States
+  const [quickInput, setQuickInput] = useState('');
+  const [quickSuccess, setQuickSuccess] = useState<{ id: string; title: string } | null>(null);
+  const [activeFilterMode, setActiveFilterMode] = useState<'all' | 'pinned' | 'favorite' | 'checklist'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_notes_filter_mode') as any;
+        if (saved && ['all', 'pinned', 'favorite', 'checklist'].includes(saved)) {
+          return saved;
+        }
+      } catch {}
+    }
+    return 'all';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_notes_filter_mode', activeFilterMode);
+    } catch {}
+  }, [activeFilterMode]);
+
+  // 5-second Undo Toast State
+  const [undoItem, setUndoItem] = useState<{ id: string; title: string; note: Note; action: 'trash' | 'delete' } | null>(null);
+  const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    };
+  }, []);
 
   // Modal States
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Partial<Note> | null>(null);
-  const [detailNote, setDetailNote] = useState<Note | null>(null);
+
+  // Auto-Save & Instant Note Draft Recovery
+  useEffect(() => {
+    const draft = loadNoteDraft();
+    if (draft && (draft.title?.trim() || draft.content?.trim())) {
+      setEditingNote(draft as Partial<Note>);
+      setIsEditorOpen(true);
+      console.log('✅ [AutoSave] Khôi phục bản nháp ghi chú đang viết dở:', draft.title);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isEditorOpen && editingNote && (editingNote.title?.trim() || editingNote.content?.trim())) {
+      saveNoteDraft(editingNote);
+    } else if (!isEditorOpen) {
+      clearNoteDraft();
+    }
+  }, [isEditorOpen, editingNote]);
+  const [detailNote, setDetailNote] = useState<Note | null>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const savedId = localStorage.getItem('lifeos_notes_selected_id');
+        if (savedId) {
+          const found = notes.find(n => n.id === savedId);
+          if (found) return found;
+        }
+      } catch {}
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    try {
+      if (detailNote) {
+        localStorage.setItem('lifeos_notes_selected_id', detailNote.id);
+      } else {
+        localStorage.removeItem('lifeos_notes_selected_id');
+      }
+    } catch {}
+  }, [detailNote]);
+
+  useEffect(() => {
+    if (detailNote) {
+      const fresh = notes.find(n => n.id === detailNote.id);
+      if (fresh && fresh !== detailNote) {
+        setDetailNote(fresh);
+      }
+    }
+  }, [notes, detailNote]);
 
   // Active notes (excluding trash and archived unless in specific views)
   const activeNotes = useMemo(() => notes.filter(n => !n.inTrash && !n.archived), [notes]);
@@ -219,9 +364,15 @@ export function NotesView() {
       const matchesType = selectedType === 'All' || n.type === selectedType;
       const matchesTag = !selectedTag || n.tags?.includes(selectedTag);
 
-      return matchesSearch && matchesCat && matchesType && matchesTag;
+      const matchesFilterMode = 
+        activeFilterMode === 'all' ? true :
+        activeFilterMode === 'pinned' ? n.pinned :
+        activeFilterMode === 'favorite' ? n.favorite :
+        activeFilterMode === 'checklist' ? (n.checklists && n.checklists.length > 0) : true;
+
+      return matchesSearch && matchesCat && matchesType && matchesTag && matchesFilterMode;
     });
-  }, [activeNotes, searchQuery, selectedCategory, selectedType, selectedTag]);
+  }, [activeNotes, searchQuery, selectedCategory, selectedType, selectedTag, activeFilterMode]);
 
   // Handlers
   const handleCreateNewNote = (type: NoteType = 'Normal', template?: NoteTemplate) => {
@@ -234,7 +385,7 @@ export function NotesView() {
       tags: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      noteDate: new Date().toISOString().split('T')[0],
+      noteDate: formatLocalDateKey(new Date()),
       priority: 'Medium',
       status: 'Active',
       pinned: false,
@@ -251,9 +402,9 @@ export function NotesView() {
 
   const handleSaveNote = (noteToSave: Partial<Note>) => {
     if (!noteToSave.title?.trim()) {
-      alert(t('Vui lòng nhập tiêu đề ghi chú!'));
       return;
     }
+    clearNoteDraft();
     const existing = (notes || []).find(n => n.id === noteToSave.id);
     if (existing) {
       updateNote(existing.id, noteToSave);
@@ -262,6 +413,127 @@ export function NotesView() {
     }
     setIsEditorOpen(false);
     setEditingNote(null);
+  };
+
+  // Natural Language Quick Add
+  const handleQuickAdd = (e: React.FormEvent) => {
+    e.preventDefault();
+    const raw = quickInput.trim();
+    if (!raw) return;
+
+    // Parse #tags
+    const tags: string[] = [];
+    const tagMatches = raw.match(/#([\w\u00C0-\u024F\u1E00-\u1EFF]+)/g);
+    if (tagMatches) {
+      tagMatches.forEach(t => tags.push(t.replace('#', '')));
+    }
+
+    // Parse @category
+    let category = 'Tổng hợp';
+    const catMatch = raw.match(/@([\w\u00C0-\u024F\u1E00-\u1EFF]+)/);
+    if (catMatch && catMatch[1]) {
+      category = catMatch[1];
+    }
+
+    // Infer note type
+    let inferredType: NoteType = 'Normal';
+    const lower = raw.toLowerCase();
+    if (tags.some(t => t.toLowerCase() === 'meeting') || lower.includes('họp') || lower.includes('meeting')) {
+      inferredType = 'Meeting';
+    } else if (tags.some(t => t.toLowerCase() === 'idea') || lower.includes('ý tưởng') || lower.includes('idea')) {
+      inferredType = 'Idea';
+    } else if (tags.some(t => t.toLowerCase() === 'checklist') || lower.includes('checklist') || lower.includes('cần mua') || lower.includes('danh sách')) {
+      inferredType = 'Checklist';
+    } else if (tags.some(t => t.toLowerCase() === 'daily') || lower.includes('nhật ký') || lower.includes('daily')) {
+      inferredType = 'Daily';
+    } else if (tags.some(t => t.toLowerCase() === 'decision') || lower.includes('quyết định') || lower.includes('decision')) {
+      inferredType = 'Decision';
+    } else if (tags.some(t => t.toLowerCase() === 'study') || lower.includes('học') || lower.includes('study') || lower.includes('ôn thi')) {
+      inferredType = 'Study';
+    } else if (tags.some(t => t.toLowerCase() === 'project') || lower.includes('dự án') || lower.includes('project')) {
+      inferredType = 'Project';
+    } else if (tags.some(t => t.toLowerCase() === 'finance') || lower.includes('tài chính') || lower.includes('chi phí') || lower.includes('ngân sách')) {
+      inferredType = 'Finance';
+    }
+
+    // Clean title
+    let cleanTitle = raw
+      .replace(/#([\w\u00C0-\u024F\u1E00-\u1EFF]+)/g, '')
+      .replace(/@([\w\u00C0-\u024F\u1E00-\u1EFF]+)/g, '')
+      .trim();
+    if (!cleanTitle) cleanTitle = raw;
+
+    const newNote: Note = {
+      id: 'note_' + Math.random().toString(36).substring(2, 11),
+      title: cleanTitle,
+      content: '',
+      folder: 'Inbox',
+      type: inferredType,
+      category,
+      tags,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      noteDate: formatLocalDateKey(new Date()),
+      priority: 'Medium',
+      status: 'Active',
+      pinned: false,
+      favorite: false,
+      archived: false,
+      inTrash: false,
+      sections: [],
+      checklists: inferredType === 'Checklist' ? [{ id: 'chk_1', text: 'Mục 1', completed: false }] : [],
+      linkedItems: {}
+    };
+
+    addNote(newNote);
+    setQuickInput('');
+    setQuickSuccess({ id: newNote.id, title: newNote.title });
+    setTimeout(() => {
+      setQuickSuccess(prev => prev?.id === newNote.id ? null : prev);
+    }, 4500);
+  };
+
+  // Undo Handlers
+  const handleMoveToTrashWithUndo = (id: string) => {
+    const note = notes.find(n => n.id === id);
+    if (!note) return;
+    moveToTrashNote(id);
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoItem({ id, title: note.title, note, action: 'trash' });
+    undoTimerRef.current = setTimeout(() => {
+      setUndoItem(null);
+    }, 5000);
+  };
+
+  const handleDeletePermanentWithUndo = (id: string) => {
+    const note = notes.find(n => n.id === id);
+    if (!note) return;
+    deleteNote(id);
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoItem({ id, title: note.title, note, action: 'delete' });
+    undoTimerRef.current = setTimeout(() => {
+      setUndoItem(null);
+    }, 5000);
+  };
+
+  const handleUndo = () => {
+    if (!undoItem) return;
+    if (undoItem.action === 'trash') {
+      restoreNote(undoItem.id);
+    } else {
+      addNote(undoItem.note);
+    }
+    setUndoItem(null);
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+  };
+
+  const handleToggleChecklist = (noteId: string, checkId: string) => {
+    const target = notes.find(n => n.id === noteId);
+    if (!target) return;
+    const updated = (target.checklists || []).map(c => 
+      c.id === checkId ? { ...c, completed: !c.completed } : c
+    );
+    updateNote(noteId, { checklists: updated });
   };
 
   return (
@@ -299,6 +571,62 @@ export function NotesView() {
             <Plus className="w-4 h-4 stroke-[2.5]" /> {language === 'vi' ? '+ Tạo ghi chú mới' : t('Create New Note')}
           </button>
         </div>
+      </div>
+
+      {/* NATURAL LANGUAGE QUICK NOTE OMNIBAR */}
+      <div className="bg-white dark:bg-[#141E30] p-3 sm:p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs">
+        <form onSubmit={handleQuickAdd} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+          <div className="relative flex-1">
+            <Sparkles className="w-4 h-4 text-amber-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <input 
+              type="text"
+              value={quickInput}
+              onChange={(e) => setQuickInput(e.target.value)}
+              placeholder={language === 'vi' 
+                ? "Ghi chú nhanh: 'Họp kế hoạch Q4 #meeting @Work', 'Ý tưởng app AI #idea', 'Mua sách giáo trình #checklist' (Enter để tạo)..."
+                : "Quick capture: 'Weekly sync #meeting @Work', 'AI project idea #idea', 'Buy textbook #checklist' (Press Enter)..."
+              }
+              className="w-full pl-10 pr-9 py-2.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+            />
+            {quickInput && (
+              <button
+                type="button"
+                onClick={() => setQuickInput('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                title="Xóa nội dung"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={!quickInput.trim()}
+            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-xs shrink-0 active:scale-95"
+          >
+            <Plus className="w-4 h-4 stroke-[2.5]" />
+            <span>{language === 'vi' ? 'Tạo nhanh 0.2s' : 'Quick Add'}</span>
+          </button>
+        </form>
+
+        {quickSuccess && (
+          <div className="mt-2.5 px-3 py-1.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/50 flex items-center justify-between text-xs text-emerald-700 dark:text-emerald-300 animate-fade-in">
+            <span className="flex items-center gap-1.5">
+              <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+              <span>Đã tạo ghi chú: <strong>{quickSuccess.title}</strong></span>
+            </span>
+            <button
+              type="button"
+              onClick={() => {
+                const created = notes.find(n => n.id === quickSuccess.id);
+                if (created) setDetailNote(created);
+              }}
+              className="font-bold underline hover:text-emerald-900 dark:hover:text-emerald-200 cursor-pointer"
+            >
+              Mở xem ngay
+            </button>
+          </div>
+        )}
       </div>
 
       {/* SUB-TABS NAVIGATION */}
@@ -352,6 +680,12 @@ export function NotesView() {
             onCreateNote={handleCreateNewNote}
             onTogglePin={toggleNotePin}
             onToggleFav={toggleNoteFavorite}
+            onToggleChecklist={handleToggleChecklist}
+            onMoveTrash={handleMoveToTrashWithUndo}
+            onNavigateTab={(tab, filter) => {
+              if (filter) setActiveFilterMode(filter);
+              setActiveTab(tab);
+            }}
             onSelectTag={(tag) => {
               setSelectedTag(tag);
               setActiveTab('all');
@@ -374,11 +708,14 @@ export function NotesView() {
           viewMode={viewMode}
           setViewMode={setViewMode}
           allTags={allTags}
+          activeFilterMode={activeFilterMode}
+          setActiveFilterMode={setActiveFilterMode}
           onOpenDetail={setDetailNote}
           onOpenEdit={(n) => { setEditingNote(n); setIsEditorOpen(true); }}
           onTogglePin={toggleNotePin}
           onToggleFav={toggleNoteFavorite}
-          onMoveTrash={moveToTrashNote}
+          onToggleChecklist={handleToggleChecklist}
+          onMoveTrash={handleMoveToTrashWithUndo}
         />
       )}
 
@@ -427,11 +764,41 @@ export function NotesView() {
           archivedNotes={archivedNotes}
           trashNotes={trashNotes}
           onRestore={restoreNote}
-          onDeletePermanent={deleteNote}
+          onDeletePermanent={handleDeletePermanentWithUndo}
           onOpenDetail={setDetailNote}
         />
       )}
       </div>
+
+      {/* FLOATING 5-SECOND UNDO TOAST */}
+      {undoItem && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700/80 flex items-center gap-3 animate-fade-in backdrop-blur-md">
+          <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+          <div className="text-xs">
+            <span>{undoItem.action === 'trash' ? 'Đã chuyển vào thùng rác: ' : 'Đã xóa vĩnh viễn: '}</span>
+            <strong className="text-white max-w-[150px] inline-block truncate align-bottom">{undoItem.title}</strong>
+          </div>
+          <button
+            type="button"
+            onClick={handleUndo}
+            className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition cursor-pointer flex items-center gap-1 shrink-0"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Hoàn tác (5s)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+              setUndoItem(null);
+            }}
+            className="p-1 text-slate-400 hover:text-white cursor-pointer"
+            title="Đóng"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* DETAIL MODAL */}
       {detailNote && (
@@ -448,6 +815,8 @@ export function NotesView() {
           onToggleFav={() => toggleNoteFavorite(detailNote.id)}
           onConvertAction={convertMeetingActionToTask}
           onRestoreVersion={(vId) => restoreNoteVersion(detailNote.id, vId)}
+          onUpdateNote={(id, updates) => updateNote(id, updates)}
+          onToggleChecklist={handleToggleChecklist}
         />
       )}
 
@@ -481,6 +850,9 @@ function NotesDashboardView({
   onCreateNote,
   onTogglePin,
   onToggleFav,
+  onToggleChecklist,
+  onMoveTrash,
+  onNavigateTab,
   onSelectTag
 }: {
   notes: Note[];
@@ -489,9 +861,12 @@ function NotesDashboardView({
   tags: [string, number][];
   onOpenDetail: (n: Note) => void;
   onOpenEdit: (n: Note) => void;
-  onCreateNote: (t?: NoteType) => void;
+  onCreateNote: (t?: NoteType, tmpl?: NoteTemplate) => void;
   onTogglePin: (id: string) => void;
   onToggleFav: (id: string) => void;
+  onToggleChecklist?: (noteId: string, checkId: string) => void;
+  onMoveTrash?: (id: string) => void;
+  onNavigateTab?: (tab: ActiveTab, filter?: 'all' | 'pinned' | 'favorite' | 'checklist') => void;
   onSelectTag?: (tag: string) => void;
 }) {
   const recentNotes = useMemo(() => {
@@ -504,43 +879,59 @@ function NotesDashboardView({
 
   return (
     <div className="space-y-4 sm:space-y-6 w-full min-w-0 max-w-full">
-      {/* QUICK METRICS */}
+      {/* INTERACTIVE BENTO KPI CARDS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full min-w-0">
-        <div className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs flex flex-col justify-between min-w-0">
+        <button
+          type="button"
+          onClick={() => onNavigateTab?.('all', 'all')}
+          className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs flex flex-col justify-between min-w-0 text-left hover:border-indigo-400 dark:hover:border-indigo-500 transition-all cursor-pointer group active:scale-98"
+        >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Hoạt động</span>
-            <FileText className="w-4 h-4 text-slate-400" />
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">Hoạt động</span>
+            <FileText className="w-4 h-4 text-slate-400 group-hover:text-indigo-500 transition-colors" />
           </div>
           <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white">{notes.length}</div>
-          <span className="text-[10px] text-slate-400 font-normal mt-1">Tổng ghi chú</span>
-        </div>
+          <span className="text-[10px] text-slate-400 font-normal mt-1">Tất cả ghi chú →</span>
+        </button>
 
-        <div className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs flex flex-col justify-between min-w-0">
+        <button
+          type="button"
+          onClick={() => onNavigateTab?.('all', 'pinned')}
+          className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs flex flex-col justify-between min-w-0 text-left hover:border-amber-400 dark:hover:border-amber-500 transition-all cursor-pointer group active:scale-98"
+        >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Đã ghim</span>
-            <Pin className="w-4 h-4 text-slate-400" />
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">Đã ghim</span>
+            <Pin className="w-4 h-4 text-slate-400 group-hover:text-amber-500 transition-colors" />
           </div>
           <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white">{pinnedNotes.length}</div>
-          <span className="text-[10px] text-slate-400 font-normal mt-1">Ưu tiên truy cập nhanh</span>
-        </div>
+          <span className="text-[10px] text-slate-400 font-normal mt-1">Lọc ghi chú ghim →</span>
+        </button>
 
-        <div className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs flex flex-col justify-between min-w-0">
+        <button
+          type="button"
+          onClick={() => onNavigateTab?.('all', 'favorite')}
+          className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs flex flex-col justify-between min-w-0 text-left hover:border-rose-400 dark:hover:border-rose-500 transition-all cursor-pointer group active:scale-98"
+        >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Yêu thích</span>
-            <Star className="w-4 h-4 text-slate-400" />
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">Yêu thích</span>
+            <Star className="w-4 h-4 text-slate-400 group-hover:text-rose-500 transition-colors" />
           </div>
           <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white">{favoriteNotes.length}</div>
-          <span className="text-[10px] text-slate-400 font-normal mt-1">Đánh dấu quan trọng</span>
-        </div>
+          <span className="text-[10px] text-slate-400 font-normal mt-1">Lọc ghi chú yêu thích →</span>
+        </button>
 
-        <div className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs flex flex-col justify-between min-w-0">
+        <button
+          type="button"
+          onClick={() => onNavigateTab?.('all', 'checklist')}
+          className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs flex flex-col justify-between min-w-0 text-left hover:border-emerald-400 dark:hover:border-emerald-500 transition-all cursor-pointer group active:scale-98"
+        >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Chờ xử lý</span>
-            <ListCheck className="w-4 h-4 text-slate-400" />
+            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">Chờ xử lý</span>
+            <ListCheck className="w-4 h-4 text-slate-400 group-hover:text-emerald-500 transition-colors" />
           </div>
           <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white">{pendingChecklistNotes.length}</div>
-          <span className="text-[10px] text-slate-400 font-normal mt-1">Checklist chưa hoàn thành</span>
-        </div>
+          <span className="text-[10px] text-slate-400 font-normal mt-1">Lọc checklist tồn đọng →</span>
+        </button>
       </div>
 
       {/* PINNED NOTES SECTION */}
@@ -558,11 +949,29 @@ function NotesDashboardView({
                 onEdit={() => onOpenEdit(note)}
                 onTogglePin={() => onTogglePin(note.id)}
                 onToggleFav={() => onToggleFav(note.id)}
+                onToggleChecklist={onToggleChecklist}
+                onMoveTrash={() => onMoveTrash?.(note.id)}
               />
             ))}
           </div>
         </div>
       )}
+
+      {/* 1-CLICK POPULAR TEMPLATES STRIP */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar pt-1">
+        <span className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider shrink-0">Mẫu nhanh:</span>
+        {STANDARD_TEMPLATES.map(tmpl => (
+          <button
+            key={tmpl.id}
+            type="button"
+            onClick={() => onCreateNote(tmpl.type, tmpl)}
+            className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 hover:text-indigo-600 dark:hover:text-indigo-400 text-slate-600 dark:text-slate-300 text-xs font-medium border border-slate-200/80 dark:border-slate-700/80 transition-all shrink-0 cursor-pointer flex items-center gap-1 active:scale-95"
+          >
+            <Sparkles className="w-3 h-3 text-amber-500 shrink-0" />
+            <span>{tmpl.title}</span>
+          </button>
+        ))}
+      </div>
 
       {/* MAIN GRID: RECENT NOTES & SIDEBAR */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 w-full min-w-0">
@@ -588,6 +997,8 @@ function NotesDashboardView({
                 onEdit={() => onOpenEdit(note)}
                 onTogglePin={() => onTogglePin(note.id)}
                 onToggleFav={() => onToggleFav(note.id)}
+                onToggleChecklist={onToggleChecklist}
+                onMoveTrash={() => onMoveTrash?.(note.id)}
               />
             ))}
           </div>
@@ -670,13 +1081,17 @@ function NoteCard({
   onClick, 
   onEdit, 
   onTogglePin, 
-  onToggleFav 
+  onToggleFav,
+  onToggleChecklist,
+  onMoveTrash
 }: { 
   note: Note; 
   onClick: () => void; 
-  onEdit: () => void;
+  onEdit?: () => void;
   onTogglePin: () => void;
   onToggleFav: () => void;
+  onToggleChecklist?: (noteId: string, checkId: string) => void;
+  onMoveTrash?: () => void;
   key?: any;
 }) {
   const { language } = useAppStore();
@@ -691,7 +1106,7 @@ function NoteCard({
   return (
     <div 
       onClick={onClick}
-      className="bg-white dark:bg-[#141E30] p-4 sm:p-5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] hover:border-emerald-400 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between gap-3 relative group w-full min-w-0 max-w-full overflow-hidden break-words"
+      className="bg-white dark:bg-[#141E30] p-4 sm:p-5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between gap-3 relative group w-full min-w-0 max-w-full overflow-hidden break-words"
     >
       <div className="w-full min-w-0">
         <div className="flex items-center justify-between gap-2 mb-2">
@@ -703,25 +1118,84 @@ function NoteCard({
             <button type="button" 
               onClick={(e) => { e.stopPropagation(); onTogglePin(); }}
               className={`p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 ${note.pinned ? 'text-amber-500' : 'text-slate-300 dark:text-slate-600'}`}
+              title="Ghim ghi chú"
             >
               <Pin className="w-3.5 h-3.5 fill-current" />
             </button>
             <button type="button" 
               onClick={(e) => { e.stopPropagation(); onToggleFav(); }}
               className={`p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 ${note.favorite ? 'text-rose-500' : 'text-slate-300 dark:text-slate-600'}`}
+              title="Yêu thích"
             >
               <Star className="w-3.5 h-3.5 fill-current" />
             </button>
+            {onMoveTrash && (
+              <button type="button" 
+                onClick={(e) => { e.stopPropagation(); onMoveTrash(); }}
+                className="p-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-300 dark:text-slate-600 hover:text-rose-500 transition-colors"
+                title="Chuyển vào thùng rác (Hoàn tác 5s)"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
-        <h4 className="font-bold text-slate-800 dark:text-white text-sm sm:text-base line-clamp-1 group-hover:text-blue-600 transition-colors break-words">
+        <h4 className="font-bold text-slate-800 dark:text-white text-sm sm:text-base line-clamp-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors break-words">
           {note.title}
         </h4>
 
         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2 leading-relaxed break-words">
           {note.content || 'Chưa có nội dung xem trước...'}
         </p>
+
+        {/* CHECKLIST MINI PREVIEW & INTERACTIVE TOGGLE */}
+        {note.checklists && note.checklists.length > 0 && (
+          <div className="mt-2.5 bg-slate-50 dark:bg-slate-800/60 p-2.5 rounded-xl border border-slate-200/60 dark:border-slate-700/60 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 dark:text-slate-400">
+              <span className="flex items-center gap-1">
+                <ListCheck className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Checklist ({note.checklists.filter(c => c.completed).length}/{note.checklists.length})</span>
+              </span>
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">
+                {Math.round((note.checklists.filter(c => c.completed).length / note.checklists.length) * 100)}%
+              </span>
+            </div>
+            <div className="w-full h-1 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-emerald-500 transition-all duration-300" 
+                style={{ width: `${Math.round((note.checklists.filter(c => c.completed).length / note.checklists.length) * 100)}%` }} 
+              />
+            </div>
+            <div className="space-y-1 pt-0.5">
+              {note.checklists.slice(0, 2).map(chk => (
+                <label 
+                  key={chk.id} 
+                  className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300 cursor-pointer select-none group/chk"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <input
+                    type="checkbox"
+                    checked={chk.completed}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      onToggleChecklist?.(note.id, chk.id);
+                    }}
+                    className="w-3.5 h-3.5 rounded text-emerald-600 cursor-pointer"
+                  />
+                  <span className={`truncate text-[11px] ${chk.completed ? 'line-through text-slate-400 dark:text-slate-500' : ''}`}>
+                    {chk.text}
+                  </span>
+                </label>
+              ))}
+              {note.checklists.length > 2 && (
+                <div className="text-[10px] text-slate-400 font-medium pt-0.5">
+                  +{note.checklists.length - 2} mục khác...
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* MEETING ACTION SUMMARY IF ANY */}
         {note.meetingData?.actionItems && note.meetingData.actionItems.length > 0 && (
@@ -769,10 +1243,13 @@ function AllNotesView({
   viewMode,
   setViewMode,
   allTags,
+  activeFilterMode,
+  setActiveFilterMode,
   onOpenDetail,
   onOpenEdit,
   onTogglePin,
   onToggleFav,
+  onToggleChecklist,
   onMoveTrash
 }: {
   notes: Note[];
@@ -788,33 +1265,46 @@ function AllNotesView({
   viewMode: 'grid' | 'list';
   setViewMode: (v: 'grid' | 'list') => void;
   allTags: [string, number][];
+  activeFilterMode?: 'all' | 'pinned' | 'favorite' | 'checklist';
+  setActiveFilterMode?: (mode: 'all' | 'pinned' | 'favorite' | 'checklist') => void;
   onOpenDetail: (n: Note) => void;
   onOpenEdit: (n: Note) => void;
   onTogglePin: (id: string) => void;
   onToggleFav: (id: string) => void;
+  onToggleChecklist?: (noteId: string, checkId: string) => void;
   onMoveTrash: (id: string) => void;
 }) {
   return (
     <div className="space-y-6">
       {/* SEARCH & FILTERS BAR */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-sm space-y-3">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="relative flex-1">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input 
               type="text"
               placeholder="Tìm kiếm theo tiêu đề, nội dung, tag, liên kết..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-10 pr-9 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+                title="Xóa tìm kiếm"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <select 
               value={selectedCategory} 
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none"
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer"
             >
               {categories.map(c => <option key={c} value={c}>Danh mục: {c}</option>)}
             </select>
@@ -822,22 +1312,22 @@ function AllNotesView({
             <select 
               value={selectedType} 
               onChange={(e) => setSelectedType(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:outline-none"
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer"
             >
               <option value="All">Loại: Tất cả</option>
               {NOTE_TYPES.map(t => <option key={t.type} value={t.type}>{t.label}</option>)}
             </select>
 
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl">
+            <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
               <button type="button" 
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'grid' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+                className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500'}`}
               >
                 Grid
               </button>
               <button type="button" 
                 onClick={() => setViewMode('list')}
-                className={`p-1.5 rounded-lg text-xs font-bold transition-all ${viewMode === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-500'}`}
+                className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500'}`}
               >
                 List
               </button>
@@ -845,39 +1335,64 @@ function AllNotesView({
           </div>
         </div>
 
-        {/* TAG FILTER CHIPS */}
-        {allTags.length > 0 && (
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-            <span className="font-bold text-slate-500 whitespace-nowrap">Filter Tag:</span>
-            {selectedTag && (
-              <button type="button" 
-                onClick={() => setSelectedTag(null)} 
-                className="bg-blue-600 text-white font-medium px-2.5 py-0.5 rounded-full flex items-center gap-1"
-              >
-                #{selectedTag} <X className="w-3 h-3" />
-              </button>
-            )}
-            {allTags.map(([tag]) => (
-              <button type="button"
-                key={tag}
-                onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
-                className={`px-2.5 py-0.5 rounded-full font-medium transition-all ${
-                  selectedTag === tag ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+        {/* QUICK FILTER MODE BUTTONS & TAG FILTER CHIPS */}
+        <div className="flex items-center justify-between gap-3 flex-wrap pt-2 border-t border-slate-100 dark:border-slate-800/80">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs font-bold text-slate-400 shrink-0">Lọc nhanh:</span>
+            {[
+              { id: 'all', label: 'Tất cả' },
+              { id: 'pinned', label: '📌 Đã ghim' },
+              { id: 'favorite', label: '⭐ Yêu thích' },
+              { id: 'checklist', label: '☑️ Có checklist' }
+            ].map(m => (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setActiveFilterMode?.(m.id as any)}
+                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer ${
+                  activeFilterMode === m.id
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
                 }`}
               >
-                #{tag}
+                {m.label}
               </button>
             ))}
           </div>
-        )}
+
+          {allTags.length > 0 && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 text-xs">
+              <span className="font-bold text-slate-400 whitespace-nowrap">Tags:</span>
+              {selectedTag && (
+                <button type="button" 
+                  onClick={() => setSelectedTag(null)} 
+                  className="bg-blue-600 text-white font-medium px-2 py-0.5 rounded-full flex items-center gap-1 cursor-pointer"
+                >
+                  #{selectedTag} <X className="w-3 h-3" />
+                </button>
+              )}
+              {allTags.slice(0, 8).map(([tag]) => (
+                <button type="button"
+                  key={tag}
+                  onClick={() => setSelectedTag(tag === selectedTag ? null : tag)}
+                  className={`px-2 py-0.5 rounded-full font-medium transition cursor-pointer ${
+                    selectedTag === tag ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                  }`}
+                >
+                  #{tag}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* NOTES DISPLAY */}
       {notes.length === 0 ? (
-        <div className="bg-white p-12 rounded-2xl border border-slate-200/80 text-center space-y-3">
-          <FileText className="w-10 h-10 text-slate-300 mx-auto" />
-          <h4 className="text-base font-bold text-slate-700">Không tìm thấy ghi chú nào</h4>
-          <p className="text-xs text-slate-500">Hãy thử thay đổi từ khóa tìm kiếm hoặc tạo mới một ghi chú.</p>
+        <div className="bg-white dark:bg-[#141E30] p-12 rounded-2xl border border-slate-200/80 dark:border-white/[0.08] text-center space-y-3">
+          <FileText className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
+          <h4 className="text-base font-bold text-slate-700 dark:text-slate-200">Không tìm thấy ghi chú nào</h4>
+          <p className="text-xs text-slate-500 dark:text-slate-400">Hãy thử thay đổi bộ lọc hoặc tạo ghi chú mới bằng thanh Omnibar ở trên.</p>
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -889,40 +1404,57 @@ function AllNotesView({
               onEdit={() => onOpenEdit(note)}
               onTogglePin={() => onTogglePin(note.id)}
               onToggleFav={() => onToggleFav(note.id)}
+              onToggleChecklist={onToggleChecklist}
+              onMoveTrash={() => onMoveTrash(note.id)}
             />
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200/80 divide-y divide-slate-100 overflow-hidden">
+        <div className="bg-white dark:bg-[#141E30] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] divide-y divide-slate-100 dark:divide-slate-800/80 overflow-hidden shadow-xs">
           {notes.map(note => (
             <div 
               key={note.id}
               onClick={() => onOpenDetail(note)}
-              className="p-4 hover:bg-slate-50 transition-colors cursor-pointer flex items-center justify-between gap-4"
+              className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer flex items-center justify-between gap-4"
             >
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <button type="button" 
                   onClick={(e) => { e.stopPropagation(); onTogglePin(note.id); }}
-                  className={`${note.pinned ? 'text-amber-500' : 'text-slate-300'}`}
+                  className={`p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition ${note.pinned ? 'text-amber-500' : 'text-slate-300 dark:text-slate-600'}`}
+                  title="Ghim"
                 >
                   <Pin className="w-4 h-4 fill-current" />
                 </button>
+                <button type="button" 
+                  onClick={(e) => { e.stopPropagation(); onToggleFav(note.id); }}
+                  className={`p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition ${note.favorite ? 'text-rose-500' : 'text-slate-300 dark:text-slate-600'}`}
+                  title="Yêu thích"
+                >
+                  <Star className="w-4 h-4 fill-current" />
+                </button>
                 <div className="min-w-0">
-                  <div className="font-bold text-slate-800 text-sm truncate">{note.title}</div>
-                  <div className="text-xs text-slate-500 truncate">{note.content}</div>
+                  <div className="font-bold text-slate-800 dark:text-white text-sm truncate">{note.title}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">{note.content || 'Chưa có nội dung'}</div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+              <div className="flex items-center gap-2.5 shrink-0">
+                {note.checklists && note.checklists.length > 0 && (
+                  <span className="text-[10px] font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-200/50 dark:border-emerald-800/50 hidden sm:inline-flex items-center gap-1">
+                    <ListCheck className="w-3 h-3" />
+                    {note.checklists.filter(c => c.completed).length}/{note.checklists.length}
+                  </span>
+                )}
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-lg border border-slate-200/60 dark:border-slate-700">
                   {note.type}
                 </span>
-                <span className="text-xs text-slate-400">
+                <span className="text-xs text-slate-400 hidden sm:inline">
                   {new Date(note.updatedAt || note.createdAt).toLocaleDateString('vi-VN')}
                 </span>
                 <button type="button" 
                   onClick={(e) => { e.stopPropagation(); onMoveTrash(note.id); }}
-                  className="p-1.5 hover:bg-red-50 text-slate-400 hover:text-red-600 rounded-lg"
+                  className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-400 hover:text-rose-600 rounded-lg transition"
+                  title="Chuyển vào thùng rác (Hoàn tác 5s)"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -952,7 +1484,7 @@ function DailyNotesView({
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-purple-900 to-indigo-900 text-white p-6 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-purple-900 to-indigo-900 text-white p-6 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-sm">
         <div>
           <h3 className="text-xl font-bold flex items-center gap-2">
             <Calendar className="w-6 h-6 text-purple-300" /> {t('Nhật ký Ghi chú Hàng ngày (Daily Notes)')}
@@ -963,7 +1495,7 @@ function DailyNotesView({
         </div>
         <button type="button" 
           onClick={onCreateDaily}
-          className="bg-purple-500 hover:bg-purple-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 self-start md:self-auto cursor-pointer"
+          className="bg-purple-500 hover:bg-purple-600 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition-all flex items-center gap-2 self-start md:self-auto cursor-pointer active:scale-95"
         >
           <Plus className="w-4 h-4" /> {t('Tạo Daily Note hôm nay')}
         </button>
@@ -974,20 +1506,20 @@ function DailyNotesView({
           <div 
             key={note.id}
             onClick={() => onOpenDetail(note)}
-            className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm hover:border-purple-300 transition-all cursor-pointer space-y-4"
+            className="bg-white dark:bg-[#141E30] p-6 rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-sm hover:border-purple-300 dark:hover:border-purple-500/50 transition-all cursor-pointer space-y-4"
           >
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <span className="font-bold text-slate-800 text-lg">{note.title}</span>
-              <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2.5 py-1 rounded-lg">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <span className="font-bold text-slate-800 dark:text-white text-lg">{note.title}</span>
+              <span className="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950/60 px-2.5 py-1 rounded-lg border border-purple-200/50 dark:border-purple-900/50">
                 {note.noteDate || 'Hàng ngày'}
               </span>
             </div>
 
             <div className="space-y-2">
               {note.sections?.map(sec => (
-                <div key={sec.id} className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-xs">
-                  <div className="font-bold text-slate-700 mb-1">{sec.title}</div>
-                  <div className="text-slate-600 whitespace-pre-line line-clamp-3">{sec.content}</div>
+                <div key={sec.id} className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-100 dark:border-slate-800 text-xs">
+                  <div className="font-bold text-slate-700 dark:text-slate-200 mb-1">{sec.title}</div>
+                  <div className="text-slate-600 dark:text-slate-400 whitespace-pre-line line-clamp-3">{sec.content}</div>
                 </div>
               ))}
             </div>
@@ -1018,12 +1550,12 @@ function MeetingsDecisionsView({
 }) {
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-[#141E30] p-6 rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-sm">
         <div>
-          <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-            <Users className="w-6 h-6 text-blue-600" /> Cuộc họp & Nhật ký Quyết định
+          <h3 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" /> Cuộc họp & Nhật ký Quyết định
           </h3>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             Chuyển Action Items cuộc họp thành Task thật và lưu vết lý do đưa ra các quyết định trọng yếu.
           </p>
         </div>
@@ -1031,13 +1563,13 @@ function MeetingsDecisionsView({
         <div className="flex items-center gap-2">
           <button type="button" 
             onClick={onCreateMeeting}
-            className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-1.5"
+            className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
           >
             <Users className="w-4 h-4" /> + Meeting Note
           </button>
           <button type="button" 
             onClick={onCreateDecision}
-            className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-1.5"
+            className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
           >
             <Scale className="w-4 h-4" /> + Decision Note
           </button>
@@ -1046,19 +1578,19 @@ function MeetingsDecisionsView({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {notes.map(note => (
-          <div key={note.id} className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div key={note.id} className="bg-white dark:bg-[#141E30] p-6 rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-sm space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
               <div>
                 <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                  note.type === 'Meeting' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
+                  note.type === 'Meeting' ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300' : 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300'
                 }`}>
                   {note.type === 'Meeting' ? 'Cuộc họp' : 'Quyết định'}
                 </span>
-                <h4 className="font-bold text-slate-800 text-lg mt-1">{note.title}</h4>
+                <h4 className="font-bold text-slate-800 dark:text-white text-lg mt-1">{note.title}</h4>
               </div>
               <button type="button" 
                 onClick={() => onOpenDetail(note)}
-                className="text-xs font-bold text-blue-600 hover:underline"
+                className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
               >
                 Chi tiết
               </button>
@@ -1066,19 +1598,19 @@ function MeetingsDecisionsView({
 
             {/* MEETING ACTION ITEMS DISPLAY */}
             {note.meetingData?.actionItems && (
-              <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                <div className="text-xs font-bold text-slate-700">Action Items cuộc họp:</div>
+              <div className="space-y-2 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
+                <div className="text-xs font-bold text-slate-700 dark:text-slate-300">Action Items cuộc họp:</div>
                 {note.meetingData.actionItems.map(act => (
-                  <div key={act.id} className="flex items-center justify-between text-xs bg-white p-2.5 rounded-lg border border-slate-200">
-                    <span className="text-slate-800 font-medium">{act.text}</span>
+                  <div key={act.id} className="flex items-center justify-between text-xs bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700">
+                    <span className="text-slate-800 dark:text-slate-200 font-medium">{act.text}</span>
                     {act.convertedTaskId ? (
-                      <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                      <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded">
                         Đã chuyển thành Task
                       </span>
                     ) : (
                       <button type="button" 
                         onClick={() => onConvertAction(note.id, act.id)}
-                        className="text-[10px] font-bold text-blue-600 hover:text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200"
+                        className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded border border-blue-200 dark:border-blue-800 cursor-pointer"
                       >
                         + Chuyển thành Task thật
                       </button>
@@ -1090,9 +1622,9 @@ function MeetingsDecisionsView({
 
             {/* DECISION SUMMARY */}
             {note.decisionData && (
-              <div className="space-y-2 bg-amber-50/50 p-4 rounded-xl border border-amber-100 text-xs">
-                <div><span className="font-bold text-amber-800">Lựa chọn:</span> {note.decisionData.chosenOption}</div>
-                <div><span className="font-bold text-amber-800">Lý do:</span> {note.decisionData.reason}</div>
+              <div className="space-y-2 bg-amber-50/50 dark:bg-amber-950/30 p-4 rounded-xl border border-amber-100 dark:border-amber-900/40 text-xs">
+                <div><span className="font-bold text-amber-800 dark:text-amber-300">Lựa chọn:</span> <span className="text-slate-700 dark:text-slate-300">{note.decisionData.chosenOption}</span></div>
+                <div><span className="font-bold text-amber-800 dark:text-amber-300">Lý do:</span> <span className="text-slate-700 dark:text-slate-300">{note.decisionData.reason}</span></div>
               </div>
             )}
           </div>
@@ -1118,34 +1650,84 @@ function KnowledgeGraphView({
   tasks: Task[];
   onOpenDetail: (n: Note) => void;
 }) {
+  const [filterType, setFilterType] = useState<string>('all');
+
+  const filteredGraphNotes = useMemo(() => {
+    if (filterType === 'all') return notes;
+    if (filterType === 'linked') {
+      return notes.filter(n => 
+        (n.linkedItems?.taskIds?.length || 0) + 
+        (n.linkedItems?.projectIds?.length || 0) + 
+        (n.linkedItems?.goalIds?.length || 0) > 0
+      );
+    }
+    return notes.filter(n => n.type === filterType);
+  }, [notes, filterType]);
+
   return (
     <div className="space-y-6">
-      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-        <div className="flex items-center gap-2">
-          <Network className="w-6 h-6 text-blue-600" />
-          <div>
-            <h3 className="text-xl font-bold text-slate-800">Personal Knowledge Graph</h3>
-            <p className="text-xs text-slate-500">Mạng lưới liên kết 2 chiều giữa Ghi chú, Dự án, Mục tiêu & Công việc.</p>
+      <div className="bg-white dark:bg-[#141E30] p-6 rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+              <Network className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white">Personal Knowledge Graph</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Mạng lưới liên kết 2 chiều giữa Ghi chú, Dự án, Mục tiêu & Công việc.</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer"
+            >
+              <option value="all">Tất cả Node ({notes.length})</option>
+              <option value="linked">Chỉ Node có liên kết</option>
+              <option value="Meeting">Meeting Notes</option>
+              <option value="Decision">Decision Logs</option>
+              <option value="Study">Study Notes</option>
+              <option value="Project">Project Notes</option>
+            </select>
           </div>
         </div>
 
         {/* MAP VISUALIZATION */}
-        <div className="bg-slate-900 text-white p-8 rounded-2xl min-h-[350px] flex flex-col items-center justify-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:16px_16px] opacity-20" />
+        <div className="bg-slate-900 text-white p-6 sm:p-8 rounded-2xl min-h-[380px] flex flex-col items-center justify-center relative overflow-hidden border border-slate-800">
+          <div className="absolute inset-0 bg-[radial-gradient(#3b82f6_1.5px,transparent_1.5px)] [background-size:20px_20px] opacity-25" />
           
-          <div className="relative z-10 flex flex-wrap items-center justify-center gap-6 max-w-2xl">
-            {notes.map(n => (
-              <div 
-                key={n.id}
-                onClick={() => onOpenDetail(n)}
-                className="bg-slate-800/90 hover:bg-blue-600 text-white p-3 rounded-xl border border-slate-700 cursor-pointer transition-all shadow-lg text-center"
-              >
-                <div className="text-xs font-bold line-clamp-1">{n.title}</div>
-                <div className="text-[10px] text-slate-400 mt-1">
-                  Links: {(n.linkedItems?.taskIds?.length || 0) + (n.linkedItems?.projectIds?.length || 0)}
+          <div className="relative z-10 flex flex-wrap items-center justify-center gap-3 sm:gap-4 max-w-4xl">
+            {filteredGraphNotes.map(n => {
+              const taskCount = n.linkedItems?.taskIds?.length || 0;
+              const projCount = n.linkedItems?.projectIds?.length || 0;
+              const goalCount = n.linkedItems?.goalIds?.length || 0;
+              const totalLinks = taskCount + projCount + goalCount;
+
+              return (
+                <div 
+                  key={n.id}
+                  onClick={() => onOpenDetail(n)}
+                  className="bg-slate-800/90 hover:bg-blue-600/90 text-white p-3.5 rounded-2xl border border-slate-700/80 hover:border-blue-400 cursor-pointer transition-all shadow-lg text-left max-w-[220px] shrink-0 group active:scale-95"
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 group-hover:text-blue-200">
+                      {n.type || 'Standard'}
+                    </span>
+                    {totalLinks > 0 && (
+                      <span className="text-[10px] font-mono font-bold bg-blue-500/30 text-blue-300 px-1.5 py-0.2 rounded-full">
+                        {totalLinks} links
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs font-bold line-clamp-1 text-white group-hover:text-white">{n.title}</div>
+                  <div className="text-[11px] text-slate-400 group-hover:text-blue-100 line-clamp-1 mt-0.5">
+                    {n.content || 'Không có mô tả'}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
@@ -1165,29 +1747,29 @@ function TemplatesView({
 }) {
   return (
     <div className="space-y-6">
-      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
-        <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+      <div className="bg-white dark:bg-[#141E30] p-6 rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-sm">
+        <h3 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
           <Sparkles className="w-6 h-6 text-amber-500" /> Thư viện Mẫu Ghi chú (Standard Templates)
         </h3>
-        <p className="text-xs text-slate-500 mt-1">
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
           Sử dụng các cấu trúc mẫu đã được tối ưu hóa cho công việc, học tập và quản trị bản thân.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {templates.map(tmpl => (
-          <div key={tmpl.id} className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm flex flex-col justify-between gap-4">
+          <div key={tmpl.id} className="bg-white dark:bg-[#141E30] p-6 rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-sm flex flex-col justify-between gap-4 hover:border-indigo-400 dark:hover:border-indigo-500 transition-all">
             <div>
-              <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">
+              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded">
                 {tmpl.category}
               </span>
-              <h4 className="font-bold text-slate-800 text-lg mt-2">{tmpl.title}</h4>
-              <p className="text-xs text-slate-500 mt-1">{tmpl.description}</p>
+              <h4 className="font-bold text-slate-800 dark:text-white text-lg mt-2">{tmpl.title}</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">{tmpl.description}</p>
             </div>
 
             <button type="button" 
               onClick={() => onUseTemplate(tmpl)}
-              className="w-full bg-slate-900 hover:bg-blue-600 text-white text-xs font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-2"
+              className="w-full bg-slate-900 hover:bg-blue-600 dark:bg-slate-800 dark:hover:bg-blue-600 text-white text-xs font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 shadow-xs"
             >
               <Plus className="w-4 h-4" /> Sử dụng Template này
             </button>
@@ -1202,31 +1784,131 @@ function TemplatesView({
 // 7. ANALYTICS VIEW
 // ----------------------------------------------------------------------
 function NotesAnalyticsView({ notes }: { notes: Note[] }) {
+  const activeNotes = useMemo(() => notes.filter(n => !n.inTrash && !n.archived), [notes]);
+
+  const typeStats = useMemo(() => {
+    const map: Record<string, number> = {};
+    activeNotes.forEach(n => {
+      const type = n.type || 'Normal';
+      map[type] = (map[type] || 0) + 1;
+    });
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [activeNotes]);
+
   const categoryStats = useMemo(() => {
     const map: Record<string, number> = {};
-    notes.forEach(n => {
-      const cat = n.category || 'Khác';
+    activeNotes.forEach(n => {
+      const cat = n.category || 'Tổng hợp';
       map[cat] = (map[cat] || 0) + 1;
     });
-    return Object.entries(map);
-  }, [notes]);
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [activeNotes]);
+
+  const totalWords = useMemo(() => {
+    return activeNotes.reduce((acc, n) => {
+      const words = (n.content || '').trim().split(/\s+/).filter(Boolean).length;
+      return acc + words;
+    }, 0);
+  }, [activeNotes]);
+
+  const totalChecklists = useMemo(() => {
+    return activeNotes.reduce((acc, n) => acc + (n.checklists?.length || 0), 0);
+  }, [activeNotes]);
+
+  const linkedNotesCount = useMemo(() => {
+    return activeNotes.filter(n => 
+      (n.linkedItems?.taskIds?.length || 0) + 
+      (n.linkedItems?.projectIds?.length || 0) + 
+      (n.linkedItems?.goalIds?.length || 0) > 0
+    ).length;
+  }, [activeNotes]);
 
   return (
     <div className="space-y-6">
-      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm space-y-4">
-        <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-          <TrendingUp className="w-6 h-6 text-blue-600" /> Thống kê & Dòng chảy Tri thức
-        </h3>
+      <div className="bg-white dark:bg-[#141E30] p-6 rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-sm space-y-6">
+        <div>
+          <h3 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            <TrendingUp className="w-6 h-6 text-blue-600 dark:text-blue-400" /> Thống kê & Dòng chảy Tri thức
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Tổng hợp dữ liệu số lượng, mật độ liên kết và thói quen ghi chép tri thức cá nhân.
+          </p>
+        </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <div className="text-xs font-bold text-slate-500">Tổng ghi chú</div>
-            <div className="text-2xl font-bold text-slate-800 mt-1">{notes.length}</div>
+        {/* 4 BENTO STAT CARDS */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400">Tổng ghi chú</div>
+            <div className="text-2xl font-bold font-mono text-slate-800 dark:text-white mt-1">{activeNotes.length}</div>
+            <span className="text-[10px] text-slate-400">Đang hoạt động</span>
           </div>
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <div className="text-xs font-bold text-slate-500">Tỷ lệ liên kết</div>
-            <div className="text-2xl font-bold text-blue-600 mt-1">
-              {Math.round((notes.filter(n => n.linkedItems?.taskIds?.length).length / (notes.length || 1)) * 100)}%
+
+          <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400">Tỷ lệ liên kết</div>
+            <div className="text-2xl font-bold font-mono text-blue-600 dark:text-blue-400 mt-1">
+              {Math.round((linkedNotesCount / (activeNotes.length || 1)) * 100)}%
+            </div>
+            <span className="text-[10px] text-slate-400">{linkedNotesCount} ghi chú có link</span>
+          </div>
+
+          <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400">Mục Checklist</div>
+            <div className="text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-1">{totalChecklists}</div>
+            <span className="text-[10px] text-slate-400">Trong toàn bộ sổ tay</span>
+          </div>
+
+          <div className="bg-slate-50 dark:bg-slate-800/60 p-4 rounded-xl border border-slate-200 dark:border-slate-700">
+            <div className="text-xs font-bold text-slate-500 dark:text-slate-400">Tổng số từ</div>
+            <div className="text-2xl font-bold font-mono text-purple-600 dark:text-purple-400 mt-1">{totalWords.toLocaleString('vi-VN')}</div>
+            <span className="text-[10px] text-slate-400">~{Math.round(totalWords / 200)} phút đọc</span>
+          </div>
+        </div>
+
+        {/* BREAKDOWN SECTIONS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100 dark:border-slate-800">
+          {/* Note Types Breakdown */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
+              <Layers className="w-4 h-4 text-indigo-500" /> Phân loại theo Định dạng
+            </h4>
+            <div className="space-y-2">
+              {typeStats.map(([type, count]) => {
+                const pct = Math.round((count / (activeNotes.length || 1)) * 100);
+                return (
+                  <div key={type} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs font-medium text-slate-700 dark:text-slate-300">
+                      <span>{type}</span>
+                      <span className="font-mono text-slate-400">{count} ({pct}%)</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Categories Breakdown */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-bold text-slate-800 dark:text-white flex items-center gap-1.5">
+              <FolderKanban className="w-4 h-4 text-emerald-500" /> Phân loại theo Danh mục
+            </h4>
+            <div className="space-y-2">
+              {categoryStats.map(([cat, count]) => {
+                const pct = Math.round((count / (activeNotes.length || 1)) * 100);
+                return (
+                  <div key={cat} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs font-medium text-slate-700 dark:text-slate-300">
+                      <span>{cat}</span>
+                      <span className="font-mono text-slate-400">{count} ({pct}%)</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -1251,36 +1933,140 @@ function ArchiveTrashView({
   onDeletePermanent: (id: string) => void;
   onOpenDetail: (n: Note) => void;
 }) {
+  const [selectedSubTab, setSelectedSubTab] = useState<'archive' | 'trash'>('archive');
+
   return (
     <div className="space-y-6">
-      <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-sm">
-        <h3 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-          <Archive className="w-6 h-6 text-slate-600" /> Kho Lưu trữ & Thùng rác
-        </h3>
-        <p className="text-xs text-slate-500 mt-1">
-          Khôi phục hoặc xóa vĩnh viễn các ghi chú đã lưu trữ hoặc tạm xóa.
-        </p>
-      </div>
+      <div className="bg-white dark:bg-[#141E30] p-5 sm:p-6 rounded-2xl border border-slate-200/80 dark:border-white/[0.08] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            <Archive className="w-5 h-5 sm:w-6 sm:h-6 text-slate-600 dark:text-slate-400" /> Kho Lưu trữ & Thùng rác
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            Khôi phục ghi chú đã lưu trữ hoặc quản lý dọn dẹp các ghi chú trong thùng rác.
+          </p>
+        </div>
 
-      <div className="space-y-4">
-        <h4 className="font-bold text-slate-700 text-sm">Ghi chú đã Lưu trữ ({archivedNotes.length})</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {archivedNotes.map(n => (
-            <div key={n.id} className="bg-white p-4 rounded-xl border border-slate-200 flex items-center justify-between">
-              <div>
-                <div className="font-bold text-slate-800 text-sm">{n.title}</div>
-                <div className="text-xs text-slate-400">{n.category}</div>
-              </div>
-              <button type="button" 
-                onClick={() => onRestore(n.id)}
-                className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
-              >
-                <RotateCcw className="w-3.5 h-3.5" /> Khôi phục
-              </button>
-            </div>
-          ))}
+        {/* Tab Switcher */}
+        <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 self-start sm:self-auto">
+          <button
+            type="button"
+            onClick={() => setSelectedSubTab('archive')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              selectedSubTab === 'archive'
+                ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Archive className="w-3.5 h-3.5" />
+            <span>Lưu trữ ({archivedNotes.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedSubTab('trash')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+              selectedSubTab === 'trash'
+                ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-xs'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Thùng rác ({trashNotes.length})</span>
+          </button>
         </div>
       </div>
+
+      {selectedSubTab === 'archive' ? (
+        <div className="space-y-4">
+          <h4 className="font-bold text-slate-700 dark:text-slate-300 text-sm flex items-center justify-between">
+            <span>Danh sách Ghi chú Lưu trữ ({archivedNotes.length})</span>
+          </h4>
+
+          {archivedNotes.length === 0 ? (
+            <div className="p-8 text-center bg-white dark:bg-[#141E30] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] text-xs text-slate-400">
+              Không có ghi chú nào trong kho lưu trữ.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {archivedNotes.map(n => (
+                <div 
+                  key={n.id} 
+                  onClick={() => onOpenDetail(n)}
+                  className="bg-white dark:bg-[#141E30] p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between shadow-xs hover:border-blue-500/50 transition cursor-pointer"
+                >
+                  <div className="min-w-0 flex-1 pr-3">
+                    <div className="font-bold text-slate-800 dark:text-white text-sm truncate">{n.title}</div>
+                    <div className="text-xs text-slate-400 mt-0.5">{n.category || 'Ghi chú'}</div>
+                  </div>
+                  <button 
+                    type="button" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRestore(n.id);
+                    }}
+                    className="min-h-[44px] px-3 text-xs font-bold text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/40 rounded-xl flex items-center gap-1.5 transition cursor-pointer shrink-0"
+                    title="Khôi phục ghi chú"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Khôi phục</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <h4 className="font-bold text-slate-700 dark:text-slate-300 text-sm flex items-center justify-between">
+            <span>Danh sách Thùng rác ({trashNotes.length})</span>
+            {trashNotes.length > 0 && (
+              <span className="text-xs font-normal text-rose-500">
+                Các mục xóa vĩnh viễn sẽ không thể phục hồi
+              </span>
+            )}
+          </h4>
+
+          {trashNotes.length === 0 ? (
+            <div className="p-8 text-center bg-white dark:bg-[#141E30] rounded-2xl border border-slate-200/80 dark:border-white/[0.08] text-xs text-slate-400">
+              Thùng rác đang trống.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {trashNotes.map(n => (
+                <div 
+                  key={n.id} 
+                  className="bg-white dark:bg-[#141E30] p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between shadow-xs transition"
+                >
+                  <div className="min-w-0 flex-1 pr-3">
+                    <div className="font-bold text-slate-800 dark:text-white text-sm truncate">{n.title}</div>
+                    <div className="text-xs text-slate-400 mt-0.5">{n.category || 'Ghi chú'}</div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button 
+                      type="button" 
+                      onClick={() => onRestore(n.id)}
+                      className="min-h-[44px] px-2.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-xl flex items-center gap-1 transition cursor-pointer"
+                      title="Khôi phục ghi chú"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Khôi phục</span>
+                    </button>
+                    <button 
+                      type="button" 
+                      onClick={() => onDeletePermanent(n.id)}
+                      className="min-h-[44px] px-2.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl flex items-center gap-1 transition cursor-pointer"
+                      title="Xóa vĩnh viễn (Có thể Hoàn tác 5s)"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Xóa hẳn</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -1300,7 +2086,9 @@ function NoteDetailModal({
   onTogglePin,
   onToggleFav,
   onConvertAction,
-  onRestoreVersion
+  onRestoreVersion,
+  onUpdateNote,
+  onToggleChecklist
 }: {
   note: Note;
   allNotes: Note[];
@@ -1314,21 +2102,60 @@ function NoteDetailModal({
   onToggleFav: () => void;
   onConvertAction: (noteId: string, actionId: string) => void;
   onRestoreVersion: (versionId: string) => void;
+  onUpdateNote?: (noteId: string, updates: Partial<Note>) => void;
+  onToggleChecklist?: (noteId: string, checkId: string) => void;
 }) {
+  useBodyScrollLock(true);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
   const [activeSubTab, setActiveSubTab] = useState<'content' | 'links' | 'history'>('content');
+  const [newChecklistInput, setNewChecklistInput] = useState('');
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   // Backlinks (notes that link to this note)
   const backlinks = useMemo(() => {
     return allNotes.filter(n => n.id !== note.id && n.linkedItems?.noteIds?.includes(note.id));
   }, [allNotes, note]);
 
+  const handleAddChecklistItem = (text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    const newItem: NoteChecklistItem = {
+      id: 'chk_' + Date.now(),
+      text: trimmed,
+      completed: false
+    };
+    const updated = [...(note.checklists || []), newItem];
+    onUpdateNote?.(note.id, { checklists: updated });
+    setNewChecklistInput('');
+  };
+
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto animate-backdrop-fade">
-      <div className="bg-white dark:bg-[#141E30] rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#E2E8F0] dark:border-white/[0.08] overflow-hidden animate-modal-enter">
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (mouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 overflow-y-auto animate-backdrop-fade cursor-default"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white dark:bg-[#141E30] rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#E2E8F0] dark:border-white/[0.08] overflow-hidden animate-modal-enter my-auto"
+      >
         {/* HEADER */}
         <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-950/60 px-2.5 py-1 rounded-full">
+            <span className="text-xs font-bold text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-950/60 px-2.5 py-1 rounded-full border border-purple-200/50 dark:border-purple-800/50">
               {note.type || 'Standard'}
             </span>
             <h3 className="font-bold text-slate-800 dark:text-white text-xl">{note.title}</h3>
@@ -1351,7 +2178,7 @@ function NoteDetailModal({
             </button>
             <button type="button" 
               onClick={onEdit}
-              className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+              className="bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium px-3.5 py-2 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs active:scale-95"
             >
               <Edit3 className="w-4 h-4" /> Edit Note
             </button>
@@ -1362,22 +2189,22 @@ function NoteDetailModal({
         </div>
 
         {/* CONTENT TABS */}
-        <div className="flex border-b border-slate-200 px-6 bg-slate-50/50">
+        <div className="flex border-b border-slate-200 dark:border-slate-800 px-6 bg-slate-50/50 dark:bg-slate-850/50">
           <button type="button" 
             onClick={() => setActiveSubTab('content')}
-            className={`px-4 py-2.5 text-xs font-bold border-b-2 ${activeSubTab === 'content' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
+            className={`px-4 py-2.5 text-xs font-bold border-b-2 transition cursor-pointer ${activeSubTab === 'content' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
           >
             Nội dung Chi tiết
           </button>
           <button type="button" 
             onClick={() => setActiveSubTab('links')}
-            className={`px-4 py-2.5 text-xs font-bold border-b-2 ${activeSubTab === 'links' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
+            className={`px-4 py-2.5 text-xs font-bold border-b-2 transition cursor-pointer ${activeSubTab === 'links' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
           >
             Liên kết & Backlinks ({backlinks.length})
           </button>
           <button type="button" 
             onClick={() => setActiveSubTab('history')}
-            className={`px-4 py-2.5 text-xs font-bold border-b-2 ${activeSubTab === 'history' ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-500'}`}
+            className={`px-4 py-2.5 text-xs font-bold border-b-2 transition cursor-pointer ${activeSubTab === 'history' ? 'border-blue-600 text-blue-600 dark:text-blue-400' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
           >
             Lịch sử Phiên bản
           </button>
@@ -1387,33 +2214,117 @@ function NoteDetailModal({
         <div className="p-6 overflow-y-auto space-y-6 flex-1">
           {activeSubTab === 'content' && (
             <div className="space-y-6">
-              <div className="text-slate-700 whitespace-pre-line text-sm leading-relaxed">
+              <div className="text-slate-700 dark:text-slate-200 whitespace-pre-line text-sm leading-relaxed">
                 {note.content}
               </div>
 
+              {/* CHECKLISTS IN DETAIL VIEW */}
+              {((note.checklists && note.checklists.length > 0) || note.type === 'Checklist') && (
+                <div className="bg-emerald-50/50 dark:bg-emerald-950/20 p-4 rounded-2xl border border-emerald-100 dark:border-emerald-900/40 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-bold text-emerald-900 dark:text-emerald-300 text-sm flex items-center gap-1.5">
+                      <ListCheck className="w-4 h-4 text-emerald-600" />
+                      <span>Checklist ({note.checklists?.filter(c => c.completed).length || 0}/{note.checklists?.length || 0})</span>
+                    </h4>
+                    <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400">
+                      {note.checklists && note.checklists.length > 0
+                        ? Math.round((note.checklists.filter(c => c.completed).length / note.checklists.length) * 100)
+                        : 0}%
+                    </span>
+                  </div>
+
+                  <div className="w-full h-1.5 bg-emerald-100 dark:bg-emerald-950/60 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-emerald-500 transition-all duration-300 rounded-full" 
+                      style={{ 
+                        width: `${note.checklists && note.checklists.length > 0
+                          ? Math.round((note.checklists.filter(c => c.completed).length / note.checklists.length) * 100)
+                          : 0}%` 
+                      }} 
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    {note.checklists?.map(chk => (
+                      <div 
+                        key={chk.id} 
+                        className="flex items-center justify-between p-2.5 bg-white dark:bg-slate-800/80 rounded-xl border border-emerald-100 dark:border-emerald-900/30 text-xs shadow-xs"
+                      >
+                        <label className="flex items-center gap-2.5 flex-1 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={chk.completed}
+                            onChange={() => onToggleChecklist?.(note.id, chk.id)}
+                            className="w-4 h-4 rounded text-emerald-600 cursor-pointer"
+                          />
+                          <span className={`font-medium ${chk.completed ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-800 dark:text-slate-200'}`}>
+                            {chk.text}
+                          </span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = (note.checklists || []).filter(c => c.id !== chk.id);
+                            onUpdateNote?.(note.id, { checklists: updated });
+                          }}
+                          className="p-1 text-slate-300 hover:text-rose-500 dark:hover:text-rose-400 rounded-lg transition cursor-pointer"
+                          title="Xóa mục checklist"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Inline quick add checklist item */}
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      type="text"
+                      value={newChecklistInput}
+                      onChange={(e) => setNewChecklistInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddChecklistItem(newChecklistInput);
+                        }
+                      }}
+                      placeholder="Thêm việc cần làm (Enter để thêm)..."
+                      className="flex-1 px-3 py-2 bg-white dark:bg-slate-800 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleAddChecklistItem(newChecklistInput)}
+                      className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl transition cursor-pointer active:scale-95 shrink-0"
+                    >
+                      + Thêm
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* SECTIONS */}
               {note.sections && note.sections.map(sec => (
-                <div key={sec.id} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                  <h4 className="font-bold text-slate-800 text-sm">{sec.title}</h4>
-                  <p className="text-xs text-slate-600 whitespace-pre-line leading-relaxed">{sec.content}</p>
+                <div key={sec.id} className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 space-y-2">
+                  <h4 className="font-bold text-slate-800 dark:text-white text-sm">{sec.title}</h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 whitespace-pre-line leading-relaxed">{sec.content}</p>
                 </div>
               ))}
 
               {/* MEETING ACTIONS */}
               {note.meetingData?.actionItems && (
-                <div className="bg-blue-50/60 p-4 rounded-xl border border-blue-200 space-y-3">
-                  <h4 className="font-bold text-blue-900 text-sm">Action Items:</h4>
+                <div className="bg-blue-50/60 dark:bg-blue-950/40 p-4 rounded-xl border border-blue-200 dark:border-blue-900/40 space-y-3">
+                  <h4 className="font-bold text-blue-900 dark:text-blue-300 text-sm">Action Items:</h4>
                   {note.meetingData.actionItems.map(act => (
-                    <div key={act.id} className="flex items-center justify-between text-xs bg-white p-2.5 rounded-lg border border-blue-100">
-                      <span className="text-slate-800 font-medium">{act.text}</span>
+                    <div key={act.id} className="flex items-center justify-between text-xs bg-white dark:bg-slate-800 p-2.5 rounded-lg border border-blue-100 dark:border-blue-900/30">
+                      <span className="text-slate-800 dark:text-slate-200 font-medium">{act.text}</span>
                       {act.convertedTaskId ? (
-                        <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2 py-0.5 rounded">
                           Đã chuyển thành Task
                         </span>
                       ) : (
                         <button type="button" 
                           onClick={() => onConvertAction(note.id, act.id)}
-                          className="text-[10px] font-bold text-blue-600 hover:underline bg-blue-50 px-2 py-0.5 rounded"
+                          className="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded cursor-pointer"
                         >
                           + Chuyển thành Task
                         </button>
@@ -1427,15 +2338,15 @@ function NoteDetailModal({
 
           {activeSubTab === 'links' && (
             <div className="space-y-4">
-              <h4 className="font-bold text-slate-800 text-sm">Backlinks (Ghi chú tham chiếu đến đây):</h4>
+              <h4 className="font-bold text-slate-800 dark:text-white text-sm">Backlinks (Ghi chú tham chiếu đến đây):</h4>
               {backlinks.length === 0 ? (
                 <p className="text-xs text-slate-400">Chưa có ghi chú nào dẫn liên kết đến đây.</p>
               ) : (
                 <div className="space-y-2">
                   {backlinks.map(bl => (
-                    <div key={bl.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs">
-                      <span className="font-bold text-slate-800">{bl.title}</span>
-                      <p className="text-slate-500 line-clamp-1 mt-0.5">{bl.content}</p>
+                    <div key={bl.id} className="p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
+                      <span className="font-bold text-slate-800 dark:text-white">{bl.title}</span>
+                      <p className="text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{bl.content}</p>
                     </div>
                   ))}
                 </div>
@@ -1445,17 +2356,17 @@ function NoteDetailModal({
 
           {activeSubTab === 'history' && (
             <div className="space-y-3">
-              <h4 className="font-bold text-slate-800 text-sm">Lịch sử Chỉnh sửa:</h4>
+              <h4 className="font-bold text-slate-800 dark:text-white text-sm">Lịch sử Chỉnh sửa:</h4>
               {note.versionHistory && note.versionHistory.length > 0 ? (
                 note.versionHistory.map(v => (
-                  <div key={v.id} className="bg-slate-50 p-3 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
+                  <div key={v.id} className="bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs">
                     <div>
-                      <div className="font-bold text-slate-700">{v.note || 'Bản lưu'}</div>
+                      <div className="font-bold text-slate-700 dark:text-slate-200">{v.note || 'Bản lưu'}</div>
                       <div className="text-[10px] text-slate-400">{new Date(v.timestamp).toLocaleString('vi-VN')}</div>
                     </div>
                     <button type="button" 
                       onClick={() => onRestoreVersion(v.id)}
-                      className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
+                      className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       <RotateCcw className="w-3.5 h-3.5" /> Restore bản này
                     </button>
@@ -1494,17 +2405,97 @@ function NoteEditorModal({
   onClose: () => void;
   onSave: (n: Partial<Note>) => void | Promise<void>;
 }) {
+  useBodyScrollLock(true);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+  const [isShaking, setIsShaking] = useState(false);
+
+  const isCreatingNew = !note.id;
+  const cachedDraft = isCreatingNew && typeof window !== 'undefined' ? (() => {
+    try {
+      const saved = localStorage.getItem('lifeos_new_note_draft');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  })() : null;
+
+  const initialTitle = note.title || cachedDraft?.title || '';
+  const initialContent = note.content || cachedDraft?.content || '';
+
   const [formData, setFormData] = useState<Partial<Note>>({
     ...note,
+    title: initialTitle,
+    content: initialContent,
+    category: note.category || cachedDraft?.category || 'Fleeting',
+    type: note.type || cachedDraft?.type || 'Fleeting Note',
     sections: note.sections || [],
-    tags: note.tags || []
+    checklists: note.checklists || [],
+    tags: note.tags || cachedDraft?.tags || []
   });
 
+  // Auto-save draft for new notes to prevent losing long text on accidental reload
+  useEffect(() => {
+    if (isCreatingNew && (formData.title || formData.content)) {
+      try {
+        localStorage.setItem('lifeos_new_note_draft', JSON.stringify({
+          title: formData.title,
+          content: formData.content,
+          category: formData.category,
+          type: formData.type,
+          tags: formData.tags
+        }));
+      } catch {}
+    }
+  }, [isCreatingNew, formData.title, formData.content, formData.category, formData.type, formData.tags]);
+
   const [tagInput, setTagInput] = useState('');
+  const [checklistInput, setChecklistInput] = useState('');
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const imageInputRef = React.useRef<HTMLInputElement>(null);
+
+  const isFormDirty = Boolean(
+    (formData.title || '').trim() !== initialTitle.trim() || 
+    (formData.content || '').trim() !== initialContent.trim() ||
+    formData.category !== note.category ||
+    formData.type !== note.type ||
+    JSON.stringify(formData.checklists || []) !== JSON.stringify(note.checklists || []) ||
+    JSON.stringify(formData.tags || []) !== JSON.stringify(note.tags || [])
+  );
+
+  const triggerShake = () => {
+    setIsShaking(true);
+    soundEngine.playPop();
+    setTimeout(() => setIsShaking(false), 500);
+  };
+
+  const handleSafeDismiss = () => {
+    if (isSubmitting) return;
+    if (isFormDirty) {
+      triggerShake();
+      return;
+    }
+    onClose();
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isSubmitting) {
+        if (isFormDirty) {
+          triggerShake();
+        } else {
+          onClose();
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && !isSubmitting) {
+        e.preventDefault();
+        handleSubmit(e as any);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFormDirty, isSubmitting, onClose, formData]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1579,30 +2570,49 @@ function NoteEditorModal({
     try {
       setIsSubmitting(true);
       await Promise.resolve(onSave(formData));
+      if (isCreatingNew) {
+        try {
+          localStorage.removeItem('lifeos_new_note_draft');
+        } catch {}
+      }
     } catch (err: any) {
       setErrorMessage(err?.message || 'Lỗi khi lưu ghi chú');
+    } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
     <div 
-      className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 overflow-y-auto animate-backdrop-fade"
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (mouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget && !isSubmitting) {
+          handleSafeDismiss();
+        }
+      }}
+      className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 z-50 overflow-y-auto animate-backdrop-fade cursor-default"
       role="dialog"
       aria-modal="true"
     >
-      <div className="bg-white dark:bg-[#141E30] rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#E2E8F0] dark:border-white/[0.08] overflow-hidden animate-modal-enter my-auto">
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className={`bg-white dark:bg-[#141E30] rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#E2E8F0] dark:border-white/[0.08] overflow-hidden animate-modal-enter my-auto transition-transform ${
+          isShaking ? 'animate-[shake_0.4s_ease-in-out]' : ''
+        }`}
+      >
         {/* HEADER */}
         <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/70 dark:bg-slate-800/40 shrink-0">
           <div>
             <h3 className="font-bold text-slate-900 dark:text-white text-base sm:text-lg">
               {note.id ? 'Edit Note' : 'Create New Note'}
             </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Biên tập nội dung & liên kết tri thức</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Biên tập nội dung & liên kết tri thức (Ctrl + Enter để lưu nhanh)</p>
           </div>
           <button 
             type="button" 
-            onClick={onClose} 
+            onClick={handleSafeDismiss} 
             disabled={isSubmitting}
             className="w-10 h-10 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl transition-colors cursor-pointer"
             aria-label="Close"
@@ -1625,15 +2635,27 @@ function NoteEditorModal({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
               <div className="md:col-span-2">
                 <label className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">Note Title *</label>
-                <input 
-                  type="text"
-                  required
-                  autoFocus
-                  value={formData.title || ''}
-                  onChange={(e) => setFormData(s => ({ ...s, title: e.target.value }))}
-                  placeholder="Enter note title..."
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
+                <div className="relative">
+                  <input 
+                    type="text"
+                    required
+                    autoFocus
+                    value={formData.title || ''}
+                    onChange={(e) => setFormData(s => ({ ...s, title: e.target.value }))}
+                    placeholder="Enter note title..."
+                    className="w-full px-3.5 py-2.5 pr-8 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  {formData.title && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData(s => ({ ...s, title: '' }))}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                      title="Xóa tiêu đề"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div>
@@ -1727,6 +2749,107 @@ function NoteEditorModal({
               ))}
             </div>
 
+            {/* CHECKLISTS MANAGER */}
+            <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between">
+                <span className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                  <ListCheck className="w-4 h-4 text-emerald-500" />
+                  <span>Danh sách Kiểm tra (Checklist)</span>
+                </span>
+                <span className="text-[11px] text-slate-400 font-mono">
+                  {formData.checklists?.length || 0} mục
+                </span>
+              </div>
+
+              {/* Add checklist input */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={checklistInput}
+                  onChange={(e) => setChecklistInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (!checklistInput.trim()) return;
+                      const newItem: NoteChecklistItem = {
+                        id: 'chk_' + Date.now(),
+                        text: checklistInput.trim(),
+                        completed: false
+                      };
+                      setFormData(s => ({ ...s, checklists: [...(s.checklists || []), newItem] }));
+                      setChecklistInput('');
+                    }
+                  }}
+                  placeholder="Thêm việc cần làm (Enter để thêm)..."
+                  className="flex-1 px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!checklistInput.trim()) return;
+                    const newItem: NoteChecklistItem = {
+                      id: 'chk_' + Date.now(),
+                      text: checklistInput.trim(),
+                      completed: false
+                    };
+                    setFormData(s => ({ ...s, checklists: [...(s.checklists || []), newItem] }));
+                    setChecklistInput('');
+                  }}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors active:scale-95 shrink-0"
+                >
+                  + Thêm
+                </button>
+              </div>
+
+              {/* Checklist items list */}
+              {formData.checklists && formData.checklists.length > 0 && (
+                <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                  {formData.checklists.map((chk, idx) => (
+                    <div
+                      key={chk.id}
+                      className="flex items-center justify-between gap-2 p-2 bg-slate-50 dark:bg-slate-800/60 rounded-xl border border-slate-200 dark:border-slate-700"
+                    >
+                      <label className="flex items-center gap-2 flex-1 min-w-0 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={chk.completed}
+                          onChange={(e) => {
+                            const updated = [...(formData.checklists || [])];
+                            updated[idx] = { ...updated[idx], completed: e.target.checked };
+                            setFormData(s => ({ ...s, checklists: updated }));
+                          }}
+                          className="w-3.5 h-3.5 rounded text-emerald-600 cursor-pointer shrink-0"
+                        />
+                        <input
+                          type="text"
+                          value={chk.text}
+                          onChange={(e) => {
+                            const updated = [...(formData.checklists || [])];
+                            updated[idx] = { ...updated[idx], text: e.target.value };
+                            setFormData(s => ({ ...s, checklists: updated }));
+                          }}
+                          className={`flex-1 bg-transparent border-0 text-xs text-slate-800 dark:text-slate-200 focus:outline-none ${
+                            chk.completed ? 'line-through text-slate-400 dark:text-slate-500' : ''
+                          }`}
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = (formData.checklists || []).filter((_, i) => i !== idx);
+                          setFormData(s => ({ ...s, checklists: updated }));
+                        }}
+                        className="p-1 text-slate-400 hover:text-rose-500 dark:hover:text-rose-400 rounded-lg transition cursor-pointer shrink-0"
+                        title="Xóa mục"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* TAGS */}
             <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
               <label className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 block mb-1.5">Tags</label>
@@ -1759,7 +2882,7 @@ function NoteEditorModal({
           <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex items-center justify-end gap-2.5 shrink-0">
             <button 
               type="button" 
-              onClick={onClose} 
+              onClick={handleSafeDismiss} 
               disabled={isSubmitting}
               className="px-4 py-2.5 min-h-[44px] text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer disabled:opacity-50"
             >

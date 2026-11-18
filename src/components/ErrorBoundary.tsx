@@ -61,13 +61,13 @@ export class ErrorBoundary extends React.Component<Props, State> {
               </div>
             )}
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
-              <button
+              <button type="button"
                 onClick={this.handleReload}
                 className="flex-1 py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold text-sm rounded-xl shadow-lg transition-all"
               >
                 Tải lại trang
               </button>
-              <button
+              <button type="button"
                 onClick={this.handleReset}
                 className="flex-1 py-3 px-4 bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-sm rounded-xl transition-all"
               >

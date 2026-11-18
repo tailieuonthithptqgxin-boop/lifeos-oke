@@ -16,6 +16,7 @@ import {
   calculateMemoryPyramid,
   buildSmartReviewQueue
 } from '../../lib/vocabEngine';
+import { formatLocalDateKey } from '../../lib/utils';
 
 interface MemoryDashboardTabProps {
   activeLang: LearningLanguage;
@@ -61,7 +62,7 @@ export function MemoryDashboardTab({
 
   // High-level Retention & Pyramid Analytics
   const analytics = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatLocalDateKey(new Date());
     const pyramid = calculateMemoryPyramid(allWords);
 
     let totalRetention = 0;

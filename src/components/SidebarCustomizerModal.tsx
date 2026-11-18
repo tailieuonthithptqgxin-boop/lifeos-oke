@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { X, Check, Sliders, Sparkles, GraduationCap, Briefcase, Zap, RotateCcw } from 'lucide-react';
 import { soundEngine } from '../lib/soundEngine';
 import { ViewState } from '../lib/types';
@@ -7,21 +8,17 @@ import { useTranslation } from '../lib/i18n';
 
 export const NAV_MODULE_METADATA = [
   { id: 'dashboard' as ViewState, labelVi: 'Hôm nay', labelEn: 'Today', iconEmoji: '⚡', descVi: 'Trạm chỉ huy 3 giây, Daily Trifecta & Streak', descEn: '3-second command center, Daily Trifecta & Streak', group: 'core' },
-  { id: 'focus' as ViewState, labelVi: 'Tập trung', labelEn: 'Focus', iconEmoji: '🧘', descVi: 'Đồng hồ Pomodoro & Zen Mode', descEn: 'Pomodoro timer & Zen Mode', group: 'core' },
-  { id: 'tasks' as ViewState, labelVi: 'Công việc', labelEn: 'Tasks', iconEmoji: '✅', descVi: 'Quản lý nhiệm vụ, deadline & ma trận ưu tiên', descEn: 'Manage tasks, deadlines & priority matrix', group: 'space' },
+  { id: 'focus' as ViewState, labelVi: 'Phòng tập trung', labelEn: 'Focus Room', iconEmoji: '⚡', descVi: 'Phòng tập trung Pomodoro, YouTube Lo-Fi & Zen Mode', descEn: 'Focus Room with Pomodoro, YouTube Lo-Fi & Zen Mode', group: 'core' },
+  { id: 'tasks' as ViewState, labelVi: 'Lịch & Công việc', labelEn: 'Schedule & Tasks', iconEmoji: '📅', descVi: 'Nhiệm vụ, deadline & thời gian biểu thống nhất', descEn: 'Tasks, deadlines & unified schedule', group: 'space' },
   { id: 'projects' as ViewState, labelVi: 'Dự án (P.A.R.A)', labelEn: 'Projects (P.A.R.A)', iconEmoji: '📁', descVi: 'Phương pháp P.A.R.A, tiến độ dự án', descEn: 'P.A.R.A methodology & project milestones', group: 'space' },
   { id: 'habits' as ViewState, labelVi: 'Thói quen', labelEn: 'Habits', iconEmoji: '🔥', descVi: 'Theo dõi chuỗi streak kỉ luật mỗi ngày', descEn: 'Track daily discipline habit streaks', group: 'space' },
   { id: 'finance' as ViewState, labelVi: 'Tài chính', labelEn: 'Finance', iconEmoji: '💳', descVi: 'Thu chi, Safe-to-Spend & quy tắc 50/30/20', descEn: 'Cash flow, Safe-to-Spend & 50/30/20 rule', group: 'space' },
   { id: 'study' as ViewState, labelVi: 'Học tập & Từ vựng', labelEn: 'Study & Vocab', iconEmoji: '📚', descVi: 'Flashcards Spaced Repetition (JLPT, IELTS, HSK)', descEn: 'Spaced Repetition flashcards (JLPT, IELTS, HSK)', group: 'space' },
+  { id: 'connect' as ViewState, labelVi: 'Bảng Tin Cộng Đồng', labelEn: 'Community & Feed', iconEmoji: '🌐', descVi: 'Mạng xã hội học tập, Bảng tin cộng đồng, Chat đa kênh & Phòng học trực tuyến Live Meet', descEn: 'Social learning network, community feed, multi-channel chat & Live Meet study rooms', group: 'space' },
   { id: 'notes' as ViewState, labelVi: 'Sổ tay & Ghi chú', labelEn: 'Journal & Notes', iconEmoji: '📝', descVi: 'Second Brain, ghi chép nhanh & ý tưởng', descEn: 'Second Brain, quick notes & ideation', group: 'space' },
   { id: 'goals' as ViewState, labelVi: 'Mục tiêu', labelEn: 'Goals', iconEmoji: '🎯', descVi: 'Mục tiêu năm, quý & OKRs', descEn: 'Annual, quarterly goals & OKRs', group: 'space' },
-  { id: 'calendar' as ViewState, labelVi: 'Lịch biểu', labelEn: 'Calendar', iconEmoji: '📅', descVi: 'Lịch sự kiện & thời gian biểu', descEn: 'Event schedule & time blocking', group: 'space' },
   { id: 'marketplace' as ViewState, labelVi: 'Thư viện mẫu', labelEn: 'Templates Marketplace', iconEmoji: '🛍️', descVi: '12 templates cuộc sống thực chiến', descEn: '12 practical life templates', group: 'system' },
-  { id: 'automation' as ViewState, labelVi: 'Quy tắc tự động', labelEn: 'Automation Rules', iconEmoji: '⚙️', descVi: '16 luật tự động hóa dữ liệu', descEn: '16 data automation rules', group: 'system' },
-  { id: 'decision' as ViewState, labelVi: 'Bộ máy ra quyết định', labelEn: 'Decision Engine', iconEmoji: '⚖️', descVi: 'Động cơ cân nhắc quyết định 10/10/10', descEn: '10/10/10 Decision framework engine', group: 'system' },
-  { id: 'subscription' as ViewState, labelVi: 'Gói & Nhóm', labelEn: 'Plans & Team', iconEmoji: '💎', descVi: 'Nâng cấp và quản lý thành viên', descEn: 'Upgrade & manage team members', group: 'system' },
-  { id: 'referral' as ViewState, labelVi: 'Giới thiệu 20%', labelEn: 'Referral 20%', iconEmoji: '🎁', descVi: 'Chương trình Affiliate hoa hồng', descEn: 'Affiliate commission program', group: 'system' },
-  { id: 'feedback' as ViewState, labelVi: 'Góp ý & Hỗ trợ', labelEn: 'Feedback & Support', iconEmoji: '💬', descVi: 'Gửi phản hồi trực tiếp cho đội ngũ', descEn: 'Send direct feedback to our team', group: 'system' },
+  { id: 'automation' as ViewState, labelVi: 'Quy tắc tự động', labelEn: 'Automation Rules', iconEmoji: '⚙️', descVi: '16 luật tự động hóa dữ liệu', descEn: '16 data automation rules', group: 'system' },  { id: 'subscription' as ViewState, labelVi: 'Gói & Nhóm', labelEn: 'Plans & Team', iconEmoji: '💎', descVi: 'Nâng cấp và quản lý thành viên', descEn: 'Upgrade & manage team members', group: 'system' },  { id: 'feedback' as ViewState, labelVi: 'Góp ý & Hỗ trợ', labelEn: 'Feedback & Support', iconEmoji: '💬', descVi: 'Gửi phản hồi trực tiếp cho đội ngũ', descEn: 'Send direct feedback to our team', group: 'system' },
 ];
 
 export const PRESET_MODES = [
@@ -41,7 +38,7 @@ export const PRESET_MODES = [
     icon: GraduationCap,
     descVi: 'Tối ưu học thi, từ vựng JLPT/IELTS, thói quen & ví tiền',
     descEn: 'Optimized for exams, vocab flashcards, habits & budget',
-    allowed: ['dashboard', 'focus', 'tasks', 'study', 'habits', 'finance', 'notes'] as ViewState[]
+    allowed: ['dashboard', 'focus', 'tasks', 'study', 'connect', 'habits', 'finance', 'notes'] as ViewState[]
   },
   {
     id: 'builder',
@@ -70,7 +67,10 @@ export function getVisibleNavModules(): string[] {
     if (!raw) return NAV_MODULE_METADATA.map(m => m.id);
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      const filtered = parsed.filter((id: string) => validIds.has(id));
+      const legacyMap: Record<string, string> = { 'study-space': 'connect', 'feed': 'connect', 'classroom': 'connect' };
+      const normalized = Array.from(new Set(parsed.map((id: string) => legacyMap[id] || id)));
+      const filtered = normalized.filter((id: string) => validIds.has(id));
+      if (!filtered.includes('connect')) filtered.push('connect');
       if (filtered.length !== parsed.length) {
         localStorage.setItem('lifeos_visible_modules', JSON.stringify(filtered.length > 0 ? filtered : NAV_MODULE_METADATA.map(m => m.id)));
       }
@@ -92,6 +92,17 @@ export function SidebarCustomizerModal({ isOpen, onClose, onSaved }: SidebarCust
   const { language } = useAppStore();
   const isVi = language === 'vi';
   const [selectedModules, setSelectedModules] = useState<string[]>(() => getVisibleNavModules());
+  useBodyScrollLock(isOpen);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -128,19 +139,28 @@ export function SidebarCustomizerModal({ isOpen, onClose, onSaved }: SidebarCust
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200">
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in duration-200 cursor-default"
+    >
       <div 
         className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        onMouseDown={(e) => e.stopPropagation()}
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="p-5 sm:p-6 border-b border-slate-800 flex items-center justify-between shrink-0">
+        {/* Header - Mobile & Desktop Responsive */}
+        <div className="p-4 sm:p-6 border-b border-slate-800 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0">
               <Sliders className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <h3 className="font-black text-lg text-white">
                   {isVi ? 'Cá nhân hóa danh mục' : 'Customize Navigation'}
                 </h3>
@@ -159,14 +179,14 @@ export function SidebarCustomizerModal({ isOpen, onClose, onSaved }: SidebarCust
             type="button"
             onClick={onClose}
             aria-label={isVi ? 'Đóng' : 'Close'}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="w-11 h-11 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer shrink-0"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-5 sm:p-6 overflow-y-auto space-y-6">
+        <div className="p-4 sm:p-6 overflow-y-auto space-y-6">
           {/* Quick Presets */}
           <div>
             <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 block mb-2.5">
@@ -182,7 +202,7 @@ export function SidebarCustomizerModal({ isOpen, onClose, onSaved }: SidebarCust
                     key={p.id}
                     type="button"
                     onClick={() => handleApplyPreset(p.allowed)}
-                    className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-3 ${
+                    className={`p-3.5 min-h-[48px] rounded-2xl border text-left transition-all cursor-pointer flex items-start gap-3 ${
                       isSelected
                         ? 'bg-emerald-500/15 border-emerald-500/50 shadow-md shadow-emerald-500/10'
                         : 'bg-slate-800/60 border-slate-700/60 hover:bg-slate-800 hover:border-slate-600'
@@ -215,9 +235,9 @@ export function SidebarCustomizerModal({ isOpen, onClose, onSaved }: SidebarCust
               <button
                 type="button"
                 onClick={handleReset}
-                className="text-[11px] font-bold text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer"
+                className="text-xs font-bold text-slate-400 hover:text-white flex items-center gap-1 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-slate-800 transition-colors min-h-[44px]"
               >
-                <RotateCcw className="w-3 h-3" /> {isVi ? 'Mặc định tất cả' : 'Reset to All'}
+                <RotateCcw className="w-3.5 h-3.5" /> {isVi ? 'Mặc định tất cả' : 'Reset to All'}
               </button>
             </div>
 
@@ -229,7 +249,7 @@ export function SidebarCustomizerModal({ isOpen, onClose, onSaved }: SidebarCust
                   <div
                     key={mod.id}
                     onClick={() => !isPermanent && handleToggle(mod.id)}
-                    className={`p-3 rounded-2xl border flex items-center justify-between gap-3 transition-all cursor-pointer select-none ${
+                    className={`p-3 min-h-[48px] rounded-2xl border flex items-center justify-between gap-3 transition-all cursor-pointer select-none ${
                       isChecked
                         ? 'bg-slate-800/80 border-slate-700 hover:border-emerald-500/40'
                         : 'bg-slate-900/60 border-slate-800/80 opacity-50 hover:opacity-80'
@@ -265,24 +285,24 @@ export function SidebarCustomizerModal({ isOpen, onClose, onSaved }: SidebarCust
         </div>
 
         {/* Footer */}
-        <div className="p-4 sm:p-5 border-t border-slate-800 bg-slate-900/80 flex items-center justify-between shrink-0">
+        <div className="p-4 sm:p-5 border-t border-slate-800 bg-slate-900/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
           <span className="text-xs text-slate-400">
             {isVi 
               ? 'Thay đổi được áp dụng ngay lập tức cho tài khoản của bạn.'
               : 'Changes apply immediately to your active workspace.'}
           </span>
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center justify-end gap-2.5">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+              className="px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer flex items-center justify-center"
             >
               {isVi ? 'Hủy bỏ' : 'Cancel'}
             </button>
             <button
               type="button"
               onClick={handleSave}
-              className="px-5 py-2 rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
+              className="px-5 py-2.5 min-h-[44px] rounded-xl text-xs font-black bg-emerald-500 hover:bg-emerald-400 text-slate-950 shadow-md shadow-emerald-500/20 transition-all cursor-pointer flex items-center justify-center"
             >
               {isVi ? 'Áp dụng ngay' : 'Apply Now'}
             </button>

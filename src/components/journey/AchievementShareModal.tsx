@@ -4,6 +4,9 @@ import {
   Palette, Smartphone, Square, Monitor, Award, Heart, CheckCircle2
 } from 'lucide-react';
 import { MilestoneItem, MonthlyRecapStats } from '../../backend/services/journey.service';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { soundEngine } from '../../lib/soundEngine';
+import { useAppStore } from '../../lib/store';
 
 export type AspectRatioType = '1:1' | '4:5' | '9:16';
 export type CardTemplateType = 'minimal' | 'achievement' | 'journey' | 'monthly_recap' | 'dark_premium' | 'social_story';
@@ -99,8 +102,44 @@ export function AchievementShareModal({
   const [copiedCaption, setCopiedCaption] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [previewDataUrl, setPreviewDataUrl] = useState<string>('');
+  const [isShaking, setIsShaking] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+  const { currentUser } = useAppStore();
+  const referralCode = (currentUser as any)?.referralCode || '';
+  const shareReferralUrl = referralCode 
+    ? `${window.location.origin}/?ref=${encodeURIComponent(referralCode)}`
+    : window.location.origin;
+
+  useBodyScrollLock(isOpen);
+
+  const isDirty = customQuote.trim().length > 0 || (customTitle.trim().length > 0 && customTitle !== (milestone?.title || ''));
+
+  const triggerShake = () => {
+    soundEngine.playPop();
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 500);
+  };
+
+  const handleSafeDismiss = () => {
+    if (isDirty) {
+      triggerShake();
+      return;
+    }
+    onClose();
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleSafeDismiss();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isDirty]);
 
   // Khởi tạo text mặc định khi đổi milestone
   useEffect(() => {
@@ -459,7 +498,8 @@ export function AchievementShareModal({
           await navigator.share({
             files: [file],
             title: customTitle || 'Thành tựu trên LifeOS',
-            text: `${customTitle} - Mình vừa chinh phục dấu mốc này trên LifeOS! 🌟 #LifeOS #PhatTrienBanThan`,
+            text: `${customTitle || 'Thành tựu'} - Mình vừa chinh phục dấu mốc này trên LifeOS! 🌟\nCùng trải nghiệm tại: ${shareReferralUrl}\n#LifeOS #PhatTrienBanThan`,
+            url: shareReferralUrl,
           });
         } else {
           // Fallback tải ảnh
@@ -476,7 +516,7 @@ export function AchievementShareModal({
   const handleCopyCaption = () => {
     const title = customTitle || milestone?.title || 'Dấu mốc của tôi';
     const quote = customQuote ? `\n"${customQuote}"\n` : '';
-    const caption = `🌟 Cột mốc mới được ghi dấu trên hành trình hoàn thiện bản thân!\n\n✨ ${title}${quote}\n\nKỷ luật mỗi ngày, tích tiểu thành đại cùng LifeOS 🚀\n#LifeOS #HanhTrinhCuaToi #KyLuatBanThan #PhatTrienBanThan`;
+    const caption = `🌟 Cột mốc mới được ghi dấu trên hành trình hoàn thiện bản thân!\n\n✨ ${title}${quote}\n\nKỷ luật mỗi ngày, tích tiểu thành đại cùng LifeOS 🚀\nCùng rèn luyện với mình tại: ${shareReferralUrl}\n#LifeOS #HanhTrinhCuaToi #KyLuatBanThan #PhatTrienBanThan`;
     
     navigator.clipboard.writeText(caption);
     setCopiedCaption(true);
@@ -486,8 +526,23 @@ export function AchievementShareModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 md:p-6 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-5xl max-h-[92vh] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden">
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (mouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+          handleSafeDismiss();
+        }
+      }}
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-3 md:p-6 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 cursor-default"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className={`relative w-full max-w-5xl max-h-[92vh] flex flex-col bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl overflow-hidden transition-transform ${
+          isShaking ? 'animate-[shake_0.4s_ease-in-out]' : ''
+        }`}
+      >
         
         {/* Modal Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
@@ -504,9 +559,9 @@ export function AchievementShareModal({
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+          <button type="button"
+            onClick={handleSafeDismiss}
+            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -653,26 +708,50 @@ export function AchievementShareModal({
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
                   Tiêu đề cột mốc
                 </label>
-                <input
-                  type="text"
-                  value={customTitle}
-                  onChange={(e) => setCustomTitle(e.target.value)}
-                  placeholder="Nhập tiêu đề thành tựu..."
-                  className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={customTitle}
+                    onChange={(e) => setCustomTitle(e.target.value)}
+                    placeholder="Nhập tiêu đề thành tựu..."
+                    className="w-full pl-3.5 pr-8 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  {customTitle && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomTitle('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                      title="Xóa tiêu đề"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div>
                 <label className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 block mb-1">
                   Châm ngôn / Cảm nghĩ cá nhân
                 </label>
-                <input
-                  type="text"
-                  value={customQuote}
-                  onChange={(e) => setCustomQuote(e.target.value)}
-                  placeholder="Nhập câu trích dẫn hoặc cảm nghĩ của bạn..."
-                  className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={customQuote}
+                    onChange={(e) => setCustomQuote(e.target.value)}
+                    placeholder="Nhập câu trích dẫn hoặc cảm nghĩ của bạn..."
+                    className="w-full pl-3.5 pr-8 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  />
+                  {customQuote && (
+                    <button
+                      type="button"
+                      onClick={() => setCustomQuote('')}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                      title="Xóa cảm nghĩ"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 

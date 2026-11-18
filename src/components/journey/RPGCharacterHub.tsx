@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Shield, Swords, Zap, Heart, BookOpen, Clock, Flame, 
   Crown, Sparkles, ChevronRight, ArrowUpRight, Camera, 
@@ -8,6 +8,7 @@ import { apiCall } from '../../lib/apiClient';
 import { soundEngine } from '../../lib/soundEngine';
 import { triggerConfetti } from '../../lib/confetti';
 import { useAppStore } from '../../lib/store';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 interface RPGCharacterHubProps {
   charStats: any | null;
@@ -27,13 +28,43 @@ export function RPGCharacterHub({
   const { currentUser } = useAppStore();
 
   const [inventory, setInventory] = useState<any[]>([]);
-  const [filterSlot, setFilterSlot] = useState<'ALL' | 'WEAPON' | 'ARMOR' | 'ACCESSORY'>('ALL');
+  const [filterSlot, setFilterSlot] = useState<'ALL' | 'WEAPON' | 'ARMOR' | 'ACCESSORY'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_rpg_char_slot') as any;
+        if (saved && ['ALL', 'WEAPON', 'ARMOR', 'ACCESSORY'].includes(saved)) return saved;
+      } catch {}
+    }
+    return 'ALL';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_rpg_char_slot', filterSlot);
+    } catch {}
+  }, [filterSlot]);
+
   const [isLoadingInventory, setIsLoadingInventory] = useState(false);
   const [upgradingId, setUpgradingId] = useState<string | null>(null);
   const [equippingId, setEquippingId] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Stat Breakdown Modal
   const [statBreakdownOpen, setStatBreakdownOpen] = useState(false);
+  const statBreakdownMouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useBodyScrollLock(statBreakdownOpen);
+
+  useEffect(() => {
+    if (!statBreakdownOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setStatBreakdownOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [statBreakdownOpen]);
 
   // Selected Equipment Detail Modal
   const [selectedItemDetail, setSelectedItemDetail] = useState<any | null>(null);
@@ -59,6 +90,7 @@ export function RPGCharacterHub({
   const handleEquipItem = async (equipmentId: string) => {
     try {
       setEquippingId(equipmentId);
+      setErrorMessage(null);
       soundEngine.playPop();
       const res = await apiCall('/api/rpg/equipment/equip', 'POST', { equipmentId });
       if (res && res.success) {
@@ -67,7 +99,7 @@ export function RPGCharacterHub({
         soundEngine.playSuccess();
       }
     } catch (err: any) {
-      alert(err.message || 'Không thể trang bị vật phẩm.');
+      setErrorMessage(err.message || 'Không thể trang bị vật phẩm.');
     } finally {
       setEquippingId(null);
     }
@@ -76,6 +108,7 @@ export function RPGCharacterHub({
   const handleUpgradeItem = async (equipmentId: string) => {
     try {
       setUpgradingId(equipmentId);
+      setErrorMessage(null);
       soundEngine.playPop();
       const res = await apiCall('/api/rpg/equipment/upgrade', 'POST', { equipmentId });
       if (res && res.success) {
@@ -85,7 +118,7 @@ export function RPGCharacterHub({
         triggerConfetti();
       }
     } catch (err: any) {
-      alert(err.message || 'Không thể nâng cấp vật phẩm.');
+      setErrorMessage(err.message || 'Không thể nâng cấp vật phẩm.');
     } finally {
       setUpgradingId(null);
     }
@@ -113,6 +146,17 @@ export function RPGCharacterHub({
       {/* ============================================================== */}
       {/* 1. HERO PROFILE & COMBAT ATTRIBUTES SUMMARY                    */}
       {/* ============================================================== */}
+      {errorMessage && (
+        <div className="p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center justify-between animate-fade-in shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">⚠️</span>
+            <span>{errorMessage}</span>
+          </div>
+          <button type="button" onClick={() => setErrorMessage(null)} className="p-1 hover:text-white cursor-pointer">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
         {/* Hero Character Card (5 cols) */}
@@ -275,7 +319,7 @@ export function RPGCharacterHub({
           </div>
 
           {/* Stat Breakdown Trigger */}
-          <button
+          <button type="button"
             onClick={() => setStatBreakdownOpen(true)}
             className="w-full py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 hover:text-white transition flex items-center justify-center gap-1.5 cursor-pointer border border-slate-700"
           >
@@ -299,7 +343,7 @@ export function RPGCharacterHub({
               </p>
             </div>
 
-            <button
+            <button type="button"
               onClick={onRefresh}
               className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition cursor-pointer"
               title="Đồng bộ lại chỉ số"
@@ -446,7 +490,7 @@ export function RPGCharacterHub({
           {/* Slot Filter Tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
             {(['ALL', 'WEAPON', 'ARMOR', 'ACCESSORY'] as const).map(tab => (
-              <button
+              <button type="button"
                 key={tab}
                 onClick={() => setFilterSlot(tab)}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer whitespace-nowrap ${
@@ -540,7 +584,7 @@ export function RPGCharacterHub({
                   {/* Actions: Equip & Upgrade */}
                   <div className="pt-2 border-t border-slate-200/80 dark:border-slate-800 flex items-center gap-2">
                     {!isEquipped && (
-                      <button
+                      <button type="button"
                         onClick={() => handleEquipItem(item.id)}
                         disabled={equippingId === item.id}
                         className="flex-1 py-2 rounded-xl bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 dark:hover:bg-white text-white dark:text-slate-900 text-xs font-bold transition active:scale-95 cursor-pointer disabled:opacity-50"
@@ -550,7 +594,7 @@ export function RPGCharacterHub({
                     )}
 
                     {!isMaxLvl && (
-                      <button
+                      <button type="button"
                         onClick={() => handleUpgradeItem(item.id)}
                         disabled={upgradingId === item.id || !item.canUpgrade}
                         className={`py-2 px-3 rounded-xl text-xs font-black transition active:scale-95 cursor-pointer flex items-center justify-center gap-1 shrink-0 ${
@@ -582,7 +626,17 @@ export function RPGCharacterHub({
       {/* 3. MODAL: STAT TRANSPARENCY BREAKDOWN (100% REAL ACTIONS)       */}
       {/* ============================================================== */}
       {statBreakdownOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+        <div 
+          onMouseDown={(e) => {
+            statBreakdownMouseDownTargetRef.current = e.target;
+          }}
+          onClick={(e) => {
+            if (statBreakdownMouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+              setStatBreakdownOpen(false);
+            }
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 cursor-default"
+        >
           <div 
             className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 text-white shadow-2xl space-y-5 max-h-[85vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
@@ -597,7 +651,7 @@ export function RPGCharacterHub({
                   <span className="text-xs text-slate-400">100% minh bạch từ hoạt động thực tế của bạn</span>
                 </div>
               </div>
-              <button
+              <button type="button"
                 onClick={() => setStatBreakdownOpen(false)}
                 className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
               >
@@ -633,7 +687,7 @@ export function RPGCharacterHub({
             </div>
 
             <div className="pt-2 text-center">
-              <button
+              <button type="button"
                 onClick={() => setStatBreakdownOpen(false)}
                 className="w-full py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-white transition cursor-pointer"
               >

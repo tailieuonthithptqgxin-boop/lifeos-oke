@@ -2,38 +2,87 @@ import React, { useState, useEffect } from 'react';
 import { 
   MessageSquare, Sparkles, Send, ThumbsUp, Star, Filter, 
   Lightbulb, Bug, HelpCircle, CheckCircle2, Clock, Check, 
-  AlertCircle, ChevronRight, User, Heart, MessageCircle
+  AlertCircle, ChevronRight, User, Heart, MessageCircle, X
 } from 'lucide-react';
 import { apiCall } from '../lib/apiClient';
 import { triggerConfetti } from '../lib/confetti';
 import { soundEngine } from '../lib/soundEngine';
 
 export function FeedbackView() {
-  const [activeTab, setActiveTab] = useState<'community' | 'submit' | 'my'>('community');
+  const [activeTab, setActiveTabState] = useState<'community' | 'submit' | 'my'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_feedback_active_tab');
+        if (saved && ['community', 'submit', 'my'].includes(saved)) return saved as any;
+      } catch {}
+    }
+    return 'community';
+  });
+
+  const setActiveTab = (tab: 'community' | 'submit' | 'my') => {
+    setActiveTabState(tab);
+    try {
+      localStorage.setItem('lifeos_feedback_active_tab', tab);
+    } catch {}
+  };
+
   const [feedbacks, setFeedbacks] = useState<any[]>([]);
   const [myFeedbacks, setMyFeedbacks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Submit Form state
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [type, setType] = useState<'Idea' | 'Bug' | 'Feature' | 'Experience' | 'General'>('Idea');
-  const [rating, setRating] = useState<number>(5);
+  // Submit Form state with draft persistence
+  const cachedDraft = typeof window !== 'undefined' ? (() => {
+    try {
+      const saved = localStorage.getItem('lifeos_feedback_draft');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  })() : null;
+
+  const [title, setTitle] = useState(cachedDraft?.title || '');
+  const [content, setContent] = useState(cachedDraft?.content || '');
+  const [type, setType] = useState<'Idea' | 'Bug' | 'Feature' | 'Experience' | 'General'>(cachedDraft?.type || 'Idea');
+  const [rating, setRating] = useState<number>(cachedDraft?.rating || 5);
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  // Filter state for community
-  const [filterType, setFilterType] = useState<string>('ALL');
+  // Auto-save draft
+  useEffect(() => {
+    if (title || content) {
+      try {
+        localStorage.setItem('lifeos_feedback_draft', JSON.stringify({ title, content, type, rating }));
+      } catch {}
+    }
+  }, [title, content, type, rating]);
+
+  // Filter state for community with persistence
+  const [filterType, setFilterTypeState] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_feedback_filter_type');
+        if (saved) return saved;
+      } catch {}
+    }
+    return 'ALL';
+  });
+
+  const setFilterType = (ft: string) => {
+    setFilterTypeState(ft);
+    try {
+      localStorage.setItem('lifeos_feedback_filter_type', ft);
+    } catch {}
+  };
 
   const loadFeedbacks = async () => {
     try {
       setLoading(true);
-      const [pubRes, myRes] = await Promise.all([
+      const [pubRes, myRes] = await Promise.allSettled([
         apiCall('/api/feedback/public'),
         apiCall('/api/feedback/my')
       ]);
-      if (pubRes?.success) setFeedbacks(pubRes.feedbacks || []);
-      if (myRes?.success) setMyFeedbacks(myRes.feedbacks || []);
+      if (pubRes.status === 'fulfilled' && pubRes.value?.success) setFeedbacks(pubRes.value.feedbacks || []);
+      if (myRes.status === 'fulfilled' && myRes.value?.success) setMyFeedbacks(myRes.value.feedbacks || []);
     } catch (err) {
       console.error('Error loading feedbacks:', err);
     } finally {
@@ -64,6 +113,9 @@ export function FeedbackView() {
         setSubmitSuccess(true);
         setTitle('');
         setContent('');
+        try {
+          localStorage.removeItem('lifeos_feedback_draft');
+        } catch {}
         setTimeout(() => {
           setSubmitSuccess(false);
           setActiveTab('community');
@@ -151,7 +203,7 @@ export function FeedbackView() {
             </p>
           </div>
 
-          <button
+          <button type="button"
             onClick={() => setActiveTab('submit')}
             className="px-5 py-2.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-medium text-xs sm:text-sm shadow-xs transition-colors flex items-center justify-center gap-2 cursor-pointer shrink-0"
           >
@@ -164,7 +216,7 @@ export function FeedbackView() {
       {/* 2. Tabs */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl gap-1 border border-slate-200/80 dark:border-slate-700">
-          <button
+          <button type="button"
             onClick={() => setActiveTab('community')}
             className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === 'community'
@@ -174,7 +226,7 @@ export function FeedbackView() {
           >
             Cộng đồng bình chọn ({feedbacks.length})
           </button>
-          <button
+          <button type="button"
             onClick={() => setActiveTab('submit')}
             className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === 'submit'
@@ -184,7 +236,7 @@ export function FeedbackView() {
           >
             Đóng góp ý kiến
           </button>
-          <button
+          <button type="button"
             onClick={() => setActiveTab('my')}
             className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
               activeTab === 'my'
@@ -199,7 +251,7 @@ export function FeedbackView() {
         {activeTab === 'community' && (
           <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
             {['ALL', 'Idea', 'Feature', 'Bug', 'Experience'].map((tKey) => (
-              <button
+              <button type="button"
                 key={tKey}
                 onClick={() => setFilterType(tKey)}
                 className={`px-2.5 py-1 rounded-lg font-bold transition-all cursor-pointer ${
@@ -255,7 +307,7 @@ export function FeedbackView() {
                       </div>
 
                       {/* Upvote Pill Button */}
-                      <button
+                      <button type="button"
                         onClick={() => handleVote(f.id)}
                         className={`flex flex-col items-center justify-center p-2 rounded-lg min-w-[3.25rem] transition-colors cursor-pointer border ${
                           f.hasVoted
@@ -358,14 +410,26 @@ export function FeedbackView() {
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block">
                   Tiêu đề tóm tắt:
                 </label>
-                <input
-                  type="text"
-                  required
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Ví dụ: Thêm widget ghi chú nhanh ngoài màn hình chính..."
-                  className="w-full px-4 py-2.5 rounded-2xl border border-purple-100 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Ví dụ: Thêm widget ghi chú nhanh ngoài màn hình chính..."
+                    className="w-full pl-4 pr-9 py-2.5 rounded-2xl border border-purple-100 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-purple-400"
+                  />
+                  {title && (
+                    <button
+                      type="button"
+                      onClick={() => setTitle('')}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                      title="Xoá nhanh"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Content */}
@@ -425,7 +489,7 @@ export function FeedbackView() {
             <div className="rounded-xl p-12 text-center text-slate-400 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2">
               <MessageSquare className="w-10 h-10 mx-auto text-slate-400" />
               <p className="font-semibold text-sm text-slate-700 dark:text-slate-200">Bạn chưa gửi góp ý nào</p>
-              <button
+              <button type="button"
                 onClick={() => setActiveTab('submit')}
                 className="text-xs font-medium text-emerald-600 hover:underline cursor-pointer"
               >

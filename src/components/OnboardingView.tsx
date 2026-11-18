@@ -493,13 +493,13 @@ export function OnboardingView() {
         </div>
 
         {/* Navigation Controls */}
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col-reverse sm:flex-row justify-between items-stretch sm:items-center gap-3">
+          <div className="flex items-center justify-between sm:justify-start gap-3">
             <button 
               type="button"
               disabled={isSubmitting}
               onClick={() => setCurrentStep(s => Math.max(0, s - 1))}
-              className={`px-4 sm:px-6 py-3 font-medium text-slate-500 hover:text-slate-900 transition-colors ${currentStep === 0 ? 'invisible' : ''}`}
+              className={`px-4 sm:px-6 py-3 min-h-[44px] flex items-center justify-center font-medium text-slate-500 hover:text-slate-900 transition-colors cursor-pointer ${currentStep === 0 ? 'invisible' : ''}`}
             >
               Quay lại
             </button>
@@ -508,7 +508,7 @@ export function OnboardingView() {
                 type="button"
                 disabled={isSubmitting}
                 onClick={handleQuickSkip}
-                className="text-xs font-semibold text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 transition-colors cursor-pointer"
+                className="text-xs font-semibold text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 px-3 py-2 min-h-[44px] flex items-center transition-colors cursor-pointer"
               >
                 Bỏ qua & dùng cấu hình mẫu
               </button>
@@ -519,7 +519,7 @@ export function OnboardingView() {
             type="button"
             onClick={handleNext}
             disabled={isNextDisabled() || isSubmitting}
-            className={`px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-sm
+            className={`px-6 sm:px-8 py-3 min-h-[44px] rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer
               ${isNextDisabled() || isSubmitting
                 ? 'bg-slate-100 text-slate-400 cursor-not-allowed' 
                 : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md'

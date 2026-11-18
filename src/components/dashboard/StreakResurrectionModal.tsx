@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { Flame, Sparkles, Zap, BookOpen, Diamond, X, RotateCcw, AlertTriangle } from 'lucide-react';
 import { soundEngine } from '../../lib/soundEngine';
 import { streakFreezeEngine } from '../../lib/streakFreezeEngine';
@@ -20,6 +21,18 @@ export function StreakResurrectionModal({
   onResurrected,
   onStartFocus
 }: StreakResurrectionModalProps) {
+  useBodyScrollLock(isOpen);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useEffect(() => {
+    if (!(isOpen)) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   const [status, setStatus] = useState(() => streakFreezeEngine.getResurrectionStatus(userId));
   const [timeLeft, setTimeLeft] = useState('');
 
@@ -74,9 +87,15 @@ export function StreakResurrectionModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div 
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleDismiss();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 cursor-default"
+    >
       <div 
         className="w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 border border-amber-500/30 rounded-3xl shadow-2xl overflow-hidden flex flex-col relative"
+        onMouseDown={(e) => e.stopPropagation()}
         onClick={e => e.stopPropagation()}
       >
         {/* Glow backdrop */}
@@ -106,7 +125,8 @@ export function StreakResurrectionModal({
           <button
             type="button"
             onClick={handleDismiss}
-            className="p-1.5 text-slate-400 hover:text-white rounded-xl transition-colors cursor-pointer"
+            className="w-10 h-10 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-white rounded-xl transition-colors cursor-pointer shrink-0"
+            aria-label="Đóng"
           >
             <X className="w-5 h-5" />
           </button>
@@ -138,7 +158,7 @@ export function StreakResurrectionModal({
                   onClose();
                   onStartFocus();
                 }}
-                className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shrink-0 transition-all cursor-pointer shadow-md shadow-emerald-500/20"
+                className="px-3.5 py-2.5 min-h-[44px] rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shrink-0 transition-all cursor-pointer shadow-md shadow-emerald-500/20 flex items-center justify-center"
               >
                 Vào Việc Ngay
               </button>
@@ -181,7 +201,7 @@ export function StreakResurrectionModal({
                 type="button"
                 disabled={!canAffordXp}
                 onClick={handleSacrificeXp}
-                className={`px-3.5 py-2 rounded-xl font-black text-xs shrink-0 transition-all cursor-pointer ${
+                className={`px-3.5 py-2.5 min-h-[44px] rounded-xl font-black text-xs shrink-0 transition-all cursor-pointer flex items-center justify-center ${
                   canAffordXp
                     ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-md shadow-amber-500/20'
                     : 'bg-slate-800 text-slate-500 cursor-not-allowed'
@@ -198,7 +218,7 @@ export function StreakResurrectionModal({
           <button
             type="button"
             onClick={handleDismiss}
-            className="text-xs font-bold text-slate-400 hover:text-slate-300 cursor-pointer"
+            className="min-h-[44px] px-2 text-xs font-bold text-slate-400 hover:text-slate-300 cursor-pointer flex items-center"
           >
             Bỏ qua & bắt đầu lại từ ngày 1
           </button>

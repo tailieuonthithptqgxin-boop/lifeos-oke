@@ -15,6 +15,7 @@ import {
   speakWord,
   systemWordToVocabWord 
 } from '../../lib/vocabEngine';
+import { formatLocalDateKey } from '../../lib/utils';
 
 interface Oxford3000TabProps {
   systemWords: System3000Word[];
@@ -68,7 +69,7 @@ export function Oxford3000Tab({
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 30;
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = formatLocalDateKey(new Date());
 
   // Filtering Logic
   const filteredWords = useMemo(() => {
@@ -362,18 +363,20 @@ export function Oxford3000Tab({
               type="button"
               disabled={currentPage <= 1}
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer disabled:cursor-not-allowed"
+              aria-label="Trang trước"
+              className="min-w-[40px] min-h-[40px] p-2 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer disabled:cursor-not-allowed touch-manipulation transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
+            <span className="text-xs font-bold text-slate-700 dark:text-slate-300 px-1">
               Trang {currentPage} / {totalPages}
             </span>
             <button
               type="button"
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer disabled:cursor-not-allowed"
+              aria-label="Trang sau"
+              className="min-w-[40px] min-h-[40px] p-2 flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer disabled:cursor-not-allowed touch-manipulation transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
             </button>
@@ -565,7 +568,7 @@ export function Oxford3000Tab({
               type="button"
               disabled={currentPage <= 1}
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer disabled:cursor-not-allowed"
+              className="px-4 py-2 min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-700 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer disabled:cursor-not-allowed touch-manipulation font-semibold text-xs"
             >
               Trang trước
             </button>
@@ -573,7 +576,7 @@ export function Oxford3000Tab({
               type="button"
               disabled={currentPage >= totalPages}
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer disabled:cursor-not-allowed"
+              className="px-4 py-2 min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-700 disabled:opacity-40 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer disabled:cursor-not-allowed touch-manipulation font-semibold text-xs"
             >
               Trang sau
             </button>

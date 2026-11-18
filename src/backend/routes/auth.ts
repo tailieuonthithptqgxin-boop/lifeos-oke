@@ -7,6 +7,7 @@ import { requireAuth, AuthRequest, getJwtSecret } from '../auth.middleware.js';
 import { referralService } from '../services/referral.service.js';
 import { gmailService } from '../services/gmailNotification.service.js';
 import { sendEmail } from '../mailer.js';
+import { classroomService } from '../services/classroom.service.js';
 import { SystemNotificationHelper } from '../services/systemNotification.helper.js';
 import {
   LoginSchema,
@@ -91,16 +92,16 @@ authRouter.post('/register', authRateLimiter, validateBody(RegisterSchema), asyn
     const initialAdminEmail = (process.env.INITIAL_ADMIN_EMAIL || 'admin@lifeos.com').toLowerCase().trim();
     const isInitialAdmin = cleanEmail === initialAdminEmail;
 
-    // Create user in PostgreSQL with 7-Day Free Trial entitlement
+    // Create user in PostgreSQL with 100% Free Full Access entitlement
     const newUser = await dbService.createUser({
       name: cleanName,
       email: cleanEmail,
       passwordHash,
       role: isInitialAdmin ? 'SUPERADMIN' : 'USER',
-      plan: isInitialAdmin ? 'TEAM' : 'FREE',
+      plan: isInitialAdmin ? 'TEAM' : 'PRO',
       status: 'ACTIVE',
       trialStartedAt: now,
-      trialEndsAt,
+      trialEndsAt: null,
       trialUsed: true
     });
 
@@ -115,7 +116,7 @@ authRouter.post('/register', authRateLimiter, validateBody(RegisterSchema), asyn
 
     // Issue JWT Token (14 days validity)
     const token = jwt.sign(
-      { userId: newUser.id, role: newUser.role, email: newUser.email },
+      { userId: newUser.id, role: newUser.role, email: newUser.email, jti: crypto.randomUUID() },
       getJwtSecret(),
       { expiresIn: '14d' }
     );
@@ -181,8 +182,8 @@ authRouter.post('/register', authRateLimiter, validateBody(RegisterSchema), asyn
     res.status(201).json({
       success: true,
       message: 'Khởi tạo tài khoản thành công',
-      user: safeUser
-      // NOTE: token is intentionally NOT returned in body — use httpOnly cookie only
+      user: safeUser,
+      token
     });
   } catch (error: any) {
     console.error('Register error:', error);
@@ -199,6 +200,53 @@ authRouter.post('/register', authRateLimiter, validateBody(RegisterSchema), asyn
 });
 
 // --------------------------------------------------------------------------
+// Helper: Get Unified User Stats (Single Source of Truth)
+// --------------------------------------------------------------------------
+export async function getUnifiedUserStats(userId: string) {
+  const prisma = getPrisma();
+  const [progression, refProfile, userRecord] = await Promise.all([
+    prisma.userProgression.findUnique({
+      where: { userId },
+      select: { currentStreak: true, longestStreak: true, lastActiveDate: true, level: true, totalXp: true }
+    }).catch(() => null),
+    prisma.referralProfile.findUnique({
+      where: { userId },
+      select: { approvedReward: true, totalReferred: true, totalCommission: true }
+    }).catch(() => null),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { name: true, totalStudyMinutes: true, weeklyStudyMinutes: true, lastStudyDate: true }
+    }).catch((err) => {
+      console.warn('[getUnifiedUserStats] user query warning:', err?.message || err);
+      return null;
+    })
+  ]);
+
+  const streakDays = progression?.currentStreak ?? 0;
+  const lastActiveDate = progression?.lastActiveDate ?? null;
+  const totalStudyMinutes = userRecord?.totalStudyMinutes ?? 0;
+  const commissionBalance = refProfile?.approvedReward ?? 0;
+  const referredCount = refProfile?.totalReferred ?? 0;
+
+  let badgeLevel: 'Tân Binh' | 'Chiến Binh' | 'Ngôi Sao' = 'Tân Binh';
+  if (streakDays >= 30 || totalStudyMinutes >= 1800) badgeLevel = 'Ngôi Sao';
+  else if (streakDays >= 7 || totalStudyMinutes >= 300) badgeLevel = 'Chiến Binh';
+
+  return {
+    streakDays,
+    lastActiveDate,
+    totalStudyMinutes,
+    todayStudyMinutes: 0,
+    badgeLevel,
+    commissionBalance,
+    referredCount,
+    displayName: userRecord?.name || 'Bạn',
+    level: progression?.level ?? 1,
+    xp: progression?.totalXp ?? 0
+  };
+}
+
+// --------------------------------------------------------------------------
 // 2. User & Admin Login with Rate Limiting and Audit
 // --------------------------------------------------------------------------
 authRouter.post('/login', authRateLimiter, validateBody(LoginSchema), async (req: Request, res: Response) => {
@@ -212,27 +260,51 @@ authRouter.post('/login', authRateLimiter, validateBody(LoginSchema), async (req
     const rawPassword = String(password);
 
     // Rate limiting: check recent failed attempts for this identifier
-    const failedAttempts = await dbService.getRecentFailedAttempts(cleanInput, 15);
-    if (failedAttempts >= 5) {
-      res.status(429).json({
+    try {
+      const failedAttempts = await dbService.getRecentFailedAttempts(cleanInput, 15);
+      if (failedAttempts >= 5) {
+        res.status(429).json({
+          success: false,
+          error: {
+            code: 'TOO_MANY_ATTEMPTS',
+            message: 'Tài khoản tạm thời bị khóa do nhập sai mật khẩu quá 5 lần. Vui lòng thử lại sau 15 phút.'
+          },
+          message: 'Tài khoản tạm thời bị khóa do nhập sai mật khẩu quá 5 lần. Vui lòng thử lại sau 15 phút.'
+        });
+        return;
+      }
+    } catch (e: any) {
+      console.warn('Could not query recent failed attempts (DB issue):', e.message);
+    }
+
+    let user;
+    try {
+      user = await dbService.findUserByEmailOrUsername(cleanInput);
+      if (!user && (cleanInput === 'admin' || cleanInput === 'superadmin')) {
+        const adminEmail = (process.env.INITIAL_ADMIN_EMAIL || 'admin@lifeos.com').toLowerCase().trim();
+        user = await dbService.findUserByEmail(adminEmail);
+      }
+    } catch (dbErr: any) {
+      console.error('❌ Database error during login query:', dbErr.message || dbErr);
+      const isQuota = String(dbErr.message || '').includes('quota') || String(dbErr.code || '') === '53000';
+      res.status(503).json({
         success: false,
         error: {
-          code: 'TOO_MANY_ATTEMPTS',
-          message: 'Tài khoản tạm thời bị khóa do nhập sai mật khẩu quá 5 lần. Vui lòng thử lại sau 15 phút.'
+          code: 'DATABASE_UNAVAILABLE',
+          message: isQuota
+            ? 'Cơ sở dữ liệu đám mây (Neon) đã hết hạn mức dung lượng/quota miễn phí. Vui lòng chuyển sang PostgreSQL nội bộ VPS để chạy ổn định lâu dài.'
+            : 'Máy chủ không thể kết nối tới Cơ sở dữ liệu (PostgreSQL). Vui lòng kiểm tra lại dịch vụ CSDL.'
         },
-        message: 'Tài khoản tạm thời bị khóa do nhập sai mật khẩu quá 5 lần. Vui lòng thử lại sau 15 phút.'
+        message: isQuota
+          ? 'Cơ sở dữ liệu đám mây (Neon) đã hết hạn mức dung lượng/quota miễn phí. Vui lòng chuyển sang PostgreSQL nội bộ VPS để chạy ổn định lâu dài.'
+          : 'Máy chủ không thể kết nối tới Cơ sở dữ liệu (PostgreSQL). Vui lòng kiểm tra lại dịch vụ CSDL.'
       });
       return;
     }
 
-    let user = await dbService.findUserByEmailOrUsername(cleanInput);
-    if (!user && (cleanInput === 'admin' || cleanInput === 'superadmin')) {
-      const adminEmail = (process.env.INITIAL_ADMIN_EMAIL || 'admin@lifeos.com').toLowerCase().trim();
-      user = await dbService.findUserByEmail(adminEmail);
-    }
-
     if (!user) {
-      await dbService.recordLoginAttempt(cleanInput, false, 'User not found', clientIp);
+      console.warn(`[AuthAudit][user_not_found] Đăng nhập thất bại: Tài khoản không tồn tại ("${cleanInput}") từ IP: ${clientIp}`);
+      await dbService.recordLoginAttempt(cleanInput, false, 'user_not_found', clientIp).catch(() => {});
       res.status(401).json({
         success: false,
         error: { code: 'INVALID_CREDENTIALS', message: 'Email/Tên đăng nhập hoặc mật khẩu không chính xác' },
@@ -242,7 +314,8 @@ authRouter.post('/login', authRateLimiter, validateBody(LoginSchema), async (req
     }
 
     if (user.status === 'DISABLED') {
-      await dbService.recordLoginAttempt(cleanInput, false, 'Account disabled', clientIp, user.id);
+      console.warn(`[AuthAudit][disabled_account] Tài khoản bị vô hiệu hóa: ${user.email} (ID: ${user.id})`);
+      await dbService.recordLoginAttempt(cleanInput, false, 'disabled_account', clientIp, user.id);
       res.status(403).json({
         success: false,
         error: { code: 'ACCOUNT_DISABLED', message: 'Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ Admin.' },
@@ -252,7 +325,8 @@ authRouter.post('/login', authRateLimiter, validateBody(LoginSchema), async (req
     }
 
     if (user.status === 'SUSPENDED') {
-      await dbService.recordLoginAttempt(cleanInput, false, 'Account suspended', clientIp, user.id);
+      console.warn(`[AuthAudit][suspended_account] Tài khoản đang bị tạm ngưng: ${user.email} (ID: ${user.id})`);
+      await dbService.recordLoginAttempt(cleanInput, false, 'suspended_account', clientIp, user.id);
       res.status(403).json({
         success: false,
         error: { code: 'ACCOUNT_SUSPENDED', message: 'Tài khoản của bạn đang bị tạm ngưng.' },
@@ -261,11 +335,28 @@ authRouter.post('/login', authRateLimiter, validateBody(LoginSchema), async (req
       return;
     }
 
-    // Verify password strictly with bcrypt - NO fallback or default password bypass
+    // Verify password strictly with bcrypt
     const isValidPassword = await bcrypt.compare(rawPassword, user.passwordHash);
 
     if (!isValidPassword) {
-      await dbService.recordLoginAttempt(cleanInput, false, 'Invalid password', clientIp, user.id);
+      // Check if this account was created via Google OAuth and has not set an email password
+      const isGoogleOnly = Boolean(user.googleId) && Boolean(user.passwordHash);
+      if (isGoogleOnly) {
+        console.warn(`[AuthAudit][oauth_account] Người dùng ${user.email} được tạo bằng Google OAuth; nhập mật khẩu trực tiếp không khớp.`);
+        await dbService.recordLoginAttempt(cleanInput, false, 'oauth_account', clientIp, user.id);
+        res.status(401).json({
+          success: false,
+          error: {
+            code: 'OAUTH_ACCOUNT',
+            message: 'Tài khoản này được đăng ký thông qua Google. Vui lòng bấm "Đăng nhập bằng Google", hoặc sử dụng chức năng "Quên mật khẩu" để thiết lập mật khẩu trực tiếp.'
+          },
+          message: 'Tài khoản này được đăng ký thông qua Google. Vui lòng bấm "Đăng nhập bằng Google", hoặc sử dụng chức năng "Quên mật khẩu" để thiết lập mật khẩu trực tiếp.'
+        });
+        return;
+      }
+
+      console.warn(`[AuthAudit][invalid_password] Mật khẩu không chính xác cho tài khoản: ${user.email}`);
+      await dbService.recordLoginAttempt(cleanInput, false, 'invalid_password', clientIp, user.id);
       res.status(401).json({
         success: false,
         error: { code: 'INVALID_CREDENTIALS', message: 'Email/Tên đăng nhập hoặc mật khẩu không chính xác' },
@@ -275,11 +366,12 @@ authRouter.post('/login', authRateLimiter, validateBody(LoginSchema), async (req
     }
 
     // Record successful login attempt
-    await dbService.recordLoginAttempt(cleanInput, true, 'Success', clientIp, user.id);
+    console.info(`[AuthAudit][login_success] Đăng nhập thành công: ${user.email} (Role: ${user.role})`);
+    await dbService.recordLoginAttempt(cleanInput, true, 'login_success', clientIp, user.id);
 
     // Issue JWT Token (14 days validity)
     const token = jwt.sign(
-      { userId: user.id, role: user.role, email: user.email },
+      { userId: user.id, role: user.role, email: user.email, jti: crypto.randomUUID() },
       getJwtSecret(),
       { expiresIn: '14d' }
     );
@@ -290,6 +382,13 @@ authRouter.post('/login', authRateLimiter, validateBody(LoginSchema), async (req
 
     // Set HTTP-Only secure cookie
     setSessionCookie(req, res, token);
+
+    // Auto-create referral profile for user and bind referrer if applicable
+    await referralService.getOrCreateProfile(user.id).catch(e => console.warn('Referral profile init warning:', e));
+    const loginRefCode = req.body.referralCode || req.query.ref;
+    if (loginRefCode) {
+      await referralService.bindReferral(user.id, String(loginRefCode)).catch(e => console.warn('Referral bind on login warning:', e));
+    }
 
     // Audit log
     await dbService.createAuditLog(
@@ -313,23 +412,36 @@ authRouter.post('/login', authRateLimiter, validateBody(LoginSchema), async (req
       }
     }
 
+    const unifiedStats = await getUnifiedUserStats(user.id);
+
     const safeUser = {
       id: user.id,
       name: user.name,
+      displayName: user.name || 'Bạn',
       email: user.email,
       role: user.role,
       plan: (user.role === 'ADMIN' || user.role === 'SUPERADMIN') ? (user.plan && user.plan !== 'FREE' ? user.plan : 'TEAM') : user.plan,
       status: user.status,
       avatar: user.avatar,
+      isAffiliate: Boolean((user as any).isAffiliate || (user as any).is_affiliate),
       planExpiresAt: user.planExpiresAt,
-      onboardingCompleted: user.onboardingCompleted
+      onboardingCompleted: user.onboardingCompleted,
+      streakDays: unifiedStats.streakDays,
+      lastActiveDate: unifiedStats.lastActiveDate,
+      totalStudyMinutes: unifiedStats.totalStudyMinutes,
+      todayStudyMinutes: unifiedStats.todayStudyMinutes,
+      badgeLevel: unifiedStats.badgeLevel,
+      commissionBalance: unifiedStats.commissionBalance,
+      referredCount: unifiedStats.referredCount,
+      level: unifiedStats.level,
+      xp: unifiedStats.xp
     };
 
     res.json({
       success: true,
       message: 'Đăng nhập thành công',
-      user: safeUser
-      // NOTE: token is intentionally NOT returned in body — use httpOnly cookie only
+      user: safeUser,
+      token
     });
   } catch (error: any) {
     console.error('Login error:', error);
@@ -407,21 +519,34 @@ authRouter.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
       ? (user.plan && user.plan !== 'FREE' ? user.plan : 'TEAM') 
       : (subStatus.hasAccess ? (subStatus.planType === 'TEAM' ? 'TEAM' : 'PRO') : 'FREE');
 
+    const unifiedStats = await getUnifiedUserStats(user.id);
+
     res.json({
       success: true,
       user: {
         id: user.id,
         name: user.name,
+        displayName: user.name || 'Bạn',
         email: user.email,
         role: user.role,
         plan: verifiedPlan,
         status: user.status,
         avatar: user.avatar,
+        isAffiliate: Boolean((user as any).isAffiliate || (user as any).is_affiliate),
         planExpiresAt: subStatus.endDate || user.planExpiresAt || null,
         onboardingCompleted: user.onboardingCompleted,
         trialStartedAt: (user as any).trialStartedAt || null,
         trialEndsAt: (user as any).trialEndsAt || null,
-        isTrial: Boolean(subStatus.isTrial)
+        isTrial: Boolean(subStatus.isTrial),
+        streakDays: unifiedStats.streakDays,
+        lastActiveDate: unifiedStats.lastActiveDate,
+        totalStudyMinutes: unifiedStats.totalStudyMinutes,
+        todayStudyMinutes: unifiedStats.todayStudyMinutes,
+        badgeLevel: unifiedStats.badgeLevel,
+        commissionBalance: unifiedStats.commissionBalance,
+        referredCount: unifiedStats.referredCount,
+        level: unifiedStats.level,
+        xp: unifiedStats.xp
       },
       subscriptionStatus: subStatus,
       token: req.headers.authorization?.split(' ')[1] || req.cookies?.token
@@ -432,6 +557,67 @@ authRouter.get('/me', requireAuth, async (req: AuthRequest, res: Response) => {
       error: { code: 'SERVER_ERROR', message: error.message },
       message: error.message
     });
+  }
+});
+
+// --------------------------------------------------------------------------
+// 5b. Unified Stats Sync (Single Source of Truth)
+// --------------------------------------------------------------------------
+authRouter.post(['/unified-stats', '/sync-stats'], requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const { streakDays, lastActiveDate, totalStudyMinutes } = req.body;
+    const prisma = getPrisma();
+
+    // 1. Update userProgression
+    if (typeof streakDays === 'number' || typeof lastActiveDate === 'string') {
+      await prisma.userProgression.upsert({
+        where: { userId },
+        update: {
+          ...(typeof streakDays === 'number' ? { currentStreak: streakDays } : {}),
+          ...(typeof lastActiveDate === 'string' ? { lastActiveDate } : {})
+        },
+        create: {
+          userId,
+          currentStreak: typeof streakDays === 'number' ? streakDays : 0,
+          longestStreak: typeof streakDays === 'number' ? streakDays : 0,
+          lastActiveDate: typeof lastActiveDate === 'string' ? lastActiveDate : null
+        }
+      }).catch(() => {});
+    }
+
+    // 2. Update user table study minutes (CamelCase Prisma client field names)
+    if (typeof totalStudyMinutes === 'number') {
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          totalStudyMinutes: totalStudyMinutes,
+          lastStudyDate: new Date()
+        }
+      }).catch((err) => {
+        console.warn('[unified-stats] failed to update user study minutes:', err?.message || err);
+      });
+    }
+
+    const currentStats = await getUnifiedUserStats(userId);
+    res.json({
+      success: true,
+      stats: currentStats
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { message: error.message } });
+  }
+});
+
+authRouter.get('/unified-stats', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const stats = await getUnifiedUserStats(req.userId!);
+    res.json({
+      success: true,
+      stats
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, error: { message: error.message } });
   }
 });
 
@@ -509,6 +695,12 @@ authRouter.post('/change-password', requireAuth, passwordResetRateLimiter, valid
       { reason: 'User updated password' }
     );
 
+    SystemNotificationHelper.onPasswordChanged(
+      { id: user.id, name: user.name, email: user.email },
+      (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '',
+      req.headers['user-agent']
+    ).catch(() => {});
+
     res.json({ success: true, message: 'Đổi mật khẩu thành công' });
   } catch (err: any) {
     res.status(500).json({
@@ -516,6 +708,179 @@ authRouter.post('/change-password', requireAuth, passwordResetRateLimiter, valid
       error: { code: 'SERVER_ERROR', message: err.message },
       message: err.message
     });
+  }
+});
+
+// --------------------------------------------------------------------------
+// 7.1. DELETE ACCOUNT & FULL DATA ERASURE (Nghị định 13/2023/NĐ-CP Điều 9 & GDPR)
+// --------------------------------------------------------------------------
+authRouter.delete('/account', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const { confirmation, password } = req.body || {};
+    const prisma = getPrisma();
+
+    const user = await dbService.findUserById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Người dùng không tồn tại.' });
+    }
+
+    // Security Verification: Exact confirmation phrase or correct password
+    const isPhraseValid = confirmation === 'XÓA VĨNH VIỄN' || confirmation === 'DELETE_PERMANENTLY';
+    if (!isPhraseValid) {
+      if (!password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Vui lòng nhập cụm từ "XÓA VĨNH VIỄN" hoặc nhập mật khẩu để xác nhận hủy tài khoản.'
+        });
+      }
+      const isPasswordMatch = await bcrypt.compare(String(password), user.passwordHash);
+      if (!isPasswordMatch) {
+        return res.status(401).json({
+          success: false,
+          message: 'Mật khẩu xác nhận không chính xác.'
+        });
+      }
+    }
+
+    // Full cascading deletion transaction in Prisma
+    await prisma.$transaction(async (tx: any) => {
+      // 1. Delete authentication & sessions
+      await tx.session.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.passwordResetToken.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.passwordResetRequest.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.loginAttempt.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.securityEvent.deleteMany({ where: { userId } }).catch(() => {});
+
+      // 2. Delete tasks, notes, habits, goals, projects
+      await tx.task.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.projectMember.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.project.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.goal.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.habit.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.note.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.noteTag.deleteMany({ where: { userId } }).catch(() => {});
+
+      // 3. Delete calendar, schedule, focus
+      await tx.calendarEvent.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.scheduleBlock.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.reminder.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.focusSession.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.focusGoal.deleteMany({ where: { userId } }).catch(() => {});
+
+      // 4. Delete finances
+      await tx.transaction.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.budget.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.savingGoal.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.debt.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.recurringTransaction.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.financeAccount.deleteMany({ where: { userId } }).catch(() => {});
+
+      // 5. Delete study & vocab
+      await tx.studyAssignment.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.studyExam.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.studySession.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.subject.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.vocabWordProgress.deleteMany({ where: { userId } }).catch(() => {});
+
+      // 6. Delete decisions, automations, notifications
+      await tx.decision.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.automationExecution.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.automationRule.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.notificationDelivery.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.notification.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.userNotificationPreference.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.userNotificationRule.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.userEmailIntegration.deleteMany({ where: { userId } }).catch(() => {});
+
+      // 7. Delete orders, cart, subscriptions, referrals
+      await tx.cartItem.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.order.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.payment.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.subscription.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.customModuleRecord.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.feedback.deleteMany({ where: { userId } }).catch(() => {});
+      await tx.templateUsage.deleteMany({ where: { userId } }).catch(() => {});
+
+      // 8. Delete the user
+      await tx.user.delete({ where: { id: userId } });
+    });
+
+    clearSessionCookie(res);
+
+    res.json({
+      success: true,
+      message: 'Toàn bộ dữ liệu cá nhân và tài khoản của bạn đã được xóa vĩnh viễn khỏi hệ thống theo Nghị định 13/2023/NĐ-CP.'
+    });
+  } catch (err: any) {
+    console.error('DELETE /api/auth/account error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi khi xóa tài khoản: ' + err.message });
+  }
+});
+
+// --------------------------------------------------------------------------
+// 7.2. EXPORT PERSONAL DATA (GDPR / CCPA / Nghị định 13 Data Portability)
+// --------------------------------------------------------------------------
+authRouter.get('/export-data', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.userId!;
+    const prisma = getPrisma();
+
+    const user = await dbService.findUserById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Người dùng không tồn tại.' });
+    }
+
+    const [tasks, notes, habits, goals, transactions, budgets, vocabProgress] = await Promise.all([
+      prisma.task.findMany({ where: { userId } }).catch(() => []),
+      prisma.note.findMany({ where: { userId } }).catch(() => []),
+      prisma.habit.findMany({ where: { userId } }).catch(() => []),
+      prisma.goal.findMany({ where: { userId } }).catch(() => []),
+      prisma.transaction.findMany({ where: { userId } }).catch(() => []),
+      prisma.budget.findMany({ where: { userId } }).catch(() => []),
+      prisma.vocabWordProgress.findMany({ where: { userId } }).catch(() => [])
+    ]);
+
+    const sanitizedUser = {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      plan: user.plan,
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt
+    };
+
+    const exportBundle = {
+      exportMetadata: {
+        appName: 'LifeOS (quanlicanhan.online)',
+        version: '2.0.0',
+        exportedAt: new Date().toISOString(),
+        complianceStandards: ['Nghị định 13/2023/NĐ-CP Điều 9', 'GDPR Article 20 Data Portability', 'CCPA'],
+        subjectEmail: user.email
+      },
+      profile: sanitizedUser,
+      tasks,
+      notes,
+      habits,
+      goals,
+      financialRecords: {
+        transactions,
+        budgets
+      },
+      studyProgress: {
+        vocabProgress
+      }
+    };
+
+    const dateStr = new Date().toISOString().split('T')[0];
+    const filename = `lifeos_data_export_${userId.slice(0, 8)}_${dateStr}.json`;
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.json(exportBundle);
+  } catch (err: any) {
+    console.error('GET /api/auth/export-data error:', err);
+    res.status(500).json({ success: false, message: 'Lỗi khi xuất dữ liệu: ' + err.message });
   }
 });
 
@@ -719,6 +1084,14 @@ authRouter.post('/reset-password', passwordResetRateLimiter, validateBody(ResetP
       { tokenUsed: record.id, ip: clientIp }
     );
 
+    if (record.user) {
+      SystemNotificationHelper.onPasswordChanged(
+        { id: record.user.id, name: record.user.name, email: record.user.email },
+        clientIp,
+        req.headers['user-agent']
+      ).catch(() => {});
+    }
+
     res.json({
       success: true,
       message: 'Đặt lại mật khẩu thành công! Mọi phiên đăng nhập cũ đã được đăng xuất an toàn. Vui lòng đăng nhập với mật khẩu mới.'
@@ -745,6 +1118,52 @@ authRouter.get('/google/config', (req: Request, res: Response) => {
     clientId: clientId || null
   });
 });
+
+// Cryptographic state helpers for resilient OAuth flow
+function createSignedOAuthState(req: Request, redirectUri: string): string {
+  const host = req.get('x-forwarded-host') || req.get('host') || 'localhost:3000';
+  const proto = (req.headers['x-forwarded-proto'] as string) || (req.secure ? 'https' : 'http');
+  const origin = `${proto}://${host}`.replace(/\/$/, '');
+  const nonce = crypto.randomBytes(16).toString('hex');
+  const payload = JSON.stringify({ nonce, origin, redirectUri, ts: Date.now() });
+  const b64 = Buffer.from(payload).toString('base64url');
+  const sig = crypto.createHmac('sha256', getJwtSecret()).update(b64).digest('base64url');
+  return `${b64}.${sig}`;
+}
+
+function verifySignedOAuthState(rawState: string, storedCookieState?: string): { valid: boolean; origin?: string; redirectUri?: string } {
+  if (!rawState || typeof rawState !== 'string') return { valid: false };
+
+  // 1. Check matching cookie if present
+  if (storedCookieState && rawState === storedCookieState) {
+    try {
+      const [b64] = rawState.split('.');
+      if (b64) {
+        const payload = JSON.parse(Buffer.from(b64, 'base64url').toString('utf8'));
+        return { valid: true, origin: payload.origin, redirectUri: payload.redirectUri };
+      }
+    } catch {}
+    return { valid: true };
+  }
+
+  // 2. Cryptographic signature check (resilient against cross-domain redirect cookie blocking)
+  try {
+    const [b64, sig] = rawState.split('.');
+    if (!b64 || !sig) return { valid: false };
+    const expectedSig = crypto.createHmac('sha256', getJwtSecret()).update(b64).digest('base64url');
+    if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expectedSig))) {
+      return { valid: false };
+    }
+    const payload = JSON.parse(Buffer.from(b64, 'base64url').toString('utf8'));
+    // Valid for 15 minutes
+    if (Date.now() - payload.ts > 15 * 60 * 1000) {
+      return { valid: false };
+    }
+    return { valid: true, origin: payload.origin, redirectUri: payload.redirectUri };
+  } catch (err) {
+    return { valid: false };
+  }
+}
 
 // 11B. Initiate Google OAuth Flow (Redirects to Google Sign-In)
 authRouter.get('/google', (req: Request, res: Response) => {
@@ -774,11 +1193,31 @@ authRouter.get('/google', (req: Request, res: Response) => {
       return;
     }
 
-    const appUrl = (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
-    const redirectUri = process.env.GOOGLE_CALLBACK_URL || `${appUrl}/api/auth/google/callback`;
+    const host = req.get('x-forwarded-host') || req.get('host') || 'localhost:3000';
+    const proto = (req.headers['x-forwarded-proto'] as string) || (req.secure ? 'https' : 'http');
+    const dynamicOrigin = `${proto}://${host}`.replace(/\/$/, '');
+    
+    // Resilient Redirect URI resolution:
+    // If request comes from a live public domain (e.g. quanlicanhan.online), never let a legacy localhost
+    // GOOGLE_CALLBACK_URL env override it!
+    const configuredCallback = (process.env.GOOGLE_CALLBACK_URL || '').trim();
+    let redirectUri = `${dynamicOrigin}/api/auth/google/callback`;
+    if (configuredCallback) {
+      if (configuredCallback.startsWith('/')) {
+        redirectUri = `${dynamicOrigin}${configuredCallback}`;
+      } else {
+        const isRequestLocal = host.includes('localhost') || host.includes('127.0.0.1');
+        const isCallbackLocal = configuredCallback.includes('localhost') || configuredCallback.includes('127.0.0.1');
+        if (isRequestLocal || !isCallbackLocal) {
+          redirectUri = configuredCallback;
+        }
+      }
+    }
 
-    // Secure CSRF state token
-    const state = crypto.randomBytes(24).toString('hex');
+    console.log(`[Google OAuth] Initiating Sign-In flow: host=${host}, origin=${dynamicOrigin}, redirectUri=${redirectUri}`);
+
+    // Secure CSRF state token with cryptographic signature
+    const state = createSignedOAuthState(req, redirectUri);
     const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
 
     res.cookie('google_oauth_state', state, {
@@ -786,7 +1225,7 @@ authRouter.get('/google', (req: Request, res: Response) => {
       secure: isHttps,
       sameSite: 'lax',
       path: '/',
-      maxAge: 10 * 60 * 1000 // 10 minutes
+      maxAge: 15 * 60 * 1000 // 15 minutes
     });
 
     const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
@@ -817,12 +1256,33 @@ const handleGoogleCallback = async (req: Request, res: Response) => {
 
     if (googleError) {
       console.warn('[Google OAuth] Google returned error:', googleError);
+      if (typeof state === 'string' && state.startsWith('cls_')) {
+        res.redirect(`/?view=classroom&google_error=${encodeURIComponent(String(googleError))}`);
+        return;
+      }
       res.redirect('/?login=google_cancelled');
       return;
     }
 
-    if (!state || !storedState || state !== storedState) {
-      console.warn('[Google OAuth] State mismatch or expired');
+    // Check if callback originated from Classroom / Google Meet connect flow
+    if (typeof state === 'string' && state.startsWith('cls_')) {
+      const host = req.get('x-forwarded-host') || req.get('host') || 'localhost:3000';
+      const proto = (req.headers['x-forwarded-proto'] as string) || (req.secure ? 'https' : 'http');
+      const dynamicOrigin = `${proto}://${host}`.replace(/\/$/, '');
+      const redirectUri = classroomService.getClassroomRedirectUri(dynamicOrigin);
+
+      try {
+        const { email } = await classroomService.handleCallback(String(code || ''), state, redirectUri);
+        return res.redirect(`/?view=classroom&google=connected&email=${encodeURIComponent(email)}`);
+      } catch (clsErr: any) {
+        console.error('[Google OAuth] Classroom callback via auth callback failed:', clsErr);
+        return res.redirect(`/?view=classroom&google_error=${encodeURIComponent(clsErr?.message || 'Kết nối Google Classroom thất bại')}`);
+      }
+    }
+
+    const stateCheck = verifySignedOAuthState(String(state || ''), storedState);
+    if (!stateCheck.valid) {
+      console.warn('[Google OAuth] State verification failed (signature or timeout mismatch)');
       res.redirect('/?login=google_state_mismatch');
       return;
     }
@@ -834,8 +1294,26 @@ const handleGoogleCallback = async (req: Request, res: Response) => {
 
     const clientId = (process.env.GOOGLE_CLIENT_ID || '').trim();
     const clientSecret = (process.env.GOOGLE_CLIENT_SECRET || '').trim();
-    const appUrl = (process.env.APP_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
-    const redirectUri = process.env.GOOGLE_CALLBACK_URL || `${appUrl}/api/auth/google/callback`;
+    const host = req.get('x-forwarded-host') || req.get('host') || 'localhost:3000';
+    const proto = (req.headers['x-forwarded-proto'] as string) || (req.secure ? 'https' : 'http');
+    const dynamicOrigin = `${proto}://${host}`.replace(/\/$/, '');
+    
+    let redirectUri = stateCheck.redirectUri;
+    if (!redirectUri) {
+      const configuredCallback = (process.env.GOOGLE_CALLBACK_URL || '').trim();
+      redirectUri = `${dynamicOrigin}/api/auth/google/callback`;
+      if (configuredCallback) {
+        if (configuredCallback.startsWith('/')) {
+          redirectUri = `${dynamicOrigin}${configuredCallback}`;
+        } else {
+          const isRequestLocal = host.includes('localhost') || host.includes('127.0.0.1');
+          const isCallbackLocal = configuredCallback.includes('localhost') || configuredCallback.includes('127.0.0.1');
+          if (isRequestLocal || !isCallbackLocal) {
+            redirectUri = configuredCallback;
+          }
+        }
+      }
+    }
 
     // Exchange authorization code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
@@ -937,11 +1415,11 @@ const handleGoogleCallback = async (req: Request, res: Response) => {
         passwordHash,
         googleId,
         role: isInitialAdmin ? 'SUPERADMIN' : 'USER',
-        plan: isInitialAdmin ? 'TEAM' : 'FREE',
+        plan: isInitialAdmin ? 'TEAM' : 'PRO',
         status: 'ACTIVE',
         avatar: avatarUrl,
         trialStartedAt: now,
-        trialEndsAt,
+        trialEndsAt: null,
         trialUsed: true
       });
 
@@ -965,7 +1443,7 @@ const handleGoogleCallback = async (req: Request, res: Response) => {
 
     // Issue standard JWT Token (14 days validity) matching standard authentication
     const token = jwt.sign(
-      { userId: user.id, role: user.role, email: user.email },
+      { userId: user.id, role: user.role, email: user.email, jti: crypto.randomUUID() },
       getJwtSecret(),
       { expiresIn: '14d' }
     );
@@ -986,7 +1464,8 @@ const handleGoogleCallback = async (req: Request, res: Response) => {
       { email: user.email, googleId, ip: clientIp }
     );
 
-    res.redirect(`/?login=google_success&token=${encodeURIComponent(token)}`);
+    const targetOrigin = stateCheck.origin || dynamicOrigin;
+    res.redirect(`${targetOrigin}/?login=google_success&token=${encodeURIComponent(token)}`);
   } catch (error: any) {
     console.error('Google OAuth callback error:', error);
     res.redirect('/?login=google_server_error');
@@ -1075,11 +1554,11 @@ authRouter.post('/google/credential', authRateLimiter, async (req: Request, res:
         passwordHash,
         googleId,
         role: 'USER',
-        plan: 'FREE',
+        plan: 'PRO',
         status: 'ACTIVE',
         avatar: avatarUrl,
         trialStartedAt: now,
-        trialEndsAt,
+        trialEndsAt: null,
         trialUsed: true
       });
 
@@ -1091,7 +1570,7 @@ authRouter.post('/google/credential', authRateLimiter, async (req: Request, res:
 
     // Issue standard JWT Token (14 days validity) matching standard authentication
     const token = jwt.sign(
-      { userId: user.id, role: user.role, email: user.email },
+      { userId: user.id, role: user.role, email: user.email, jti: crypto.randomUUID() },
       getJwtSecret(),
       { expiresIn: '14d' }
     );
@@ -1124,7 +1603,8 @@ authRouter.post('/google/credential', authRateLimiter, async (req: Request, res:
     res.json({
       success: true,
       message: 'Đăng nhập Google thành công',
-      user: safeUser
+      user: safeUser,
+      token
     });
   } catch (error: any) {
     console.error('Google credential login error:', error);
@@ -1354,15 +1834,15 @@ authRouter.post('/reset-request', passwordResetRateLimiter, validateBody(Passwor
         where: { role: { in: ['ADMIN', 'SUPERADMIN'] } },
         select: { id: true }
       });
-      for (const admin of admins) {
-        await prisma.notification.create({
-          data: {
+      if (admins.length > 0) {
+        await prisma.notification.createMany({
+          data: admins.map((admin) => ({
             userId: admin.id,
             title: `Yêu cầu khôi phục mật khẩu: ${ticketCode}`,
             message: `Người dùng ${cleanEmail} vừa gửi yêu cầu khôi phục mật khẩu (${ticketCode}). Vui lòng vào trang Quản trị để duyệt.`,
             type: 'Info',
             read: false
-          }
+          }))
         });
       }
     } catch (notifErr) {

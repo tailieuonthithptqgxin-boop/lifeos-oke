@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Plus, Search, Edit3, Trash2, Download, AlertCircle, CheckCircle2,
   Layers, Filter, RefreshCw, X, Check, Calendar, DollarSign,
@@ -7,6 +7,9 @@ import {
 import { apiCall } from '../lib/apiClient';
 import { formatCurrency } from '../lib/utils';
 import { useAppStore } from '../lib/store';
+import { toast } from '../lib/toast';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+import { AdminConfirmModal } from './admin/AdminConfirmModal';
 
 interface FieldDef {
   id: string;
@@ -49,6 +52,19 @@ export function DynamicModuleView({ slug }: { slug: string }) {
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
+  useBodyScrollLock(isModalOpen);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsModalOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen]);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [editingRecord, setEditingRecord] = useState<RecordItem | null>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState(false);
@@ -140,19 +156,25 @@ export function DynamicModuleView({ slug }: { slug: string }) {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa bản ghi này không?')) return;
+  const confirmDeleteRecord = async () => {
+    if (!deleteTargetId) return;
     try {
+      setIsDeleting(true);
       const res = await apiCall<{ success: boolean; message: string }>(
-        `/api/custom-modules/${slug}/records/${id}`,
+        `/api/custom-modules/${slug}/records/${deleteTargetId}`,
         'DELETE'
       );
       if (res.success) {
-        setRecords(prev => prev.filter(r => r.id !== id));
+        setRecords(prev => prev.filter(r => r.id !== deleteTargetId));
         setSuccess('Đã xóa bản ghi thành công!');
+        toast.success('Đã xóa bản ghi thành công!');
       }
     } catch (err: any) {
       setError(err.message || 'Không thể xóa bản ghi.');
+      toast.error(err.message || 'Không thể xóa bản ghi.');
+    } finally {
+      setIsDeleting(false);
+      setDeleteTargetId(null);
     }
   };
 
@@ -239,7 +261,7 @@ export function DynamicModuleView({ slug }: { slug: string }) {
         </div>
 
         <div className="flex items-center gap-2.5 w-full sm:w-auto">
-          <button
+          <button type="button"
             onClick={handleExportCSV}
             disabled={records.length === 0}
             className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 font-bold text-xs hover:bg-slate-50 dark:hover:bg-slate-700/60 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
@@ -247,7 +269,7 @@ export function DynamicModuleView({ slug }: { slug: string }) {
             <Download className="w-4 h-4" />
             <span>Xuất CSV</span>
           </button>
-          <button
+          <button type="button"
             onClick={handleOpenCreate}
             className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
@@ -264,7 +286,7 @@ export function DynamicModuleView({ slug }: { slug: string }) {
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="opacity-70 hover:opacity-100">✕</button>
+          <button type="button" onClick={() => setError(null)} className="opacity-70 hover:opacity-100">✕</button>
         </div>
       )}
 
@@ -274,7 +296,7 @@ export function DynamicModuleView({ slug }: { slug: string }) {
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{success}</span>
           </div>
-          <button onClick={() => setSuccess(null)} className="opacity-70 hover:opacity-100">✕</button>
+          <button type="button" onClick={() => setSuccess(null)} className="opacity-70 hover:opacity-100">✕</button>
         </div>
       )}
 
@@ -304,7 +326,7 @@ export function DynamicModuleView({ slug }: { slug: string }) {
             <p className="text-xs text-slate-500 max-w-sm mt-1">
               Bắt đầu thêm bản ghi đầu tiên vào lĩnh vực {moduleDef.name}.
             </p>
-            <button
+            <button type="button"
               onClick={handleOpenCreate}
               className="mt-4 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-all flex items-center gap-2 cursor-pointer"
             >
@@ -364,15 +386,15 @@ export function DynamicModuleView({ slug }: { slug: string }) {
                     </td>
                     <td className="py-3.5 px-4 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        <button
+                        <button type="button"
                           onClick={() => handleOpenEdit(r)}
                           className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
                           title="Sửa bản ghi"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                         </button>
-                        <button
-                          onClick={() => handleDelete(r.id)}
+                        <button type="button"
+                          onClick={() => setDeleteTargetId(r.id)}
                           className="p-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/50 text-rose-600 dark:text-rose-400 transition-colors"
                           title="Xóa bản ghi"
                         >
@@ -390,8 +412,22 @@ export function DynamicModuleView({ slug }: { slug: string }) {
 
       {/* Add / Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto">
+        <div 
+          onMouseDown={(e) => {
+            mouseDownTargetRef.current = e.target;
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) {
+              setIsModalOpen(false);
+            }
+          }}
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200 cursor-default"
+        >
+          <div 
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto"
+          >
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center font-bold">
@@ -404,7 +440,7 @@ export function DynamicModuleView({ slug }: { slug: string }) {
                   <p className="text-xs text-slate-500">Điền thông tin cho các trường dữ liệu</p>
                 </div>
               </div>
-              <button
+              <button type="button"
                 onClick={() => setIsModalOpen(false)}
                 className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
               >
@@ -509,6 +545,18 @@ export function DynamicModuleView({ slug }: { slug: string }) {
           </div>
         </div>
       )}
+
+      <AdminConfirmModal
+        isOpen={!!deleteTargetId}
+        title="Xóa bản ghi"
+        message="Bạn có chắc chắn muốn xóa bản ghi này không? Thao tác này sẽ xóa vĩnh viễn và không thể khôi phục."
+        confirmText="Xác nhận xóa"
+        cancelText="Hủy bỏ"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={confirmDeleteRecord}
+        onCancel={() => setDeleteTargetId(null)}
+      />
     </div>
   );
 }

@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, Sparkles, Check, Lock, Zap, Shield, Swords, 
-  BookOpen, Clock, Flame, Coins, Award, RefreshCw
+  BookOpen, Clock, Flame, Coins, Award, RefreshCw, AlertCircle
 } from 'lucide-react';
 import { apiCall } from '../../lib/apiClient';
 import { soundEngine } from '../../lib/soundEngine';
 import { triggerConfetti } from '../../lib/confetti';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 interface RPGSkillTreeModalProps {
   isOpen: boolean;
@@ -18,11 +19,26 @@ export function RPGSkillTreeModal({
   onClose,
   onSkillUnlocked
 }: RPGSkillTreeModalProps) {
+  useBodyScrollLock(isOpen);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
   const [trees, setTrees] = useState<any[]>([]);
   const [availableSkillPoints, setAvailableSkillPoints] = useState<number>(0);
-  const [selectedTreeId, setSelectedTreeId] = useState<string>('FOCUS');
+  const [selectedTreeId, setSelectedTreeId] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem('lifeos_rpg_selected_tree');
+      if (saved) return saved;
+    } catch {}
+    return 'FOCUS';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_rpg_selected_tree', selectedTreeId);
+    } catch {}
+  }, [selectedTreeId]);
   const [isLoading, setIsLoading] = useState(true);
   const [unlockingKey, setUnlockingKey] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const fetchSkills = async () => {
     try {
@@ -45,6 +61,16 @@ export function RPGSkillTreeModal({
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const activeTree = trees.find(t => t.id === selectedTreeId) || trees[0];
@@ -52,6 +78,7 @@ export function RPGSkillTreeModal({
   const handleUnlockSkill = async (skillKey: string) => {
     try {
       setUnlockingKey(skillKey);
+      setErrorMessage(null);
       soundEngine.playPop();
       const res = await apiCall('/api/rpg/skills/unlock', 'POST', { skillKey });
       if (res && res.success) {
@@ -61,20 +88,30 @@ export function RPGSkillTreeModal({
         onSkillUnlocked();
       }
     } catch (err: any) {
-      alert(err.message || 'Không thể mở khóa kỹ năng.');
+      setErrorMessage(err.message || 'Không thể mở khóa kỹ năng.');
     } finally {
       setUnlockingKey(null);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (mouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 cursor-default"
+    >
       <div 
         className="relative w-full max-w-3xl rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl text-white overflow-hidden flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+        <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/60 shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center text-lg">
               ⭐
@@ -83,29 +120,43 @@ export function RPGSkillTreeModal({
               <h2 className="text-lg font-black text-white flex items-center gap-2">
                 <span>Cây Kỹ Năng Nhân Vật (Talent Trees)</span>
                 <span className="px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 text-[10px] font-black uppercase">
-                  {availableSkillPoints} Điểm Khả Dụng
+                  {availableSkillPoints} Skill Points
                 </span>
               </h2>
               <p className="text-xs text-slate-400">
-                Mở khóa các nội tại đặc biệt để gia tăng sát thương và tỷ lệ sống sót trong trận chiến
+                Tăng cường các thuộc tính vĩnh viễn cho nhân vật bằng điểm kỹ năng từ Level Up
               </p>
             </div>
           </div>
 
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* Error notification banner if any */}
+        {errorMessage && (
+          <div className="px-6 py-2.5 bg-rose-500/15 border-b border-rose-500/30 text-rose-300 text-xs flex items-center justify-between animate-fade-in shrink-0">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+            <button type="button" onClick={() => setErrorMessage(null)} className="p-1 hover:text-white cursor-pointer">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
 
         {/* 5 Tree Tabs */}
         <div className="flex items-center px-6 pt-4 border-b border-slate-800 gap-1.5 overflow-x-auto pb-2">
           {trees.map(tree => {
             const isSelected = tree.id === selectedTreeId;
             return (
-              <button
+              <button type="button"
                 key={tree.id}
                 onClick={() => setSelectedTreeId(tree.id)}
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
@@ -175,7 +226,7 @@ export function RPGSkillTreeModal({
                             <span>Đã Kích Hoạt</span>
                           </div>
                         ) : canUnlock ? (
-                          <button
+                          <button type="button"
                             onClick={() => handleUnlockSkill(skill.key)}
                             disabled={unlockingKey === skill.key}
                             className="w-full py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 text-xs font-black transition active:scale-95 cursor-pointer shadow-md"
@@ -202,7 +253,7 @@ export function RPGSkillTreeModal({
           <span className="text-xs text-slate-400">
             Mỗi khi thăng cấp Level ngoài đời thật, bạn sẽ nhận được 1 Điểm Kỹ Năng.
           </span>
-          <button
+          <button type="button"
             onClick={onClose}
             className="px-5 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition cursor-pointer"
           >

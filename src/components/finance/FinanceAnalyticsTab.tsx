@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   TrendingUp, TrendingDown, Calendar, DollarSign, PieChart as PieChartIcon, 
   BarChart3, Activity, AlertCircle, CheckCircle2, Info, Sparkles, 
@@ -10,7 +10,7 @@ import {
   CartesianGrid, Tooltip as RechartsTooltip, PieChart as RePieChart, 
   Pie, Cell, BarChart, Bar, Legend
 } from 'recharts';
-import { formatCurrency, formatCompactCurrency, formatDate } from '../../lib/utils';
+import { formatCurrency, formatCompactCurrency, formatDate, formatLocalDateKey } from '../../lib/utils';
 import { Transaction, Budget, SavingGoal } from '../../lib/types';
 import { FinanceMonthlyComparisonTab } from './FinanceMonthlyComparisonTab';
 import { useAppStore } from '../../lib/store';
@@ -39,10 +39,73 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
 }) => {
   const { language } = useAppStore();
   const isVi = language === 'vi';
-  const [subView, setSubView] = useState<AnalyticsSubView>('period');
-  const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('this_month');
-  const [chartGranularity, setChartGranularity] = useState<GranularityType>('day');
-  const [chartType, setChartType] = useState<'area' | 'bar'>('area');
+
+  // SubView with F5 Persistence
+  const [subView, setSubView] = useState<AnalyticsSubView>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_finance_analytics_subview') as any;
+        if (saved && ['period', 'monthly_comparison'].includes(saved)) return saved;
+      } catch {}
+    }
+    return 'period';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_finance_analytics_subview', subView);
+    } catch {}
+  }, [subView]);
+
+  // Selected Period with F5 Persistence
+  const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_finance_analytics_period') as any;
+        if (saved && ['this_month', 'last_month', 'last_30_days', 'this_quarter', 'this_year', 'all'].includes(saved)) return saved;
+      } catch {}
+    }
+    return 'this_month';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_finance_analytics_period', selectedPeriod);
+    } catch {}
+  }, [selectedPeriod]);
+
+  // Granularity & Chart Type with F5 Persistence
+  const [chartGranularity, setChartGranularity] = useState<GranularityType>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_finance_analytics_granularity') as any;
+        if (saved && ['day', 'week', 'month'].includes(saved)) return saved;
+      } catch {}
+    }
+    return 'day';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_finance_analytics_granularity', chartGranularity);
+    } catch {}
+  }, [chartGranularity]);
+
+  const [chartType, setChartType] = useState<'area' | 'bar'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_finance_analytics_chart_type') as any;
+        if (saved && ['area', 'bar'].includes(saved)) return saved;
+      } catch {}
+    }
+    return 'area';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_finance_analytics_chart_type', chartType);
+    } catch {}
+  }, [chartType]);
 
   // Current system date
   const now = useMemo(() => new Date(), []);
@@ -295,7 +358,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
       if (selectedPeriod === 'this_month' || selectedPeriod === 'last_30_days' || selectedPeriod === 'last_month') {
         const iter = new Date(startOfCurrent.getTime());
         while (iter <= endOfCurrent) {
-          const key = iter.toISOString().split('T')[0];
+          const key = formatLocalDateKey(iter);
           const dLabel = `${iter.getDate()}/${iter.getMonth() + 1}`;
           dayMap[key] = { dateStr: key, income: 0, expense: 0, label: dLabel };
           iter.setDate(iter.getDate() + 1);
@@ -335,7 +398,7 @@ export const FinanceAnalyticsTab: React.FC<FinanceAnalyticsTabProps> = ({
         // Approximate ISO week label
         const startOfWeek = new Date(d);
         startOfWeek.setDate(d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1));
-        const weekKey = startOfWeek.toISOString().split('T')[0];
+        const weekKey = formatLocalDateKey(startOfWeek);
         const label = `Week ${startOfWeek.getDate()}/${startOfWeek.getMonth() + 1}`;
 
         if (!weekMap[weekKey]) {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   ResponsiveContainer, 
   RadarChart, 
@@ -21,6 +21,7 @@ import {
   ArrowRight
 } from 'lucide-react';
 import { LifeHarmonyOverview, LifeHarmonyDimension } from '../lib/lifeHarmonyEngine';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 export interface LifeHarmonyRadarWidgetProps {
   harmony: LifeHarmonyOverview;
@@ -34,6 +35,8 @@ export const LifeHarmonyRadarWidget: React.FC<LifeHarmonyRadarWidgetProps> = ({
   className = ''
 }) => {
   const [showTraceModal, setShowTraceModal] = useState(false);
+  useBodyScrollLock(showTraceModal);
+  const traceModalMouseDownRef = useRef<EventTarget | null>(null);
   const [selectedDimForTrace, setSelectedDimForTrace] = useState<LifeHarmonyDimension | null>(null);
 
   // Close modal on Escape key press
@@ -281,12 +284,18 @@ export const LifeHarmonyRadarWidget: React.FC<LifeHarmonyRadarWidgetProps> = ({
       {/* TRACEABILITY & AUDIT MODAL: "VÌ SAO TÔI CÓ ĐIỂM NÀY?" */}
       {showTraceModal && (
         <div 
+          onMouseDown={(e) => {
+            traceModalMouseDownRef.current = e.target;
+          }}
           onClick={(e) => {
-            if (e.target === e.currentTarget) setShowTraceModal(false);
+            if (e.target === e.currentTarget && traceModalMouseDownRef.current === e.currentTarget) {
+              setShowTraceModal(false);
+            }
           }}
           className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in cursor-default"
         >
           <div 
+            onMouseDown={(e) => e.stopPropagation()}
             onClick={(e) => e.stopPropagation()}
             className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col relative z-10"
           >

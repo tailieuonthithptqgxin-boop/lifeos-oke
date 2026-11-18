@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { X, UserPlus } from 'lucide-react';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 interface CreateUserModalProps {
   isOpen: boolean;
@@ -30,6 +31,10 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   setNewUser,
   isSubmitting
 }) => {
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useBodyScrollLock(isOpen);
+
   useEffect(() => {
     if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -44,7 +49,12 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({
   return (
     <div 
       className="fixed inset-0 z-[80] bg-black/50 flex items-center justify-center p-4 backdrop-blur-xs"
-      onClick={onClose}
+      onMouseDown={(e) => { mouseDownTargetRef.current = e.target; }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) {
+          onClose();
+        }
+      }}
     >
       <div 
         className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4"

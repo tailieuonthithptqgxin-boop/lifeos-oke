@@ -8,7 +8,7 @@ interface FinanceAccountsTabProps {
   getAccountIcon: (type: string) => React.ReactNode;
   formatCurrency: (val: number) => string;
   onEditAccount: (acc: any) => void;
-  onDeleteAccount: (id: string) => void;
+  onDeleteAccount: (id: string, acc?: any) => void;
   onAddAccount: () => void;
   isLoading?: boolean;
 }
@@ -82,16 +82,9 @@ export const FinanceAccountsTab: React.FC<FinanceAccountsTabProps> = ({
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        const confirmMsg = isVi 
-                          ? `Bạn có chắc muốn xóa tài khoản "${acc.name}" không?` 
-                          : `Are you sure you want to delete account "${acc.name}"?`;
-                        if (window.confirm?.(confirmMsg)) {
-                          onDeleteAccount(acc.id);
-                        }
-                      }}
+                      onClick={() => onDeleteAccount(acc.id, acc)}
                       className="w-9 h-9 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition-colors cursor-pointer"
-                      title={isVi ? 'Xóa tài khoản' : 'Delete account'}
+                      title={isVi ? 'Xóa tài khoản (Có thể hoàn tác 5s)' : 'Delete account (5s Undo)'}
                       aria-label="Delete account"
                     >
                       <Trash2 className="w-4 h-4" />

@@ -13,7 +13,8 @@ import {
   ArrowRight,
   RotateCcw,
   Sparkles,
-  Users
+  Users,
+  X
 } from 'lucide-react';
 import { apiCall } from '../../lib/apiClient';
 import { formatCurrency } from '../../lib/utils';
@@ -182,8 +183,18 @@ export function AdminSubscriptionsTab({ onShowMessage }: AdminSubscriptionsTabPr
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Tìm kiếm theo email, tên người dùng, mã tham chiếu..."
-              className="w-full pl-9 pr-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+              className="w-full pl-9 pr-9 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                title="Xóa tìm kiếm"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
           <button
             type="submit"

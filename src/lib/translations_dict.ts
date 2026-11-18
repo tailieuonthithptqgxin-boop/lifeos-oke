@@ -1,4 +1,9 @@
 export const fullTranslations: Record<string, string> = {
+  "Phòng Học Trực Tuyến": "Online Study & Classroom",
+  "Lớp Học Online": "Online Classroom",
+  "Phòng Học Live": "Live Study Rooms",
+  "LifeOS Connect": "Bảng Tin Cộng Đồng",
+  "Sảnh Học & Co-working": "Study & Co-working Space",
   " badge=": "badge=",
   " ĐỂ BẮT ĐẦU THEO DÕI.": "CLICK \\\\",
   " ĐỂ KHỞI TẠO DỰ ÁN ĐẦU TIÊN.": "CLICK \\\\",

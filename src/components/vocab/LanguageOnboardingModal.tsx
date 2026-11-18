@@ -1,6 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Globe, Search, ChevronRight, X } from 'lucide-react';
 import { PRESET_LANGUAGES, LearningLanguage } from '../../lib/vocabEngine';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 interface LanguageOnboardingModalProps {
   existingLanguages: LearningLanguage[];
@@ -13,6 +14,8 @@ export const LanguageOnboardingModal: React.FC<LanguageOnboardingModalProps> = (
   onClose,
   onSelectLanguage
 }) => {
+  useBodyScrollLock(true);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
   const [search, setSearch] = useState('');
   const [level, setLevel] = useState<'beginner' | 'intermediate' | 'advanced'>('beginner');
   const [dailyTarget, setDailyTarget] = useState(10);
@@ -55,34 +58,52 @@ export const LanguageOnboardingModal: React.FC<LanguageOnboardingModalProps> = (
 
   return (
     <div 
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs"
-      onClick={onClose}
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (mouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+      className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/60 backdrop-blur-xs cursor-default"
+      role="dialog"
+      aria-modal="true"
     >
       <div 
-        className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95 duration-150"
+        className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-lg overflow-hidden animate-modal-enter transition-transform"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+        {/* Mobile Drag Indicator */}
+        <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto my-2 sm:hidden shrink-0" />
+
+        <div className="px-6 py-4 sm:py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Globe className="w-5 h-5 text-blue-600" />
             <h3 className="font-bold text-slate-900 dark:text-white text-base">
               Bạn muốn học thêm ngôn ngữ nào?
             </h3>
           </div>
-          <button type="button" onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 rounded">
+          <button 
+            type="button" 
+            onClick={onClose} 
+            className="w-9 h-9 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer"
+            aria-label="Đóng"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="p-6 space-y-4 max-h-[75vh] overflow-y-auto text-xs">
+        <div className="p-5 sm:p-6 space-y-4 max-h-[85dvh] sm:max-h-[75vh] overflow-y-auto text-xs">
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
+              autoFocus
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Tìm kiếm ngôn ngữ (Tiếng Pháp, Đức, Hàn, Nhật...)"
-              className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+              className="w-full pl-9 pr-3 py-2.5 min-h-[44px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
             />
           </div>
 

@@ -193,7 +193,7 @@
     "index": 22,
     "term": "by accident",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/baɪ ˈæksɪdənt/",
     "meaning": "tình cờ, ngẫu nhiên",
     "raw": "by accident"
   },
@@ -355,7 +355,7 @@
     "index": 40,
     "term": "take action",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/teɪk ˈækʃn/",
     "meaning": "hành động",
     "raw": "take action hành động"
   },
@@ -454,7 +454,7 @@
     "index": 51,
     "term": "in addition (to)",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɪn əˈdɪʃn/",
     "meaning": "thêm vào",
     "raw": "in addition (to) thêm vào"
   },
@@ -571,7 +571,7 @@
     "index": 64,
     "term": "in advance",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɪn ədˈvɑːns/",
     "meaning": "trước, sớm",
     "raw": "in advance trước, sớm"
   },
@@ -589,7 +589,7 @@
     "index": 66,
     "term": "take advantage of",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/teɪk ədˈvɑːntɪdʒ əv/",
     "meaning": "lợi dụng",
     "raw": "take advantage of lợi dụng"
   },
@@ -616,14 +616,14 @@
     "index": 69,
     "term": "advertising",
     "pos": "n.",
-    "phonetic": "",
+    "phonetic": "/ˈædvətaɪzɪŋ/",
     "meaning": "sự quảng cáo, nghề quảng cáo",
     "raw": "advertising n. sự quảng cáo, nghề quảng cáo"
   },
   {
     "id": "word_3000_70",
     "index": 70,
-    "term": "advertisement (also ad, advert)",
+    "term": "advertisement",
     "pos": "n.",
     "phonetic": "/əd'və:tismənt/",
     "meaning": "mục quảng cáo, bài quảng cáo",
@@ -859,7 +859,7 @@
     "index": 96,
     "term": "airport",
     "pos": "n.",
-    "phonetic": "",
+    "phonetic": "/ˈeəpɔːt/",
     "meaning": "sân bay, phi trường",
     "raw": "airport n. sân bay, phi trường"
   },
@@ -1075,7 +1075,7 @@
     "index": 120,
     "term": "alternatively",
     "pos": "adv.",
-    "phonetic": "",
+    "phonetic": "/ɔːlˈtɜːnətɪvli/",
     "meaning": "như một sự lựa chọn",
     "raw": "alternatively adv. như một sự lựa chọn"
   },
@@ -1136,9 +1136,9 @@
   {
     "id": "word_3000_127",
     "index": 127,
-    "term": "ambition n. æm'biʃn",
-    "pos": "phrase",
-    "phonetic": "/",
+    "term": "ambition",
+    "pos": "n.",
+    "phonetic": "/æm'biʃn/",
     "meaning": "hoài bão, khát vọng",
     "raw": "ambition n. æm'biʃn/ hoài bão, khát vọng"
   },
@@ -1154,7 +1154,7 @@
   {
     "id": "word_3000_129",
     "index": 129,
-    "term": "among (also amongst)",
+    "term": "among",
     "pos": "prep.",
     "phonetic": "/ə'mʌɳ/",
     "meaning": "giữa, ở giữa",
@@ -1199,7 +1199,7 @@
   {
     "id": "word_3000_134",
     "index": 134,
-    "term": "analyse (BrE) (NAmE analyze)",
+    "term": "analyse",
     "pos": "v.",
     "phonetic": "/'ænəlaiz/",
     "meaning": "phân tích",
@@ -1372,7 +1372,7 @@
     "index": 153,
     "term": "anti-",
     "pos": "prefix",
-    "phonetic": "",
+    "phonetic": "/ˈænti/",
     "meaning": "chống lại",
     "raw": "anti- prefix chống lại"
   },
@@ -1417,14 +1417,14 @@
     "index": 158,
     "term": "any",
     "pos": "det., pron., adv.",
-    "phonetic": "",
+    "phonetic": "/ˈeni/",
     "meaning": "một người, vật nào đó; bất cứ; một chút nào, tí nào",
     "raw": "any det., pron., adv. một người, vật nào đó; bất cứ; một chút nào, tí nào"
   },
   {
     "id": "word_3000_159",
     "index": 159,
-    "term": "anyone (also anybody)",
+    "term": "anyone",
     "pos": "pron.",
     "phonetic": "/'eniwʌn/",
     "meaning": "người nào, bất cứ ai",
@@ -1469,16 +1469,16 @@
   {
     "id": "word_3000_164",
     "index": 164,
-    "term": "apart from (also aside from especially in NAmE)",
+    "term": "apart from",
     "pos": "prep.",
-    "phonetic": "",
+    "phonetic": "/əˈpɑːt frəm/",
     "meaning": "ngoài…ra",
     "raw": "apart from (also aside from especially in NAmE) prep. ngoài…ra"
   },
   {
     "id": "word_3000_165",
     "index": 165,
-    "term": "apartment n. (especially NAmE)",
+    "term": "apartment n.",
     "pos": "phrase",
     "phonetic": "/ə'pɑ:tmənt/",
     "meaning": "căn phòng, căn buồng",
@@ -1487,7 +1487,7 @@
   {
     "id": "word_3000_166",
     "index": 166,
-    "term": "apologize (BrE also -ise)",
+    "term": "apologize",
     "pos": "v.",
     "phonetic": "/ə'pɔlədʤaiz/",
     "meaning": "xin lỗi, tạ lỗi",
@@ -1507,7 +1507,7 @@
     "index": 168,
     "term": "apparently",
     "pos": "adv.",
-    "phonetic": "",
+    "phonetic": "/əˈpærəntli/",
     "meaning": "nhìn bên ngoài, hình như",
     "raw": "apparently adv. nhìn bên ngoài, hình như"
   },
@@ -1604,7 +1604,7 @@
   {
     "id": "word_3000_179",
     "index": 179,
-    "term": "appropriate adj. (+to, for)",
+    "term": "appropriate adj.",
     "pos": "phrase",
     "phonetic": "/ə'proupriit/",
     "meaning": "thích hợp, thích đáng",
@@ -1658,7 +1658,7 @@
   {
     "id": "word_3000_185",
     "index": 185,
-    "term": "April n. (abbr. Apr.)",
+    "term": "April n.",
     "pos": "phrase",
     "phonetic": "/'eiprəl/",
     "meaning": "tháng Tư",
@@ -1714,7 +1714,7 @@
     "index": 191,
     "term": "arms",
     "pos": "n.",
-    "phonetic": "",
+    "phonetic": "/ɑːmz/",
     "meaning": "vũ khí, binh giới, binh khí",
     "raw": "arms n. vũ khí, binh giới, binh khí"
   },
@@ -1784,7 +1784,7 @@
   {
     "id": "word_3000_199",
     "index": 199,
-    "term": "arrive v. (+at, in)",
+    "term": "arrive v.",
     "pos": "phrase",
     "phonetic": "/ə'raiv/",
     "meaning": "đến, tới nơi",
@@ -1885,7 +1885,7 @@
     "index": 210,
     "term": "aside from",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/əˈsaɪd frəm/",
     "meaning": "ngoài ra, trừ ra",
     "raw": "aside from ngoài ra, trừ ra"
   },
@@ -1921,7 +1921,7 @@
     "index": 214,
     "term": "fall asleep",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/fɔːl əˈsliːp/",
     "meaning": "ngủ thiếp đi",
     "raw": "fall asleep ngủ thiếp đi"
   },
@@ -1975,7 +1975,7 @@
     "index": 220,
     "term": "associated with",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/əˈsəʊʃieɪtɪd wɪð/",
     "meaning": "liên kết với",
     "raw": "associated with liên kết với"
   },
@@ -2038,7 +2038,7 @@
     "index": 227,
     "term": "attached",
     "pos": "adj.",
-    "phonetic": "",
+    "phonetic": "/əˈtætʃt/",
     "meaning": "gắn bó",
     "raw": "attached adj. gắn bó"
   },
@@ -2092,7 +2092,7 @@
     "index": 233,
     "term": "pay attention (to)",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/peɪ əˈtenʃn/",
     "meaning": "chú ý tới",
     "raw": "pay attention (to) chú ý tới"
   },
@@ -2108,7 +2108,7 @@
   {
     "id": "word_3000_235",
     "index": 235,
-    "term": "attorney n. (especially NAmE)",
+    "term": "attorney n.",
     "pos": "phrase",
     "phonetic": "/ə'tə:ni/",
     "meaning": "người được ủy quyền",
@@ -2153,7 +2153,7 @@
   {
     "id": "word_3000_240",
     "index": 240,
-    "term": "August n. (abbr. Aug.)",
+    "term": "August n.",
     "pos": "phrase",
     "phonetic": "/'ɔ:gəst - ɔ:'gʌst/",
     "meaning": "tháng Tám",
@@ -2200,14 +2200,14 @@
     "index": 245,
     "term": "automatically",
     "pos": "adv.",
-    "phonetic": "",
+    "phonetic": "/ˌɔːtəˈmætɪkli/",
     "meaning": "một cách tự động",
     "raw": "automatically adv. một cách tự động"
   },
   {
     "id": "word_3000_246",
     "index": 246,
-    "term": "autumn n. (especially BrE)",
+    "term": "autumn n.",
     "pos": "phrase",
     "phonetic": "/'ɔ:təm/",
     "meaning": "mùa thu (US: mùa thu là fall)",
@@ -2290,7 +2290,7 @@
     "index": 255,
     "term": "awfully",
     "pos": "adv.",
-    "phonetic": "",
+    "phonetic": "/ˈɔːfli/",
     "meaning": "tàn khốc, khủng khiếp",
     "raw": "awfully adv. tàn khốc, khủng khiếp"
   },
@@ -2308,7 +2308,7 @@
     "index": 257,
     "term": "awkwardly",
     "pos": "adv.",
-    "phonetic": "",
+    "phonetic": "/ˈɔːkwədli/",
     "meaning": "vụng về, lung túng",
     "raw": "awkwardly adv. vụng về, lung túng"
   },
@@ -2333,7 +2333,7 @@
   {
     "id": "word_3000_260",
     "index": 260,
-    "term": "backwards (also backward especially in NAmE)",
+    "term": "backwards",
     "pos": "adv.",
     "phonetic": "/'bækwədz/",
     "meaning": "về phía sau, lùi lại",
@@ -2371,7 +2371,7 @@
     "index": 264,
     "term": "go bad",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɡəʊ bæd/",
     "meaning": "bẩn thỉu, thối, hỏng",
     "raw": "go bad bẩn thỉu, thối, hỏng"
   },
@@ -2405,7 +2405,7 @@
   {
     "id": "word_3000_268",
     "index": 268,
-    "term": "baggage n. (especially NAmE)",
+    "term": "baggage n.",
     "pos": "phrase",
     "phonetic": "/'bædidʤ/",
     "meaning": "hành lý",
@@ -2515,7 +2515,7 @@
     "index": 280,
     "term": "based on",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/beɪst ɒn/",
     "meaning": "dựa trên",
     "raw": "based on dựa trên"
   },
@@ -2560,7 +2560,7 @@
     "index": 285,
     "term": "bathroom",
     "pos": "n.",
-    "phonetic": "",
+    "phonetic": "/ˈbɑːθruːm/",
     "meaning": "buồng tắm, nhà vệ sinh",
     "raw": "bathroom n. buồng tắm, nhà vệ sinh"
   },
@@ -2677,7 +2677,7 @@
     "index": 298,
     "term": "because of",
     "pos": "prep.",
-    "phonetic": "",
+    "phonetic": "/bɪˈkəz əv/",
     "meaning": "vì, do bởi",
     "raw": "because of prep. vì, do bởi"
   },
@@ -2767,16 +2767,16 @@
     "index": 308,
     "term": "on behalf of sb",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɒn bɪˈhɑːf əv/",
     "meaning": "thay mặt cho ai, nhân danh ai",
     "raw": "on behalf of sb thay mặt cho ai, nhân danh ai"
   },
   {
     "id": "word_3000_309",
     "index": 309,
-    "term": "on sb’s behalf (BrE) (NAmE in behalf of sb, in sb’s behalf)",
+    "term": "on sb’s behalf",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɒn bɪˈhɑːf/",
     "meaning": "nhân danh cá nhân ai",
     "raw": "on sb’s behalf (BrE) (NAmE in behalf of sb, in sb’s behalf) nhân danh cá nhân ai"
   },
@@ -2792,9 +2792,9 @@
   {
     "id": "word_3000_311",
     "index": 311,
-    "term": "behaviour (BrE) (NAmE behavior)",
+    "term": "behaviour",
     "pos": "n.",
-    "phonetic": "",
+    "phonetic": "/bɪˈheɪvjə(r)/",
     "meaning": "hành vi, cách ứng xử, tư cách",
     "raw": "behaviour (BrE) (NAmE behavior) n."
   },
@@ -2963,7 +2963,7 @@
   {
     "id": "word_3000_330",
     "index": 330,
-    "term": "bicycle (also bike)",
+    "term": "bicycle",
     "pos": "n.",
     "phonetic": "/'baisikl/",
     "meaning": "xe đạp",
@@ -2999,7 +2999,7 @@
   {
     "id": "word_3000_334",
     "index": 334,
-    "term": "bin n. (BrE)",
+    "term": "bin n.",
     "pos": "phrase",
     "phonetic": "/bin/",
     "meaning": "thùng, thùng đựng rượu",
@@ -3037,7 +3037,7 @@
     "index": 338,
     "term": "give birth (to)",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɡɪv bɜːθ/",
     "meaning": "sinh ra",
     "raw": "give birth (to) sinh ra"
   },
@@ -3053,7 +3053,7 @@
   {
     "id": "word_3000_340",
     "index": 340,
-    "term": "biscuit n. (BrE)",
+    "term": "biscuit n.",
     "pos": "phrase",
     "phonetic": "/'biskit/",
     "meaning": "bánh quy",
@@ -3062,7 +3062,7 @@
   {
     "id": "word_3000_341",
     "index": 341,
-    "term": "bit n. (especially BrE)",
+    "term": "bit n.",
     "pos": "phrase",
     "phonetic": "/bit/",
     "meaning": "miếng, mảnh",
@@ -3073,7 +3073,7 @@
     "index": 342,
     "term": "a bit",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ə bɪt/",
     "meaning": "một chút, một tí",
     "raw": "a bit một chút, một tí"
   },
@@ -3217,7 +3217,7 @@
     "index": 358,
     "term": "on board",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɒn bɔːd/",
     "meaning": "trên tàu thủy",
     "raw": "on board trên tàu thủy"
   },
@@ -3316,14 +3316,14 @@
     "index": 369,
     "term": "bored",
     "pos": "adj.",
-    "phonetic": "",
+    "phonetic": "/bɔːd/",
     "meaning": "buồn chán",
     "raw": "bored adj. buồn chán"
   },
   {
     "id": "word_3000_370",
     "index": 370,
-    "term": "born: be born",
+    "term": "born",
     "pos": "v.",
     "phonetic": "/bɔ:n/",
     "meaning": "sinh, đẻ",
@@ -3386,7 +3386,7 @@
   {
     "id": "word_3000_377",
     "index": 377,
-    "term": "bound adj.: bound to",
+    "term": "bound adj.",
     "pos": "phrase",
     "phonetic": "/baund/",
     "meaning": "nhất định, chắc chắn",
@@ -3424,7 +3424,7 @@
     "index": 381,
     "term": "boyfriend",
     "pos": "n.",
-    "phonetic": "",
+    "phonetic": "/ˈbɔɪfrend/",
     "meaning": "bạn trai",
     "raw": "boyfriend n. bạn trai"
   },
@@ -3791,10 +3791,10 @@
   {
     "id": "word_3000_422",
     "index": 422,
-    "term": "businessman, businesswoman",
+    "term": "businessman",
     "pos": "n.",
-    "phonetic": "",
-    "meaning": "thương nhân",
+    "phonetic": "/ˈbɪznəsmæn/",
+    "meaning": "doanh nhân, thương nhân (nam/nữ)",
     "raw": "businessman, businesswoman n. thương nhân"
   },
   {
@@ -3937,7 +3937,7 @@
     "index": 438,
     "term": "be called",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/biː kɔːld/",
     "meaning": "được gọi, bị gọi",
     "raw": "be called được gọi, bị gọi"
   },
@@ -4009,7 +4009,7 @@
     "index": 446,
     "term": "cannot",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ˈkænɒt/",
     "meaning": "không thể",
     "raw": "cannot không thể"
   },
@@ -4052,7 +4052,7 @@
   {
     "id": "word_3000_451",
     "index": 451,
-    "term": "candy n. (NAmE)",
+    "term": "candy n.",
     "pos": "phrase",
     "phonetic": "/´kændi/",
     "meaning": "kẹo",
@@ -4153,7 +4153,7 @@
     "index": 462,
     "term": "take care (of)",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/teɪk keə(r)/",
     "meaning": "sự giữ gìn",
     "raw": "take care (of) sự giữ gìn"
   },
@@ -4162,7 +4162,7 @@
     "index": 463,
     "term": "care for",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/keə(r) fɔː(r)/",
     "meaning": "trông nom, chăm sóc",
     "raw": "care for trông nom, chăm sóc"
   },
@@ -4207,7 +4207,7 @@
     "index": 468,
     "term": "carelessly",
     "pos": "adv.",
-    "phonetic": "",
+    "phonetic": "/ˈkeələsli/",
     "meaning": "cẩu thả, bất cẩn",
     "raw": "carelessly adv. cẩu thả, bất cẩn"
   },
@@ -4252,7 +4252,7 @@
     "index": 473,
     "term": "in case (of)",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɪn keɪs/",
     "meaning": "nếu......",
     "raw": "in case (of) nếu......"
   },
@@ -4324,7 +4324,7 @@
     "index": 481,
     "term": "CD",
     "pos": "n.",
-    "phonetic": "",
+    "phonetic": "/ˌsiː ˈdiː/",
     "meaning": "đĩa CD, đĩa quang",
     "raw": "CD n."
   },
@@ -4376,16 +4376,16 @@
   {
     "id": "word_3000_487",
     "index": 487,
-    "term": "cellphone (also cellular phone) n. (especially NAmE)",
-    "pos": "phrase",
-    "phonetic": "",
+    "term": "cellphone",
+    "pos": "n.",
+    "phonetic": "/ˈselfəʊn/",
     "meaning": "điện thoại di động",
     "raw": "cellphone (also cellular phone) n. (especially NAmE) điện thoại di động"
   },
   {
     "id": "word_3000_488",
     "index": 488,
-    "term": "cent n. (abbr. c, ct)",
+    "term": "cent n.",
     "pos": "phrase",
     "phonetic": "/sent/ đồng xu (=1/",
     "meaning": "100 đô la)",
@@ -4394,9 +4394,9 @@
   {
     "id": "word_3000_489",
     "index": 489,
-    "term": "centimetre (BrE) (NAmE centimeter) n. (abbr. cm)",
-    "pos": "phrase",
-    "phonetic": "",
+    "term": "centimetre",
+    "pos": "n.",
+    "phonetic": "/ˈsentɪmiːtə(r)/",
     "meaning": "xen ti met",
     "raw": "centimetre (BrE) (NAmE centimeter) n. (abbr. cm) xen ti met"
   },
@@ -4412,7 +4412,7 @@
   {
     "id": "word_3000_491",
     "index": 491,
-    "term": "centre (BrE) (NAmE center)",
+    "term": "centre",
     "pos": "n.",
     "phonetic": "/'sentə/",
     "meaning": "điểm giữa, trung tâm, trung ương",
@@ -4585,7 +4585,7 @@
     "index": 510,
     "term": "in charge of",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɪn tʃɑːdʒ əv/",
     "meaning": "phụ trách",
     "raw": "in charge of phụ trách"
   },
@@ -4639,7 +4639,7 @@
     "index": 516,
     "term": "cheaply",
     "pos": "adv.",
-    "phonetic": "",
+    "phonetic": "/ˈtʃiːpli/",
     "meaning": "rẻ, rẻ tiền",
     "raw": "cheaply adv. rẻ, rẻ tiền"
   },
@@ -4682,10 +4682,10 @@
   {
     "id": "word_3000_521",
     "index": 521,
-    "term": "cheerfully adv. vui",
-    "pos": "phrase",
-    "phonetic": "",
-    "meaning": "vẻ, phấn khởi",
+    "term": "cheerfully",
+    "pos": "adv.",
+    "phonetic": "/ˈtʃɪəfəli/",
+    "meaning": "vui vẻ, phấn khởi",
     "raw": "cheerfully adv. vui vẻ, phấn khởi"
   },
   {
@@ -4718,9 +4718,9 @@
   {
     "id": "word_3000_525",
     "index": 525,
-    "term": "chemist’s n. (BrE)",
-    "pos": "phrase",
-    "phonetic": "",
+    "term": "chemist’s",
+    "pos": "n.",
+    "phonetic": "/ˈkemɪsts/",
     "meaning": "hiệu thuốc, cửa hàng hóa chất",
     "raw": "chemist’s n. (BrE)"
   },
@@ -4736,7 +4736,7 @@
   {
     "id": "word_3000_527",
     "index": 527,
-    "term": "cheque n. (BrE) (NAmE check)",
+    "term": "cheque n.",
     "pos": "phrase",
     "phonetic": "/t∫ek/",
     "meaning": "séc",
@@ -4862,7 +4862,7 @@
   {
     "id": "word_3000_541",
     "index": 541,
-    "term": "cinema n. (especially BrE)",
+    "term": "cinema n.",
     "pos": "phrase",
     "phonetic": "/ˈsɪnəmə/",
     "meaning": "rạp xi nê, rạp chiếu bóng",
@@ -4972,7 +4972,7 @@
     "index": 553,
     "term": "clear",
     "pos": "adj., v.",
-    "phonetic": "",
+    "phonetic": "/klɪə(r)/",
     "meaning": "lau chùi, quét dọn",
     "raw": "clear adj., v. lau chùi, quét dọn"
   },
@@ -5060,9 +5060,9 @@
   {
     "id": "word_3000_563",
     "index": 563,
-    "term": "close NAmE",
-    "pos": "adj.",
-    "phonetic": "/klouz/",
+    "term": "close",
+    "pos": "adj., adv.",
+    "phonetic": "/kləʊz/",
     "meaning": "đóng kín, chật chội, che đậy",
     "raw": "close NAmE adj. /klouz/ đóng kín, chật chội, che đậy"
   },
@@ -5078,9 +5078,9 @@
   {
     "id": "word_3000_565",
     "index": 565,
-    "term": "close NAmE",
-    "pos": "v.",
-    "phonetic": "",
+    "term": "close",
+    "pos": "adj., adv.",
+    "phonetic": "/kləʊz/",
     "meaning": "đóng, khép, kết thúc, chấm dứt",
     "raw": "close NAmE v. đóng, khép, kết thúc, chấm dứt"
   },
@@ -5096,7 +5096,7 @@
   {
     "id": "word_3000_567",
     "index": 567,
-    "term": "closet n. (especially NAmE)",
+    "term": "closet n.",
     "pos": "phrase",
     "phonetic": "/'klozit/",
     "meaning": "buồng, phòng để đồ, phòng kho",
@@ -5151,8 +5151,8 @@
     "id": "word_3000_573",
     "index": 573,
     "term": "centimetre",
-    "pos": "phrase",
-    "phonetic": "/'senti,mi:tз/",
+    "pos": "n.",
+    "phonetic": "/ˈsentɪmiːtə(r)/",
     "meaning": "xen ti mét",
     "raw": "centimetre /'senti,mi:tз/ xen ti mét"
   },
@@ -5285,7 +5285,7 @@
   {
     "id": "word_3000_588",
     "index": 588,
-    "term": "colour (BrE) (NAmE color)",
+    "term": "colour",
     "pos": "n., v.",
     "phonetic": "/'kʌlə/",
     "meaning": "màu sắc; tô màu",
@@ -5294,7 +5294,7 @@
   {
     "id": "word_3000_589",
     "index": 589,
-    "term": "coloured (BrE) (NAmE colored)",
+    "term": "coloured",
     "pos": "adj.",
     "phonetic": "/´kʌləd/",
     "meaning": "mang màu sắc, có màu sắc",
@@ -5458,7 +5458,7 @@
     "index": 607,
     "term": "in common",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɪn ˈkɒmən/",
     "meaning": "sự chung, của chung",
     "raw": "in common sự chung, của chung"
   },
@@ -5818,7 +5818,7 @@
     "index": 647,
     "term": "confuse",
     "pos": "v.",
-    "phonetic": "",
+    "phonetic": "/kənˈfjuːz/",
     "meaning": "làm lộn xộn, xáo trộn",
     "raw": "confuse v. làm lộn xộn, xáo trộn"
   },
@@ -6167,9 +6167,9 @@
   {
     "id": "word_3000_686",
     "index": 686,
-    "term": "control n., v. s",
-    "pos": "phrase",
-    "phonetic": "/kən'troul/",
+    "term": "control",
+    "pos": "n., v.",
+    "phonetic": "/kənˈtrəʊl/",
     "meaning": "sự điều khiển, quyền hành, quyền lực, quyền chỉ huy",
     "raw": "control n., v. s /kən'troul/ sự điều khiển, quyền hành, quyền lực, quyền chỉ huy"
   },
@@ -6178,7 +6178,7 @@
     "index": 687,
     "term": "in control (of)",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɪn kənˈtrəʊl/",
     "meaning": "trong sự điều khiển của",
     "raw": "in control (of) trong sự điều khiển của"
   },
@@ -6187,7 +6187,7 @@
     "index": 688,
     "term": "under control",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ˈʌndə(r) kənˈtrəʊl/",
     "meaning": "dưới sự điều khiển của",
     "raw": "under control dưới sự điều khiển của"
   },
@@ -6284,7 +6284,7 @@
   {
     "id": "word_3000_699",
     "index": 699,
-    "term": "cooker n. (BrE)",
+    "term": "cooker n.",
     "pos": "phrase",
     "phonetic": "/´kukə/",
     "meaning": "lò, bếp, nồi nấu",
@@ -6293,7 +6293,7 @@
   {
     "id": "word_3000_700",
     "index": 700,
-    "term": "cookie n. (especially NAmE)",
+    "term": "cookie n.",
     "pos": "phrase",
     "phonetic": "/´kuki/",
     "meaning": "bánh quy",
@@ -6484,7 +6484,7 @@
     "index": 721,
     "term": "a couple",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ə ˈkʌpl/",
     "meaning": "một cặp, một đôi",
     "raw": "a couple một cặp, một đôi"
   },
@@ -6511,7 +6511,7 @@
     "index": 724,
     "term": "of course",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/əv kɔːs/",
     "meaning": "dĩ nhiên",
     "raw": "of course dĩ nhiên"
   },
@@ -6655,7 +6655,7 @@
     "index": 740,
     "term": "credit card",
     "pos": "n.",
-    "phonetic": "",
+    "phonetic": "/ˈkredɪt kɑːd/",
     "meaning": "thẻ tín dụng",
     "raw": "credit card n. thẻ tín dụng"
   },
@@ -6725,7 +6725,7 @@
   {
     "id": "word_3000_748",
     "index": 748,
-    "term": "criticize (BrE also -ise)",
+    "term": "criticize",
     "pos": "v.",
     "phonetic": "/ˈkrɪtəˌsaɪz/",
     "meaning": "phê bình, phê phán, chỉ trích",
@@ -7168,7 +7168,7 @@
     "index": 797,
     "term": "deal with",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/diːl wɪð/",
     "meaning": "giải quyết",
     "raw": "deal with giải quyết"
   },
@@ -7229,7 +7229,7 @@
   {
     "id": "word_3000_804",
     "index": 804,
-    "term": "December n. (abbr. Dec.)",
+    "term": "December n.",
     "pos": "phrase",
     "phonetic": "/di'sembə/",
     "meaning": "tháng mười hai, tháng Chạp",
@@ -7337,7 +7337,7 @@
   {
     "id": "word_3000_816",
     "index": 816,
-    "term": "defence (BrE) (NAmE defense)",
+    "term": "defence",
     "pos": "n.",
     "phonetic": "/di'fens/",
     "meaning": "cái để bảo vệ, vật để chống đỡ, sự che chở",
@@ -7717,7 +7717,7 @@
     "index": 858,
     "term": "in detail",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɪn ˈdiːteɪl/",
     "meaning": "tường tận, tỉ mỉ",
     "raw": "in detail tường tận, tỉ mỉ"
   },
@@ -8102,7 +8102,7 @@
   {
     "id": "word_3000_901",
     "index": 901,
-    "term": "disc (also disk, especially in NAmE)",
+    "term": "disc",
     "pos": "n.",
     "phonetic": "/disk/",
     "meaning": "đĩa",
@@ -8390,7 +8390,7 @@
   {
     "id": "word_3000_933",
     "index": 933,
-    "term": "doctor n. (abbr. Dr, NAmE Dr.)",
+    "term": "doctor n.",
     "pos": "phrase",
     "phonetic": "/'dɔktə/",
     "meaning": "bác sĩ y khoa, tiến sĩ",
@@ -8498,7 +8498,7 @@
   {
     "id": "word_3000_945",
     "index": 945,
-    "term": "downwards (also downward especially in NAmE)",
+    "term": "downwards",
     "pos": "adv.",
     "phonetic": "/´daun¸wədz/",
     "meaning": "xuống, đi xuống",
@@ -8617,7 +8617,7 @@
     "index": 958,
     "term": "dressed",
     "pos": "adj.",
-    "phonetic": "",
+    "phonetic": "/drest/",
     "meaning": "cách ăn mặc",
     "raw": "dressed adj. cách ăn mặc"
   },
@@ -8678,7 +8678,7 @@
   {
     "id": "word_3000_965",
     "index": 965,
-    "term": "drugstore n. (NAmE)",
+    "term": "drugstore n.",
     "pos": "phrase",
     "phonetic": "/'drʌgstɔ:/",
     "meaning": "hiệu thuốc, cửa hàng dược phẩm",
@@ -8725,7 +8725,7 @@
     "index": 970,
     "term": "due to",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/djuː tuː/",
     "meaning": "vì, do, tại, nhờ có",
     "raw": "due to vì, do, tại, nhờ có"
   },
@@ -8779,7 +8779,7 @@
     "index": 976,
     "term": "DVD",
     "pos": "n.",
-    "phonetic": "",
+    "phonetic": "/ˌdiː viː ˈdiː/",
     "meaning": "đĩa DVD",
     "raw": "DVD n."
   },
@@ -8795,9 +8795,9 @@
   {
     "id": "word_3000_978",
     "index": 978,
-    "term": "each other (also one another)",
+    "term": "each other",
     "pos": "pron.",
-    "phonetic": "",
+    "phonetic": "/iːtʃ ˈʌðə(r)/",
     "meaning": "nhau, lẫn nhau",
     "raw": "each other (also one another) pron. nhau, lẫn nhau"
   },
@@ -9020,9 +9020,9 @@
   {
     "id": "word_3000_1003",
     "index": 1003,
-    "term": "e.g. abbr.",
-    "pos": "phrase",
-    "phonetic": "",
+    "term": "e.g.",
+    "pos": "abbr.",
+    "phonetic": "/ˌiː ˈdʒiː/",
     "meaning": "Viết tắt của cụm từ La tinh exempli gratia (for example)",
     "raw": "e.g. abbr. Viết tắt của cụm từ La tinh exempli gratia (for example)"
   },
@@ -9137,7 +9137,7 @@
   {
     "id": "word_3000_1016",
     "index": 1016,
-    "term": "elevator n. (NAmE)",
+    "term": "elevator n.",
     "pos": "phrase",
     "phonetic": "/ˈɛləˌveɪtər/",
     "meaning": "máy nâng, thang máy",
@@ -9164,7 +9164,7 @@
   {
     "id": "word_3000_1019",
     "index": 1019,
-    "term": "email (also e-mail)",
+    "term": "email",
     "pos": "n., v.",
     "phonetic": "/'imeil/",
     "meaning": "thư điện tử; gửi thư điện tử",
@@ -9263,7 +9263,7 @@
   {
     "id": "word_3000_1030",
     "index": 1030,
-    "term": "emphasize (BrE also -ise)",
+    "term": "emphasize",
     "pos": "v.",
     "phonetic": "/ˈɛmfəˌsaɪz/",
     "meaning": "nhấn mạnh, làm nổi bật",
@@ -9391,7 +9391,7 @@
     "index": 1044,
     "term": "in the end",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɪn ði end/",
     "meaning": "cuối cùng, về sau",
     "raw": "in the end cuối cùng, về sau"
   },
@@ -9515,7 +9515,7 @@
   {
     "id": "word_3000_1058",
     "index": 1058,
-    "term": "enquiry (also inquiry especially in NAmE)",
+    "term": "enquiry",
     "pos": "n.",
     "phonetic": "/in'kwaiәri/",
     "meaning": "sự điều tra, sự thẩm vấn",
@@ -9857,7 +9857,7 @@
   {
     "id": "word_3000_1096",
     "index": 1096,
-    "term": "everyone (also everybody)",
+    "term": "everyone",
     "pos": "pron.",
     "phonetic": "/´evri¸wʌn/",
     "meaning": "mọi người",
@@ -9904,7 +9904,7 @@
     "index": 1101,
     "term": "ex-",
     "pos": "prefix",
-    "phonetic": "",
+    "phonetic": "/eks/",
     "meaning": "tiền tố chỉ bên ngoài",
     "raw": "ex- prefix tiền tố chỉ bên ngoài"
   },
@@ -10019,9 +10019,9 @@
   {
     "id": "word_3000_1114",
     "index": 1114,
-    "term": "in exchange (for) trong",
+    "term": "in exchange (for)",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɪn ɪksˈtʃeɪndʒ/",
     "meaning": "việc trao đổi về",
     "raw": "in exchange (for) trong việc trao đổi về"
   },
@@ -10370,9 +10370,9 @@
   {
     "id": "word_3000_1153",
     "index": 1153,
-    "term": "extent n. v",
-    "pos": "phrase",
-    "phonetic": "/ɪkˈstɛnt/",
+    "term": "extent",
+    "pos": "n.",
+    "phonetic": "/ɪkˈstent/",
     "meaning": "quy mô, phạm vi",
     "raw": "extent n. v /ɪkˈstɛnt/ quy mô, phạm vi"
   },
@@ -10568,9 +10568,9 @@
   {
     "id": "word_3000_1175",
     "index": 1175,
-    "term": "yours faithfully (BrE)",
+    "term": "yours faithfully",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/jɔːz ˈfeɪθfəli/",
     "meaning": "bạn chân thành",
     "raw": "yours faithfully (BrE) bạn chân thành"
   },
@@ -10588,7 +10588,7 @@
     "index": 1177,
     "term": "fall over",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/fɔːl ˈəʊvə(r)/",
     "meaning": "ngã lộn nhào, bị đổ",
     "raw": "fall over ngã lộn nhào, bị đổ"
   },
@@ -10757,7 +10757,7 @@
   {
     "id": "word_3000_1196",
     "index": 1196,
-    "term": "faucet n. (NAmE)",
+    "term": "faucet n.",
     "pos": "phrase",
     "phonetic": "/ˈfɔsɪt/",
     "meaning": "vòi (ở thùng rượu....)",
@@ -10775,7 +10775,7 @@
   {
     "id": "word_3000_1198",
     "index": 1198,
-    "term": "favour (BrE) (NAmE favor)",
+    "term": "favour",
     "pos": "n.",
     "phonetic": "/'feivз/",
     "meaning": "thiện ý, sự quý mến; sự đồng ý; sự chiếu cố",
@@ -10793,7 +10793,7 @@
   {
     "id": "word_3000_1200",
     "index": 1200,
-    "term": "favourite (NAmE favorite)",
+    "term": "favourite",
     "pos": "adj., n.",
     "phonetic": "/'feivзrit/",
     "meaning": "được ưa thích; người (vật) được ưa thích",
@@ -10829,7 +10829,7 @@
   {
     "id": "word_3000_1204",
     "index": 1204,
-    "term": "February n. (abbr. Feb.)",
+    "term": "February n.",
     "pos": "phrase",
     "phonetic": "/´februəri/",
     "meaning": "tháng 2",
@@ -10948,7 +10948,7 @@
     "index": 1217,
     "term": "a few",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ə fjuː/",
     "meaning": "một ít, một vài",
     "raw": "a few một ít, một vài"
   },
@@ -11065,7 +11065,7 @@
     "index": 1230,
     "term": "find out sth",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/faɪnd aʊt/",
     "meaning": "khám phá, tìm ra",
     "raw": "find out sth khám phá, tìm ra"
   },
@@ -11101,7 +11101,7 @@
     "index": 1234,
     "term": "finish",
     "pos": "v., n.",
-    "phonetic": "",
+    "phonetic": "/ˈfɪnɪʃ/",
     "meaning": "kết thúc, hoàn thành; sự kết thúc, phần cuối",
     "raw": "finish v., n. kết thúc, hoàn thành; sự kết thúc, phần cuối"
   },
@@ -11128,7 +11128,7 @@
     "index": 1237,
     "term": "set fire to",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/set ˈfaɪə(r) tuː/",
     "meaning": "đốt cháy cái gì",
     "raw": "set fire to đốt cháy cái gì"
   },
@@ -11164,7 +11164,7 @@
     "index": 1241,
     "term": "at first",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/æt fɜːst/",
     "meaning": "trực tiếp",
     "raw": "at first trực tiếp"
   },
@@ -11209,7 +11209,7 @@
     "index": 1246,
     "term": "fixed",
     "pos": "adj.",
-    "phonetic": "",
+    "phonetic": "/fɪkst/",
     "meaning": "đứng yên, bất động",
     "raw": "fixed adj. đứng yên, bất động"
   },
@@ -11252,7 +11252,7 @@
   {
     "id": "word_3000_1251",
     "index": 1251,
-    "term": "flavour (BrE) (NAmE flavor)",
+    "term": "flavour",
     "pos": "n., v.",
     "phonetic": "/'fleivə/",
     "meaning": "vị, mùi; cho gia vị, làm tăng thêm mùi vị",
@@ -11477,7 +11477,7 @@
   {
     "id": "word_3000_1276",
     "index": 1276,
-    "term": "forever (BrE also for ever)",
+    "term": "forever",
     "pos": "adv.",
     "phonetic": "/fə'revə/",
     "meaning": "mãi mãi",
@@ -11576,7 +11576,7 @@
   {
     "id": "word_3000_1287",
     "index": 1287,
-    "term": "forward (also forwards)",
+    "term": "forward",
     "pos": "adv.",
     "phonetic": "/ˈfɔrwərd/",
     "meaning": "về tương lai, sau này ở phía trước, tiến về phía trước",
@@ -11702,7 +11702,7 @@
   {
     "id": "word_3000_1301",
     "index": 1301,
-    "term": "Friday n. (abbr. Fri.)",
+    "term": "Friday n.",
     "pos": "phrase",
     "phonetic": "/´fraidi/",
     "meaning": "thứ Sáu",
@@ -11711,7 +11711,7 @@
   {
     "id": "word_3000_1302",
     "index": 1302,
-    "term": "fridge n. (BrE)",
+    "term": "fridge n.",
     "pos": "phrase",
     "phonetic": "/fridЗ/",
     "meaning": "tủ lạnh",
@@ -11731,7 +11731,7 @@
     "index": 1304,
     "term": "make friends (with)",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/meɪk frendz/",
     "meaning": "kết bạn với",
     "raw": "make friends (with) kết bạn với"
   },
@@ -11812,7 +11812,7 @@
     "index": 1313,
     "term": "in front (of)",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɪn frʌnt/",
     "meaning": "ở phía trước",
     "raw": "in front (of) ở phía trước"
   },
@@ -11884,7 +11884,7 @@
     "index": 1321,
     "term": "make fun of",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/meɪk fʌn əv/",
     "meaning": "đùa cợt, chế giễu, chế nhạo",
     "raw": "make fun of đùa cợt, chế giễu, chế nhạo"
   },
@@ -11954,9 +11954,9 @@
   {
     "id": "word_3000_1329",
     "index": 1329,
-    "term": "further, furthest",
-    "pos": "phrase",
-    "phonetic": "",
+    "term": "further",
+    "pos": "adv., adj.",
+    "phonetic": "/ˈfɜːðə(r)/",
     "meaning": "cấp so sánh của far",
     "raw": "further, furthest cấp so sánh của far"
   },
@@ -12035,7 +12035,7 @@
   {
     "id": "word_3000_1338",
     "index": 1338,
-    "term": "garbage n. (especially NAmE)",
+    "term": "garbage n.",
     "pos": "phrase",
     "phonetic": "/ˈgɑrbɪdʒ/",
     "meaning": "lòng, ruột (thú)",
@@ -12062,7 +12062,7 @@
   {
     "id": "word_3000_1341",
     "index": 1341,
-    "term": "gasoline n. (NAmE)",
+    "term": "gasoline n.",
     "pos": "phrase",
     "phonetic": "/gasolin/",
     "meaning": "dầu lửa, dầu hỏa, xăng",
@@ -12118,7 +12118,7 @@
     "index": 1347,
     "term": "in general",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɪn ˈdʒenrəl/",
     "meaning": "nói chung, đại khái",
     "raw": "in general nói chung, đại khái"
   },
@@ -12224,18 +12224,18 @@
   {
     "id": "word_3000_1359",
     "index": 1359,
-    "term": "get on leo",
+    "term": "get on",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɡet ɒn/",
     "meaning": "trèo lên",
     "raw": "get on leo, trèo lên"
   },
   {
     "id": "word_3000_1360",
     "index": 1360,
-    "term": "get off ra",
+    "term": "get off",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɡet ɒf/",
     "meaning": "khỏi, thoát khỏi",
     "raw": "get off ra khỏi, thoát khỏi"
   },
@@ -12287,18 +12287,18 @@
   {
     "id": "word_3000_1366",
     "index": 1366,
-    "term": "give sth away cho",
+    "term": "give sth away",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɡɪv əˈweɪ/",
     "meaning": "phát",
     "raw": "give sth away cho, phát"
   },
   {
     "id": "word_3000_1367",
     "index": 1367,
-    "term": "give sth out chia",
+    "term": "give sth out",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɡɪv aʊt/",
     "meaning": "phân phối",
     "raw": "give sth out chia, phân phối"
   },
@@ -12307,7 +12307,7 @@
     "index": 1368,
     "term": "give (sth) up",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɡɪv ʌp/",
     "meaning": "bỏ, từ bỏ",
     "raw": "give (sth) up bỏ, từ bỏ"
   },
@@ -12334,16 +12334,16 @@
     "index": 1371,
     "term": "glasses",
     "pos": "n.",
-    "phonetic": "",
+    "phonetic": "/ˈɡlɑːsɪz/",
     "meaning": "kính đeo mắt",
     "raw": "glasses n. kính đeo mắt"
   },
   {
     "id": "word_3000_1372",
     "index": 1372,
-    "term": "global adj. v",
-    "pos": "phrase",
-    "phonetic": "/´gloubl/",
+    "term": "global",
+    "pos": "adj.",
+    "phonetic": "/ˈɡləʊbl/",
     "meaning": "toàn cầu, toàn thể, toàn bộ",
     "raw": "global adj. v /´gloubl/ toàn cầu, toàn thể, toàn bộ"
   },
@@ -12388,7 +12388,7 @@
     "index": 1377,
     "term": "go down",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɡəʊ daʊn/",
     "meaning": "đi xuống",
     "raw": "go down đi xuống"
   },
@@ -12397,7 +12397,7 @@
     "index": 1378,
     "term": "go up",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɡəʊ ʌp/",
     "meaning": "đi lên",
     "raw": "go up đi lên"
   },
@@ -12406,7 +12406,7 @@
     "index": 1379,
     "term": "be going to",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/biː ˈɡəʊɪŋ tuː/",
     "meaning": "sắp sửa, có ý định",
     "raw": "be going to sắp sửa, có ý định"
   },
@@ -12451,7 +12451,7 @@
     "index": 1384,
     "term": "good at",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɡʊd æt/",
     "meaning": "tiến bộ ở",
     "raw": "good at tiến bộ ở"
   },
@@ -12460,7 +12460,7 @@
     "index": 1385,
     "term": "good for",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɡʊd fɔː(r)/",
     "meaning": "có lợi cho",
     "raw": "good for có lợi cho"
   },
@@ -12557,7 +12557,7 @@
   {
     "id": "word_3000_1396",
     "index": 1396,
-    "term": "gram (BrE also gramme) n. (abbr. g, gm)",
+    "term": "gram n.",
     "pos": "phrase",
     "phonetic": "/'græm/",
     "meaning": "ngữ pháp",
@@ -12674,7 +12674,7 @@
   {
     "id": "word_3000_1409",
     "index": 1409,
-    "term": "gray(NAmE)",
+    "term": "gray",
     "pos": "phrase",
     "phonetic": "/grei/",
     "meaning": "xám, hoa râm (tóc)",
@@ -12719,16 +12719,16 @@
   {
     "id": "word_3000_1414",
     "index": 1414,
-    "term": "grey (BrE) (NAmE usually gray)",
+    "term": "grey",
     "pos": "adj., n.",
-    "phonetic": "",
-    "meaning": "màu xám, hoa râm",
+    "phonetic": "/ɡreɪ/",
+    "meaning": "xám, hoa râm (US: gray)",
     "raw": "grey (BrE) (NAmE usually gray) adj., n."
   },
   {
     "id": "word_3000_1415",
     "index": 1415,
-    "term": "grocery (NAmE usually grocery store)",
+    "term": "grocery",
     "pos": "n.",
     "phonetic": "/´grousəri/",
     "meaning": "cửa hàng tạp phẩm",
@@ -12775,7 +12775,7 @@
     "index": 1420,
     "term": "grow up",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɡrəʊ ʌp/",
     "meaning": "lớn lên, trưởng thành",
     "raw": "grow up lớn lên, trưởng thành"
   },
@@ -13081,7 +13081,7 @@
     "index": 1454,
     "term": "have to",
     "pos": "modal v.",
-    "phonetic": "",
+    "phonetic": "/hæv tuː/",
     "meaning": "phải (bắt buộc, có bổn phận phải)",
     "raw": "have to modal v. phải (bắt buộc, có bổn phận phải)"
   },
@@ -13376,7 +13376,7 @@
   {
     "id": "word_3000_1487",
     "index": 1487,
-    "term": "highway n. (especially NAmE)",
+    "term": "highway n.",
     "pos": "phrase",
     "phonetic": "/´haiwei/",
     "meaning": "đường quốc lộ",
@@ -13520,9 +13520,9 @@
   {
     "id": "word_3000_1503",
     "index": 1503,
-    "term": "home n., adv..",
-    "pos": "phrase",
-    "phonetic": "/hoʊm/",
+    "term": "home",
+    "pos": "n., adv.",
+    "phonetic": "/həʊm/",
     "meaning": "nhà; ở tại nhà, nước mình",
     "raw": "home n., adv.. /hoʊm/ nhà; ở tại nhà, nước mình"
   },
@@ -13556,7 +13556,7 @@
   {
     "id": "word_3000_1507",
     "index": 1507,
-    "term": "honour (BrE) (NAmE honor)",
+    "term": "honour",
     "pos": "n.",
     "phonetic": "/'onз/",
     "meaning": "danh dự, thanh danh, lòng kính trọng",
@@ -13745,7 +13745,7 @@
   {
     "id": "word_3000_1528",
     "index": 1528,
-    "term": "humour (BrE) (NAmE humor)",
+    "term": "humour",
     "pos": "n.",
     "phonetic": "/´hju:mə/",
     "meaning": "sự hài hước, sự hóm hỉnh",
@@ -13792,7 +13792,7 @@
     "index": 1533,
     "term": "in a hurry",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɪn ə ˈhʌri/",
     "meaning": "vội vàng, hối hả, gấp rút",
     "raw": "in a hurry vội vàng, hối hả, gấp rút"
   },
@@ -13828,7 +13828,7 @@
     "index": 1537,
     "term": "ice cream",
     "pos": "n.",
-    "phonetic": "",
+    "phonetic": "/ˌaɪs ˈkriːm/",
     "meaning": "kem",
     "raw": "ice cream n. kem"
   },
@@ -13880,9 +13880,9 @@
   {
     "id": "word_3000_1543",
     "index": 1543,
-    "term": "i.e. abbr.",
-    "pos": "phrase",
-    "phonetic": "",
+    "term": "i.e.",
+    "pos": "abbr.",
+    "phonetic": "/ˌaɪ ˈiː/",
     "meaning": "nghĩa là, tức là ( Id est)",
     "raw": "i.e. abbr. nghĩa là, tức là ( Id est)"
   },
@@ -13907,7 +13907,7 @@
   {
     "id": "word_3000_1546",
     "index": 1546,
-    "term": "ill adj. (especially BrE)",
+    "term": "ill adj.",
     "pos": "phrase",
     "phonetic": "/il/",
     "meaning": "ốm",
@@ -14060,9 +14060,9 @@
   {
     "id": "word_3000_1563",
     "index": 1563,
-    "term": "import n., v. import",
-    "pos": "phrase",
-    "phonetic": "",
+    "term": "import",
+    "pos": "n., v.",
+    "phonetic": "/ˈɪmpɔːt/",
     "meaning": "sự nhập, sự nhập khẩu; nhập, nhập khẩu",
     "raw": "import n., v. import sự nhập, sự nhập khẩu; nhập, nhập khẩu"
   },
@@ -14134,7 +14134,7 @@
     "index": 1571,
     "term": "impressed",
     "pos": "adj.",
-    "phonetic": "",
+    "phonetic": "/ɪmˈprest/",
     "meaning": "được ghi, khắc, in sâu vào",
     "raw": "impressed adj. được ghi, khắc, in sâu vào"
   },
@@ -14413,7 +14413,7 @@
     "index": 1602,
     "term": "infected",
     "pos": "adj.",
-    "phonetic": "",
+    "phonetic": "/ɪnˈfektɪd/",
     "meaning": "bị nhiễm, bị đầu độc",
     "raw": "infected adj. bị nhiễm, bị đầu độc"
   },
@@ -14629,7 +14629,7 @@
     "index": 1626,
     "term": "for instance",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/fər ˈɪnstəns/",
     "meaning": "ví dụ chẳng hạn",
     "raw": "for instance ví dụ chẳng hạn"
   },
@@ -14647,7 +14647,7 @@
     "index": 1628,
     "term": "instead of",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɪnˈsted əv/",
     "meaning": "thay cho",
     "raw": "instead of thay cho"
   },
@@ -14780,10 +14780,10 @@
   {
     "id": "word_3000_1643",
     "index": 1643,
-    "term": "interested adj. có thích thú, có quan tâm, có",
-    "pos": "phrase",
-    "phonetic": "",
-    "meaning": "chú ý",
+    "term": "interested",
+    "pos": "adj.",
+    "phonetic": "/ˈɪntrəstɪd/",
+    "meaning": "có thích thú, có quan tâm, có chú ý",
     "raw": "interested adj. có thích thú, có quan tâm, có chú ý"
   },
   {
@@ -14989,7 +14989,7 @@
     "index": 1666,
     "term": "involved in",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɪnˈvɒlvd ɪn/",
     "meaning": "để hết tâm trí vào",
     "raw": "involved in để hết tâm trí vào"
   },
@@ -15043,7 +15043,7 @@
     "index": 1672,
     "term": "-ish",
     "pos": "suffix",
-    "phonetic": "",
+    "phonetic": "/ɪʃ/",
     "meaning": "hậu tố: có tính chất, hơi hơi (ví dụ: childish, reddish)",
     "raw": "-ish suffix"
   },
@@ -15122,7 +15122,7 @@
   {
     "id": "word_3000_1681",
     "index": 1681,
-    "term": "January n. (abbr. Jan.)",
+    "term": "January n.",
     "pos": "phrase",
     "phonetic": "/'ʤænjuəri/",
     "meaning": "tháng giêng",
@@ -15158,7 +15158,7 @@
   {
     "id": "word_3000_1685",
     "index": 1685,
-    "term": "jewellery (BrE) (NAmE jewelry)",
+    "term": "jewellery",
     "pos": "n.",
     "phonetic": "/'dʤu:əlri/",
     "meaning": "nữ trang, kim hoàn",
@@ -15248,7 +15248,7 @@
   {
     "id": "word_3000_1695",
     "index": 1695,
-    "term": "judgement (also judgment especially in NAmE)",
+    "term": "judgement",
     "pos": "n.",
     "phonetic": "/'dʤʌdʤmənt/",
     "meaning": "sự xét xử",
@@ -15266,7 +15266,7 @@
   {
     "id": "word_3000_1697",
     "index": 1697,
-    "term": "July n. (abbr. Jul.)",
+    "term": "July n.",
     "pos": "phrase",
     "phonetic": "/dʒu´lai/",
     "meaning": "tháng 7",
@@ -15284,7 +15284,7 @@
   {
     "id": "word_3000_1699",
     "index": 1699,
-    "term": "June n. (abbr. Jun.)",
+    "term": "June n.",
     "pos": "phrase",
     "phonetic": "/dЗu:n/",
     "meaning": "tháng 6",
@@ -15347,9 +15347,9 @@
   {
     "id": "word_3000_1706",
     "index": 1706,
-    "term": "keen on say",
+    "term": "keen on",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/kiːn ɒn/",
     "meaning": "mê, ưa thích",
     "raw": "keen on say mê, ưa thích"
   },
@@ -15419,7 +15419,7 @@
   {
     "id": "word_3000_1714",
     "index": 1714,
-    "term": "kilogram (BrE also kilogramme) (also kilo) n. (abbr. kg)",
+    "term": "kilogram n.",
     "pos": "phrase",
     "phonetic": "/´kilou¸græm/",
     "meaning": "Kilôgam",
@@ -15428,7 +15428,7 @@
   {
     "id": "word_3000_1715",
     "index": 1715,
-    "term": "kilometre (BrE) (NAmE kilometer) n. (abbr. k, km)",
+    "term": "kilometre n.",
     "pos": "phrase",
     "phonetic": "/´kilə¸mi:tə/",
     "meaning": "Kilômet",
@@ -15635,7 +15635,7 @@
   {
     "id": "word_3000_1738",
     "index": 1738,
-    "term": "labour (BrE) (NAmE labor)",
+    "term": "labour",
     "pos": "n.",
     "phonetic": "/'leibз/",
     "meaning": "lao động; công việc",
@@ -15925,7 +15925,7 @@
     "index": 1770,
     "term": "at least",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/æt liːst/",
     "meaning": "ít ra, ít nhất, chí ít",
     "raw": "at least ít ra, ít nhất, chí ít"
   },
@@ -15952,7 +15952,7 @@
     "index": 1773,
     "term": "leave out",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/liːv aʊt/",
     "meaning": "bỏ quên, bỏ sót",
     "raw": "leave out bỏ quên, bỏ sót"
   },
@@ -16085,7 +16085,7 @@
   {
     "id": "word_3000_1788",
     "index": 1788,
-    "term": "licence (BrE) (NAmE license)",
+    "term": "licence",
     "pos": "n.",
     "phonetic": "/ˈlaɪsəns/",
     "meaning": "bằng, chứng chỉ, bằng cử nhân; sự cho phép",
@@ -16274,7 +16274,7 @@
   {
     "id": "word_3000_1809",
     "index": 1809,
-    "term": "litre (BrE) (NAmE liter) n. (abbr. l)",
+    "term": "litre n.",
     "pos": "phrase",
     "phonetic": "/´li:tə/",
     "meaning": "lít",
@@ -16294,7 +16294,7 @@
     "index": 1811,
     "term": "a little",
     "pos": "det., pron.",
-    "phonetic": "",
+    "phonetic": "/ə ˈlɪtl/",
     "meaning": "nhỏ, một ít",
     "raw": "a little det., pron. nhỏ, một ít"
   },
@@ -16463,9 +16463,9 @@
   {
     "id": "word_3000_1830",
     "index": 1830,
-    "term": "look after (especially BrE)",
+    "term": "look after",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/lʊk ˈɑːftə(r)/",
     "meaning": "trông nom, chăm sóc",
     "raw": "look after (especially BrE) trông nom, chăm sóc"
   },
@@ -16474,7 +16474,7 @@
     "index": 1831,
     "term": "look at",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/lʊk æt/",
     "meaning": "nhìn, ngắm, xem",
     "raw": "look at nhìn, ngắm, xem"
   },
@@ -16483,16 +16483,16 @@
     "index": 1832,
     "term": "look for",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/lʊk fɔː(r)/",
     "meaning": "tìm kiếm",
     "raw": "look for tìm kiếm"
   },
   {
     "id": "word_3000_1833",
     "index": 1833,
-    "term": "look forward to mong",
+    "term": "look forward to",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/lʊk ˈfɔːwəd tuː/",
     "meaning": "đợi cách hân hoan",
     "raw": "look forward to mong đợi cách hân hoan"
   },
@@ -16526,7 +16526,7 @@
   {
     "id": "word_3000_1837",
     "index": 1837,
-    "term": "lorry n. (BrE)",
+    "term": "lorry n.",
     "pos": "phrase",
     "phonetic": "/´lɔ:ri/",
     "meaning": "xe tải",
@@ -16562,7 +16562,7 @@
   {
     "id": "word_3000_1841",
     "index": 1841,
-    "term": "lot: a lot (of) (also lots (of))",
+    "term": "lot: a lot (of))",
     "pos": "pron., det., adv.",
     "phonetic": "/lɒt/",
     "meaning": "số lượng lớn; rất nhiều",
@@ -16661,7 +16661,7 @@
   {
     "id": "word_3000_1852",
     "index": 1852,
-    "term": "luggage n. (especially BrE)",
+    "term": "luggage n.",
     "pos": "phrase",
     "phonetic": "/'lʌgiʤ/",
     "meaning": "hành lý",
@@ -16807,7 +16807,7 @@
     "index": 1868,
     "term": "make sth up",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/meɪk ʌp/",
     "meaning": "làm thành, cấu thành, gộp thành",
     "raw": "make sth up làm thành, cấu thành, gộp thành"
   },
@@ -16832,7 +16832,7 @@
   {
     "id": "word_3000_1871",
     "index": 1871,
-    "term": "mall n. (especially NAmE)",
+    "term": "mall n.",
     "pos": "phrase",
     "phonetic": "/mɔ:l/",
     "meaning": "búa",
@@ -16931,7 +16931,7 @@
   {
     "id": "word_3000_1882",
     "index": 1882,
-    "term": "March n. (abbr. Mar.)",
+    "term": "March n.",
     "pos": "phrase",
     "phonetic": "/mɑ:tʃ/",
     "meaning": "tháng ba",
@@ -16942,7 +16942,7 @@
     "index": 1883,
     "term": "march",
     "pos": "v., n.",
-    "phonetic": "",
+    "phonetic": "/mɑːtʃ/",
     "meaning": "diễu hành, hành quân; cuộc hành quân, cuộc diễu hành",
     "raw": "march v., n. diễu hành, hành quân; cuộc hành quân, cuộc diễu hành"
   },
@@ -17066,7 +17066,7 @@
   {
     "id": "word_3000_1897",
     "index": 1897,
-    "term": "mathematics (also maths BrE, math NAmE)",
+    "term": "mathematics",
     "pos": "n.",
     "phonetic": "/,mæθi'mætiks/",
     "meaning": "toán học, môn toán",
@@ -17176,7 +17176,7 @@
     "index": 1909,
     "term": "by means of",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/baɪ miːnz əv/",
     "meaning": "bằng phương tiện",
     "raw": "by means of bằng phương tiện"
   },
@@ -17311,7 +17311,7 @@
     "index": 1924,
     "term": "in memory of",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɪn ˈmeməri əv/",
     "meaning": "sự tưởng nhớ",
     "raw": "in memory of sự tưởng nhớ"
   },
@@ -17408,7 +17408,7 @@
   {
     "id": "word_3000_1935",
     "index": 1935,
-    "term": "metre (BrE) (NAmE meter)",
+    "term": "metre",
     "pos": "n.",
     "phonetic": "/´mi:tə/",
     "meaning": "mét",
@@ -17419,7 +17419,7 @@
     "index": 1936,
     "term": "mid-",
     "pos": "combining form",
-    "phonetic": "",
+    "phonetic": "/mɪd/",
     "meaning": "tiền tố: một nửa",
     "raw": "mid- combining form tiền tố: một nửa"
   },
@@ -17498,7 +17498,7 @@
   {
     "id": "word_3000_1945",
     "index": 1945,
-    "term": "milligram (BrE also milligramme) n. (abbr. mg)",
+    "term": "milligram n.",
     "pos": "phrase",
     "phonetic": "/´mili¸græm/",
     "meaning": "mi-li-gam",
@@ -17507,7 +17507,7 @@
   {
     "id": "word_3000_1946",
     "index": 1946,
-    "term": "millimetre (NAmE millimeter) n. (abbr. mm)",
+    "term": "millimetre n.",
     "pos": "phrase",
     "phonetic": "/´mili¸mi:tə/",
     "meaning": "mi-li-met",
@@ -17527,7 +17527,7 @@
     "index": 1948,
     "term": "mine",
     "pos": "pron., n.",
-    "phonetic": "",
+    "phonetic": "/maɪn/",
     "meaning": "của tôi",
     "raw": "mine pron., n. của tôi"
   },
@@ -17687,9 +17687,9 @@
   {
     "id": "word_3000_1966",
     "index": 1966,
-    "term": "mobile phone (also mobile) n. (BrE)",
-    "pos": "phrase",
-    "phonetic": "",
+    "term": "mobile phone",
+    "pos": "n.",
+    "phonetic": "/ˌməʊbaɪl ˈfəʊn/",
     "meaning": "điện thoại đi động",
     "raw": "mobile phone (also mobile) n. (BrE) điện thoại đi động"
   },
@@ -17732,7 +17732,7 @@
   {
     "id": "word_3000_1971",
     "index": 1971,
-    "term": "Monday n. (abbr. Mon.)",
+    "term": "Monday n.",
     "pos": "phrase",
     "phonetic": "/'mʌndi/",
     "meaning": "thứ 2",
@@ -17797,7 +17797,7 @@
     "index": 1978,
     "term": "morally",
     "pos": "adv.",
-    "phonetic": "",
+    "phonetic": "/ˈmɒrəli/",
     "meaning": "có đạo đức",
     "raw": "morally adv. có đạo đức"
   },
@@ -17876,7 +17876,7 @@
   {
     "id": "word_3000_1987",
     "index": 1987,
-    "term": "motorcycle (BrE also motorbike)",
+    "term": "motorcycle",
     "pos": "n.",
     "phonetic": "/'moutə,saikl/",
     "meaning": "xe mô tô",
@@ -17948,7 +17948,7 @@
   {
     "id": "word_3000_1995",
     "index": 1995,
-    "term": "movie n. (especially NAmE)",
+    "term": "movie n.",
     "pos": "phrase",
     "phonetic": "/´mu:vi/",
     "meaning": "phim xi nê",
@@ -17957,36 +17957,36 @@
   {
     "id": "word_3000_1996",
     "index": 1996,
-    "term": "movie theater n. (NAmE)",
-    "pos": "phrase",
-    "phonetic": "",
+    "term": "movie theater",
+    "pos": "n.",
+    "phonetic": "/ˈmuːvi θɪətər/",
     "meaning": "rạp chiếu phim",
     "raw": "movie theater n. (NAmE) rạp chiếu phim"
   },
   {
     "id": "word_3000_1997",
     "index": 1997,
-    "term": "Mr (BrE) (also Mr. NAmE, BrE) abbr.",
-    "pos": "phrase",
-    "phonetic": "",
+    "term": "Mr",
+    "pos": "abbr.",
+    "phonetic": "/ˈmɪstə(r)/",
     "meaning": "ông, ngài (dành cho nam giới)",
     "raw": "Mr (BrE) (also Mr. NAmE, BrE) abbr."
   },
   {
     "id": "word_3000_1998",
     "index": 1998,
-    "term": "Mrs (BrE) (also Mrs. NAmE, BrE) abbr.",
-    "pos": "phrase",
-    "phonetic": "",
+    "term": "Mr",
+    "pos": "abbr.",
+    "phonetic": "/ˈmɪstə(r)/",
     "meaning": "bà (dành cho phụ nữ đã kết hôn)",
     "raw": "Mrs (BrE) (also Mrs. NAmE, BrE) abbr."
   },
   {
     "id": "word_3000_1999",
     "index": 1999,
-    "term": "Ms (BrE) (also Ms. NAmE, BrE) abbr.",
-    "pos": "phrase",
-    "phonetic": "",
+    "term": "Ms",
+    "pos": "abbr.",
+    "phonetic": "/mɪz/",
     "meaning": "cô, bà (phụ nữ, không phân biệt kết hôn)",
     "raw": "Ms (BrE) (also Ms. NAmE, BrE) abbr."
   },
@@ -18020,7 +18020,7 @@
   {
     "id": "word_3000_2003",
     "index": 2003,
-    "term": "mum (BrE) (NAmE mom)",
+    "term": "mum",
     "pos": "n.",
     "phonetic": "/mʌm/",
     "meaning": "mẹ",
@@ -18326,7 +18326,7 @@
   {
     "id": "word_3000_2037",
     "index": 2037,
-    "term": "neighbour (BrE) (NAmE neighbor)",
+    "term": "neighbour",
     "pos": "n.",
     "phonetic": "/'neibə/",
     "meaning": "hàng xóm",
@@ -18335,7 +18335,7 @@
   {
     "id": "word_3000_2038",
     "index": 2038,
-    "term": "neighbourhood (BrE) (NAmE neighborhood)",
+    "term": "neighbourhood",
     "pos": "n.",
     "phonetic": "/´neibəhud/",
     "meaning": "hàng xóm, làng giềng",
@@ -18481,7 +18481,7 @@
     "index": 2054,
     "term": "next to",
     "pos": "prep.",
-    "phonetic": "",
+    "phonetic": "/nekst tuː/",
     "meaning": "gần",
     "raw": "next to prep. gần"
   },
@@ -18533,7 +18533,7 @@
   {
     "id": "word_3000_2060",
     "index": 2060,
-    "term": "nobody (also no one)",
+    "term": "nobody",
     "pos": "pron.",
     "phonetic": "/'noubədi/",
     "meaning": "không ai, không người nào",
@@ -18571,7 +18571,7 @@
     "index": 2064,
     "term": "non-",
     "pos": "prefix",
-    "phonetic": "",
+    "phonetic": "/nɒn/",
     "meaning": "tiền tố: không, phi- (ví dụ: non-stop, non-profit)",
     "raw": "non- prefix"
   },
@@ -18688,7 +18688,7 @@
     "index": 2077,
     "term": "take notice of",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/teɪk ˈnəʊtɪs əv/",
     "meaning": "chú ý",
     "raw": "take notice of chú ý"
   },
@@ -18713,7 +18713,7 @@
   {
     "id": "word_3000_2080",
     "index": 2080,
-    "term": "November n. (abbr. Nov.)",
+    "term": "November n.",
     "pos": "phrase",
     "phonetic": "/nou´vembə/",
     "meaning": "tháng 11",
@@ -18749,7 +18749,7 @@
   {
     "id": "word_3000_2084",
     "index": 2084,
-    "term": "number (abbr. No., no.)",
+    "term": "number",
     "pos": "n.",
     "phonetic": "/´nʌmbə/",
     "meaning": "số",
@@ -18911,7 +18911,7 @@
   {
     "id": "word_3000_2102",
     "index": 2102,
-    "term": "October n. (abbr. Oct.)",
+    "term": "October n.",
     "pos": "phrase",
     "phonetic": "/ɔk´toubə/",
     "meaning": "tháng 10",
@@ -18956,7 +18956,7 @@
   {
     "id": "word_3000_2107",
     "index": 2107,
-    "term": "offence (BrE) (NAmE offense)",
+    "term": "offence",
     "pos": "n.",
     "phonetic": "/ə'fens/",
     "meaning": "sự vi phạm, sự phạm tội",
@@ -19055,7 +19055,7 @@
   {
     "id": "word_3000_2118",
     "index": 2118,
-    "term": "OK (also okay)",
+    "term": "OK",
     "pos": "exclamation, adj., adv.",
     "phonetic": "/əʊkei/",
     "meaning": "đồng ý, tán thành",
@@ -19075,7 +19075,7 @@
     "index": 2120,
     "term": "old-fashioned",
     "pos": "adj.",
-    "phonetic": "",
+    "phonetic": "/ˌəʊld ˈfæʃnd/",
     "meaning": "lỗi thời",
     "raw": "old-fashioned adj. lỗi thời"
   },
@@ -19111,7 +19111,7 @@
     "index": 2124,
     "term": "each other",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/iːtʃ ˈʌðə(r)/",
     "meaning": "nhau, lẫn nhau",
     "raw": "each other nhau, lẫn nhau"
   },
@@ -19291,7 +19291,7 @@
     "index": 2144,
     "term": "in order to",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɪn ˈɔːdə tuː/",
     "meaning": "hợp lệ",
     "raw": "in order to hợp lệ"
   },
@@ -19316,7 +19316,7 @@
   {
     "id": "word_3000_2147",
     "index": 2147,
-    "term": "organization (BrE also -isation)",
+    "term": "organization",
     "pos": "n.",
     "phonetic": "/,ɔ:gənai'zeiʃn/",
     "meaning": "tổ chức, cơ quan; sự tổ chức",
@@ -19325,7 +19325,7 @@
   {
     "id": "word_3000_2148",
     "index": 2148,
-    "term": "organize (BrE also -ise)",
+    "term": "organize",
     "pos": "v.",
     "phonetic": "/´ɔ:gə¸naiz/",
     "meaning": "tổ chức, thiết lập",
@@ -19451,9 +19451,9 @@
   {
     "id": "word_3000_2162",
     "index": 2162,
-    "term": "outer adj. outer",
-    "pos": "phrase",
-    "phonetic": "",
+    "term": "outer",
+    "pos": "adj.",
+    "phonetic": "/ˈaʊtə(r)/",
     "meaning": "ở phía ngoài, ở xa hơn",
     "raw": "outer adj. outer ở phía ngoài, ở xa hơn"
   },
@@ -19604,7 +19604,7 @@
   {
     "id": "word_3000_2179",
     "index": 2179,
-    "term": "page n. (abbr. p)",
+    "term": "page n.",
     "pos": "phrase",
     "phonetic": "/peidʒ/",
     "meaning": "trang (sách)",
@@ -19766,10 +19766,10 @@
   {
     "id": "word_3000_2197",
     "index": 2197,
-    "term": "take part (in) tham gia",
+    "term": "take part (in)",
     "pos": "phrase",
-    "phonetic": "",
-    "meaning": "(vào)",
+    "phonetic": "/teɪk pɑːt/",
+    "meaning": "tham gia",
     "raw": "take part (in) tham gia (vào)"
   },
   {
@@ -20009,7 +20009,7 @@
   {
     "id": "word_3000_2224",
     "index": 2224,
-    "term": "penny n. (abbr. p)",
+    "term": "penny n.",
     "pos": "phrase",
     "phonetic": "/´peni/",
     "meaning": "số tiền",
@@ -20054,10 +20054,10 @@
   {
     "id": "word_3000_2229",
     "index": 2229,
-    "term": "per cent (NAmE usually percent)",
+    "term": "per cent",
     "pos": "n., adj., adv.",
-    "phonetic": "",
-    "meaning": "phần trăm",
+    "phonetic": "/pə ˈsent/",
+    "meaning": "phần trăm (US: percent)",
     "raw": "per cent (NAmE usually percent) n., adj., adv. phần trăm"
   },
   {
@@ -20216,7 +20216,7 @@
   {
     "id": "word_3000_2247",
     "index": 2247,
-    "term": "petrol n. (BrE)",
+    "term": "petrol n.",
     "pos": "phrase",
     "phonetic": "/ˈpɛtrəl/",
     "meaning": "xăng dầu",
@@ -20252,7 +20252,7 @@
   {
     "id": "word_3000_2251",
     "index": 2251,
-    "term": "photograph n., v. (also photo n.)",
+    "term": "photograph n., v.",
     "pos": "phrase",
     "phonetic": "/´foutə¸gra:f/",
     "meaning": "ảnh, bức ảnh; chụp ảnh",
@@ -20335,7 +20335,7 @@
     "index": 2260,
     "term": "pick sth up",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/pɪk ʌp/",
     "meaning": "cuốc, vỡ, xé",
     "raw": "pick sth up cuốc, vỡ, xé"
   },
@@ -20414,7 +20414,7 @@
   {
     "id": "word_3000_2269",
     "index": 2269,
-    "term": "pint n. (abbr. pt)",
+    "term": "pint n.",
     "pos": "phrase",
     "phonetic": "/paint/",
     "meaning": "Panh (đơn vị (đo lường) ở Anh bằng 0, 58 lít; ở Mỹ bằng 0, 473 lít); panh, lít (bia, sữa) a pint of beer + một panh bia",
@@ -20461,7 +20461,7 @@
     "index": 2274,
     "term": "take place",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/teɪk pleɪs/",
     "meaning": "xảy ra, được cử hành, được tổ chức",
     "raw": "take place xảy ra, được cử hành, được tổ chức"
   },
@@ -20666,7 +20666,7 @@
   {
     "id": "word_3000_2297",
     "index": 2297,
-    "term": "p.m. (NAmE also P.M.) abbr.",
+    "term": "p.m. abbr.",
     "pos": "phrase",
     "phonetic": "/pip'emз/",
     "meaning": "quá trưa, chiều, tối",
@@ -20702,9 +20702,9 @@
   {
     "id": "word_3000_2301",
     "index": 2301,
-    "term": "point n., v. point",
-    "pos": "phrase",
-    "phonetic": "",
+    "term": "point",
+    "pos": "n., v.",
+    "phonetic": "/pɔɪnt/",
     "meaning": "mũi nhọn, điểm; vót, làm nhọn, chấm (câu..)",
     "raw": "point n., v. point mũi nhọn, điểm; vót, làm nhọn, chấm (câu..)"
   },
@@ -21080,7 +21080,7 @@
   {
     "id": "word_3000_2343",
     "index": 2343,
-    "term": "practice n. (BrE, NAmE), v. (NAmE)",
+    "term": "practice n., v.",
     "pos": "phrase",
     "phonetic": "/´præktis/",
     "meaning": "thực hành, thực tiễn",
@@ -21089,7 +21089,7 @@
   {
     "id": "word_3000_2344",
     "index": 2344,
-    "term": "practise v. (BrE)",
+    "term": "practise v.",
     "pos": "phrase",
     "phonetic": "/´præktis/",
     "meaning": "thực hành, tập luyện",
@@ -21629,7 +21629,7 @@
   {
     "id": "word_3000_2404",
     "index": 2404,
-    "term": "programme n. (BrE)",
+    "term": "programme n.",
     "pos": "phrase",
     "phonetic": "/´prougræm/",
     "meaning": "chương trình",
@@ -21658,7 +21658,7 @@
     "index": 2407,
     "term": "promise",
     "pos": "v., n.",
-    "phonetic": "",
+    "phonetic": "/ˈprɒmɪs/",
     "meaning": "hứa, lời hứa",
     "raw": "promise v., n. hứa, lời hứa"
   },
@@ -21854,7 +21854,7 @@
   {
     "id": "word_3000_2429",
     "index": 2429,
-    "term": "provided (also providing)",
+    "term": "provided",
     "pos": "conj.",
     "phonetic": "/prə´vaidid/",
     "meaning": "với điều kiện là, miễn là",
@@ -21872,9 +21872,9 @@
   {
     "id": "word_3000_2431",
     "index": 2431,
-    "term": "pub n. = publicyhouse",
-    "pos": "phrase",
-    "phonetic": "",
+    "term": "pub",
+    "pos": "n.",
+    "phonetic": "/pʌb/",
     "meaning": "quán rượu, tiệm rượu",
     "raw": "pub n. = publicyhouse quán rượu, tiệm rượu"
   },
@@ -21892,7 +21892,7 @@
     "index": 2433,
     "term": "in public",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɪn ˈpʌblɪk/",
     "meaning": "giữa công chúng, công khai",
     "raw": "in public giữa công chúng, công khai"
   },
@@ -21980,7 +21980,7 @@
   {
     "id": "word_3000_2443",
     "index": 2443,
-    "term": "pupil n. (especially BrE)",
+    "term": "pupil n.",
     "pos": "phrase",
     "phonetic": "/ˈpju:pl/",
     "meaning": "học sinh",
@@ -22036,7 +22036,7 @@
     "index": 2449,
     "term": "on purpose",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɒn ˈpɜːpəs/",
     "meaning": "cố tình, cố ý, có chủ tâm",
     "raw": "on purpose cố tình, cố ý, có chủ tâm"
   },
@@ -22072,7 +22072,7 @@
     "index": 2453,
     "term": "put sth on",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/pʊt ɒn/",
     "meaning": "mặc (áo), đội (mũ), đi (giày)",
     "raw": "put sth on mặc (áo), đội (mũ), đi (giày)"
   },
@@ -22081,7 +22081,7 @@
     "index": 2454,
     "term": "put sth out",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/pʊt aʊt/",
     "meaning": "tắt, dập tắt",
     "raw": "put sth out tắt, dập tắt"
   },
@@ -22259,7 +22259,7 @@
   {
     "id": "word_3000_2474",
     "index": 2474,
-    "term": "railway (BrE) (NAmE railroad)",
+    "term": "railway",
     "pos": "n.",
     "phonetic": "/'reilwei/",
     "meaning": "đường sắt",
@@ -22360,7 +22360,7 @@
     "index": 2485,
     "term": "rather than",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ˈrɑːðə ðən/",
     "meaning": "hơn là",
     "raw": "rather than hơn là"
   },
@@ -22378,7 +22378,7 @@
     "index": 2487,
     "term": "re-",
     "pos": "prefix",
-    "phonetic": "",
+    "phonetic": "/riː/",
     "meaning": "tiền tố: làm lại, tái- (ví dụ: redo, rebuild)",
     "raw": "re- prefix"
   },
@@ -22484,7 +22484,7 @@
   {
     "id": "word_3000_2499",
     "index": 2499,
-    "term": "realize (BrE also -ise)",
+    "term": "realize",
     "pos": "v.",
     "phonetic": "/'riәlaiz/",
     "meaning": "thực hiện, thực hành",
@@ -22610,7 +22610,7 @@
   {
     "id": "word_3000_2513",
     "index": 2513,
-    "term": "recognize (BrE also -ise)",
+    "term": "recognize",
     "pos": "v.",
     "phonetic": "/'rekəgnaiz/",
     "meaning": "nhận ra, nhận diện; công nhận, thừa nhận",
@@ -22682,10 +22682,10 @@
   {
     "id": "word_3000_2521",
     "index": 2521,
-    "term": "refer to v. xem, tham",
-    "pos": "phrase",
-    "phonetic": "",
-    "meaning": "khảo; ám chỉ, nhắc đến",
+    "term": "refer to",
+    "pos": "v.",
+    "phonetic": "/rɪˈfɜː tuː/",
+    "meaning": "xem, tham khảo; ám chỉ, nhắc đến",
     "raw": "refer to v. xem, tham khảo; ám chỉ, nhắc đến"
   },
   {
@@ -23359,7 +23359,7 @@
     "index": 2596,
     "term": "the rest",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ðə rest/",
     "meaning": "vật, cái còn lại, những người, cái khác",
     "raw": "the rest vật, cái còn lại, những người, cái khác"
   },
@@ -23807,7 +23807,7 @@
   {
     "id": "word_3000_2646",
     "index": 2646,
-    "term": "row NAmE",
+    "term": "row",
     "pos": "n.",
     "phonetic": "/rou/",
     "meaning": "hàng, dãy",
@@ -23843,7 +23843,7 @@
   {
     "id": "word_3000_2650",
     "index": 2650,
-    "term": "rubbish n. (especially BrE)",
+    "term": "rubbish n.",
     "pos": "phrase",
     "phonetic": "/ˈrʌbɪʃ/",
     "meaning": "vật vô giá trị, bỏ đi, rác rưởi",
@@ -24158,7 +24158,7 @@
   {
     "id": "word_3000_2685",
     "index": 2685,
-    "term": "Saturday n. (abbr. Sat.)",
+    "term": "Saturday n.",
     "pos": "phrase",
     "phonetic": "/'sætədi/",
     "meaning": "thứ 7",
@@ -24538,7 +24538,7 @@
     "index": 2727,
     "term": "self-",
     "pos": "combining form",
-    "phonetic": "",
+    "phonetic": "/self/",
     "meaning": "tiền tố: tự, bản thân (ví dụ: self-study, self-control)",
     "raw": "self- combining form"
   },
@@ -24662,7 +24662,7 @@
   {
     "id": "word_3000_2741",
     "index": 2741,
-    "term": "September n. (abbr. Sept.)",
+    "term": "September n.",
     "pos": "phrase",
     "phonetic": "/sep´tembə/",
     "meaning": "tháng 9",
@@ -25202,18 +25202,18 @@
   {
     "id": "word_3000_2801",
     "index": 2801,
-    "term": "be sick (BrE)",
+    "term": "be sick",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/biː sɪk/",
     "meaning": "bị ốm",
     "raw": "be sick (BrE) bị ốm"
   },
   {
     "id": "word_3000_2802",
     "index": 2802,
-    "term": "feel sick (especially BrE)",
+    "term": "feel sick",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/fiːl sɪk/",
     "meaning": "buồn nôn",
     "raw": "feel sick (especially BrE) buồn nôn"
   },
@@ -25400,9 +25400,9 @@
   {
     "id": "word_3000_2823",
     "index": 2823,
-    "term": "Yours sincerely (BrE)",
+    "term": "Yours sincerely",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/jɔːz sɪnˈsɪəli/",
     "meaning": "bạn chân thành của anh, chị.. (viết ở cuối thư)",
     "raw": "Yours sincerely (BrE) bạn chân thành của anh, chị.. (viết ở cuối thư)"
   },
@@ -25483,7 +25483,7 @@
     "index": 2832,
     "term": "sit down",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/sɪt daʊn/",
     "meaning": "ngồi xuống",
     "raw": "sit down ngồi xuống"
   },
@@ -25526,7 +25526,7 @@
   {
     "id": "word_3000_2837",
     "index": 2837,
-    "term": "skilful (BrE) (NAmE skillful)",
+    "term": "skilful",
     "pos": "adj.",
     "phonetic": "/´skilful/",
     "meaning": "tài giỏi, khéo tay",
@@ -25535,7 +25535,7 @@
   {
     "id": "word_3000_2838",
     "index": 2838,
-    "term": "skilfully (BrE) (NAmE skillfully)",
+    "term": "skilfully",
     "pos": "adv.",
     "phonetic": "/´skilfulli/",
     "meaning": "tài giỏi, khéo tay",
@@ -25789,7 +25789,7 @@
     "index": 2866,
     "term": "so that",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/səʊ ðæt/",
     "meaning": "để, để cho, để mà",
     "raw": "so that để, để cho, để mà"
   },
@@ -25922,7 +25922,7 @@
   {
     "id": "word_3000_2881",
     "index": 2881,
-    "term": "somebody (also someone)",
+    "term": "somebody",
     "pos": "pron.",
     "phonetic": "/'sʌmbədi/",
     "meaning": "người nào đó",
@@ -26005,7 +26005,7 @@
     "index": 2890,
     "term": "as soon as",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/æz suːn æz/",
     "meaning": "ngay khi",
     "raw": "as soon as ngay khi"
   },
@@ -26446,7 +26446,7 @@
     "index": 2939,
     "term": "stand up",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/stænd ʌp/",
     "meaning": "đứng đậy",
     "raw": "stand up đứng đậy"
   },
@@ -26644,7 +26644,7 @@
     "index": 2961,
     "term": "stick out (for)",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/stɪk aʊt/",
     "meaning": "đòi, đạt được cái gì",
     "raw": "stick out (for) đòi, đạt được cái gì"
   },
@@ -26860,7 +26860,7 @@
     "index": 2985,
     "term": "stress",
     "pos": "n., v.",
-    "phonetic": "",
+    "phonetic": "/stres/",
     "meaning": "sự căng thẳng; căng thẳng, ép, làm căng",
     "raw": "stress n., v. sự căng thẳng; căng thẳng, ép, làm căng"
   },
@@ -27157,7 +27157,7 @@
     "index": 3018,
     "term": "such as",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/sʌtʃ æz/",
     "meaning": "đến nỗi, đến mức",
     "raw": "such as đến nỗi, đến mức"
   },
@@ -27326,7 +27326,7 @@
   {
     "id": "word_3000_3037",
     "index": 3037,
-    "term": "Sunday n. (abbr. Sun.)",
+    "term": "Sunday n.",
     "pos": "phrase",
     "phonetic": "/´sʌndi/",
     "meaning": "Chủ nhật",
@@ -27400,7 +27400,7 @@
     "index": 3045,
     "term": "make sure",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/meɪk ʃɔː(r)/",
     "meaning": "chắc chắn, làm cho chắc chắn",
     "raw": "make sure chắc chắn, làm cho chắc chắn"
   },
@@ -27425,7 +27425,7 @@
   {
     "id": "word_3000_3048",
     "index": 3048,
-    "term": "surname n. (especially BrE)",
+    "term": "surname n.",
     "pos": "phrase",
     "phonetic": "/ˈsɜrˌneɪm/",
     "meaning": "họ",
@@ -27562,7 +27562,7 @@
     "index": 3063,
     "term": "swearing",
     "pos": "n.",
-    "phonetic": "",
+    "phonetic": "/ˈsweərɪŋ/",
     "meaning": "lời thề, lời nguyền rủa, lời thề hứa",
     "raw": "swearing n. lời thề, lời nguyền rủa, lời thề hứa"
   },
@@ -27652,7 +27652,7 @@
     "index": 3073,
     "term": "swimming pool",
     "pos": "n.",
-    "phonetic": "",
+    "phonetic": "/ˈswɪmɪŋ puːl/",
     "meaning": "bể nước",
     "raw": "swimming pool n. bể nước"
   },
@@ -27679,7 +27679,7 @@
     "index": 3076,
     "term": "switch sth off",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/swɪtʃ ɒf/",
     "meaning": "ngắt điện",
     "raw": "switch sth off ngắt điện"
   },
@@ -27688,7 +27688,7 @@
     "index": 3077,
     "term": "switch sth on",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/swɪtʃ ɒn/",
     "meaning": "bật điện",
     "raw": "switch sth on bật điện"
   },
@@ -27787,7 +27787,7 @@
     "index": 3088,
     "term": "take sth off",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/teɪk ɒf/",
     "meaning": "cởi, bỏ cái gì, lấy đi cái gì",
     "raw": "take sth off cởi, bỏ cái gì, lấy đi cái gì"
   },
@@ -27796,7 +27796,7 @@
     "index": 3089,
     "term": "take (sth) over",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/teɪk ˈəʊvə(r)/",
     "meaning": "chở, chuyển cái gì; tiếp quản, kế tục cái gì",
     "raw": "take (sth) over chở, chuyển cái gì; tiếp quản, kế tục cái gì"
   },
@@ -27830,8 +27830,8 @@
   {
     "id": "word_3000_3093",
     "index": 3093,
-    "term": "tap v., n..",
-    "pos": "phrase",
+    "term": "tap",
+    "pos": "v., n.",
     "phonetic": "/tæp/",
     "meaning": "mở vòi, đóng vồi; vòi, khóa",
     "raw": "tap v., n.. /tæp/ mở vòi, đóng vồi; vòi, khóa"
@@ -27938,7 +27938,7 @@
   {
     "id": "word_3000_3105",
     "index": 3105,
-    "term": "tear ( NAmE )",
+    "term": "tear",
     "pos": "v., n.",
     "phonetic": "/tiə/",
     "meaning": "xé, làm rắch; chỗ rách, miếng xe; nước mắt",
@@ -27974,7 +27974,7 @@
   {
     "id": "word_3000_3109",
     "index": 3109,
-    "term": "telephone (also phone)",
+    "term": "telephone",
     "pos": "n., v.",
     "phonetic": "/´telefoun/",
     "meaning": "máy điện thoại, gọi điện thoại",
@@ -27983,7 +27983,7 @@
   {
     "id": "word_3000_3110",
     "index": 3110,
-    "term": "television (also TV)",
+    "term": "television",
     "pos": "n.",
     "phonetic": "/´televiʒn/",
     "meaning": "vô tuyến truyền hình",
@@ -28138,7 +28138,7 @@
     "index": 3127,
     "term": "thank you",
     "pos": "exclamation, n.",
-    "phonetic": "",
+    "phonetic": "/ˈθæŋk juː/",
     "meaning": "cảm ơn bạn (ông bà, anh chị...)",
     "raw": "thank you exclamation, n. cảm ơn bạn (ông bà, anh chị...)"
   },
@@ -28163,7 +28163,7 @@
   {
     "id": "word_3000_3130",
     "index": 3130,
-    "term": "theatre (BrE) (NAmE theater)",
+    "term": "theatre",
     "pos": "n.",
     "phonetic": "/ˈθiətər/",
     "meaning": "rạp hát, nhà hát",
@@ -28462,7 +28462,7 @@
     "index": 3163,
     "term": "throw sth away",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/θrəʊ əˈweɪ/",
     "meaning": "ném đi, vứt đi, liệng đi",
     "raw": "throw sth away ném đi, vứt đi, liệng đi"
   },
@@ -28478,7 +28478,7 @@
   {
     "id": "word_3000_3165",
     "index": 3165,
-    "term": "Thursday n. (abbr. Thur., Thurs.)",
+    "term": "Thursday n.",
     "pos": "phrase",
     "phonetic": "/´θə:zdi/",
     "meaning": "thứ 5",
@@ -28534,7 +28534,7 @@
     "index": 3171,
     "term": "tie sth up",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/taɪ ʌp/",
     "meaning": "có quan hệ mật thiết, gắn chặt",
     "raw": "tie sth up có quan hệ mật thiết, gắn chặt"
   },
@@ -28577,7 +28577,7 @@
   {
     "id": "word_3000_3176",
     "index": 3176,
-    "term": "timetable n. (especially BrE)",
+    "term": "timetable n.",
     "pos": "phrase",
     "phonetic": "/´taimteibl/",
     "meaning": "kế hoạch làm việc, thời gian biểu",
@@ -28613,9 +28613,9 @@
   {
     "id": "word_3000_3180",
     "index": 3180,
-    "term": "tire v. (BrE, NAmE), n. (NAmE) (BrE tyre",
-    "pos": "phrase",
-    "phonetic": "/'taiз/) /´taiə/",
+    "term": "tire",
+    "pos": "v., n.",
+    "phonetic": "/ˈtaɪər/",
     "meaning": "làm mệt mỏi, trở nên mệt nhọc; lốp, vỏ xe",
     "raw": "tire v. (BrE, NAmE), n. (NAmE) (BrE tyre /'taiз/) /´taiə/ làm mệt mỏi, trở nên mệt nhọc; lốp, vỏ xe"
   },
@@ -28649,9 +28649,9 @@
   {
     "id": "word_3000_3184",
     "index": 3184,
-    "term": "to prep., infinitive marker",
-    "pos": "phrase",
-    "phonetic": "/tu:, tu, tз/",
+    "term": "to",
+    "pos": "prep.",
+    "phonetic": "/tuː/",
     "meaning": "theo hướng, tới",
     "raw": "to prep., infinitive marker /tu:, tu, tз/ theo hướng, tới"
   },
@@ -28856,7 +28856,7 @@
   {
     "id": "word_3000_3207",
     "index": 3207,
-    "term": "towards (also toward especially in NAmE)",
+    "term": "towards",
     "pos": "prep.",
     "phonetic": "/tə´wɔ:dz/",
     "meaning": "theo hướng, về hướng",
@@ -29036,7 +29036,7 @@
   {
     "id": "word_3000_3227",
     "index": 3227,
-    "term": "transport n. (BrE) (NAmE transportation)",
+    "term": "transport n.",
     "pos": "phrase",
     "phonetic": "/'trænspɔ:t/",
     "meaning": "sự vận chuyển, sự vận tải; phương tiện đi lại",
@@ -29045,9 +29045,9 @@
   {
     "id": "word_3000_3228",
     "index": 3228,
-    "term": "transport v. (BrE, NAmE)",
-    "pos": "phrase",
-    "phonetic": "",
+    "term": "transport",
+    "pos": "v.",
+    "phonetic": "/trænˈspɔːt/",
     "meaning": "chuyên chở, vận tải",
     "raw": "transport v. (BrE, NAmE) chuyên chở, vận tải"
   },
@@ -29072,7 +29072,7 @@
   {
     "id": "word_3000_3231",
     "index": 3231,
-    "term": "traveller (BrE) (NAmE traveler)",
+    "term": "traveller",
     "pos": "n.",
     "phonetic": "/'trævlə/",
     "meaning": "người đi, lữ khách",
@@ -29171,7 +29171,7 @@
   {
     "id": "word_3000_3242",
     "index": 3242,
-    "term": "trousers n. (especially BrE)",
+    "term": "trousers n.",
     "pos": "phrase",
     "phonetic": "/´trauzə:z/",
     "meaning": "quần",
@@ -29180,7 +29180,7 @@
   {
     "id": "word_3000_3243",
     "index": 3243,
-    "term": "truck n. (especially NAmE)",
+    "term": "truck n.",
     "pos": "phrase",
     "phonetic": "/trʌk/",
     "meaning": "rau quả tươi",
@@ -29207,9 +29207,9 @@
   {
     "id": "word_3000_3246",
     "index": 3246,
-    "term": "Yours Truly (NAmE)",
+    "term": "Yours Truly",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/jɔːz ˈtruːli/",
     "meaning": "lời kết thúc thư (bạn chân thành của...)",
     "raw": "Yours Truly (NAmE) lời kết thúc thư (bạn chân thành của...)"
   },
@@ -29252,7 +29252,7 @@
   {
     "id": "word_3000_3251",
     "index": 3251,
-    "term": "Tuesday n. (abbr. Tue., Tues.)",
+    "term": "Tuesday n.",
     "pos": "phrase",
     "phonetic": "/´tju:zdi/",
     "meaning": "thứ 3",
@@ -29288,10 +29288,10 @@
   {
     "id": "word_3000_3255",
     "index": 3255,
-    "term": "TV television",
-    "pos": "phrase",
-    "phonetic": "",
-    "meaning": "vô tuyến truyền hình",
+    "term": "TV",
+    "pos": "n.",
+    "phonetic": "/ˌtiː ˈviː/",
+    "meaning": "ti vi, vô tuyến truyền hình (television)",
     "raw": "TV television vô tuyến truyền hình"
   },
   {
@@ -29360,7 +29360,7 @@
   {
     "id": "word_3000_3263",
     "index": 3263,
-    "term": "tyre n. (BrE) (NAmE tire)",
+    "term": "tyre n.",
     "pos": "phrase",
     "phonetic": "/'taiз/",
     "meaning": "lốp, vỏ xe",
@@ -29819,7 +29819,7 @@
   {
     "id": "word_3000_3314",
     "index": 3314,
-    "term": "until (also till)",
+    "term": "until",
     "pos": "conj., prep.",
     "phonetic": "/ʌn´til/",
     "meaning": "trước khi, cho đến khi",
@@ -29909,9 +29909,9 @@
   {
     "id": "word_3000_3324",
     "index": 3324,
-    "term": "upwards (also upward especially in NAmE)",
+    "term": "upwards",
     "pos": "adv.",
-    "phonetic": "",
+    "phonetic": "/ˈʌpwədz/",
     "meaning": "hướng lên trên, đi lên",
     "raw": "upwards (also upward especially in NAmE) adv."
   },
@@ -29992,7 +29992,7 @@
     "index": 3333,
     "term": "used to",
     "pos": "modal v.",
-    "phonetic": "",
+    "phonetic": "/ˈjuːst tuː/",
     "meaning": "đã quen dùng",
     "raw": "used to modal v. đã quen dùng"
   },
@@ -30685,7 +30685,7 @@
     "index": 3410,
     "term": "the Web",
     "pos": "n.",
-    "phonetic": "",
+    "phonetic": "/ðə web/",
     "meaning": "mạng thông tin toàn cầu (World Wide Web)",
     "raw": "the Web n."
   },
@@ -30694,7 +30694,7 @@
     "index": 3411,
     "term": "website",
     "pos": "n.",
-    "phonetic": "",
+    "phonetic": "/ˈwebsaɪt/",
     "meaning": "không gian liên tới với Internet",
     "raw": "website n. không gian liên tới với Internet"
   },
@@ -30710,7 +30710,7 @@
   {
     "id": "word_3000_3413",
     "index": 3413,
-    "term": "Wednesday n. (abbr. Wed., Weds.)",
+    "term": "Wednesday n.",
     "pos": "phrase",
     "phonetic": "/´wensdei/",
     "meaning": "thứ 4",
@@ -30784,16 +30784,16 @@
     "index": 3421,
     "term": "as well (as)",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/æz wel/",
     "meaning": "cũng, cũng như",
     "raw": "as well (as) cũng, cũng như"
   },
   {
     "id": "word_3000_3422",
     "index": 3422,
-    "term": "well known know",
-    "pos": "phrase",
-    "phonetic": "",
+    "term": "well known",
+    "pos": "adj.",
+    "phonetic": "/ˌwel ˈnəʊn/",
     "meaning": "nổi tiếng, được biết đến rộng rãi",
     "raw": "well known know"
   },
@@ -30926,7 +30926,7 @@
   {
     "id": "word_3000_3437",
     "index": 3437,
-    "term": "whilst conj. (especially BrE)",
+    "term": "whilst conj.",
     "pos": "phrase",
     "phonetic": "/wailst/",
     "meaning": "trong lúc, trong khi",
@@ -31151,10 +31151,10 @@
   {
     "id": "word_3000_3462",
     "index": 3462,
-    "term": "wind sth up lên dây, quấn",
-    "pos": "phrase",
-    "phonetic": "",
-    "meaning": "giải quyết",
+    "term": "wind sth up",
+    "pos": "phr v.",
+    "phonetic": "/waɪnd ʌp/",
+    "meaning": "lên dây, quấn, giải quyết",
     "raw": "wind sth up lên dây, quấn, giải quyết"
   },
   {
@@ -31412,9 +31412,9 @@
   {
     "id": "word_3000_3491",
     "index": 3491,
-    "term": "worse, worst bad",
-    "pos": "phrase",
-    "phonetic": "",
+    "term": "worse",
+    "pos": "adj.",
+    "phonetic": "/wɜːs/",
     "meaning": "xấu",
     "raw": "worse, worst bad xấu"
   },
@@ -31540,7 +31540,7 @@
     "index": 3505,
     "term": "go wrong",
     "pos": "phrase",
-    "phonetic": "",
+    "phonetic": "/ɡəʊ rɒŋ/",
     "meaning": "mắc lỗi, sai lầm",
     "raw": "go wrong mắc lỗi, sai lầm"
   },

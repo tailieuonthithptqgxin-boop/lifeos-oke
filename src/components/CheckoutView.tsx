@@ -29,6 +29,8 @@ import { useAppStore } from '../lib/store';
 import { apiCall } from '../lib/apiClient';
 import { formatCurrency } from '../lib/utils';
 import { toast } from '../lib/toast';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+import { soundEngine } from '../lib/soundEngine';
 
 type BillingCycle = 'monthly' | 'yearly';
 type ViewTab = 'checkout' | 'my_requests';
@@ -49,16 +51,82 @@ export function CheckoutView({
 }: CheckoutViewProps) {
   const { currentUser, setCurrentView, loadAllData } = useAppStore();
 
-  const [activeTab, setActiveTab] = useState<ViewTab>('checkout');
-  const [selectedPlan, setSelectedPlan] = useState<string>(initialPlan);
+  // Active Tab with F5 reload persistence
+  const [activeTab, setActiveTab] = useState<ViewTab>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_checkout_tab') as ViewTab;
+        if (saved && ['checkout', 'my_requests'].includes(saved)) return saved;
+      } catch {}
+    }
+    return 'checkout';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_checkout_tab', activeTab);
+    } catch {}
+  }, [activeTab]);
+
+  // Selected Plan with F5 reload persistence
+  const [selectedPlan, setSelectedPlan] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_checkout_plan');
+        if (saved) return saved;
+      } catch {}
+    }
+    return initialPlan;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_checkout_plan', selectedPlan);
+    } catch {}
+  }, [selectedPlan]);
+
   const [cycle, setCycle] = useState<BillingCycle>(initialCycle);
   const [checkoutStep, setCheckoutStep] = useState<CheckoutStep>('select_plan');
 
-  // Coupon state
-  const [couponCode, setCouponCode] = useState('');
+  // Coupon state with F5 reload persistence
+  const [couponCode, setCouponCode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return localStorage.getItem('lifeos_checkout_coupon') || '';
+      } catch {}
+    }
+    return '';
+  });
+
+  useEffect(() => {
+    try {
+      if (couponCode) {
+        localStorage.setItem('lifeos_checkout_coupon', couponCode);
+      } else {
+        localStorage.removeItem('lifeos_checkout_coupon');
+      }
+    } catch {}
+  }, [couponCode]);
+
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discountPercent: number } | null>(null);
   const [couponError, setCouponError] = useState('');
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+
+  // Cancel Request Modal State
+  const [requestToCancel, setRequestToCancel] = useState<string | null>(null);
+  const cancelMouseDownRef = React.useRef<EventTarget | null>(null);
+  useBodyScrollLock(!!requestToCancel);
+
+  React.useEffect(() => {
+    if (!requestToCancel) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setRequestToCancel(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [requestToCancel]);
 
   // Checkout session & payment request state
   const [isLoadingSession, setIsLoadingSession] = useState(false);
@@ -324,14 +392,20 @@ export function CheckoutView({
   };
 
   // Cancel a pending request
-  const handleCancelRequest = async (orderId: string) => {
-    if (!window.confirm('Bạn có chắc chắn muốn hủy yêu cầu thanh toán này?')) return;
+  const handleCancelRequest = (orderId: string) => {
+    setRequestToCancel(orderId);
+  };
+
+  const executeCancelRequest = async () => {
+    if (!requestToCancel) return;
+    const orderId = requestToCancel;
 
     try {
       setIsCancelling(orderId);
       const res = await apiCall('/api/payments/cancel-request', 'POST', { orderId });
       if (res && res.success) {
         toast.info(`Đã hủy yêu cầu thanh toán đơn #${orderId}.`, 'Đã hủy');
+        soundEngine.playPop();
         await fetchMyRequests();
         if (checkoutData?.orderId === orderId) {
           setCheckoutStep('select_plan');
@@ -339,9 +413,10 @@ export function CheckoutView({
       }
     } catch (err: any) {
       toast.error(err.message || 'Không thể hủy yêu cầu.', 'Lỗi');
-      alert(err.message || 'Không thể hủy yêu cầu.');
+      soundEngine.playPop();
     } finally {
       setIsCancelling(null);
+      setRequestToCancel(null);
     }
   };
 
@@ -679,7 +754,11 @@ export function CheckoutView({
                             ? checkoutData.bankInfo.customQrUrl
                             : (checkoutData.bankInfo?.dynamicQrUrl || checkoutData.bankInfo?.qrUrl)
                         }
-                        alt="QR Code"
+                        alt="Mã QR thanh toán chuyển khoản ngân hàng VietQR"
+                        loading="lazy"
+                        decoding="async"
+                        width="208"
+                        height="208"
                         className="w-full h-full object-contain"
                       />
                     </div>
@@ -815,7 +894,11 @@ export function CheckoutView({
                       <div className="flex items-center gap-2 min-w-0">
                         <img
                           src={receiptUrl}
-                          alt="Receipt Preview"
+                          alt="Ảnh xem trước biên lai chuyển khoản"
+                          loading="lazy"
+                          decoding="async"
+                          width="40"
+                          height="40"
                           className="w-10 h-10 rounded-lg object-cover border border-slate-200 shrink-0"
                         />
                         <div className="truncate">
@@ -1097,7 +1180,88 @@ export function CheckoutView({
           </div>
         )}
 
+        {/* Support & Refund Guarantee Section */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-500">
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0" />
+            <div>
+              <p className="font-semibold text-slate-800 dark:text-slate-200">
+                Cam kết hỗ trợ & Kích hoạt trực tuyến
+              </p>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Hỗ trợ kỹ thuật: <strong className="text-slate-700 dark:text-slate-300">adminteamdaniel@gmail.com</strong>. Chính sách hoàn tiền chỉ áp dụng cho sự cố kỹ thuật website phát sinh trong quá trình thanh toán hoặc cấp quyền dịch vụ.
+              </p>
+            </div>
+          </div>
+          <a
+            href="/refund-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[11px] whitespace-nowrap transition-colors shrink-0"
+          >
+            Chính sách hoàn tiền
+          </a>
+        </div>
+
       </div>
+
+      {/* MODAL: CONFIRM CANCEL REQUEST */}
+      {requestToCancel && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-backdrop-fade cursor-default"
+          onMouseDown={(e) => { cancelMouseDownRef.current = e.target; }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && cancelMouseDownRef.current === e.currentTarget && !isCancelling) {
+              setRequestToCancel(null);
+            }
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-4 animate-modal-enter"
+          >
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center shrink-0 border border-amber-200 dark:border-amber-900/50">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Hủy yêu cầu thanh toán?
+                </h3>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Đơn #{requestToCancel} đang chờ duyệt sẽ bị hủy bỏ. Bạn có thể tạo lại yêu cầu thanh toán mới bất cứ lúc nào.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                disabled={!!isCancelling}
+                onClick={() => setRequestToCancel(null)}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Giữ yêu cầu
+              </button>
+              <button
+                type="button"
+                disabled={!!isCancelling}
+                onClick={executeCancelRequest}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                {isCancelling ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Đang hủy...</span>
+                  </>
+                ) : (
+                  <span>Xác nhận hủy</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

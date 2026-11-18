@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { fetchWordData, PublicWordData } from '../../lib/dictionaryApi';
 import { useAppStore } from '../../lib/store';
 import { soundEngine } from '../../lib/soundEngine';
+import { pronunciationService } from '../../lib/pronunciationService';
 import { triggerConfetti } from '../../lib/confetti';
 import {
   Search, Volume2, Sparkles, X, Check, Loader2, BookOpen,
@@ -16,6 +18,18 @@ interface ZeroEffortIngestionModalProps {
 }
 
 export function ZeroEffortIngestionModal({ initialWord = '', isOpen, onClose }: ZeroEffortIngestionModalProps) {
+  useBodyScrollLock(isOpen);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useEffect(() => {
+    if (!(isOpen)) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   const { addWord, words = [] } = useAppStore();
   const [searchTerm, setSearchTerm] = useState(initialWord);
   const [isLoading, setIsLoading] = useState(false);
@@ -53,19 +67,11 @@ export function ZeroEffortIngestionModal({ initialWord = '', isOpen, onClose }: 
   };
 
   const playAudio = () => {
-    if (wordData?.audioUrl) {
-      const audio = new Audio(wordData.audioUrl);
-      audio.play().catch(() => playSpeech());
-    } else {
-      playSpeech();
-    }
-  };
-
-  const playSpeech = () => {
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window && wordData?.word) {
-      const utter = new SpeechSynthesisUtterance(wordData.word);
-      utter.lang = 'en-US';
-      window.speechSynthesis.speak(utter);
+    if (wordData?.word) {
+      pronunciationService.speak(wordData.word, {
+        audioUrl: wordData.audioUrl,
+        voiceCode: 'en-US'
+      });
     }
   };
 
@@ -109,8 +115,19 @@ export function ZeroEffortIngestionModal({ initialWord = '', isOpen, onClose }: 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in">
-      <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md animate-in fade-in cursor-default"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+      >
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-850/50">
           <div className="flex items-center gap-2">

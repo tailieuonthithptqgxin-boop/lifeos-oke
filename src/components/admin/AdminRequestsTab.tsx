@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Clock, CheckCircle2, Ban, Receipt, Search, Download, RefreshCw, Copy, Check, X 
 } from 'lucide-react';
 import { apiCall } from '../../lib/apiClient';
-import { formatCurrency } from '../../lib/utils';
+import { formatCurrency, formatLocalDateKey } from '../../lib/utils';
 import { PaymentRequest } from './types';
 import { toast } from '../../lib/toast';
 import { useAppStore } from '../../lib/store';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 interface AdminRequestsTabProps {
   onShowMessage?: (msg: { text: string; type: 'success' | 'error' }) => void;
@@ -27,6 +28,21 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
   const [rejectModalTarget, setRejectModalTarget] = useState<PaymentRequest | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [isRejecting, setIsRejecting] = useState(false);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useBodyScrollLock(!!approveConfirmTarget || !!rejectModalTarget);
+
+  useEffect(() => {
+    if (!approveConfirmTarget && !rejectModalTarget) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (!isApproving) setApproveConfirmTarget(null);
+        if (!isRejecting) setRejectModalTarget(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [approveConfirmTarget, rejectModalTarget, isApproving, isRejecting]);
 
   const { setCurrentView } = useAppStore();
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
@@ -108,7 +124,7 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `lifeos_payment_requests_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `lifeos_payment_requests_${formatLocalDateKey(new Date())}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -279,8 +295,18 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
             placeholder="Tìm theo Email, Tên khách, Mã giao dịch (NANGCAP-ORD_...)..."
             value={requestSearch}
             onChange={e => setRequestSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border-none text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-9 pr-9 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border-none text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
           />
+          {requestSearch && (
+            <button
+              type="button"
+              onClick={() => setRequestSearch('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              title="Xóa tìm kiếm"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -346,8 +372,10 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <>
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-xs">
               <thead className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-slate-500 uppercase tracking-wider font-semibold">
                 <tr>
                   <th className="py-3.5 px-4">Khách hàng</th>
@@ -540,25 +568,127 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
               </tbody>
             </table>
           </div>
-        )}
-      </div>
 
-      {/* MODAL: DUYỆT THANH TOÁN */}
+          {/* Mobile Requests Card View (Rule 3 & 4) */}
+          <div className="md:hidden space-y-3 p-3">
+            {requests.map((req) => {
+              const isPending = req.status === 'PENDING' || req.status === 'Pending';
+              const isApproved = req.status === 'APPROVED' || req.status === 'Paid';
+              const isRejected = req.status === 'REJECTED';
+
+              return (
+                <div
+                  key={`req-mobile-${req.id}`}
+                  className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 space-y-3"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <img
+                        src={req.user?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(req.user?.name || req.customerEmail)}`}
+                        alt="avatar"
+                        className="w-9 h-9 rounded-full bg-slate-200 dark:bg-slate-700 object-cover shrink-0"
+                      />
+                      <div className="min-w-0">
+                        <div className="font-extrabold text-xs text-slate-900 dark:text-white truncate">
+                          {req.user?.name || 'Khách hàng'}
+                        </div>
+                        <div className="text-[10px] text-slate-400 truncate">
+                          {req.customerEmail}
+                        </div>
+                      </div>
+                    </div>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black shrink-0 ${
+                      isPending
+                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 animate-pulse'
+                        : isApproved
+                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                        : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                    }`}>
+                      {isPending ? 'Chờ Duyệt' : isApproved ? 'Đã Duyệt' : 'Từ Chối'}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 space-y-1.5 text-xs">
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400 text-[11px]">Gói yêu cầu:</span>
+                      <span className="font-black text-blue-600 dark:text-blue-400">
+                        {req.planRequested} ({req.billingCycle === 'yearly' ? '1 Năm' : '1 Tháng'})
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-400 text-[11px]">Số tiền:</span>
+                      <span className="font-black text-slate-900 dark:text-white text-sm">
+                        {formatCurrency(req.amount)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center pt-1 border-t border-slate-100 dark:border-slate-800">
+                      <span className="text-slate-400 text-[11px]">Mã GD:</span>
+                      <div className="flex items-center gap-1 font-mono font-bold text-blue-600 text-[11px]">
+                        <span>{req.txReference}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopy(req.txReference, req.id)}
+                          className="p-1 rounded text-slate-400 hover:text-blue-600 cursor-pointer"
+                        >
+                          {copySuccess === req.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  {isPending && (
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setApproveConfirmTarget(req)}
+                        className="min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        <Check className="w-4 h-4" />
+                        <span>Duyệt Gói</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRejectModalTarget(req);
+                          setRejectReason('');
+                        }}
+                        className="min-h-[44px] rounded-xl border border-rose-300 dark:border-rose-800 text-rose-600 dark:text-rose-400 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                      >
+                        <X className="w-4 h-4" />
+                        <span>Từ chối</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
+
+      {/* MODAL: DUYỆT THANH TOÁN (Mobile Bottom Sheet) */}
       {approveConfirmTarget && (
         <div 
-          className="fixed inset-0 z-[80] bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-100"
-          onClick={() => setApproveConfirmTarget(null)}
+          className="fixed inset-0 z-[80] bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-xs animate-in fade-in duration-100"
+          onMouseDown={(e) => { mouseDownTargetRef.current = e.target; }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget && !isApproving) {
+              setApproveConfirmTarget(null);
+            }
+          }}
         >
           <div 
-            className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 max-h-[90dvh] overflow-y-auto animate-bottom-sheet"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-inner">
-              <CheckCircle2 className="w-8 h-8" />
+            <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto sm:hidden mb-1" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto shadow-inner">
+              <CheckCircle2 className="w-7 h-7 sm:w-8 sm:h-8" />
             </div>
 
             <div className="text-center space-y-1">
-              <h3 className="text-lg font-black text-slate-900 dark:text-white">
+              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
                 Xác nhận Duyệt Thanh Toán
               </h3>
               <p className="text-xs text-slate-500">
@@ -570,7 +700,7 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/60 space-y-2 text-xs">
               <div className="flex justify-between">
                 <span className="text-slate-400">Khách hàng:</span>
-                <span className="font-bold text-slate-900 dark:text-white">{approveConfirmTarget.customerEmail}</span>
+                <span className="font-bold text-slate-900 dark:text-white truncate max-w-[200px]">{approveConfirmTarget.customerEmail}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Gói nâng cấp:</span>
@@ -599,7 +729,7 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
                 type="button"
                 onClick={() => setApproveConfirmTarget(null)}
                 disabled={isApproving}
-                className="flex-1 py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="flex-1 min-h-[44px] py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Hủy bỏ
               </button>
@@ -607,7 +737,7 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
                 type="button"
                 onClick={handleApprovePayment}
                 disabled={isApproving}
-                className="flex-1 py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/25 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                className="flex-1 min-h-[44px] py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-md shadow-emerald-600/25 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <Check className="w-4 h-4 stroke-[3]" />
                 <span>{isApproving ? 'Đang duyệt...' : 'Xác nhận & Kích hoạt'}</span>
@@ -617,22 +747,28 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
         </div>
       )}
 
-      {/* MODAL: TỪ CHỐI THANH TOÁN */}
+      {/* MODAL: TỪ CHỐI THANH TOÁN (Mobile Bottom Sheet) */}
       {rejectModalTarget && (
         <div 
-          className="fixed inset-0 z-[80] bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-100"
-          onClick={() => setRejectModalTarget(null)}
+          className="fixed inset-0 z-[80] bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-xs animate-in fade-in duration-100"
+          onMouseDown={(e) => { mouseDownTargetRef.current = e.target; }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget && !isRejecting) {
+              setRejectModalTarget(null);
+            }
+          }}
         >
           <div 
-            className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150"
+            className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-md w-full p-5 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4 max-h-[90dvh] overflow-y-auto animate-bottom-sheet"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-14 h-14 rounded-2xl bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto shadow-inner">
-              <Ban className="w-8 h-8" />
+            <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto sm:hidden mb-1" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-rose-100 dark:bg-rose-950 text-rose-600 dark:text-rose-400 flex items-center justify-center mx-auto shadow-inner">
+              <Ban className="w-7 h-7 sm:w-8 sm:h-8" />
             </div>
 
             <div className="text-center space-y-1">
-              <h3 className="text-lg font-black text-slate-900 dark:text-white">
+              <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
                 Từ Chối Yêu Cầu Thanh Toán
               </h3>
               <p className="text-xs text-slate-500">
@@ -670,7 +806,7 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
                       key={idx}
                       type="button"
                       onClick={() => setRejectReason(preset)}
-                      className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-[11px] font-medium transition-colors cursor-pointer"
+                      className="px-2.5 py-1.5 min-h-[36px] rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-[11px] font-medium transition-colors cursor-pointer"
                     >
                       {preset}
                     </button>
@@ -683,17 +819,17 @@ export function AdminRequestsTab({ onShowMessage }: AdminRequestsTabProps) {
                   type="button"
                   onClick={() => setRejectModalTarget(null)}
                   disabled={isRejecting}
-                  className="flex-1 py-3 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  className="flex-1 min-h-[44px] py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-semibold text-xs hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 >
                   Hủy bỏ
                 </button>
                 <button
                   type="submit"
                   disabled={isRejecting || !rejectReason.trim()}
-                  className="flex-1 py-3 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-rose-600/25 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="flex-1 min-h-[44px] py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-bold text-xs shadow-md shadow-rose-600/25 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                 >
                   <Ban className="w-4 h-4" />
-                  <span>{isRejecting ? 'Đang xử lý...' : 'Xác nhận Từ chối'}</span>
+                  <span>{isRejecting ? 'Đang xử lý...' : 'Từ chối đơn'}</span>
                 </button>
               </div>
             </form>

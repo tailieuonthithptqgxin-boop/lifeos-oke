@@ -7,10 +7,10 @@ interface FinanceGoalsTabProps {
   debts: any[];
   formatCurrency: (val: number) => string;
   onEditSavingGoal: (goal: any) => void;
-  onDeleteSavingGoal: (id: string) => void;
+  onDeleteSavingGoal: (id: string, goal?: any) => void;
   onAddSavingGoal: () => void;
   onEditDebt: (debt: any) => void;
-  onDeleteDebt: (id: string) => void;
+  onDeleteDebt: (id: string, debt?: any) => void;
   onUpdateDebtStatus: (id: string, status: string) => void;
   onAddDebt: () => void;
 }
@@ -85,16 +85,9 @@ export const FinanceGoalsTab: React.FC<FinanceGoalsTabProps> = ({
                       </button>
                       <button
                         type="button"
-                        onClick={() => {
-                          const confirmMsg = isVi 
-                            ? `Xóa mục tiêu "${goal.title || goal.name}"?` 
-                            : `Delete goal "${goal.title || goal.name}"?`;
-                          if (window.confirm?.(confirmMsg)) {
-                            onDeleteSavingGoal(goal.id);
-                          }
-                        }}
+                        onClick={() => onDeleteSavingGoal(goal.id, goal)}
                         className="p-1 text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
-                        title={isVi ? 'Xóa' : 'Delete'}
+                        title={isVi ? 'Xóa mục tiêu (Có thể hoàn tác 5s)' : 'Delete goal (5s Undo)'}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -193,16 +186,9 @@ export const FinanceGoalsTab: React.FC<FinanceGoalsTabProps> = ({
                       </button>
                       <button
                         type="button"
-                        onClick={() => {
-                          const confirmMsg = isVi 
-                            ? `Xóa khoản "${debt.title || debt.name}"?` 
-                            : `Delete "${debt.title || debt.name}"?`;
-                          if (window.confirm?.(confirmMsg)) {
-                            onDeleteDebt(debt.id);
-                          }
-                        }}
+                        onClick={() => onDeleteDebt(debt.id, debt)}
                         className="p-1 text-slate-400 hover:text-red-600 cursor-pointer"
-                        title={isVi ? 'Xóa' : 'Delete'}
+                        title={isVi ? 'Xóa khoản nợ (Có thể hoàn tác 5s)' : 'Delete debt (5s Undo)'}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>

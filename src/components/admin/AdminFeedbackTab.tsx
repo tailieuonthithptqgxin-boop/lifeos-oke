@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   MessageSquare, Search, Filter, Sparkles, CheckCircle2, Clock, 
-  Lightbulb, Bug, Star, AlertCircle, Send, Check, Eye
+  Lightbulb, Bug, Star, AlertCircle, Send, Check, Eye, X
 } from 'lucide-react';
 import { apiCall } from '../../lib/apiClient';
 import { soundEngine } from '../../lib/soundEngine';
@@ -40,7 +40,29 @@ export function AdminFeedbackTab() {
   };
 
   useEffect(() => {
-    loadFeedbacks();
+    let isMounted = true;
+    const fetchFiltered = async () => {
+      try {
+        setLoading(true);
+        const params = new URLSearchParams();
+        if (statusFilter !== 'ALL') params.append('status', statusFilter);
+        if (typeFilter !== 'ALL') params.append('type', typeFilter);
+        if (search.trim()) params.append('search', search.trim());
+
+        const res = await apiCall(`/api/admin/feedback?${params.toString()}`);
+        if (isMounted && res && res.success) {
+          setData(res);
+        }
+      } catch (err) {
+        if (isMounted) console.error('Error loading admin feedback:', err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+    fetchFiltered();
+    return () => {
+      isMounted = false;
+    };
   }, [statusFilter, typeFilter]);
 
   const handleOpenEdit = (item: any) => {
@@ -105,7 +127,7 @@ export function AdminFeedbackTab() {
           { key: 'In Progress', label: 'Đang làm', count: data?.counts?.['In Progress'] || 0, color: 'text-amber-600' },
           { key: 'Completed', label: 'Hoàn thành', count: data?.counts?.Completed || 0, color: 'text-emerald-600' }
         ].map((tab) => (
-          <button
+          <button type="button"
             key={tab.key}
             onClick={() => setStatusFilter(tab.key)}
             className={`p-3 rounded-2xl border text-left transition-all cursor-pointer ${
@@ -135,8 +157,18 @@ export function AdminFeedbackTab() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && loadFeedbacks()}
-              className="pl-9 pr-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400 w-56 sm:w-64"
+              className="pl-9 pr-8 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs text-slate-800 dark:text-white bg-slate-50 dark:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-purple-400 w-56 sm:w-64"
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                title="Xóa tìm kiếm"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
           </div>
 
           <select
@@ -152,7 +184,7 @@ export function AdminFeedbackTab() {
           </select>
         </div>
 
-        <button
+        <button type="button"
           onClick={loadFeedbacks}
           className="px-4 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs cursor-pointer btn-squishy shadow-xs"
         >
@@ -219,7 +251,7 @@ export function AdminFeedbackTab() {
                       )}
                     </td>
                     <td className="py-3 text-right">
-                      <button
+                      <button type="button"
                         onClick={() => handleOpenEdit(item)}
                         className="px-3 py-1.5 rounded-xl bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-xs hover:bg-purple-200 cursor-pointer btn-squishy"
                       >
@@ -243,7 +275,7 @@ export function AdminFeedbackTab() {
                 <Sparkles className="w-5 h-5 text-purple-600" />
                 <span>Xử Lý & Trả Lời Góp Ý</span>
               </h3>
-              <button
+              <button type="button"
                 onClick={() => setSelectedFeedback(null)}
                 className="text-slate-400 hover:text-slate-700 dark:hover:text-white cursor-pointer"
               >

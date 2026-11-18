@@ -25,6 +25,11 @@ html, body, #root {
   overflow-x: hidden;
   position: relative;
   touch-action: manipulation;
+  scrollbar-gutter: stable;
+}
+
+main {
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -234,3 +239,294 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* ========================================================================= */
+/* PRODUCTION MOBILE ERGONOMICS & RESPONSIVENESS (iOS & Android)             */
+/* ========================================================================= */
+
+/* 1. Prevent iOS Safari auto-zoom when tapping inputs (requires >= 16px font-size) */
+@media screen and (max-width: 768px) {
+  input,
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="date"],
+  input[type="time"],
+  select,
+  textarea {
+    font-size: 16px !important;
+    line-height: 1.5 !important;
+    min-height: 44px !important;
+  }
+
+  /* Main viewport bottom clearance to guarantee bottom navigation never covers content */
+  main {
+    padding-bottom: calc(74px + env(safe-area-inset-bottom, 16px)) !important;
+  }
+}
+
+/* 2. Touch target & tap ergonomics */
+@media screen and (max-width: 768px) {
+  button, a, input, select, textarea, [role="button"] {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Interactive buttons minimum 44px touch target standard on mobile */
+  button:not(.btn-compact),
+  [role="button"]:not(.btn-compact),
+  .btn-touch-target {
+    min-height: 44px;
+  }
+
+  /* Primary action buttons comfortable finger tap size */
+  button[type="submit"],
+  .btn-primary {
+    min-height: 48px !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Micro-tactile click feedback */
+  button:active,
+  [role="button"]:active {
+    transform: scale(0.98);
+    transition: transform 0.08s ease;
+  }
+}
+
+/* 3. Modal and dialog viewport protection on small screens and virtual keyboard */
+@media screen and (max-width: 640px) {
+  [role="dialog"] {
+    max-height: calc(100dvh - 1.5rem) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom, 16px));
+  }
+}
+
+/* 4. Safe area insets support for notched phones */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  #mobile-bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom, 8px);
+  }
+}
+
+/* 5. Universal mobile table scroll containment & zero horizontal overflow */
+@media screen and (max-width: 768px) {
+  table {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  img, video, iframe {
+    max-width: 100% !important;
+    height: auto;
+  }
+}
+
+/* ========================================================================= */
+/* MEETSTUDY GOOGLE MEET STYLE ANIMATIONS & FRAMES                           */
+/* ========================================================================= */
+.frame-emerald {
+  box-shadow: 0 0 0 3px #10b981, 0 0 15px rgba(16, 185, 129, 0.4);
+}
+.frame-neon {
+  box-shadow: 0 0 0 3px #a855f7, 0 0 20px rgba(168, 85, 247, 0.6);
+}
+.frame-gold {
+  box-shadow: 0 0 0 3px #f59e0b, 0 0 15px rgba(245, 158, 11, 0.5);
+}
+.frame-cyber {
+  box-shadow: 0 0 0 3px #06b6d4, 0 0 15px rgba(6, 182, 212, 0.5);
+}
+
+@keyframes subtleBreathing {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+}
+.animate-avatar {
+  animation: subtleBreathing 4s ease-in-out infinite;
+}
+
+@keyframes floatUpMeet {
+  0% {
+    transform: translateY(0) scale(0.6) rotate(0deg);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(-40px) scale(1.2) rotate(-5deg);
+  }
+  80% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-380px) scale(0.8) rotate(15deg);
+    opacity: 0;
+  }
+}
+.floating-reaction {
+  position: absolute;
+  pointer-events: none;
+  animation: floatUpMeet 3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  z-index: 60;
+  font-size: 2.5rem;
+  filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5));
+}
+
+@keyframes burstReaction {
+  0% { transform: scale(0.3) translateY(0); opacity: 1; }
+  50% { transform: scale(1.5) translateY(-30px); opacity: 1; }
+  100% { transform: scale(1) translateY(-60px); opacity: 0; }
+}
+.tile-burst {
+  animation: burstReaction 1.5s ease-out forwards;
+}
+
+/* Mobile Ergonomics & Form Rules */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+    line-height: 1.5;
+  }
+  
+  /* Touch target assurance */
+  button, a, input, select {
+    touch-action: manipulation;
+  }
+}
+
+.safe-area-pb {
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+}
+
+@keyframes bottomSheetEnter {
+  from {
+    transform: translateY(100%);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-bottom-sheet {
+  animation: bottomSheetEnter 0.24s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* ========================================================================= */
+/* SENIOR MOTION & TACTILE MICRO-INTERACTIONS (GPU-ACCELERATED 60FPS)       */
+/* ========================================================================= */
+
+/* 1. Tactile Spring Feedback for All Interactive Buttons & Elements */
+button:not(.btn-no-tactile):active,
+[role="button"]:not(.btn-no-tactile):active,
+.btn-tactile:active {
+  transform: scale(0.96) translateZ(0) !important;
+  transition: transform 0.12s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+/* 2. Seamless Screen & Tab Transitions (0.22s Apple Ease) */
+@keyframes viewTransitionEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.view-transition-enter {
+  animation: viewTransitionEnter 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+
+/* 3. Tactile Card Hover & Touch Elevation */
+.tactile-card {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  will-change: transform;
+}
+.tactile-card:hover {
+  transform: translate3d(0, -2px, 0);
+}
+.tactile-card:active {
+  transform: scale(0.98) translateZ(0);
+  transition: transform 0.12s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* 4. Streak Flame Breathing Warm Glow */
+@keyframes flameBreathing {
+  0%, 100% {
+    filter: drop-shadow(0 0 3px rgba(245, 158, 11, 0.4));
+    transform: scale(1);
+  }
+  50% {
+    filter: drop-shadow(0 0 10px rgba(245, 158, 11, 0.85));
+    transform: scale(1.08);
+  }
+}
+
+.animate-flame-glow {
+  animation: flameBreathing 2.4s ease-in-out infinite;
+  transform-origin: center bottom;
+  will-change: transform, filter;
+}
+
+/* 5. Gen Z Social Reaction Bounce & Pop */
+@keyframes reactionPop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.35); }
+  65% { transform: scale(0.94); }
+  100% { transform: scale(1); }
+}
+
+.btn-reaction-pop:active,
+.btn-reaction-pop.is-active {
+  animation: reactionPop 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+/* 6. Smooth Progress Bars */
+.progress-bar-smooth {
+  transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: width;
+}
+
+/* 7. Toast Slide-In From Top */
+@keyframes toastEnter {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -12px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.animate-toast-enter {
+  animation: toastEnter 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+  will-change: transform, opacity;
+}
+
+/* Anti-Spam Button Throttle Indicator (Free-Tier Scale Protection) */
+.btn-throttled {
+  pointer-events: none !important;
+  opacity: 0.72 !important;
+  cursor: not-allowed !important;
+  transition: opacity 0.15s ease-out;
+}
+

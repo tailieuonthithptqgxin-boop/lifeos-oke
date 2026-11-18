@@ -1,4 +1,5 @@
 import { getPrisma } from '../db.js';
+import { getVietnamDateString, getVietnamYesterdayString, getVietnamStartOfDay } from '../utils/vietnamTime.js';
 
 export interface DailyQuestItem {
   id: string;
@@ -128,6 +129,17 @@ export const progressionService = {
       where: { userId }
     });
 
+    if (progression && progression.lastActiveDate) {
+      const todayStr = getVietnamDateString();
+      const yesterday = getVietnamYesterdayString();
+      if (progression.lastActiveDate !== todayStr && progression.lastActiveDate !== yesterday && progression.currentStreak > 0) {
+        progression = await prisma.userProgression.update({
+          where: { userId },
+          data: { currentStreak: 0 }
+        });
+      }
+    }
+
     if (!progression) {
       // 100% Data thật: Tính từ dữ liệu lịch sử của user
       const [
@@ -187,7 +199,7 @@ export const progressionService = {
       const level = getLevelFromXp(totalXp);
       const coins = Math.floor(totalXp / 5) + 50; // Starter coins
 
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = getVietnamDateString();
 
       progression = await prisma.userProgression.create({
         data: {
@@ -284,16 +296,17 @@ export const progressionService = {
     else if (category === 'finance') financeXp += amount;
     else if (category === 'task') focusXp += Math.floor(amount / 2);
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getVietnamDateString();
 
     // Cập nhật streak nếu ngày hoạt động mới
     let currentStreak = prog.currentStreak;
     let longestStreak = prog.longestStreak;
     if (prog.lastActiveDate !== todayStr) {
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+      const yesterday = getVietnamYesterdayString();
       if (prog.lastActiveDate === yesterday) {
         currentStreak += 1;
-      } else if (!prog.lastActiveDate) {
+      } else {
+        // Missed > 1 day or first time -> Reset streak to 1 today
         currentStreak = 1;
       }
       if (currentStreak > longestStreak) longestStreak = currentStreak;
@@ -475,7 +488,7 @@ export const progressionService = {
    * Mở Rương Kho Báu Hằng Ngày (Daily Mystery Chest)
    */
   async openDailyChest(userId: string) {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getVietnamDateString();
     const source = 'daily_chest';
     const sourceId = `chest_${todayStr}`;
 
@@ -586,8 +599,8 @@ export const progressionService = {
     const prisma = getPrisma();
     const prog = await this.getOrCreateProgression(userId);
 
-    const todayStr = new Date().toISOString().split('T')[0];
-    const todayStart = new Date(`${todayStr}T00:00:00.000Z`);
+    const todayStr = getVietnamDateString();
+    const todayStart = getVietnamStartOfDay(todayStr);
 
     // 1. Lấy dữ liệu hoạt động hôm nay để đánh giá Daily Quests
     const [
@@ -1277,7 +1290,7 @@ export const progressionService = {
    * Claim Daily Quest (Idempotent)
    */
   async claimDailyQuest(userId: string, questKey: string) {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getVietnamDateString();
     const sourceId = `${questKey}_${todayStr}`;
 
     const state = await this.getProgressionState(userId);

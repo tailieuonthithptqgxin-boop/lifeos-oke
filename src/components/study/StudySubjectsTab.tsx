@@ -5,7 +5,7 @@ import { BookOpen, Plus, Edit3, Trash2 } from 'lucide-react';
 interface StudySubjectsTabProps {
   onNewSubject: () => void;
   onEditSubject: (sub: any) => void;
-  onDeleteSubject: (id: string) => void;
+  onDeleteSubject: (sub: any) => void;
 }
 
 export function StudySubjectsTab({
@@ -25,7 +25,7 @@ export function StudySubjectsTab({
         <button 
           type="button" 
           onClick={onNewSubject}
-          className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm rounded-xl transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+          className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm rounded-xl transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
         >
           <Plus className="w-4 h-4" /> Thêm Môn học
         </button>
@@ -39,7 +39,7 @@ export function StudySubjectsTab({
           <button 
             type="button" 
             onClick={onNewSubject}
-            className="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl hover:bg-blue-700 transition-colors cursor-pointer"
+            className="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl hover:bg-blue-700 transition-colors cursor-pointer active:scale-95"
           >
             Thêm ngay
           </button>
@@ -47,7 +47,7 @@ export function StudySubjectsTab({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {subjects.map((sub: any) => (
-            <div key={sub.id} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs hover:shadow-md transition-shadow group flex flex-col justify-between space-y-4">
+            <div key={sub.id} className="bg-white dark:bg-[#141E30] p-5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs hover:shadow-md transition-shadow group flex flex-col justify-between space-y-4">
               <div>
                 <div className="flex justify-between items-start gap-3 mb-3">
                   <div className="flex items-center gap-3 min-w-0">
@@ -63,18 +63,16 @@ export function StudySubjectsTab({
                     <button 
                       type="button" 
                       onClick={() => onEditSubject(sub)}
-                      className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      className="p-1.5 text-slate-400 hover:text-blue-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                       title="Chỉnh sửa"
                     >
                       <Edit3 className="w-4 h-4" />
                     </button>
                     <button 
                       type="button" 
-                      onClick={() => {
-                        if (confirm(`Bạn có chắc muốn xóa môn "${sub.name}"?`)) onDeleteSubject(sub.id);
-                      }}
-                      className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                      title="Xóa môn"
+                      onClick={() => onDeleteSubject(sub)}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                      title="Xóa môn (có hoàn tác)"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

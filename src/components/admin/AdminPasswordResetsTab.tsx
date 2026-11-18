@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   KeyRound, 
   Search, 
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { apiCall } from '../../lib/apiClient';
 import type { PasswordResetRequestItem } from './types';
+import { AdminConfirmModal } from './AdminConfirmModal';
 
 interface AdminPasswordResetsTabProps {
   onShowMessage?: (msg: { text: string; type: 'success' | 'error' }) => void;
@@ -36,6 +37,8 @@ export function AdminPasswordResetsTab({ onShowMessage }: AdminPasswordResetsTab
   const [rejectModalTarget, setRejectModalTarget] = useState<PasswordResetRequestItem | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [isRejecting, setIsRejecting] = useState(false);
+  const [revokeTarget, setRevokeTarget] = useState<PasswordResetRequestItem | null>(null);
+  const [isRevokingTarget, setIsRevokingTarget] = useState(false);
 
   // Success Modal showing the newly generated PIN
   const [newlyApprovedPin, setNewlyApprovedPin] = useState<{ ticketCode: string; pin: string; email: string } | null>(null);
@@ -47,7 +50,10 @@ export function AdminPasswordResetsTab({ onShowMessage }: AdminPasswordResetsTab
     setTimeout(() => setCopiedId(null), 2000);
   };
 
+  const lastRequestIdRef = useRef(0);
+
   const fetchRequests = async () => {
+    const currentId = ++lastRequestIdRef.current;
     try {
       setIsLoading(true);
       const params = new URLSearchParams();
@@ -55,6 +61,7 @@ export function AdminPasswordResetsTab({ onShowMessage }: AdminPasswordResetsTab
       if (search.trim()) params.append('search', search.trim());
 
       const res = await apiCall(`/api/admin/reset-requests?${params.toString()}`);
+      if (currentId !== lastRequestIdRef.current) return;
       if (res && res.success) {
         setRequests(res.requests || []);
         if (res.counts) {
@@ -62,14 +69,21 @@ export function AdminPasswordResetsTab({ onShowMessage }: AdminPasswordResetsTab
         }
       }
     } catch (err: any) {
-      console.warn('Lỗi khi tải danh sách yêu cầu khôi phục mật khẩu:', err);
+      if (currentId === lastRequestIdRef.current) {
+        console.warn('Lỗi khi tải danh sách yêu cầu khôi phục mật khẩu:', err);
+      }
     } finally {
-      setIsLoading(false);
+      if (currentId === lastRequestIdRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     fetchRequests();
+    return () => {
+      lastRequestIdRef.current++;
+    };
   }, [statusFilter]);
 
   // Debounced search
@@ -77,7 +91,10 @@ export function AdminPasswordResetsTab({ onShowMessage }: AdminPasswordResetsTab
     const handler = setTimeout(() => {
       fetchRequests();
     }, 350);
-    return () => clearTimeout(handler);
+    return () => {
+      clearTimeout(handler);
+      lastRequestIdRef.current++;
+    };
   }, [search]);
 
   const handleApprove = async () => {
@@ -138,21 +155,27 @@ export function AdminPasswordResetsTab({ onShowMessage }: AdminPasswordResetsTab
     }
   };
 
-  const handleRevoke = async (item: PasswordResetRequestItem) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn thu hồi hiệu lực đặt lại mật khẩu của yêu cầu "${item.ticketCode}" (${item.email})?`)) {
-      return;
-    }
+  const handleRevoke = (item: PasswordResetRequestItem) => {
+    setRevokeTarget(item);
+  };
+
+  const executeRevoke = async () => {
+    if (!revokeTarget) return;
 
     try {
-      const res = await apiCall(`/api/admin/reset-requests/${item.id}/action`, 'POST', {
+      setIsRevokingTarget(true);
+      const res = await apiCall(`/api/admin/reset-requests/${revokeTarget.id}/action`, 'POST', {
         action: 'REVOKE'
       });
       if (res && res.success) {
-        onShowMessage?.({ text: `Đã thu hồi quyền đặt lại mật khẩu của ${item.ticketCode}`, type: 'success' });
+        onShowMessage?.({ text: `Đã thu hồi quyền đặt lại mật khẩu của ${revokeTarget.ticketCode}`, type: 'success' });
+        setRevokeTarget(null);
         await fetchRequests();
       }
     } catch (err: any) {
       onShowMessage?.({ text: err.message || 'Lỗi khi thu hồi yêu cầu', type: 'error' });
+    } finally {
+      setIsRevokingTarget(false);
     }
   };
 
@@ -237,8 +260,18 @@ export function AdminPasswordResetsTab({ onShowMessage }: AdminPasswordResetsTab
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Tìm theo mã vé (#RST-XXXX), email hoặc tên..."
-            className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-slate-900 dark:text-white"
+            className="w-full pl-9 pr-9 py-2 text-xs sm:text-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all text-slate-900 dark:text-white"
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+              title="Xóa tìm kiếm"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
 
         {/* Status Pills */}
@@ -629,6 +662,22 @@ export function AdminPasswordResetsTab({ onShowMessage }: AdminPasswordResetsTab
           </div>
         </div>
       )}
+
+      {/* Revoke Reset Password Confirmation Modal */}
+      <AdminConfirmModal
+        isOpen={!!revokeTarget}
+        title="Thu hồi quyền đặt lại mật khẩu"
+        description={
+          <span>
+            Bạn có chắc chắn muốn thu hồi hiệu lực đặt lại mật khẩu của yêu cầu <strong>"{revokeTarget?.ticketCode}"</strong> ({revokeTarget?.email})? Mã PIN và đường dẫn tương ứng sẽ bị vô hiệu hóa ngay lập tức.
+          </span>
+        }
+        confirmLabel="Thu hồi quyền"
+        variant="danger"
+        isProcessing={isRevokingTarget}
+        onConfirm={executeRevoke}
+        onClose={() => setRevokeTarget(null)}
+      />
     </div>
   );
 }

@@ -23,6 +23,7 @@ export interface LearningLanguage {
 import oxford3000Raw from '../data/oxford3000.json';
 import chineseHskRaw from '../data/chineseHskWords.json';
 import japaneseJlptRaw from '../data/japaneseJlptWords.json';
+import { enrichVocabWord } from './vocabEnricher';
 
 export interface System3000Word {
   id: string; // e.g. "word_3000_1"
@@ -32,6 +33,12 @@ export interface System3000Word {
   phonetic: string;
   meaning: string;
   raw?: string;
+  exampleSentence?: string;
+  exampleTranslation?: string;
+  collocations?: string[];
+  explanation?: string;
+  mnemonic?: string;
+  partOfSpeech?: string;
 }
 
 export interface SystemChineseHskWord {
@@ -66,7 +73,18 @@ export interface SystemJapaneseJlptWord {
   exampleTranslation?: string;
 }
 
-export const OXFORD_3000_WORDS: System3000Word[] = oxford3000Raw as System3000Word[];
+export const OXFORD_3000_WORDS: System3000Word[] = (oxford3000Raw as any[]).map(w => {
+  const enriched = enrichVocabWord(w.term, w.pos, w.meaning);
+  return {
+    ...w,
+    exampleSentence: w.exampleSentence || enriched.exampleSentence,
+    exampleTranslation: w.exampleTranslation || enriched.exampleTranslation,
+    collocations: w.collocations || enriched.collocations,
+    explanation: w.explanation || enriched.explanation,
+    mnemonic: w.mnemonic || enriched.mnemonic,
+    partOfSpeech: w.partOfSpeech || enriched.partOfSpeechLabel || w.pos
+  };
+});
 export const CHINESE_HSK_WORDS: SystemChineseHskWord[] = chineseHskRaw as SystemChineseHskWord[];
 export const JAPANESE_JLPT_WORDS: SystemJapaneseJlptWord[] = japaneseJlptRaw as SystemJapaneseJlptWord[];
 
@@ -105,18 +123,20 @@ export interface VocabCollection {
 }
 
 export interface ReviewLog {
-  id: string;
+  id?: string;
   reviewedAt: string;
   rating: 1 | 2 | 3 | 4; // 1: Again (Quên), 2: Hard (Khó), 3: Good (Nhớ được), 4: Easy (Dễ)
-  reviewType: 'flashcard' | 'flashcard_reverse' | 'spelling' | 'listening' | 'quiz' | 'fill_in_blank';
+  reviewType: 'flashcard' | 'flashcard_reverse' | 'spelling' | 'listening' | 'speaking' | 'quiz' | 'fill_in_blank';
+  interval?: number;
+  easeFactor?: number;
   isCorrect?: boolean;
   memoryLevelBefore?: number;
   memoryLevelAfter?: number;
   responseTimeMs?: number;
-  intervalBefore: number;
-  intervalAfter: number;
-  easeFactorBefore: number;
-  easeFactorAfter: number;
+  intervalBefore?: number;
+  intervalAfter?: number;
+  easeFactorBefore?: number;
+  easeFactorAfter?: number;
 }
 
 export interface VocabWord {
@@ -124,14 +144,21 @@ export interface VocabWord {
   languageId: string;
   collectionId: string;
   term: string;
+  word?: string;
   phonetic?: string;
+  ipa?: string;
   furigana?: string;
   romaji?: string;
   hanViet?: string;
   partOfSpeech?: string;
+  pos?: string;
   meaning: string;
+  definition?: string;
+  explanation?: string;
+  level?: string;
   secondaryMeanings?: string[];
   exampleSentence?: string;
+  example?: string;
   exampleTranslation?: string;
   collocations?: string[];
   synonyms?: string[];
@@ -554,7 +581,7 @@ export interface Sm2Input {
   intervalDays: number;
   lapses: number;
   lastReviewedAt?: string;
-  reviewType?: 'flashcard' | 'flashcard_reverse' | 'spelling' | 'listening' | 'quiz' | 'fill_in_blank';
+  reviewType?: 'flashcard' | 'flashcard_reverse' | 'spelling' | 'listening' | 'speaking' | 'quiz' | 'fill_in_blank';
 }
 
 export interface Sm2Output {
@@ -645,12 +672,107 @@ export interface MemoryPyramidStats {
 
 export function computeMemoryLevel(repetitionCount: number = 0, intervalDays: number = 0, lapses: number = 0): number {
   if (repetitionCount === 0) return 0;
-  if (repetitionCount === 1) return 1;
-  if (repetitionCount === 2 || lapses > 2) return 2;
-  if (intervalDays >= 30 && repetitionCount >= 5) return 5;
-  if (intervalDays >= 14 && repetitionCount >= 4) return 4;
-  if (repetitionCount >= 3) return 3;
-  return 2;
+  if (intervalDays >= 30) return 5;
+  if (intervalDays >= 14) return 4;
+  if (intervalDays >= 7) return 3;
+  if (intervalDays >= 3) return 2;
+  if (intervalDays >= 1) return 1;
+  return 1;
+}
+
+export interface DayForecast {
+  date: string;
+  dayLabel: string;
+  totalDue: number;
+  tierCounts: { [tier: number]: number };
+}
+
+export function getForecast7Days(words: VocabWord[]): DayForecast[] {
+  const safeWords = Array.isArray(words) ? words : [];
+  const results: DayForecast[] = [];
+  const today = new Date();
+  
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() + i);
+    const dateStr = d.toISOString().split('T')[0];
+    
+    let dayLabel = 'Hôm nay';
+    if (i === 1) dayLabel = 'Ngày mai';
+    else if (i > 1) {
+      const daysOfWeek = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
+      dayLabel = `${daysOfWeek[d.getDay()]}, ${d.getDate()}/${d.getMonth() + 1}`;
+    }
+
+    const tierCounts: { [tier: number]: number } = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    let totalDue = 0;
+
+    for (const w of safeWords) {
+      if (w.state === 'new' || !w.nextReviewAt) continue;
+      const isDue = (i === 0) ? (w.nextReviewAt <= dateStr) : (w.nextReviewAt === dateStr);
+      if (isDue) {
+        totalDue++;
+        const lvl = w.memoryLevel !== undefined ? w.memoryLevel : computeMemoryLevel(w.repetitionCount, w.intervalDays, w.lapses);
+        const tier = Math.max(1, Math.min(5, lvl));
+        tierCounts[tier] = (tierCounts[tier] || 0) + 1;
+      }
+    }
+
+    results.push({
+      date: dateStr,
+      dayLabel,
+      totalDue,
+      tierCounts
+    });
+  }
+
+  return results;
+}
+
+export interface CompletionProjection {
+  totalWords: number;
+  remainingNew: number;
+  masteredCount: number;
+  dailyTarget: number;
+  daysToComplete: number;
+  estimatedDate: string;
+  completionPercent: number;
+}
+
+export function calculateCompletionProjection(words: VocabWord[], dailyNewTarget: number = 15): CompletionProjection {
+  const safeWords = Array.isArray(words) ? words : [];
+  const totalWords = safeWords.length;
+  let remainingNew = 0;
+  let masteredCount = 0;
+
+  for (const w of safeWords) {
+    const lvl = w.memoryLevel !== undefined ? w.memoryLevel : computeMemoryLevel(w.repetitionCount, w.intervalDays, w.lapses);
+    if (lvl === 0 || w.state === 'new') remainingNew++;
+    else if (lvl >= 5 || w.state === 'mastered') masteredCount++;
+  }
+
+  const target = Math.max(1, dailyNewTarget);
+  const daysToComplete = Math.ceil(remainingNew / target);
+  
+  const completionDate = new Date();
+  completionDate.setDate(completionDate.getDate() + daysToComplete);
+  const estimatedDate = completionDate.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+
+  const completionPercent = totalWords > 0 ? Math.round((masteredCount / totalWords) * 100) : 0;
+
+  return {
+    totalWords,
+    remainingNew,
+    masteredCount,
+    dailyTarget: target,
+    daysToComplete,
+    estimatedDate,
+    completionPercent
+  };
 }
 
 export function calculateMemoryPyramid(words: VocabWord[] = []): MemoryPyramidStats {
@@ -808,21 +930,17 @@ export function calculateLanguageAnalytics(words: VocabWord[] = []): LanguageAna
   };
 }
 
+import { pronunciationService, PronounceOptions } from './pronunciationService';
+
 // ------------------------------------------------------------------------------
-// SPEECH SYNTHESIS HELPER
+// SPEECH SYNTHESIS HELPER (DELEGATED TO AUTHORITATIVE PRONUNCIATION SERVICE)
 // ------------------------------------------------------------------------------
 
-export function speakWord(text: string, voiceCode: string = 'en-US') {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-  try {
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = voiceCode;
-    utterance.rate = 0.9;
-    window.speechSynthesis.speak(utterance);
-  } catch (e) {
-    console.error('Speech synthesis error:', e);
-  }
+export function speakWord(text: any, voiceCode: string = 'en-US', options: PronounceOptions = {}) {
+  return pronunciationService.speak(text, {
+    voiceCode,
+    ...options
+  });
 }
 
 // ------------------------------------------------------------------------------
@@ -1466,7 +1584,7 @@ export function recordReviewOutcome(
   prevData: VocabUserData,
   wordId: string,
   rating: 1 | 2 | 3 | 4,
-  reviewType: 'flashcard' | 'flashcard_reverse' | 'spelling' | 'listening' | 'quiz' | 'fill_in_blank' = 'flashcard'
+  reviewType: 'flashcard' | 'flashcard_reverse' | 'spelling' | 'listening' | 'speaking' | 'quiz' | 'fill_in_blank' = 'flashcard'
 ): VocabUserData {
   const isOxford = wordId.startsWith('word_3000_');
   const isChineseHsk = wordId.startsWith('zh_hsk_');

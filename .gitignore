@@ -4,13 +4,21 @@ node_modules/
 .pnp.js
 
 # Production & Build outputs
+dist/
 /build
 out/
 .vite/
 .cache/
 coverage/
+*.zip
+*.tar.gz
+*.sqlite
+*.sqlite3
+*.db
 
 # Local PostgreSQL Data & Binaries (Exceeds GitHub 100MB Limit)
+data/
+data/db/
 pg_bin/
 pgdata/
 pgdata_local/
@@ -24,12 +32,27 @@ postgres.log
 
 # Environment variables & secrets (Prevent GitHub Secret Scanning blocks)
 .env
+*.env
+* (2).env
 .env.local
 .env.production
 .env.*.local
 !.env.example
 
-# OS and Editor files
+# Temporary design exploration files
+awwwards*.html
+landing.html
+lifeos-awwwards.html
+serve_awwwards.js
+
+# Temporary test and audit files
+test-results/
+playwright-report/
+backups/
+*.exe
+*.png
+!public/**/*.png
+!src/**/*.png
 .DS_Store
 Thumbs.db
 *.log

@@ -24,7 +24,7 @@ export interface SchedulerInput {
   intervalDays: number;
   lapses: number;
   lastReviewedAt?: string; // ISO date string
-  reviewType?: 'flashcard' | 'flashcard_reverse' | 'quiz' | 'spelling' | 'fill_in_blank' | 'listening';
+  reviewType?: 'flashcard' | 'flashcard_reverse' | 'quiz' | 'spelling' | 'fill_in_blank' | 'listening' | 'speaking';
   targetDate?: string; // Override today for deterministic testing
 }
 
@@ -132,12 +132,18 @@ export function generateForgettingCurvePoints(
 }
 
 // ------------------------------------------------------------------------------
-// 2. SPACED REPETITION SCHEDULER ALGORITHM (SM-2 + OVERDUE BONUS)
+// 2. SPACED REPETITION SCHEDULER ALGORITHM (6-TIER MEMORY TOWER ENGINE)
 // ------------------------------------------------------------------------------
 
 /**
  * Main Scheduling Function:
- * Calculates the next review date, interval, and ease factor given student recall rating.
+ * Implements strict 6-Tier Memory Pyramid transitions:
+ * Tầng 0 (Từ mới): Chưa học -> Lần đầu: Đúng -> Tầng 1 (1-2d); Sai -> Tầng 1 (1d), wrongCount+1
+ * Tầng 1 (Mới học: 1-2d): Đúng -> Tầng 2 (3-6d); Sai -> Tầng 1 (1d), wrongCount+1
+ * Tầng 2 (Đang nhớ / Chưa chắc: 3-6d): Đúng -> Tầng 3 (7-13d); Sai -> Rớt Tầng 1 (1d), wrongCount+1
+ * Tầng 3 (Nhớ khá: 7-13d): Đúng -> Tầng 4 (14-29d); Sai -> Rớt Tầng 2 (3-6d)
+ * Tầng 4 (Nhớ tốt: 14-29d): Đúng + Nhanh (<3s hoặc rating 4) -> Tầng 5 (>=30d); Đúng thường -> Giữ Tầng 4; Sai -> Rớt Tầng 2 (3-6d)
+ * Tầng 5 (Thành thạo: >=30d): Đúng -> Giữ Tầng 5 x1.5 interval; Sai -> Rớt Tầng 2 (3-6d)
  */
 export function scheduleNextReview(input: SchedulerInput): SchedulerOutput {
   const {
@@ -154,103 +160,89 @@ export function scheduleNextReview(input: SchedulerInput): SchedulerOutput {
   const today = targetDate ? new Date(targetDate) : new Date();
   const todayStr = today.toISOString().split('T')[0];
 
-  // Calculate elapsed days since last review to check for overdue bonus
-  let overdueDays = 0;
-  if (lastReviewedAt) {
-    const last = new Date(lastReviewedAt);
-    const diffDays = Math.floor((today.getTime() - last.getTime()) / (1000 * 60 * 60 * 24));
-    overdueDays = Math.max(0, diffDays - intervalDays);
-  }
+  // Determine current tier from repetition and interval
+  const currentTier = (repetitionCount === 0 && (!lastReviewedAt || intervalDays === 0))
+    ? 0
+    : intervalDays >= 30 ? 5
+    : intervalDays >= 14 ? 4
+    : intervalDays >= 7 ? 3
+    : intervalDays >= 3 ? 2
+    : 1;
 
   let nextRep = repetitionCount;
   let nextEf = easeFactor;
-  let nextInterval = intervalDays;
+  let nextInterval = 1;
   let nextLapses = lapses;
   let nextState: MasteryState = 'learning';
+  let nextTier = 1;
 
-  if (rating === 1) {
+  if (rating === 1 || rating === 2) {
     // --------------------------------------------------------------------------
-    // RATING 1: AGAIN (Quên hoàn toàn)
+    // SAI / CHƯA THUỘC (RATING 1 HOẶC 2) -> HẠ TẦNG THEO CHUẨN THÁP TRÍ NHỚ
     // --------------------------------------------------------------------------
-    // Reset repetition streak, increment lapse, penalty on ease factor
-    nextRep = 0;
-    nextInterval = 1; // Review again tomorrow (or in next session)
     nextLapses = lapses + 1;
     nextEf = Math.max(1.3, Number((easeFactor - 0.20).toFixed(2)));
     nextState = 'difficult';
 
-  } else if (rating === 2) {
-    // --------------------------------------------------------------------------
-    // RATING 2: HARD (Khó nhớ / Cần gợi ý)
-    // --------------------------------------------------------------------------
-    // Slight progress, slight interval increase (1.2x), slight EF penalty
-    nextRep = Math.max(1, repetitionCount + 1);
-    if (intervalDays === 0) {
+    if (currentTier >= 3) {
+      // Tầng 3, 4, 5 khi sai rớt về Tầng 2 (3-6 ngày)
+      nextTier = 2;
+      nextInterval = 3;
+      nextRep = 2;
+    } else {
+      // Tầng 0, 1, 2 khi sai ở lại hoặc rớt về Tầng 1 (1 ngày hẹn ôn ngày mai)
+      nextTier = 1;
       nextInterval = 1;
-    } else {
-      nextInterval = Math.max(1, Math.round(intervalDays * 1.2));
+      nextRep = 1;
     }
-    nextEf = Math.max(1.3, Number((easeFactor - 0.15).toFixed(2)));
-    nextState = 'learning';
-
-  } else if (rating === 3) {
-    // --------------------------------------------------------------------------
-    // RATING 3: GOOD (Nhớ được)
-    // --------------------------------------------------------------------------
-    // Standard successful recall
-    if (repetitionCount === 0) {
-      nextInterval = 1; // Step 1: 1 day
-    } else if (repetitionCount === 1) {
-      nextInterval = 3; // Step 2: 3 days
-    } else if (repetitionCount === 2) {
-      nextInterval = 7; // Step 3: 7 days
-    } else if (repetitionCount === 3) {
-      nextInterval = 14; // Step 4: 14 days
-    } else if (repetitionCount === 4) {
-      nextInterval = 30; // Step 5: 30 days
-    } else {
-      // Step 6+: Multiply by Ease Factor + partial overdue credit
-      const overdueCredit = overdueDays > 0 ? Math.round(overdueDays * 0.3) : 0;
-      nextInterval = Math.round(intervalDays * easeFactor) + overdueCredit;
-    }
-
-    nextRep = repetitionCount + 1;
-    // Standard SM-2 delta for grade 4: delta = 0
-    // Keep EF steady or minor adjustment
-    nextEf = Number(easeFactor.toFixed(2));
-
-    if (nextRep >= 5 && nextInterval >= 21) {
-      nextState = 'mastered';
-    } else {
-      nextState = 'reviewing';
-    }
-
   } else {
     // --------------------------------------------------------------------------
-    // RATING 4: EASY (Nhớ dễ dàng)
+    // ĐÚNG / ĐÃ NHỚ (RATING 3 HOẶC 4) -> THĂNG TẦNG THEO CHUẨN THÁP TRÍ NHỚ
     // --------------------------------------------------------------------------
-    // High confidence recall -> Bonus interval & increase Ease Factor
-    if (repetitionCount === 0) {
-      nextInterval = 3; // Jump directly to 3 days
-    } else if (repetitionCount === 1) {
-      nextInterval = 6;
-    } else if (repetitionCount === 2) {
-      nextInterval = 12;
+    if (currentTier === 0) {
+      // Tầng 0 -> Thăng Tầng 1 (1 - 2 ngày)
+      nextTier = 1;
+      nextInterval = rating === 4 ? 2 : 1;
+      nextRep = 1;
+    } else if (currentTier === 1) {
+      // Tầng 1 -> Thăng Tầng 2 (3 - 6 ngày)
+      nextTier = 2;
+      nextInterval = rating === 4 ? 5 : 3;
+      nextRep = Math.max(2, repetitionCount + 1);
+    } else if (currentTier === 2) {
+      // Tầng 2 -> Thăng Tầng 3 (7 - 13 ngày)
+      nextTier = 3;
+      nextInterval = rating === 4 ? 10 : 7;
+      nextRep = Math.max(3, repetitionCount + 1);
+    } else if (currentTier === 3) {
+      // Tầng 3 -> Thăng Tầng 4 (14 - 29 ngày)
+      nextTier = 4;
+      nextInterval = rating === 4 ? 21 : 14;
+      nextRep = Math.max(4, repetitionCount + 1);
+    } else if (currentTier === 4) {
+      // Tầng 4 -> Phản xạ nhanh (rating 4) -> Thăng Tầng 5 (>= 30 ngày)
+      if (rating === 4) {
+        nextTier = 5;
+        nextInterval = 30;
+        nextRep = Math.max(5, repetitionCount + 1);
+      } else {
+        // Nhớ được bình thường (rating 3) -> Giữ Tầng 4 củng cố (18-28 ngày)
+        nextTier = 4;
+        nextInterval = Math.min(28, Math.max(18, Math.round((intervalDays || 14) * 1.3)));
+        nextRep = repetitionCount + 1;
+      }
     } else {
-      const easyBonus = 1.35;
-      const overdueCredit = overdueDays > 0 ? Math.round(overdueDays * 0.5) : 0;
-      nextInterval = Math.round(intervalDays * easeFactor * easyBonus) + overdueCredit;
+      // Tầng 5 -> Thành thạo (>= 30 ngày): Nhân khoảng cách x1.5
+      nextTier = 5;
+      nextInterval = Math.max(35, Math.round((intervalDays || 30) * 1.5));
+      nextRep = repetitionCount + 1;
     }
 
-    nextRep = repetitionCount + 1;
-    // Increase EF by 0.15 (max 3.20)
-    nextEf = Math.min(3.2, Number((easeFactor + 0.15).toFixed(2)));
+    nextEf = rating === 4
+      ? Math.min(3.2, Number((easeFactor + 0.15).toFixed(2)))
+      : Number(easeFactor.toFixed(2));
 
-    if (nextRep >= 4 && nextInterval >= 14) {
-      nextState = 'mastered';
-    } else {
-      nextState = 'reviewing';
-    }
+    nextState = nextTier === 5 ? 'mastered' : 'reviewing';
   }
 
   // Calculate next review calendar date (YYYY-MM-DD)

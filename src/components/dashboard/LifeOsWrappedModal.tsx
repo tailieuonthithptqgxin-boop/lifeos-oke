@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { 
   X, Sparkles, Trophy, Clock, CheckSquare, Flame, 
   Share2, ArrowRight, ArrowLeft, Zap, Award, Download, Copy, Check
@@ -19,6 +20,18 @@ export function LifeOsWrappedModal({
   onClose,
   onOpenStoryShare
 }: LifeOsWrappedModalProps) {
+  useBodyScrollLock(isOpen);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useEffect(() => {
+    if (!(isOpen)) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   const { tasks = [], focusSessions = [], currentUser } = useAppStore();
   const [slide, setSlide] = useState<number>(0);
   const [hasCopied, setHasCopied] = useState(false);
@@ -37,7 +50,11 @@ export function LifeOsWrappedModal({
       return d >= thirtyDaysAgo;
     });
     const totalMinutes = recentSessions.reduce((sum, s) => sum + (s.duration || s.minutes || 0), 0);
-    const completedTasks = tasks.filter(t => t.status === 'Đã xong' || t.status === 'Hoàn thành');
+    const completedTasks = tasks.filter(t => {
+      if (!t.status) return false;
+      const s = t.status.toLowerCase();
+      return s === 'đã xong' || s === 'hoàn thành' || s === 'hoan thanh' || s === 'completed' || s === 'done';
+    });
 
     // Archetype calculation
     let archetype = {
@@ -199,8 +216,19 @@ export function LifeOsWrappedModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200">
-      <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-white flex flex-col my-auto">
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200 cursor-default"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-white flex flex-col my-auto"
+      >
         {/* Story progress tick bars at top */}
         <div className="p-4 pb-0 flex items-center gap-1.5 z-10">
           {slides.map((_, idx) => (
@@ -228,14 +256,15 @@ export function LifeOsWrappedModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center hover:bg-slate-700 transition-colors"
+            className="w-10 h-10 min-h-[44px] min-w-[44px] rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center hover:bg-slate-700 transition-colors shrink-0"
+            aria-label="Đóng"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Slide Body */}
-        <div className="p-5 sm:p-6 min-h-[300px] flex items-center justify-center">
+        <div className="p-4 sm:p-6 min-h-[300px] flex items-center justify-center">
           {currentSlideData.render}
         </div>
 
@@ -245,7 +274,7 @@ export function LifeOsWrappedModal({
             type="button"
             disabled={slide === 0}
             onClick={handlePrev}
-            className={`p-2.5 rounded-xl text-xs font-bold transition-colors ${slide === 0 ? 'opacity-20 cursor-not-allowed text-slate-600' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
+            className={`min-h-[44px] min-w-[44px] flex items-center justify-center p-2.5 rounded-xl text-xs font-bold transition-colors ${slide === 0 ? 'opacity-20 cursor-not-allowed text-slate-600' : 'text-slate-300 hover:text-white hover:bg-slate-800'}`}
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -254,7 +283,7 @@ export function LifeOsWrappedModal({
             <button
               type="button"
               onClick={handleNext}
-              className="px-5 py-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+              className="px-5 py-2.5 min-h-[44px] rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer"
             >
               <span>Xem tiếp</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -264,7 +293,7 @@ export function LifeOsWrappedModal({
               <button
                 type="button"
                 onClick={handleCopyCaption}
-                className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                className="px-3 py-2 min-h-[44px] rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 {hasCopied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
                 <span>{hasCopied ? 'Đã copy!' : 'Copy Caption'}</span>
@@ -277,7 +306,7 @@ export function LifeOsWrappedModal({
                     onClose();
                     onOpenStoryShare();
                   }}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
+                  className="px-4 py-2 min-h-[44px] rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-xs flex items-center justify-center gap-1.5 shadow-md cursor-pointer"
                 >
                   <Share2 className="w-3.5 h-3.5" />
                   <span>Flex Story 9:16 📸</span>

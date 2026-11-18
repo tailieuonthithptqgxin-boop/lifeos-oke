@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { 
   Search, Plus, Upload, Download, Trash2, Edit3, 
   Volume2, Star, Filter, BookOpen, Layers, CheckCircle2, 
-  Brain, Clock, AlertTriangle, Eye, ArrowUpDown, ChevronDown
+  Brain, Clock, AlertTriangle, Eye, ArrowUpDown, ChevronDown, X
 } from 'lucide-react';
 import { 
   VocabWord, 
@@ -11,6 +11,7 @@ import {
   exportWordsToCsv, 
   exportWordsToJson 
 } from '../../lib/vocabEngine';
+import { formatLocalDateKey } from '../../lib/utils';
 
 interface PersonalVocabTabProps {
   words: VocabWord[];
@@ -47,7 +48,7 @@ export function PersonalVocabTab({
   const [sortBy, setSortBy] = useState<'newest' | 'alphabet' | 'interval'>('newest');
   const [isExportOpen, setIsExportOpen] = useState(false);
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = formatLocalDateKey(new Date());
 
   // Filtering
   const filteredWords = useMemo(() => {
@@ -92,7 +93,7 @@ export function PersonalVocabTab({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `personal_vocab_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `personal_vocab_${formatLocalDateKey(new Date())}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -104,7 +105,7 @@ export function PersonalVocabTab({
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.setAttribute('download', `personal_vocab_${new Date().toISOString().split('T')[0]}.json`);
+    link.setAttribute('download', `personal_vocab_${formatLocalDateKey(new Date())}.json`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -207,8 +208,18 @@ export function PersonalVocabTab({
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Tìm kiếm từ vựng hoặc nghĩa tiếng Việt..."
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full pl-10 pr-9 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                title="Xóa tìm kiếm"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           {/* Collection Filter */}
@@ -332,7 +343,7 @@ export function PersonalVocabTab({
 
                       <button
                         type="button"
-                        onClick={() => speakWord(word.term, 'en-US')}
+                        onClick={() => speakWord(word)}
                         className="p-1 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-slate-800 transition cursor-pointer"
                         title="Phát âm"
                       >
@@ -391,13 +402,9 @@ export function PersonalVocabTab({
 
                     <button
                       type="button"
-                      onClick={() => {
-                        if (confirm(`Bạn có chắc muốn xóa từ "${word.term}" khỏi kho từ cá nhân?`)) {
-                          onDeleteWord(word.id);
-                        }
-                      }}
+                      onClick={() => onDeleteWord(word.id)}
                       className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-xl transition cursor-pointer"
-                      title="Xóa từ"
+                      title="Xóa từ (Có thể hoàn tác trong 5 giây)"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>

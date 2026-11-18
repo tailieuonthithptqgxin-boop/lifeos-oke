@@ -7,6 +7,7 @@ import { useAppStore } from '../../lib/store';
 import { soundEngine } from '../../lib/soundEngine';
 import { triggerConfetti } from '../../lib/confetti';
 import { apiCall } from '../../lib/apiClient';
+import { formatLocalDateKey } from '../../lib/utils';
 
 interface DailyTrifectaWidgetProps {
   onStartZenFocus?: (taskId: string) => void;
@@ -17,7 +18,7 @@ export function DailyTrifectaWidget({ onStartZenFocus, onOpenQuickTask }: DailyT
   const { tasks = [], updateTask, addTask, language } = useAppStore();
   const isVi = language === 'vi';
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = formatLocalDateKey(new Date());
 
   // Persistent slots for the 3 task IDs
   const [slotTaskIds, setSlotTaskIds] = useState<[string, string, string]>(() => {
@@ -129,7 +130,11 @@ export function DailyTrifectaWidget({ onStartZenFocus, onOpenQuickTask }: DailyT
 
   // Resolve tasks in the 3 slots
   const slotTasks = slotTaskIds.map(id => tasks.find(t => t.id === id) || null);
-  const completedCount = slotTasks.filter(t => t && t.status === 'Hoàn thành').length;
+  const completedCount = slotTasks.filter(t => {
+    if (!t || !t.status) return false;
+    const s = t.status.toLowerCase();
+    return s === 'hoàn thành' || s === 'hoan thanh' || s === 'completed' || s === 'done' || s === 'đã xong';
+  }).length;
   const isAllComplete = completedCount === 3;
 
   const handleClaimTrifectaReward = async () => {
@@ -175,7 +180,7 @@ export function DailyTrifectaWidget({ onStartZenFocus, onOpenQuickTask }: DailyT
         {/* Progress Badge / Victory Claim */}
         <div className="shrink-0 flex items-center gap-2">
           {isAllComplete ? (
-            <button
+            <button type="button"
               onClick={handleClaimTrifectaReward}
               disabled={hasClaimedBonus}
               className={`px-4 py-2 rounded-2xl font-black text-xs shadow-lg transition flex items-center gap-2 cursor-pointer ${
@@ -237,7 +242,7 @@ export function DailyTrifectaWidget({ onStartZenFocus, onOpenQuickTask }: DailyT
                 {task ? (
                   <div className="space-y-2">
                     <div className="flex items-start gap-2.5">
-                      <button
+                      <button type="button"
                         onClick={() => handleToggleTask(task.id, task.status)}
                         className={`w-6 h-6 rounded-xl flex items-center justify-center shrink-0 mt-0.5 transition cursor-pointer ${
                           isDone 
@@ -249,7 +254,7 @@ export function DailyTrifectaWidget({ onStartZenFocus, onOpenQuickTask }: DailyT
                       </button>
                       
                       <div className="min-w-0 flex-1">
-                        <h4 className={`text-sm font-bold leading-snug line-clamp-2 ${isDone ? 'line-through text-slate-500' : 'text-white'}`}>
+                        <h4 className={`text-sm font-bold leading-snug line-clamp-2 break-words break-all ${isDone ? 'line-through text-slate-500' : 'text-white'}`}>
                           {task.title}
                         </h4>
                         {task.priority && (
@@ -275,13 +280,13 @@ export function DailyTrifectaWidget({ onStartZenFocus, onOpenQuickTask }: DailyT
                       className="w-full px-3 py-2 text-xs rounded-xl bg-slate-900 border border-emerald-500 text-white focus:outline-none"
                     />
                     <div className="flex items-center justify-end gap-1.5">
-                      <button
+                      <button type="button"
                         onClick={() => setInlineInputSlot(null)}
                         className="px-2.5 py-1 text-[10px] text-slate-400 hover:text-white"
                       >
                         {isVi ? 'Hủy' : 'Cancel'}
                       </button>
-                      <button
+                      <button type="button"
                         onClick={() => handleCreateInlineTask(slotIdx)}
                         className="px-3 py-1 rounded-lg bg-emerald-500 text-slate-950 font-black text-[10px]"
                       >
@@ -292,7 +297,7 @@ export function DailyTrifectaWidget({ onStartZenFocus, onOpenQuickTask }: DailyT
                 ) : (
                   <div className="text-center py-3 space-y-2">
                     <p className="text-xs text-slate-500 font-medium">{isVi ? 'Slot trống cho hôm nay' : 'Empty slot for today'}</p>
-                    <button
+                    <button type="button"
                       onClick={() => setInlineInputSlot(slotIdx)}
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 transition cursor-pointer"
                     >
@@ -306,7 +311,7 @@ export function DailyTrifectaWidget({ onStartZenFocus, onOpenQuickTask }: DailyT
               {/* Bottom quick actions for this slot */}
               {task && !isDone && (
                 <div className="mt-3 pt-2 border-t border-slate-700/60 flex items-center justify-between">
-                  <button
+                  <button type="button"
                     onClick={() => onStartZenFocus?.(task.id)}
                     className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-400 hover:text-emerald-300 cursor-pointer"
                   >

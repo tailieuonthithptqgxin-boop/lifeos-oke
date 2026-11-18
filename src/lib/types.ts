@@ -6,6 +6,10 @@ export type ViewState =
   | 'focus'
   | 'projects'
   | 'study'
+  | 'study-space'
+  | 'feed'
+  | 'connect'
+  | 'classroom'
   | 'goals'
   | 'notes'
   | 'habits'
@@ -26,8 +30,10 @@ export type AccountLifecycleStatus = 'UNPAID' | 'PENDING' | 'ACTIVE' | 'EXPIRED'
 
 export interface UserSubscriptionStatus {
   hasAccess: boolean;
+  isGlobalFreeMode?: boolean;
   lifecycleStatus?: AccountLifecycleStatus;
-  currentPlan: string;
+  currentPlan?: string;
+  planId?: string;
   planType: 'PERSONAL' | 'TEAM' | 'NONE';
   planName: string;
   status: 'ACTIVE' | 'EXPIRED' | 'NONE';
@@ -35,6 +41,9 @@ export interface UserSubscriptionStatus {
   startDate?: string | null;
   remainingDays: number;
   amount?: number;
+  isTrial?: boolean;
+  isTrialActive?: boolean;
+  isTrialExpired?: boolean;
   isTeamOwner?: boolean;
   isTeamMember?: boolean;
   teamId?: string;
@@ -102,6 +111,19 @@ export interface User {
   expirationDate?: string | null;
   onboardingCompleted?: boolean;
   onboardingPreferences?: OnboardingPreferences;
+  isAffiliate?: boolean;
+  
+  // Single Source of Truth fields (Global UI Sync)
+  streakDays?: number;
+  lastActiveDate?: string | null;
+  totalStudyMinutes?: number;
+  todayStudyMinutes?: number;
+  badgeLevel?: 'Tân Binh' | 'Chiến Binh' | 'Ngôi Sao' | string;
+  commissionBalance?: number;
+  referredCount?: number;
+  displayName?: string;
+  level?: number;
+  xp?: number;
 }
 
 export interface TaskSubtask {
@@ -251,6 +273,8 @@ export interface GoalMilestone {
   progress?: number;
   status?: string;
   deadline?: string;
+  targetDate?: string;
+  weight?: number;
 }
 
 export interface GoalAction {
@@ -268,8 +292,8 @@ export interface Goal {
   category: string;
   progress: number;
   status: string;
-  targetValue: number;
-  currentValue: number;
+  targetValue?: number;
+  currentValue?: number;
   current?: number;
   target?: number;
   unit?: string;
@@ -280,9 +304,11 @@ export interface Goal {
   score?: number;
   tier?: string;
   goalType?: string;
+  priority?: string;
   riskStatus?: string;
   milestones?: GoalMilestone[];
   actions?: GoalAction[];
+  reviews?: GoalReview[];
   linkedProjectIds?: string[];
   kpis?: any[];
   createdAt?: string;
@@ -291,9 +317,14 @@ export interface Goal {
 
 export interface GoalReview {
   id: string;
-  goalId: string;
+  goalId?: string;
   date: string;
-  notes: string;
+  notes?: string;
+  period?: string;
+  whatWasDone?: string;
+  lessonsLearned?: string;
+  status?: string;
+  score?: number;
 }
 
 export type NoteType =
@@ -478,6 +509,12 @@ export interface DecisionCriterion {
   [key: string]: any;
 }
 
+export interface DecisionScore {
+  criterionId: string;
+  score: number;
+  rawScore?: number;
+}
+
 export interface DecisionOption {
   id: string;
   name: string;
@@ -617,11 +654,18 @@ export interface InboxItem {
 
 export interface AppNotification {
   id: string;
+  userId?: string;
   title: string;
   message: string;
+  content?: string;
   type: 'info' | 'success' | 'warning' | 'error';
+  category?: 'SCHEDULE_DEADLINE' | 'AUTH_SECURITY' | 'ACTIVITY_REPORT' | 'AFFILIATE_REVENUE' | 'STUDY_COMMUNITY' | 'SYSTEM' | string;
   read: boolean;
+  readAt?: string | null;
   link?: string;
+  actionUrl?: string;
+  actionLabel?: string;
+  metadata?: Record<string, any>;
   createdAt: string;
 }
 

@@ -21,6 +21,8 @@ import {
   DEFAULT_LEARNING_PREFERENCES
 } from '../../lib/vocabEngine';
 import { useAppStore } from '../../lib/store';
+import { formatLocalDateKey } from '../../lib/utils';
+import { ShuffleMode } from '../../lib/smartShuffleEngine';
 
 export type StudyMode = 'flashcard' | 'flashcard_reverse' | 'quiz' | 'spelling' | 'fill_in_blank';
 
@@ -30,7 +32,7 @@ interface PersonalizedLessonBuilderProps {
   collections: VocabCollection[];
   userData: VocabUserData;
   onUpdateUserData: (updater: (prev: VocabUserData) => VocabUserData) => void;
-  onStartStudyExplicit: (words: VocabWord[], mode: StudyMode, durationMinutes?: number) => void;
+  onStartStudyExplicit: (words: VocabWord[], mode: StudyMode, durationMinutes?: number, shuffleMode?: ShuffleMode) => void;
   onOpenUniversalSearch: () => void;
   onOpenWordDetail: (word: VocabWord) => void;
 }
@@ -64,6 +66,7 @@ export const PersonalizedLessonBuilder: React.FC<PersonalizedLessonBuilderProps>
   const [selectedWordCount, setSelectedWordCount] = useState<number>(userPrefs.defaultCount || 20);
   const [customCountInput, setCustomCountInput] = useState<string>('');
   const [selectedDuration, setSelectedDuration] = useState<number>(userPrefs.defaultDurationMinutes || 15);
+  const [selectedShuffleMode, setSelectedShuffleMode] = useState<ShuffleMode>('smart_review');
   const [saveAsDefault, setSaveAsDefault] = useState<boolean>(false);
 
   // Selected word IDs (User Selection Checklist)
@@ -89,7 +92,7 @@ export const PersonalizedLessonBuilder: React.FC<PersonalizedLessonBuilderProps>
     }
 
     // Status Filter
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatLocalDateKey(new Date());
     if (statusFilter === 'new') {
       result = result.filter(w => w.state === 'new');
     } else if (statusFilter === 'weak') {
@@ -168,7 +171,7 @@ export const PersonalizedLessonBuilder: React.FC<PersonalizedLessonBuilderProps>
 
   // Surprise Me / Smart Recommendation
   const handleSurpriseMe = () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatLocalDateKey(new Date());
     // Priority: 1. Hay sai (lapses >= 1), 2. Đến hạn (nextReviewAt <= today), 3. Yêu thích (favorite), 4. Từ mới (new)
     const weakPool = allWords.filter(w => w.lapses >= 1 || w.state === 'difficult');
     const duePool = allWords.filter(w => w.state !== 'new' && w.nextReviewAt <= today);
@@ -211,7 +214,7 @@ export const PersonalizedLessonBuilder: React.FC<PersonalizedLessonBuilderProps>
     const newSelected = new Set(recommendation.words.map(w => w.id));
     setSelectedWordIds(newSelected);
     if (startImmediately) {
-      onStartStudyExplicit(recommendation.words, selectedMode, selectedDuration);
+      onStartStudyExplicit(recommendation.words, selectedMode, selectedDuration, selectedShuffleMode);
     }
     setRecommendation(null);
   };
@@ -220,7 +223,6 @@ export const PersonalizedLessonBuilder: React.FC<PersonalizedLessonBuilderProps>
   const handleLaunchSession = () => {
     const chosenWords = allWords.filter(w => selectedWordIds.has(w.id));
     if (chosenWords.length === 0) {
-      alert(isVi ? 'Vui lòng chọn ít nhất 1 từ để bắt đầu phiên học!' : 'Please select at least 1 word to start study session!');
       return;
     }
 
@@ -236,7 +238,7 @@ export const PersonalizedLessonBuilder: React.FC<PersonalizedLessonBuilderProps>
       onUpdateUserData(prev => saveUserLearningPreferences(prev, updatedPrefs));
     }
 
-    onStartStudyExplicit(chosenWords, selectedMode, selectedDuration);
+    onStartStudyExplicit(chosenWords, selectedMode, selectedDuration, selectedShuffleMode);
   };
 
   const handleSpeech = (e: React.MouseEvent, word: VocabWord) => {
@@ -826,6 +828,42 @@ export const PersonalizedLessonBuilder: React.FC<PersonalizedLessonBuilderProps>
                     }`}
                   >
                     {dur.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Smart Random Shuffle Selection */}
+            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <label className="text-xs font-bold text-slate-600 dark:text-slate-400 block flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <Shuffle className="w-3.5 h-3.5 text-purple-500" />
+                  <span>{isVi ? 'Cơ chế xáo trộn phiên học:' : 'Shuffle Mechanism:'}</span>
+                </span>
+                <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold">
+                  Anti-Repetition
+                </span>
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                {[
+                  { id: 'smart_review', label: '🧠 Ôn thông minh', desc: isVi ? 'Ưu tiên từ yếu' : 'Priority' },
+                  { id: 'random', label: '🎲 Ngẫu nhiên', desc: isVi ? 'Xáo trộn đều' : 'Uniform' },
+                  { id: 'new_words', label: '🌱 Từ mới', desc: isVi ? 'Chưa học' : 'Unstudied' },
+                  { id: 'mixed', label: '⚡ Kết hợp', desc: isVi ? '30% mới + 70% ôn' : 'Interleave' },
+                  { id: 'mistakes', label: '🔥 Hay sai', desc: isVi ? 'Từng quên/khó' : 'Mistakes' }
+                ].map(s => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setSelectedShuffleMode(s.id as ShuffleMode)}
+                    className={`p-2 rounded-xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                      selectedShuffleMode === s.id
+                        ? 'border-purple-600 bg-purple-50/70 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 ring-1 ring-purple-500/20 shadow-xs'
+                        : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900'
+                    }`}
+                  >
+                    <span className="text-xs font-bold block">{s.label}</span>
+                    <span className="text-[10px] text-slate-400">{s.desc}</span>
                   </button>
                 ))}
               </div>

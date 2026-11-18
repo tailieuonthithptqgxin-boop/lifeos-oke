@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { 
   Trophy, Flame, Clock, Sparkles, X, 
   Crown, Share2, TrendingUp, Zap, Award, ChevronRight, Loader2
@@ -32,6 +33,18 @@ export function WeeklyLeaderboardModal({
   onOpenShareStory,
   onShare
 }: WeeklyLeaderboardModalProps) {
+  useBodyScrollLock(isOpen);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useEffect(() => {
+    if (!(isOpen)) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   const { currentUser, focusSessions = [] } = useAppStore();
   const [activeTab, setActiveTab] = useState<'focus' | 'streak'>('focus');
   const [isLoading, setIsLoading] = useState(false);
@@ -121,9 +134,18 @@ export function WeeklyLeaderboardModal({
   const myRank = rankedList.find(u => u.isCurrentUser)?.rank || 1;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 cursor-default"
+    >
       <div 
         className="w-full max-w-xl bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-amber-500/30 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] relative"
+        onMouseDown={(e) => e.stopPropagation()}
         onClick={e => e.stopPropagation()}
       >
         {/* Glow orb */}
@@ -151,7 +173,8 @@ export function WeeklyLeaderboardModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-white rounded-xl transition-colors cursor-pointer"
+            className="w-10 h-10 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-white rounded-xl transition-colors cursor-pointer shrink-0"
+            aria-label="Đóng"
           >
             <X className="w-5 h-5" />
           </button>
@@ -165,14 +188,14 @@ export function WeeklyLeaderboardModal({
               soundEngine.playPop();
               setActiveTab('focus');
             }}
-            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`flex-1 py-2.5 px-3 min-h-[44px] rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === 'focus'
                 ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm'
                 : 'bg-slate-800/50 text-slate-400 hover:text-white border border-transparent'
             }`}
           >
-            <Clock className="w-3.5 h-3.5 text-amber-400" />
-            <span>Chiến Thần Focus (Phút)</span>
+            <Clock className="w-4 h-4 text-amber-400" />
+            <span>Chiến Thần Focus</span>
           </button>
 
           <button
@@ -181,14 +204,14 @@ export function WeeklyLeaderboardModal({
               soundEngine.playPop();
               setActiveTab('streak');
             }}
-            className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`flex-1 py-2.5 px-3 min-h-[44px] rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
               activeTab === 'streak'
                 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm'
                 : 'bg-slate-800/50 text-slate-400 hover:text-white border border-transparent'
             }`}
           >
-            <Flame className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Bậc Thầy Chuỗi (Ngày)</span>
+            <Flame className="w-4 h-4 text-emerald-400" />
+            <span>Bậc Thầy Chuỗi</span>
           </button>
         </div>
 

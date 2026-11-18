@@ -1,20 +1,23 @@
 import React from 'react';
-import { Play, Sparkles } from 'lucide-react';
+import { Play, Sparkles, Shuffle } from 'lucide-react';
 import { VocabWord, LearningLanguage } from '../../lib/vocabEngine';
+import { ShuffleMode } from '../../lib/smartShuffleEngine';
 
-export type StudyMode = 'flashcard' | 'flashcard_reverse' | 'quiz' | 'spelling' | 'fill_in_blank' | 'listening';
+export type StudyMode = 'flashcard' | 'flashcard_reverse' | 'listening' | 'quiz' | 'spelling' | 'fill_in_blank';
 
 interface VocabStudyTabProps {
   studySource: '3000' | 'personal' | 'all';
   setStudySource: (val: '3000' | 'personal' | 'all') => void;
   studyTargetQueue: 'due' | 'new' | 'difficult' | 'all';
   setStudyTargetQueue: (val: 'due' | 'new' | 'difficult' | 'all') => void;
+  shuffleMode?: ShuffleMode;
+  setShuffleMode?: (mode: ShuffleMode) => void;
   studyMode: StudyMode;
   setStudyMode: (val: StudyMode) => void;
   langWords: VocabWord[];
   useDedicatedFocusMode: boolean;
   setUseDedicatedFocusMode: React.Dispatch<React.SetStateAction<boolean>>;
-  onStartStudy: (mode: StudyMode, source: '3000' | 'personal' | 'all', queue: 'due' | 'new' | 'difficult' | 'all', count?: number) => void;
+  onStartStudy: (mode: StudyMode, source: '3000' | 'personal' | 'all', queue: 'due' | 'new' | 'difficult' | 'all', count?: number, shuffleMode?: ShuffleMode) => void;
   activeLang?: LearningLanguage;
 }
 
@@ -23,6 +26,8 @@ export const VocabStudyTab: React.FC<VocabStudyTabProps> = ({
   setStudySource,
   studyTargetQueue,
   setStudyTargetQueue,
+  shuffleMode = 'smart_review',
+  setShuffleMode,
   studyMode,
   setStudyMode,
   langWords,
@@ -31,6 +36,8 @@ export const VocabStudyTab: React.FC<VocabStudyTabProps> = ({
   onStartStudy,
   activeLang
 }) => {
+  const [selectedBatchSize, setSelectedBatchSize] = React.useState<number>(20);
+  const [internalShuffle, setInternalShuffle] = React.useState<ShuffleMode>(shuffleMode);
   const isChinese = activeLang?.id === 'zh';
   const isJapanese = activeLang?.id === 'ja';
   const foreignLangShort = isJapanese ? 'Nhật' : isChinese ? 'Trung' : 'Anh';
@@ -50,7 +57,34 @@ export const VocabStudyTab: React.FC<VocabStudyTabProps> = ({
       </div>
 
       <div className="space-y-5 pt-2">
-        
+        {/* Step 0: Chọn số lượng từ mỗi phiên (Micro-Session Size) */}
+        <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800">
+          <div>
+            <label className="text-xs font-bold text-slate-800 dark:text-slate-200 block">
+              Số lượng từ mỗi phiên học
+            </label>
+            <span className="text-[11px] text-slate-400">
+              Định dạng phiên ngắn (Micro-Session) tối ưu ghi nhớ
+            </span>
+          </div>
+          <div className="flex items-center gap-1.5 bg-white dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+            {[10, 15, 20, 25].map(size => (
+              <button
+                key={size}
+                type="button"
+                onClick={() => setSelectedBatchSize(size)}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition cursor-pointer ${
+                  selectedBatchSize === size
+                    ? 'bg-[#8387F5] text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                {size} từ
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Step 1: Chọn phương pháp luyện tập (ĐẶT LÊN ĐẦU TIÊN) */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
@@ -61,7 +95,7 @@ export const VocabStudyTab: React.FC<VocabStudyTabProps> = ({
               ✓ 1 Chạm để vào học tức thì
             </span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
             {/* 1. Flashcard Anh -> Việt */}
             <div
               onClick={() => setStudyMode('flashcard')}
@@ -93,11 +127,11 @@ export const VocabStudyTab: React.FC<VocabStudyTabProps> = ({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onStartStudy('flashcard', studySource, studyTargetQueue, 20);
+                  onStartStudy('flashcard', studySource, studyTargetQueue, selectedBatchSize, internalShuffle);
                 }}
                 className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
               >
-                <Play className="w-3.5 h-3.5 fill-current" /> Bắt đầu học {foreignLangShort} → Việt
+                <Play className="w-3.5 h-3.5 fill-current" /> Bắt đầu học {foreignLangShort} → Việt ({selectedBatchSize} từ)
               </button>
             </div>
 
@@ -136,15 +170,54 @@ export const VocabStudyTab: React.FC<VocabStudyTabProps> = ({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onStartStudy('flashcard_reverse', studySource, studyTargetQueue, 20);
+                  onStartStudy('flashcard_reverse', studySource, studyTargetQueue, selectedBatchSize, internalShuffle);
                 }}
                 className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
               >
-                <Play className="w-3.5 h-3.5 fill-current" /> Bắt đầu học đảo chiều
+                <Play className="w-3.5 h-3.5 fill-current" /> Bắt đầu học đảo chiều ({selectedBatchSize} từ)
               </button>
             </div>
 
-            {/* 3. Trắc nghiệm 4 đáp án (Quiz) */}
+            {/* 3. Active Recall: Điền từ & Nhớ mặt chữ */}
+            <div
+              onClick={() => setStudyMode('spelling')}
+              className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between gap-3 ${
+                studyMode === 'spelling'
+                  ? 'border-amber-600 bg-amber-50/70 dark:bg-amber-950/40 ring-2 ring-amber-500/20 shadow-md'
+                  : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 bg-white dark:bg-slate-900'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <span className="text-2xl p-2 rounded-xl bg-amber-100 dark:bg-amber-900/40 text-amber-700">✍️</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <h4 className="font-black text-xs sm:text-sm text-slate-900 dark:text-white">
+                      Active Recall: Điền từ & Gợi nhớ
+                    </h4>
+                    {studyMode === 'spelling' && (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-amber-600 text-white">
+                        ✓ Đang chọn
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                    Ẩn từ gốc, xem nghĩa tiếng Việt + loại từ + mặt nạ ký tự để tự nhớ và gõ chính xác.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onStartStudy('spelling', studySource, studyTargetQueue, selectedBatchSize, internalShuffle);
+                }}
+                className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" /> Bắt đầu luyện điền từ ({selectedBatchSize} từ)
+              </button>
+            </div>
+
+            {/* 4. Trắc nghiệm 4 đáp án (Quiz phản xạ) */}
             <div
               onClick={() => setStudyMode('quiz')}
               className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between gap-3 ${
@@ -167,7 +240,7 @@ export const VocabStudyTab: React.FC<VocabStudyTabProps> = ({
                     )}
                   </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    4 đáp án từ kho từ thật, 1 đáp án đúng, kiểm tra tức thì
+                    4 đáp án nghĩa tiếng Việt, 1 đáp án đúng, kiểm tra phản xạ tốc độ trên điện thoại.
                   </p>
                 </div>
               </div>
@@ -175,42 +248,38 @@ export const VocabStudyTab: React.FC<VocabStudyTabProps> = ({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onStartStudy('quiz', studySource, studyTargetQueue, 20);
+                  onStartStudy('quiz', studySource, studyTargetQueue, selectedBatchSize, internalShuffle);
                 }}
                 className="w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
               >
-                <Play className="w-3.5 h-3.5 fill-current" /> Bắt đầu làm Quiz
+                <Play className="w-3.5 h-3.5 fill-current" /> Bắt đầu làm Quiz ({selectedBatchSize} từ)
               </button>
             </div>
 
-            {/* 4. Luyện gõ chính tả (Spelling) */}
+            {/* 5. Luyện nghe Audio-First (Bắt âm native) */}
             <div
-              onClick={() => setStudyMode('spelling')}
+              onClick={() => setStudyMode('listening')}
               className={`p-4 rounded-2xl border transition cursor-pointer flex flex-col justify-between gap-3 ${
-                studyMode === 'spelling'
-                  ? 'border-pink-600 bg-pink-50/70 dark:bg-pink-950/40 ring-2 ring-pink-500/20 shadow-md'
+                studyMode === 'listening'
+                  ? 'border-cyan-500 bg-cyan-50/70 dark:bg-cyan-950/40 ring-2 ring-cyan-500/20 shadow-md'
                   : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 bg-white dark:bg-slate-900'
               }`}
             >
               <div className="flex items-start gap-3">
-                <span className="text-2xl p-2 rounded-xl bg-pink-100 dark:bg-pink-900/40 text-pink-700">✍️</span>
+                <span className="text-2xl p-2 rounded-xl bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700">🎧</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1">
                     <h4 className="font-black text-xs sm:text-sm text-slate-900 dark:text-white">
-                      Luyện gõ chính tả (Spelling)
+                      Luyện Nghe: Audio-First
                     </h4>
-                    {studyMode === 'spelling' && (
-                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-pink-600 text-white">
+                    {studyMode === 'listening' && (
+                      <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-cyan-600 text-white">
                         ✓ Đang chọn
                       </span>
                     )}
                   </div>
                   <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
-                    {isJapanese
-                      ? 'Nghe phát âm tiếng Nhật và gõ chính xác Kanji hoặc Hiragana'
-                      : isChinese
-                      ? 'Nghe phát âm tiếng Trung và gõ chính xác Hán tự hoặc Pinyin'
-                      : 'Nghe phát âm tự động và gõ chính xác mặt chữ'}
+                    Nghe âm thanh chuẩn 1.0x / 0.75x và tự nhận diện từ. Tuyệt đối không lộ trước đáp án!
                   </p>
                 </div>
               </div>
@@ -218,11 +287,11 @@ export const VocabStudyTab: React.FC<VocabStudyTabProps> = ({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onStartStudy('spelling', studySource, studyTargetQueue, 20);
+                  onStartStudy('listening', studySource, studyTargetQueue, selectedBatchSize, internalShuffle);
                 }}
-                className="w-full py-2.5 bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
+                className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold rounded-xl transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
               >
-                <Play className="w-3.5 h-3.5 fill-current" /> Bắt đầu luyện gõ từ
+                <Play className="w-3.5 h-3.5 fill-current" /> Bắt đầu luyện nghe ({selectedBatchSize} từ)
               </button>
             </div>
           </div>
@@ -334,8 +403,47 @@ export const VocabStudyTab: React.FC<VocabStudyTabProps> = ({
               }`}
             >
               <span className="text-xs block">📚 Toàn bộ</span>
-              <span className="text-[10px] text-slate-400">Xáo trộn ngẫu nhiên</span>
+              <span className="text-[10px] text-slate-400">Tất cả từ có sẵn</span>
             </button>
+          </div>
+        </div>
+
+        {/* Step 3.5: Cơ chế Xáo trộn Thông minh (Smart Random Shuffle) */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-bold text-slate-700 dark:text-slate-300 block uppercase tracking-wider flex items-center gap-1.5">
+              <Shuffle className="w-3.5 h-3.5 text-purple-600" />
+              Cơ chế Xáo trộn & Phân bổ (Smart Random)
+            </label>
+            <span className="text-[10px] text-purple-600 dark:text-purple-400 font-bold">
+              ✓ Anti-Repetition
+            </span>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            {[
+              { id: 'smart_review', label: '🧠 Ôn thông minh', desc: 'Ưu tiên từ yếu' },
+              { id: 'random', label: '🎲 Ngẫu nhiên', desc: 'Xáo trộn đều' },
+              { id: 'new_words', label: '🌱 Từ mới', desc: 'Nạp từ chưa học' },
+              { id: 'mixed', label: '⚡ Kết hợp', desc: '30% mới + 70% ôn' },
+              { id: 'mistakes', label: '🔥 Hay sai', desc: 'Tập trung từ yếu' }
+            ].map(s => (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => {
+                  setInternalShuffle(s.id as ShuffleMode);
+                  if (setShuffleMode) setShuffleMode(s.id as ShuffleMode);
+                }}
+                className={`p-2.5 rounded-2xl border text-left transition cursor-pointer flex flex-col justify-between ${
+                  internalShuffle === s.id
+                    ? 'border-purple-600 bg-purple-50/70 dark:bg-purple-950/40 text-purple-900 dark:text-purple-200 ring-2 ring-purple-500/20 shadow-xs'
+                    : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900'
+                }`}
+              >
+                <span className="text-xs font-bold block">{s.label}</span>
+                <span className="text-[10px] text-slate-400">{s.desc}</span>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -365,21 +473,37 @@ export const VocabStudyTab: React.FC<VocabStudyTabProps> = ({
           </button>
         </div>
 
-        {/* Launch Button */}
-        <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+        {/* Launch Button with Lobby Preview & Glowing Pulse */}
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800 space-y-2">
+          <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 px-1 font-medium">
+            <span className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" />
+              Focus Chamber Không Gian 3D
+            </span>
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+              {selectedBatchSize} từ • ~{Math.max(2, Math.round(selectedBatchSize * 0.4))} phút
+            </span>
+          </div>
+
           <button
             type="button"
-            onClick={() => onStartStudy(studyMode, studySource, studyTargetQueue, 20)}
-            className="w-full py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-700 hover:to-indigo-700 text-white font-black text-sm rounded-2xl shadow-xl transition cursor-pointer flex items-center justify-center gap-2"
+            onClick={() => onStartStudy(studyMode, studySource, studyTargetQueue, selectedBatchSize, internalShuffle)}
+            className="w-full relative group overflow-hidden py-4 px-6 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:via-teal-500 hover:to-emerald-600 text-white font-black text-sm rounded-2xl shadow-[0_0_25px_rgba(16,185,129,0.35)] hover:shadow-[0_0_35px_rgba(16,185,129,0.55)] transition-all duration-300 transform active:scale-[0.99] cursor-pointer flex items-center justify-center gap-2.5"
           >
-            <Play className="w-5 h-5 fill-current" />
-            {studyMode === 'flashcard'
-              ? `BẮT ĐẦU: FLASHCARD ${foreignLangShort.toUpperCase()} → VIỆT`
-              : studyMode === 'flashcard_reverse'
-              ? `BẮT ĐẦU: FLASHCARD ĐẢO CHIỀU (VIỆT → ${foreignLangShort.toUpperCase()})`
-              : studyMode === 'quiz'
-              ? 'BẮT ĐẦU: TRẮC NGHIỆM 4 ĐÁP ÁN (QUIZ)'
-              : 'BẮT ĐẦU: LUYỆN GÕ CHÍNH TẢ (SPELLING)'}
+            <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+            <Play className="w-5 h-5 fill-current transition-transform group-hover:scale-110" />
+            <span>
+              {studyMode === 'flashcard'
+                ? `BẮT ĐẦU LUYỆN TẬP: FOCUS CHAMBER (${selectedBatchSize} TỪ)`
+                : studyMode === 'flashcard_reverse'
+                ? `BẮT ĐẦU: FLASHCARD ĐẢO CHIỀU (${selectedBatchSize} TỪ)`
+                : studyMode === 'quiz'
+                ? `BẮT ĐẦU: TRẮC NGHIỆM 4 ĐÁP ÁN (${selectedBatchSize} TỪ)`
+                : `BẮT ĐẦU: LUYỆN GÕ CHÍNH TẢ (${selectedBatchSize} TỪ)`}
+            </span>
+            <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-white/20 ml-1">
+              ~{Math.max(2, Math.round(selectedBatchSize * 0.4))}p
+            </span>
           </button>
         </div>
 

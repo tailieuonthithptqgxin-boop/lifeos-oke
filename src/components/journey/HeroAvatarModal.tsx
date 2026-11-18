@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   X, Camera, Upload, Check, Sparkles, Image as ImageIcon, 
   Link as LinkIcon, Loader2, RefreshCw, Zap
@@ -7,6 +7,8 @@ import { useAppStore } from '../../lib/store';
 import { apiCall } from '../../lib/apiClient';
 import { soundEngine } from '../../lib/soundEngine';
 import { triggerConfetti } from '../../lib/confetti';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { ImageUploadZone } from '../common/ImageUploadZone';
 
 interface HeroAvatarModalProps {
   isOpen: boolean;
@@ -104,14 +106,45 @@ export const PRESET_HERO_AVATARS = [
 
 export function HeroAvatarModal({ isOpen, onClose, frameClass = 'ring-2 ring-slate-700' }: HeroAvatarModalProps) {
   const { currentUser, updateProfile } = useAppStore();
-  const [activeTab, setActiveTab] = useState<'presets' | 'upload' | 'url'>('presets');
+  const [activeTab, setActiveTab] = useState<'presets' | 'upload'>('presets');
   const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string>(currentUser?.avatar || '');
   const [customUrlInput, setCustomUrlInput] = useState<string>('');
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [isShaking, setIsShaking] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useBodyScrollLock(isOpen);
+
+  const isDirty = customUrlInput.trim().length > 0;
+
+  const triggerShake = () => {
+    soundEngine.playPop();
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 500);
+  };
+
+  const handleSafeDismiss = () => {
+    if (isDirty) {
+      triggerShake();
+      return;
+    }
+    onClose();
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        handleSafeDismiss();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, isDirty]);
 
   if (!isOpen) return null;
 
@@ -186,9 +219,21 @@ export function HeroAvatarModal({ isOpen, onClose, frameClass = 'ring-2 ring-sla
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (mouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+          handleSafeDismiss();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 cursor-default"
+    >
       <div 
-        className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className={`w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] transition-transform ${
+          isShaking ? 'animate-[shake_0.4s_ease-in-out]' : ''
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -210,8 +255,8 @@ export function HeroAvatarModal({ isOpen, onClose, frameClass = 'ring-2 ring-sla
             </div>
           </div>
 
-          <button
-            onClick={onClose}
+          <button type="button"
+            onClick={handleSafeDismiss}
             className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -247,7 +292,7 @@ export function HeroAvatarModal({ isOpen, onClose, frameClass = 'ring-2 ring-sla
           </div>
 
           {currentAvatar && (
-            <button
+            <button type="button"
               onClick={() => handleApplyAvatar('')}
               className="text-xs text-slate-400 hover:text-rose-400 transition cursor-pointer"
               title="Đặt về chữ cái mặc định"
@@ -271,7 +316,7 @@ export function HeroAvatarModal({ isOpen, onClose, frameClass = 'ring-2 ring-sla
 
         {/* Tab Selection */}
         <div className="flex items-center px-6 pt-4 border-b border-slate-800 gap-2">
-          <button
+          <button type="button"
             onClick={() => setActiveTab('presets')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-t-2xl text-xs font-bold transition cursor-pointer border-b-2 ${
               activeTab === 'presets'
@@ -283,7 +328,7 @@ export function HeroAvatarModal({ isOpen, onClose, frameClass = 'ring-2 ring-sla
             <span>Anh Hùng RPG ({PRESET_HERO_AVATARS.length})</span>
           </button>
 
-          <button
+          <button type="button"
             onClick={() => setActiveTab('upload')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-t-2xl text-xs font-bold transition cursor-pointer border-b-2 ${
               activeTab === 'upload'
@@ -291,20 +336,8 @@ export function HeroAvatarModal({ isOpen, onClose, frameClass = 'ring-2 ring-sla
                 : 'border-transparent text-slate-400 hover:text-slate-200'
             }`}
           >
-            <Upload className="w-3.5 h-3.5" />
-            <span>Tải Ảnh Từ Máy</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('url')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-t-2xl text-xs font-bold transition cursor-pointer border-b-2 ${
-              activeTab === 'url'
-                ? 'border-emerald-500 text-emerald-400 bg-slate-800/40'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <LinkIcon className="w-3.5 h-3.5" />
-            <span>Dán Link Ảnh</span>
+            <Camera className="w-3.5 h-3.5" />
+            <span>📷 Tải Ảnh Cá Nhân (Nén Tự Động)</span>
           </button>
         </div>
 
@@ -377,98 +410,28 @@ export function HeroAvatarModal({ isOpen, onClose, frameClass = 'ring-2 ring-sla
             </div>
           )}
 
-          {/* TAB 2: FILE UPLOAD */}
+          {/* TAB 2: 1-TOUCH CLIENT-SIDE COMPRESSED UPLOAD */}
           {activeTab === 'upload' && (
             <div className="space-y-4">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleFileUpload}
-                className="hidden"
+              <ImageUploadZone
+                type="avatar"
+                label="Tải ảnh chân dung từ điện thoại hoặc máy tính:"
+                value={selectedAvatarUrl}
+                onChange={(url) => {
+                  if (url) {
+                    handleApplyAvatar(url);
+                  }
+                }}
+                aspectRatio="square"
+                folder="avatars"
+                helperText="Ảnh được tự động cắt vuông 200x200px, nén siêu nhẹ ~10KB và lưu đồng bộ tức thì trên toàn hệ thống."
               />
 
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className="border-2 border-dashed border-slate-700 hover:border-emerald-500/80 bg-slate-950/40 hover:bg-emerald-500/5 rounded-3xl p-8 text-center cursor-pointer transition flex flex-col items-center justify-center gap-3 group"
-              >
-                <div className="w-16 h-16 rounded-2xl bg-emerald-500/10 group-hover:bg-emerald-500/20 text-emerald-400 flex items-center justify-center transition-transform group-hover:scale-110">
-                  {isUploading ? (
-                    <Loader2 className="w-8 h-8 animate-spin" />
-                  ) : (
-                    <Upload className="w-8 h-8" />
-                  )}
-                </div>
-
-                <div>
-                  <h4 className="text-sm font-black text-white">
-                    {isUploading ? 'Đang tải và tối ưu hóa ảnh...' : 'Nhấn để chọn ảnh từ máy tính hoặc điện thoại'}
-                  </h4>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Hỗ trợ định dạng JPG, PNG, WebP hoặc GIF (Tối đa 5MB)
-                  </p>
-                </div>
-
-                <div className="mt-2 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-400 font-bold text-xs border border-slate-700 transition">
-                  <Camera className="w-4 h-4" />
-                  <span>Duyệt tệp tin</span>
-                </div>
-              </div>
-
               <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 text-xs text-slate-400 space-y-1">
-                <span className="font-bold text-slate-300 block">💡 Cơ chế lưu trữ thông minh:</span>
-                <p>Ảnh được tự động tải lên Cloudflare R2 tốc độ cao và đồng bộ ngay với tài khoản hệ thống của bạn.</p>
+                <span className="font-bold text-slate-300 block">💡 Cơ chế nén ảnh tự động ngay trên trình duyệt:</span>
+                <p>Ảnh chụp điện thoại nặng 5MB–10MB sẽ được nén siêu nhẹ chỉ còn khoảng 10KB–15KB ngay trên máy của bạn, hoàn toàn không làm tốn dung lượng 4G hay làm đầy bộ nhớ.</p>
               </div>
             </div>
-          )}
-
-          {/* TAB 3: CUSTOM IMAGE URL */}
-          {activeTab === 'url' && (
-            <form onSubmit={handleApplyCustomUrl} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-slate-300 block">
-                  Đường dẫn ảnh đại diện (Image URL)
-                </label>
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <input
-                      type="url"
-                      placeholder="https://example.com/avatar.png"
-                      value={customUrlInput}
-                      onChange={(e) => setCustomUrlInput(e.target.value)}
-                      className="w-full px-4 py-3 rounded-2xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500 transition"
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={!customUrlInput.trim() || isSaving}
-                    className="px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-black text-xs transition cursor-pointer shrink-0"
-                  >
-                    {isSaving ? 'Đang lưu...' : 'Áp dụng'}
-                  </button>
-                </div>
-                <span className="text-[11px] text-slate-500 block">
-                  Bạn có thể dùng link ảnh từ Discord, Imgur, GitHub hoặc Unsplash.
-                </span>
-              </div>
-
-              {customUrlInput.trim() && (
-                <div className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 flex items-center gap-4">
-                  <div className="w-14 h-14 rounded-2xl overflow-hidden bg-slate-900 border border-slate-700 shrink-0">
-                    <img 
-                      src={customUrlInput.trim()} 
-                      alt="URL Preview" 
-                      className="w-full h-full object-cover" 
-                      onError={(e) => { (e.target as any).src = 'https://ui-avatars.com/api/?name=Err&background=red'; }}
-                    />
-                  </div>
-                  <div className="min-w-0">
-                    <span className="text-xs font-bold text-white block">Xem trước URL ảnh</span>
-                    <span className="text-[11px] text-slate-400 truncate block">{customUrlInput.trim()}</span>
-                  </div>
-                </div>
-              )}
-            </form>
           )}
         </div>
 
@@ -479,7 +442,7 @@ export function HeroAvatarModal({ isOpen, onClose, frameClass = 'ring-2 ring-sla
             <span>Ảnh cập nhật sẽ tự động đồng bộ trên toàn ứng dụng.</span>
           </div>
 
-          <button
+          <button type="button"
             onClick={onClose}
             className="px-5 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition cursor-pointer"
           >

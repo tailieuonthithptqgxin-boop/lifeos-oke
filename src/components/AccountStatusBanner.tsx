@@ -22,10 +22,8 @@ export function AccountStatusBanner() {
   const userRole = (currentUser?.role || '').toUpperCase();
   const isAdmin = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
 
-  // Admins never see a warning banner
-  if (isAdmin || isDismissed) {
-    return null;
-  }
+  // 100% Free-to-use mode: Never show warning or payment expiration banners
+  return null;
 
   const hasAccess = subscriptionStatus?.hasAccess ?? false;
   const isPending = !!subscriptionStatus?.activePending || subscriptionStatus?.lifecycleStatus === 'PENDING';

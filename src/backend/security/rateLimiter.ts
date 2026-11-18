@@ -76,10 +76,10 @@ class MemoryRateLimiter {
   }
 }
 
-// 1. Login / Register: 10 attempts per 15 mins per IP + account identifier
+// 1. Login / Register: 15 attempts per 15 mins in production, relaxed in dev/test
 export const authRateLimiter = new MemoryRateLimiter(
   15 * 60 * 1000,
-  10,
+  process.env.NODE_ENV === 'production' ? 15 : 1000,
   'Quá nhiều yêu cầu xác thực từ địa chỉ IP này. Vui lòng thử lại sau 15 phút.'
 ).middleware((req) => {
   const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'ip';
@@ -128,4 +128,15 @@ export const uploadRateLimiter = new MemoryRateLimiter(
   const userId = req.userId || req.user?.id || 'guest';
   const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'ip';
   return `upload_${ip}_${userId}`;
+});
+
+// 6. General API Rate Limiter: 400 requests per minute per IP / user to prevent API denial of service and crawler spam while allowing high-speed SPA responsiveness
+export const generalApiRateLimiter = new MemoryRateLimiter(
+  60 * 1000,
+  400,
+  'Tần suất gửi yêu cầu quá cao. Vui lòng thử lại sau giây lát.'
+).middleware((req: any) => {
+  const userId = req.userId || req.user?.id || '';
+  const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.socket.remoteAddress || 'ip';
+  return userId ? `api_user_${userId}` : `api_ip_${ip}`;
 });

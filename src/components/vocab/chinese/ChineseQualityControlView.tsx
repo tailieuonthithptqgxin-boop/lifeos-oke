@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { 
   ShieldCheck, AlertTriangle, CheckCircle2, Clock, 
   HelpCircle, Search, Filter, RefreshCw, Check, X, 
@@ -34,6 +34,22 @@ export function ChineseQualityControlView({
   const [scriptMode, setScriptMode] = useState<'simplified' | 'traditional' | 'both'>('simplified');
   const [isScanning, setIsScanning] = useState(false);
   const [auditVersion, setAuditVersion] = useState(0);
+  const [notificationMsg, setNotificationMsg] = useState<string | null>(null);
+  const notificationTimerRef = useRef<any>(null);
+
+  useEffect(() => {
+    return () => {
+      if (notificationTimerRef.current) clearTimeout(notificationTimerRef.current);
+    };
+  }, []);
+
+  const showNotification = (msg: string) => {
+    if (notificationTimerRef.current) clearTimeout(notificationTimerRef.current);
+    setNotificationMsg(msg);
+    notificationTimerRef.current = setTimeout(() => {
+      setNotificationMsg(null);
+    }, 4000);
+  };
 
   // Run audit
   const auditResult = useMemo(() => {
@@ -116,7 +132,7 @@ export function ChineseQualityControlView({
         verificationOverrides: overrides
       };
     });
-    alert(`Đã khôi phục từ "${word.term}" về nguyên bản dữ liệu gốc.`);
+    showNotification(`Đã khôi phục từ "${word.term}" về nguyên bản dữ liệu gốc.`);
   };
 
   // Export CSV
@@ -274,8 +290,18 @@ export function ChineseQualityControlView({
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               placeholder="Tìm kiếm chữ Hán, Pinyin, hoặc nghĩa tiếng Việt (xuéxí, 学习, 爱...)"
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full pl-10 pr-9 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-red-500"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                title="Xóa tìm kiếm"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
@@ -546,6 +572,24 @@ export function ChineseQualityControlView({
         )}
 
       </div>
+
+      {notificationMsg && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 bg-slate-900 text-white rounded-2xl shadow-2xl border border-slate-700 animate-in slide-in-from-bottom-4 duration-200 text-xs font-semibold">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{notificationMsg}</span>
+          <button
+            type="button"
+            onClick={() => {
+              if (notificationTimerRef.current) clearTimeout(notificationTimerRef.current);
+              setNotificationMsg(null);
+            }}
+            className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer ml-1"
+            title="Đóng thông báo"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
     </div>
   );

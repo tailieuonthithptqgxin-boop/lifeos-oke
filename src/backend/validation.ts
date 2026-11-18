@@ -160,7 +160,11 @@ export const CreateAnnouncementSchema = z.object({
   scheduledFor: z.string().optional().nullable(),
   expiresAt: z.string().optional().nullable(),
   actionUrl: z.string().optional().nullable(),
-  actionLabel: z.string().optional().nullable()
+  actionLabel: z.string().optional().nullable(),
+  imageUrl: z.string().optional().nullable(),
+  isPinned: z.boolean().optional().default(false),
+  showLoginModal: z.boolean().optional().default(true),
+  autoSendGmail: z.boolean().optional().default(false)
 });
 
 export const UpdateAnnouncementSchema = CreateAnnouncementSchema.partial();
@@ -171,16 +175,17 @@ export const UpdateAnnouncementSchema = CreateAnnouncementSchema.partial();
 
 export const CreateTaskSchema = z.object({
   title: z.string().min(1, 'Tiêu đề công việc là bắt buộc').max(255, 'Tiêu đề tối đa 255 ký tự'),
-  description: z.string().max(2000, 'Mô tả tối đa 2000 ký tự').optional().nullable(),
-  status: z.enum(['Chưa làm', 'Đang làm', 'Hoàn thành', 'Tạm hoãn', 'Hủy bỏ', 'TODO', 'IN_PROGRESS', 'DONE']).default('Chưa làm'),
-  priority: z.enum(['Thấp', 'Trung bình', 'Cao', 'Khẩn cấp', 'LOW', 'MEDIUM', 'HIGH', 'URGENT']).default('Trung bình'),
+  description: z.string().max(5000, 'Mô tả tối đa 5000 ký tự').optional().nullable(),
+  status: z.string().optional().default('Chưa làm'),
+  priority: z.string().optional().default('Trung bình'),
   dueDate: z.string().optional().nullable(),
   startDate: z.string().optional().nullable(),
+  timeSlot: z.string().optional().nullable(),
   estimatedHours: z.number().min(0).default(0),
   actualHours: z.number().min(0).default(0),
   projectId: z.string().optional().nullable(),
   linkedGoalId: z.string().optional().nullable(),
-  tags: z.string().optional().nullable(),
+  tags: z.union([z.string(), z.array(z.string())]).optional().nullable(),
   recurring: z.string().optional().nullable()
 });
 
@@ -188,7 +193,7 @@ export const UpdateTaskSchema = CreateTaskSchema.partial();
 
 export const CreateFinanceAccountSchema = z.object({
   name: z.string().min(1, 'Tên tài khoản là bắt buộc').max(100),
-  type: z.enum(['Tiền mặt', 'Ngân hàng', 'Ví điện tử', 'Thẻ tín dụng', 'Đầu tư', 'Khác']).default('Tiền mặt'),
+  type: z.string().default('Tiền mặt'),
   balance: z.number().default(0),
   currency: z.string().default('VND'),
   color: z.string().default('#10b981')
@@ -200,7 +205,7 @@ export const CreateTransactionSchema = z.object({
   accountId: z.string().min(1, 'Tài khoản là bắt buộc'),
   toAccountId: z.string().optional().nullable(),
   amount: z.number().positive('Số tiền phải lớn hơn 0'),
-  type: z.enum(['Thu nhập', 'Chi tiêu', 'Chuyển tiền', 'INCOME', 'EXPENSE', 'TRANSFER']),
+  type: z.string().default('Chi tiêu'),
   category: z.string().min(1, 'Danh mục là bắt buộc').default('Chung'),
   date: z.string().min(1, 'Ngày giao dịch là bắt buộc'),
   note: z.string().max(500, 'Ghi chú tối đa 500 ký tự').optional().nullable()
@@ -215,7 +220,8 @@ export const CreateHabitSchema = z.object({
   unitLabel: z.string().default('lần'),
   unit: z.string().default('boolean'),
   scheduleTime: z.string().optional().nullable(),
-  status: z.enum(['Active', 'Archived', 'Paused']).default('Active')
+  status: z.string().default('Active'),
+  completedDates: z.union([z.string(), z.array(z.string())]).optional().nullable()
 });
 
 export const UpdateHabitSchema = CreateHabitSchema.partial();
@@ -223,11 +229,11 @@ export const UpdateHabitSchema = CreateHabitSchema.partial();
 export const CreateGoalSchema = z.object({
   title: z.string().min(1, 'Tiêu đề mục tiêu là bắt buộc').max(200),
   category: z.string().default('Personal'),
-  targetValue: z.number().positive().default(100),
+  targetValue: z.number().min(0).default(100),
   currentValue: z.number().min(0).default(0),
   deadline: z.string().optional().nullable(),
   tier: z.string().default('Tier 1'),
-  status: z.enum(['In Progress', 'Completed', 'Paused', 'Behind']).default('In Progress')
+  status: z.string().default('In Progress')
 });
 
 export const UpdateGoalSchema = CreateGoalSchema.partial();
@@ -238,7 +244,7 @@ export const CreateNoteSchema = z.object({
   folder: z.string().default('Ghi chú chung'),
   category: z.string().default('Cá nhân'),
   pinned: z.boolean().default(false),
-  tags: z.string().default('[]')
+  tags: z.union([z.string(), z.array(z.string())]).optional().nullable().default('[]')
 });
 
 export const UpdateNoteSchema = CreateNoteSchema.partial();

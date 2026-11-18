@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   X, Volume2, CheckCircle2, AlertTriangle, ArrowRight, 
   RotateCcw, Sparkles, Brain, Award, Globe, HelpCircle 
@@ -7,6 +7,7 @@ import { ChineseWord, ActiveRecallMode, ChineseRecallQuestion } from '../../../l
 import { generateChineseRecallQuestions } from '../../../lib/chineseVocab/chineseActiveRecallEngine';
 import { renderChineseScript } from '../../../lib/chineseVocab/traditionalMappingEngine';
 import { speakWord } from '../../../lib/vocabEngine';
+import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 
 interface ChineseActiveRecallModalProps {
   words: ChineseWord[];
@@ -33,6 +34,17 @@ export function ChineseActiveRecallModal({
   onClose,
   onCompleteSession
 }: ChineseActiveRecallModalProps) {
+  useBodyScrollLock(true);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   const [activeMode, setActiveMode] = useState<ActiveRecallMode>(initialMode);
   const [scriptMode, setScriptMode] = useState<'simplified' | 'traditional' | 'both'>('simplified');
   
@@ -82,8 +94,25 @@ export function ChineseActiveRecallModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs overflow-y-auto font-sans">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-2xl overflow-hidden my-6 animate-in fade-in zoom-in-95 duration-150">
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (mouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/80 backdrop-blur-xs overflow-y-auto font-sans cursor-default"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-2xl overflow-hidden my-auto max-h-[92dvh] sm:max-h-[85vh] animate-modal-enter transition-transform"
+      >
+        {/* Mobile Drag Indicator */}
+        <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto my-2 sm:hidden shrink-0" />
         
         {/* HEADER */}
         <div className="p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-gradient-to-r from-red-50/50 via-amber-50/30 to-slate-50/50 dark:from-slate-800/40 dark:to-slate-800/20">

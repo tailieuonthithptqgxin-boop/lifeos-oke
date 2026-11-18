@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Zap, X } from 'lucide-react';
 import { ManagedUser } from './types';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 interface GrantSubscriptionModalProps {
   user: ManagedUser | null;
@@ -27,6 +28,10 @@ export const GrantSubscriptionModal: React.FC<GrantSubscriptionModalProps> = ({
   setGrantReason,
   isGranting
 }) => {
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useBodyScrollLock(!!user);
+
   useEffect(() => {
     if (!user) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -41,7 +46,12 @@ export const GrantSubscriptionModal: React.FC<GrantSubscriptionModalProps> = ({
   return (
     <div 
       className="fixed inset-0 z-[80] bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-100"
-      onClick={onClose}
+      onMouseDown={(e) => { mouseDownTargetRef.current = e.target; }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) {
+          onClose();
+        }
+      }}
     >
       <div 
         className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-5 animate-in zoom-in-95 duration-150"

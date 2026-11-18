@@ -16,6 +16,7 @@ import {
   Megaphone,
   KeyRound,
   Activity,
+  Gift,
   X
 } from 'lucide-react';
 import { apiCall } from '../lib/apiClient';
@@ -23,6 +24,7 @@ import { formatCurrency } from '../lib/utils';
 import { useAppStore } from '../lib/store';
 import { toast } from '../lib/toast';
 import { CloudflareR2View } from './CloudflareR2View';
+import { AdminStorageAuditTab } from './AdminStorageAuditTab';
 import { AdminCustomModulesTab } from './AdminCustomModulesTab';
 import type {
   AdminTab,
@@ -44,13 +46,39 @@ import { AdminGmailConfigTab } from './admin/AdminGmailConfigTab';
 import { AdminReferralsTab } from './admin/AdminReferralsTab';
 import { AdminFeedbackTab } from './admin/AdminFeedbackTab';
 import { AdminAnnouncementsTab } from './admin/AdminAnnouncementsTab';
+import { AdminConnectModerationTab } from './admin/AdminConnectModerationTab';
 import { AdminLiveTestLabTab } from './admin/AdminLiveTestLabTab';
+import { AdminConfirmModal } from './admin/AdminConfirmModal';
+import { AdminFeatureAnalyticsTab } from './admin/AdminFeatureAnalyticsTab';
+import { AdminUserActivityTab } from './admin/AdminUserActivityTab';
+import { AdminCronManagerTab } from './admin/AdminCronManagerTab';
+import { CloudflarePreFlightModal } from './admin/CloudflarePreFlightModal';
+import { clientCronEngine } from '../lib/cronEngine';
+import { BarChart3, Cpu } from 'lucide-react';
 
 export type { ServicePlan, LanguageItem };
 
 export function AdminView() {
   const { refreshLanguages } = useAppStore();
-  const [activeTab, setActiveTab] = useState<AdminTab>('requests');
+  const [activeTab, setActiveTab] = useState<AdminTab>(() => {
+    try {
+      const saved = localStorage.getItem('lifeos_admin_active_tab');
+      if (saved) return saved as AdminTab;
+    } catch {
+      // ignore
+    }
+    return 'requests';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_admin_active_tab', activeTab);
+    } catch {
+      // ignore
+    }
+  }, [activeTab]);
+  const [showCloudflareModal, setShowCloudflareModal] = useState(false);
+  const [isRunningCronsQuick, setIsRunningCronsQuick] = useState(false);
   const [message, _setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const setMessage = (msg: { text: string; type: 'success' | 'error' } | null) => {
     _setMessage(msg);
@@ -60,6 +88,7 @@ export function AdminView() {
     }
   };
   const [pendingResetCount, setPendingResetCount] = useState(0);
+  const [pendingWithdrawalsCount, setPendingWithdrawalsCount] = useState(0);
 
   const fetchPendingResetCount = async () => {
     try {
@@ -72,8 +101,20 @@ export function AdminView() {
     }
   };
 
+  const fetchPendingReferralsCount = async () => {
+    try {
+      const res = await apiCall('/api/admin/referrals/overview');
+      if (res && res.success && typeof res.pendingWithdrawalsCount === 'number') {
+        setPendingWithdrawalsCount(res.pendingWithdrawalsCount);
+      }
+    } catch (e) {
+      // silently catch
+    }
+  };
+
   useEffect(() => {
     fetchPendingResetCount();
+    fetchPendingReferralsCount();
   }, [activeTab]);
 
   // -------------------------------------------------------------
@@ -143,6 +184,9 @@ export function AdminView() {
   const [grantReason, setGrantReason] = useState('Kích hoạt bởi Admin');
   const [isGranting, setIsGranting] = useState(false);
   const [isRevoking, setIsRevoking] = useState(false);
+  const [revokeConfirmTarget, setRevokeConfirmTarget] = useState<{ userId: string; userName: string } | null>(null);
+  const [resetPlansConfirmOpen, setResetPlansConfirmOpen] = useState(false);
+  const [deleteLangConfirmTarget, setDeleteLangConfirmTarget] = useState<{ code: string; name: string } | null>(null);
   const [adminNoteText, setAdminNoteText] = useState('');
   const [isSavingAdminNote, setIsSavingAdminNote] = useState(false);
   const [newUser, setNewUser] = useState({
@@ -318,10 +362,13 @@ export function AdminView() {
     }
   };
 
-  const handleRevokeSubscription = async (userId: string, userName: string) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn thu hồi toàn bộ quyền sử dụng gói trả phí của khách hàng "${userName}"? Khách hàng sẽ bị khóa các tính năng chỉnh sửa ngay lập tức.`)) {
-      return;
-    }
+  const handleRevokeSubscription = (userId: string, userName: string) => {
+    setRevokeConfirmTarget({ userId, userName });
+  };
+
+  const executeRevokeSubscription = async () => {
+    if (!revokeConfirmTarget) return;
+    const { userId } = revokeConfirmTarget;
 
     try {
       setIsRevoking(true);
@@ -331,6 +378,7 @@ export function AdminView() {
 
       if (res && res.success) {
         setMessage({ text: 'Đã thu hồi gói dịch vụ của khách hàng thành công!', type: 'success' });
+        setRevokeConfirmTarget(null);
         await fetchUsers();
         await fetchSaasMetrics();
         if (selectedUserDetail?.user?.id === userId) {
@@ -384,10 +432,30 @@ export function AdminView() {
     }
   }, [userSearchTerm, roleFilter, userStatusFilter]);
 
+  // Real-time synchronization for Admin without F5
+  useEffect(() => {
+    const handleSync = () => {
+      if (activeTab === 'users') {
+        fetchUsers();
+        fetchSaasMetrics();
+      } else if (activeTab === 'overview') {
+        fetchSaasMetrics();
+      } else if (activeTab === 'requests') {
+        fetchRequests();
+      }
+    };
+    window.addEventListener('lifeos-global-sync', handleSync);
+    window.addEventListener('lifeos:admin-refresh', handleSync);
+    return () => {
+      window.removeEventListener('lifeos-global-sync', handleSync);
+      window.removeEventListener('lifeos:admin-refresh', handleSync);
+    };
+  }, [activeTab]);
+
   // Export CSV
   const handleExportCSV = () => {
     if (requests.length === 0) {
-      alert('Không có dữ liệu giao dịch để xuất.');
+      setMessage({ text: 'Không có dữ liệu giao dịch để xuất báo cáo.', type: 'error' });
       return;
     }
     const headers = ['Mã Đơn', 'Mã Giao Dịch', 'Email Khách Hàng', 'Tên Khách Hàng', 'Gói', 'Chu Kỳ', 'Số Tiền (VND)', 'Trạng Thái', 'Thời Gian Tạo', 'Người Duyệt', 'Thời Gian Duyệt', 'Ghi Chú'];
@@ -499,10 +567,11 @@ export function AdminView() {
     }
   };
 
-  const handleResetPlans = async () => {
-    if (!window.confirm('Bạn có chắc chắn muốn khôi phục và đồng bộ danh sách gói dịch vụ trong quản trị về cấu hình chính thức (Cá nhân 1T, Cá nhân 3T, Team 1T)?')) {
-      return;
-    }
+  const handleResetPlans = () => {
+    setResetPlansConfirmOpen(true);
+  };
+
+  const executeResetPlans = async () => {
     try {
       setIsResettingPlans(true);
       const res = await apiCall('/api/admin/plans/reset-defaults', 'POST');
@@ -511,6 +580,7 @@ export function AdminView() {
           text: 'Đã đồng bộ và cập nhật danh sách gói dịch vụ về chuẩn chính thức thành công!',
           type: 'success'
         });
+        setResetPlansConfirmOpen(false);
         await fetchPlans();
         await fetchPlanAuditLogs();
       } else {
@@ -610,14 +680,21 @@ export function AdminView() {
     }
   };
 
-  const handleDeleteLanguage = async (code: string, name: string) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa ngôn ngữ "${name}" (${code}) khỏi hệ thống?`)) return;
+  const handleDeleteLanguage = (code: string, name: string) => {
+    setDeleteLangConfirmTarget({ code, name });
+  };
+
+  const executeDeleteLanguage = async () => {
+    if (!deleteLangConfirmTarget) return;
+    const { code, name } = deleteLangConfirmTarget;
+
     try {
       setIsSavingLanguages(true);
       const res = await apiCall(`/api/admin/languages/${code}`, 'DELETE');
       if (res && res.success) {
         setLanguages(res.languages || languages.filter(l => l.code !== code));
         setMessage({ text: `Đã xóa ngôn ngữ "${name}" thành công!`, type: 'success' });
+        setDeleteLangConfirmTarget(null);
         refreshLanguages?.();
       } else {
         throw new Error(res?.message || 'Không thể xóa ngôn ngữ');
@@ -696,7 +773,7 @@ export function AdminView() {
   };
 
   return (
-    <div className="w-full min-w-0 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 font-sans overflow-x-hidden">
+    <div className="w-full min-w-0 max-w-7xl mx-auto p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 font-sans overflow-x-hidden">
       {/* Page Title & Navigation Bar */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 sm:gap-4 w-full min-w-0">
         <div className="min-w-0">
@@ -707,14 +784,68 @@ export function AdminView() {
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5 break-words">
             Duyệt thanh toán QR, quản lý gói dịch vụ, ngôn ngữ hệ thống, người dùng và thông tin ngân hàng
           </p>
+          <div className="flex items-center gap-2 mt-2">
+            <button
+              type="button"
+              onClick={() => setShowCloudflareModal(true)}
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/15 to-orange-500/15 hover:from-amber-500/25 hover:to-orange-500/25 border border-amber-500/30 text-amber-700 dark:text-amber-300 text-xs font-black transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer active:scale-95"
+            >
+              <Cloud className="w-3.5 h-3.5 text-amber-500" />
+              <span>☁️ Kiểm Tra Độ Sẵn Sàng Cloudflare (Pre-Flight Check)</span>
+            </button>
+          </div>
         </div>
 
-        {/* Global Tabs */}
-        <div className="flex flex-wrap items-center bg-purple-50/70 dark:bg-slate-800/80 p-1 sm:p-1.5 rounded-2xl self-start lg:self-auto gap-1 border border-purple-100/70 dark:border-purple-950/40 shadow-xs w-full lg:w-auto overflow-x-auto no-scrollbar">
+        {/* Global Tabs: Smooth Horizontal Scroll on Mobile (Rule 4) */}
+        <div className="flex flex-nowrap lg:flex-wrap items-center bg-purple-50/70 dark:bg-slate-800/80 p-1 sm:p-1.5 rounded-2xl self-start lg:self-auto gap-1.5 border border-purple-100/70 dark:border-purple-950/40 shadow-xs w-full lg:w-auto overflow-x-auto no-scrollbar">
+          
+          {/* Tab: Automated Cron Manager & Cloudflare */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('cron_manager')}
+            className={`min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'cron_manager'
+                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-xs ring-1 ring-amber-400'
+                : 'text-amber-700 dark:text-amber-300 bg-amber-50/80 dark:bg-amber-950/50 hover:bg-amber-100 dark:hover:bg-amber-900/60 border border-amber-200 dark:border-amber-800'
+            }`}
+          >
+            <Cpu className="w-3.5 h-3.5 text-amber-500" />
+            <span>⏱️ Quản Lý Cron Tự Động</span>
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          </button>
+          
+          {/* Tab: Feature Analytics */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('analytics')}
+            className={`min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'analytics'
+                ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-xs ring-1 ring-indigo-500'
+                : 'text-indigo-700 dark:text-indigo-300 bg-indigo-50/80 dark:bg-indigo-950/50 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 border border-indigo-200 dark:border-indigo-800'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5 text-indigo-400" />
+            <span>📊 Phân Tích Chức Năng</span>
+          </button>
+
+          {/* Tab: User Activity & X-Ray */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('user_activity')}
+            className={`min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'user_activity'
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-xs ring-1 ring-purple-500'
+                : 'text-purple-700 dark:text-purple-300 bg-purple-50/80 dark:bg-purple-950/50 hover:bg-purple-100 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-800'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5 text-purple-400" />
+            <span>👥 Quản Lý Người Dùng & X-Quang</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setActiveTab('requests')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'requests'
                 ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -731,8 +862,30 @@ export function AdminView() {
 
           <button
             type="button"
+            onClick={() => setActiveTab('referrals')}
+            className={`min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'referrals'
+                ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-xs ring-1 ring-purple-500'
+                : 'text-purple-700 dark:text-purple-300 bg-purple-100/70 dark:bg-purple-950/60 hover:bg-purple-200 dark:hover:bg-purple-900/60 border border-purple-200 dark:border-purple-800'
+            }`}
+          >
+            <Gift className="w-3.5 h-3.5 text-amber-300" />
+            <span>👑 Quản Lý CTV & Affiliate</span>
+            {pendingWithdrawalsCount > 0 ? (
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-rose-500 text-white animate-pulse">
+                {pendingWithdrawalsCount} chờ rút
+              </span>
+            ) : (
+              <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-purple-200 dark:bg-purple-900 text-purple-900 dark:text-purple-200">
+                20%
+              </span>
+            )}
+          </button>
+
+          <button
+            type="button"
             onClick={() => setActiveTab('subscriptions')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'subscriptions'
                 ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -745,7 +898,7 @@ export function AdminView() {
           <button
             type="button"
             onClick={() => setActiveTab('plans')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'plans'
                 ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -758,7 +911,7 @@ export function AdminView() {
           <button
             type="button"
             onClick={() => setActiveTab('languages')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'languages'
                 ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -771,7 +924,7 @@ export function AdminView() {
           <button
             type="button"
             onClick={() => setActiveTab('users')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'users'
                 ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -784,7 +937,7 @@ export function AdminView() {
           <button
             type="button"
             onClick={() => setActiveTab('password_resets')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'password_resets'
                 ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -802,7 +955,7 @@ export function AdminView() {
           <button
             type="button"
             onClick={() => setActiveTab('bank_config')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'bank_config'
                 ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -815,7 +968,7 @@ export function AdminView() {
           <button
             type="button"
             onClick={() => setActiveTab('storage')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'storage'
                 ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -828,7 +981,7 @@ export function AdminView() {
           <button
             type="button"
             onClick={() => setActiveTab('custom_modules')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'custom_modules'
                 ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -841,7 +994,7 @@ export function AdminView() {
           <button
             type="button"
             onClick={() => setActiveTab('gmail_config')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'gmail_config'
                 ? 'bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-400 shadow-xs ring-1 ring-rose-100 dark:ring-rose-950'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -853,21 +1006,8 @@ export function AdminView() {
 
           <button
             type="button"
-            onClick={() => setActiveTab('referrals')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-              activeTab === 'referrals'
-                ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Users className="w-3.5 h-3.5" />
-            <span>Chương Trình Giới Thiệu (20%)</span>
-          </button>
-
-          <button
-            type="button"
             onClick={() => setActiveTab('feedback')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'feedback'
                 ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -880,7 +1020,7 @@ export function AdminView() {
           <button
             type="button"
             onClick={() => setActiveTab('live_test_lab')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'live_test_lab'
                 ? 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-400 shadow-xs ring-1 ring-emerald-100 dark:ring-emerald-900'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -893,7 +1033,7 @@ export function AdminView() {
           <button
             type="button"
             onClick={() => setActiveTab('announcements')}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`min-h-[44px] shrink-0 whitespace-nowrap px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
               activeTab === 'announcements'
                 ? 'bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 shadow-xs ring-1 ring-purple-100 dark:ring-purple-900'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -976,6 +1116,19 @@ export function AdminView() {
             <X className="w-4 h-4" />
           </button>
         </div>
+      )}
+
+      
+      {/* Active Tab Content Area with Smooth GPU Transition */}
+      <div key={activeTab} className="view-transition-enter">
+      {/* Tab: Feature Analytics */}
+      {activeTab === 'analytics' && (
+        <AdminFeatureAnalyticsTab />
+      )}
+
+      {/* Tab: User Activity & X-Ray */}
+      {activeTab === 'user_activity' && (
+        <AdminUserActivityTab />
       )}
 
       {/* Tab 1: Requests */}
@@ -1073,10 +1226,10 @@ export function AdminView() {
         />
       )}
 
-      {/* Tab 6: Storage */}
+      {/* Tab 6: Storage & Data Health */}
       {activeTab === 'storage' && (
         <div className="space-y-6 animate-in fade-in duration-150">
-          <CloudflareR2View />
+          <AdminStorageAuditTab />
         </div>
       )}
 
@@ -1115,12 +1268,99 @@ export function AdminView() {
         </div>
       )}
 
-      {/* Tab 11: Announcements & Notifications */}
+      {/* Tab: Connect Communities & Meets Moderation */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('communities')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-200 flex items-center gap-1.5 cursor-pointer ${
+              activeTab === 'communities'
+                ? 'bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold border border-emerald-500/30'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+            }`}
+          >
+            <span>🏛️</span>
+            <span>Cộng Đồng & Meet</span>
+          </button>
+
+          {/* Tab 11: Announcements & Notifications */}
       {activeTab === 'announcements' && (
         <div className="space-y-6 animate-in fade-in duration-150">
           <AdminAnnouncementsTab onShowMessage={setMessage} />
         </div>
       )}
+
+      {/* Tab 13: Cron Manager & Cloudflare Automation */}
+      {activeTab === 'cron_manager' && (
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <AdminCronManagerTab onShowMessage={setMessage} />
+        </div>
+      )}
+      </div>
+
+      {/* Cloudflare Pre-Flight Modal */}
+      <CloudflarePreFlightModal
+        isOpen={showCloudflareModal}
+        onClose={() => setShowCloudflareModal(false)}
+        onRunCrons={async () => {
+          try {
+            setIsRunningCronsQuick(true);
+            await clientCronEngine.runAllCronsNow();
+            setMessage({
+              text: 'Đã kích hoạt và chạy thử toàn bộ 4 Cron thành công!',
+              type: 'success'
+            });
+          } catch (e: any) {
+            setMessage({ text: 'Lỗi kích hoạt Cron: ' + e.message, type: 'error' });
+          } finally {
+            setIsRunningCronsQuick(false);
+          }
+        }}
+        isRunningCrons={isRunningCronsQuick}
+      />
+
+      {/* Revoke Subscription Modal */}
+      <AdminConfirmModal
+        isOpen={!!revokeConfirmTarget}
+        title="Thu hồi gói dịch vụ trả phí"
+        description={
+          <span>
+            Bạn có chắc chắn muốn thu hồi toàn bộ quyền sử dụng gói trả phí của khách hàng <strong>"{revokeConfirmTarget?.userName}"</strong>? Khách hàng sẽ bị khóa các tính năng chỉnh sửa nâng cao ngay lập tức.
+          </span>
+        }
+        confirmLabel="Xác nhận thu hồi"
+        variant="danger"
+        isProcessing={isRevoking}
+        onConfirm={executeRevokeSubscription}
+        onClose={() => setRevokeConfirmTarget(null)}
+      />
+
+      {/* Reset Plans Modal */}
+      <AdminConfirmModal
+        isOpen={resetPlansConfirmOpen}
+        title="Khôi phục gói dịch vụ mặc định"
+        description="Bạn có chắc chắn muốn khôi phục và đồng bộ danh sách gói dịch vụ trong quản trị về cấu hình chính thức (Cá nhân 1T, Cá nhân 3T, Team 1T)?"
+        confirmLabel="Khôi phục mặc định"
+        variant="warning"
+        isProcessing={isResettingPlans}
+        onConfirm={executeResetPlans}
+        onClose={() => setResetPlansConfirmOpen(false)}
+      />
+
+      {/* Delete Language Modal */}
+      <AdminConfirmModal
+        isOpen={!!deleteLangConfirmTarget}
+        title="Xóa ngôn ngữ hệ thống"
+        description={
+          <span>
+            Bạn có chắc chắn muốn xóa ngôn ngữ <strong>"{deleteLangConfirmTarget?.name}"</strong> ({deleteLangConfirmTarget?.code}) khỏi hệ thống? Thao tác này không thể hoàn tác.
+          </span>
+        }
+        confirmLabel="Xóa ngôn ngữ"
+        variant="danger"
+        isProcessing={isSavingLanguages}
+        onConfirm={executeDeleteLanguage}
+        onClose={() => setDeleteLangConfirmTarget(null)}
+      />
     </div>
   );
 }

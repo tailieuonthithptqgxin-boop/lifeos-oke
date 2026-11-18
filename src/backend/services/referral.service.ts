@@ -5,7 +5,9 @@ import { getAppBaseUrl } from './gmailNotification.service.js';
 export interface ReferralStats {
   referralCode: string;
   referralLink: string;
+  commissionRatePercent: number;
   totalReferred: number;
+  totalBuyers: number;
   totalSales: number;
   totalCommission: number;
   pendingReward: number;
@@ -16,6 +18,8 @@ export interface ReferralStats {
   history: Array<{
     id: string;
     referredUser: { name: string; email: string };
+    status: string;
+    hasPurchased: boolean;
     createdAt: Date;
   }>;
   commissions: Array<{
@@ -81,15 +85,50 @@ export interface WithdrawalInput {
 
 export class ReferralService {
   /**
-   * Generates a unique, aesthetic Gen Z referral code (e.g. "LIFE-8X92K")
+   * Generates a unique, aesthetic 6-character referral code (e.g. "8X92KM")
    */
   private generateReferralCode(): string {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
     let code = '';
     for (let i = 0; i < 6; i++) {
       code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    return `LIFE-${code}`;
+    return code;
+  }
+
+  /**
+   * Reads the global commission percentage from system settings (default 20%)
+   */
+  async getCommissionRate(): Promise<number> {
+    const prisma = getPrisma();
+    try {
+      const setting = await prisma.systemSetting.findUnique({
+        where: { key: 'referral_commission_rate' }
+      });
+      if (setting && setting.value) {
+        const val = parseFloat(setting.value);
+        if (!isNaN(val) && val > 0 && val <= 100) return val;
+      }
+    } catch (e) {
+      console.warn('[Referral] Error reading commission rate setting:', e);
+    }
+    return 20; // Default 20%
+  }
+
+  /**
+   * Updates the global commission percentage in system settings
+   */
+  async setCommissionRate(rate: number): Promise<number> {
+    if (isNaN(rate) || rate <= 0 || rate > 100) {
+      throw new Error('Tỷ lệ hoa hồng phải từ 1% đến 100%');
+    }
+    const prisma = getPrisma();
+    await prisma.systemSetting.upsert({
+      where: { key: 'referral_commission_rate' },
+      update: { value: String(rate) },
+      create: { key: 'referral_commission_rate', value: String(rate) }
+    });
+    return rate;
   }
 
   /**
@@ -197,8 +236,9 @@ export class ReferralService {
     });
     if (existingCommission) return null;
 
-    // Calculate 20% reward (Official Business Rule)
-    const commissionRate = 0.20;
+    // Calculate reward based on dynamic system commission rate (default 20%)
+    const ratePercent = await this.getCommissionRate();
+    const commissionRate = ratePercent / 100;
     const rewardAmount = Math.round(orderAmount * commissionRate);
 
     if (rewardAmount <= 0) return null;
@@ -234,14 +274,14 @@ export class ReferralService {
           amount: rewardAmount,
           previousBal: referrerProfile.approvedReward,
           newBal: referrerProfile.approvedReward + rewardAmount,
-          reason: `Hoa hồng 20% từ đơn hàng ${orderId} (${orderAmount.toLocaleString('vi-VN')} ₫)`
+          reason: `Hoa hồng ${ratePercent}% từ đơn hàng ${orderId} (${orderAmount.toLocaleString('vi-VN')} ₫)`
         }
       }),
       // Send celebration notification to referrer
       prisma.notification.create({
         data: {
           userId: relationship.referrerId,
-          title: '💰 Nhận thưởng hoa hồng giới thiệu 20%!',
+          title: `💰 Nhận thưởng hoa hồng giới thiệu ${ratePercent}%!`,
           message: `Chúc mừng bạn! Người bạn bạn giới thiệu vừa thanh toán đơn hàng. Bạn nhận được +${rewardAmount.toLocaleString('vi-VN')} ₫ hoa hồng vào ví thưởng!`,
           type: 'success'
         }
@@ -270,18 +310,17 @@ export class ReferralService {
       });
       await prisma.referralTransaction.create({
         data: {
-          commissionId: comm.id,
           type: 'COMMISSION_APPROVED',
           amount: rewardAmount,
           previousBal: referrerProfile.approvedReward,
           newBal: referrerProfile.approvedReward + rewardAmount,
-          reason: `Hoa hồng 20% từ đơn hàng ${orderId} (${orderAmount.toLocaleString('vi-VN')} ₫)`
+          reason: `Hoa hồng ${ratePercent}% từ đơn hàng ${orderId} (${orderAmount.toLocaleString('vi-VN')} ₫)`
         }
       });
       await prisma.notification.create({
         data: {
           userId: relationship.referrerId,
-          title: '💰 Nhận thưởng hoa hồng giới thiệu 20%!',
+          title: `💰 Nhận thưởng hoa hồng giới thiệu ${ratePercent}%!`,
           message: `Chúc mừng bạn! Người bạn bạn giới thiệu vừa thanh toán đơn hàng. Bạn nhận được +${rewardAmount.toLocaleString('vi-VN')} ₫ hoa hồng vào ví thưởng!`,
           type: 'success'
         }
@@ -353,6 +392,67 @@ export class ReferralService {
   }
 
   /**
+   * Retrieves Top 5 Affiliates with badges and masked names for the Hall of Fame
+   */
+  async getTopAffiliates(limit: number = 5): Promise<Array<{
+    rank: number;
+    name: string;
+    badge: 'Tân Binh' | 'Chiến Binh' | 'Ngôi Sao Xuất Sắc';
+    badgeColor: string;
+    totalSales: number;
+    totalCommission: number;
+    totalBuyers: number;
+  }>> {
+    const prisma = getPrisma();
+    const profiles = await prisma.referralProfile.findMany({
+      where: {
+        OR: [
+          { totalSales: { gt: 0 } },
+          { totalReferred: { gt: 0 } }
+        ]
+      },
+      include: {
+        user: { select: { name: true, email: true } }
+      },
+      orderBy: [
+        { totalSales: 'desc' },
+        { totalReferred: 'desc' }
+      ],
+      take: limit
+    });
+
+    return profiles.map((p, idx) => {
+      const rawName = (p.user?.name || p.user?.email || `CTV #${idx + 1}`).trim();
+      const parts = rawName.split(/\s+/);
+      const maskedName = parts.length > 1
+        ? `${parts[0]}***`
+        : (rawName.length > 3 ? `${rawName.substring(0, 3)}***` : `${rawName}***`);
+
+      // 0-4 buyers: "Tân Binh", 5-19: "Chiến Binh", 20+: "Ngôi Sao Xuất Sắc"
+      let badge: 'Tân Binh' | 'Chiến Binh' | 'Ngôi Sao Xuất Sắc' = 'Tân Binh';
+      let badgeColor = 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+
+      if (p.totalReferred >= 20 || p.totalSales >= 5000000) {
+        badge = 'Ngôi Sao Xuất Sắc';
+        badgeColor = 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/70 dark:text-amber-300 dark:border-amber-700';
+      } else if (p.totalReferred >= 5 || p.totalSales >= 1000000) {
+        badge = 'Chiến Binh';
+        badgeColor = 'bg-blue-100 text-blue-800 border-blue-300 dark:bg-blue-950/70 dark:text-blue-300 dark:border-blue-700';
+      }
+
+      return {
+        rank: idx + 1,
+        name: maskedName,
+        badge,
+        badgeColor,
+        totalSales: p.totalSales,
+        totalCommission: p.totalCommission,
+        totalBuyers: p.totalReferred
+      };
+    });
+  }
+
+  /**
    * Retrieves full dashboard stats for a user
    */
   async getUserDashboard(userId: string, origin: string = ''): Promise<ReferralStats> {
@@ -379,12 +479,23 @@ export class ReferralService {
     ]);
 
     const baseUrl = origin || getAppBaseUrl();
-    const referralLink = `${baseUrl}/register?ref=${profile.referralCode}`;
+    const referralLink = `${baseUrl}/?ref=${profile.referralCode}`;
+    const ratePercent = await this.getCommissionRate();
+
+    // Identify buyers (referred users with approved/paid orders)
+    const buyerUserIdSet = new Set(
+      commissions
+        .filter(c => c.status === 'Approved' || c.status === 'Paid')
+        .map(c => c.referredUserId)
+    );
+    const totalBuyers = relationships.filter(r => buyerUserIdSet.has(r.referredUserId)).length;
 
     return {
       referralCode: profile.referralCode,
       referralLink,
+      commissionRatePercent: ratePercent,
       totalReferred: profile.totalReferred,
+      totalBuyers,
       totalSales: profile.totalSales,
       totalCommission: profile.totalCommission,
       pendingReward: profile.pendingReward,
@@ -405,24 +516,65 @@ export class ReferralService {
         uploadedAt: paymentQr.uploadedAt,
         updatedAt: paymentQr.updatedAt
       } : null,
-      history: relationships.map(r => ({
-        id: r.id,
-        referredUser: {
-          name: r.referredUser.name || 'Người dùng',
-          email: r.referredUser.email.replace(/(.{2})(.*)(@.*)/, '$1***$3') // Privacy mask
-        },
-        createdAt: r.createdAt
-      })),
-      commissions: commissions.map(c => ({
-        id: c.id,
-        orderId: c.orderId,
-        orderAmount: c.orderAmount,
-        commissionRate: c.commissionRate,
-        rewardAmount: c.rewardAmount,
-        status: c.status,
-        createdAt: c.createdAt,
-        note: c.note
-      }))
+      history: relationships.map(r => {
+        const hasPurchased = buyerUserIdSet.has(r.referredUserId);
+        
+        // Mask name e.g. "Nguyen***" or "Nam***"
+        const rawName = (r.referredUser.name || 'Người dùng').trim();
+        const parts = rawName.split(/\s+/);
+        const maskedName = parts.length > 1
+          ? `${parts[0]}***`
+          : (rawName.length > 3 ? `${rawName.substring(0, 3)}***` : `${rawName}***`);
+
+        // Mask email e.g. "nguyen***@gmail.com"
+        const rawEmail = r.referredUser.email || '';
+        const atIdx = rawEmail.indexOf('@');
+        let maskedEmail = rawEmail;
+        if (atIdx > 2) {
+          const prefixLen = Math.min(4, Math.floor(atIdx / 2) + 1);
+          maskedEmail = `${rawEmail.substring(0, prefixLen)}***${rawEmail.substring(atIdx)}`;
+        } else if (atIdx > 0) {
+          maskedEmail = `${rawEmail.substring(0, 1)}***${rawEmail.substring(atIdx)}`;
+        }
+
+        return {
+          id: r.id,
+          referredUser: {
+            name: maskedName,
+            email: maskedEmail
+          },
+          status: hasPurchased ? 'Đã phát sinh doanh thu' : 'Đang sử dụng',
+          hasPurchased,
+          createdAt: r.createdAt
+        };
+      }),
+      commissions: commissions.map(c => {
+        const rel = relationships.find(r => r.referredUserId === c.referredUserId);
+        const rawEmail = rel?.referredUser?.email || '';
+        const atIdx = rawEmail.indexOf('@');
+        let maskedEmail = rawEmail;
+        if (atIdx > 2) {
+          const prefixLen = Math.min(4, Math.floor(atIdx / 2) + 1);
+          maskedEmail = `${rawEmail.substring(0, prefixLen)}***${rawEmail.substring(atIdx)}`;
+        } else if (atIdx > 0) {
+          maskedEmail = `${rawEmail.substring(0, 1)}***${rawEmail.substring(atIdx)}`;
+        } else {
+          maskedEmail = 'khach***@gmail.com';
+        }
+
+        return {
+          id: c.id,
+          orderId: c.orderId,
+          orderAmount: c.orderAmount,
+          commissionRate: c.commissionRate,
+          rewardAmount: c.rewardAmount,
+          status: c.status,
+          createdAt: c.createdAt,
+          note: c.note,
+          customerName: rel?.referredUser?.name ? `${rel.referredUser.name.split(/\s+/)[0]}***` : 'Khách hàng',
+          customerEmail: maskedEmail
+        };
+      })
     };
   }
 
@@ -1065,9 +1217,37 @@ export class ReferralService {
       totalCommissionGiven: totalStats._sum.rewardAmount || 0,
       pendingWithdrawalsCount,
       totalPaidOut: totalPaidStats._sum.amount || 0,
+      commissionRatePercent: await this.getCommissionRate(),
       profiles,
       commissions: allCommissions
     };
+  }
+
+  /**
+   * Admin manual confirmation of order to credit referral commission
+   */
+  async adminConfirmOrderCommission(orderId: string, customerEmailOrId: string, amount?: number): Promise<any> {
+    const prisma = getPrisma();
+    const cleanLookup = customerEmailOrId.trim().toLowerCase();
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [
+          { id: customerEmailOrId },
+          { email: cleanLookup }
+        ]
+      }
+    });
+
+    if (!user) {
+      throw new Error(`Không tìm thấy người dùng với Email hoặc ID: "${customerEmailOrId}"`);
+    }
+
+    const orderAmount = amount && amount > 0 ? amount : 199000;
+    const result = await this.processOrderApproved(orderId, orderAmount, user.id);
+    if (!result) {
+      throw new Error('Đơn hàng này không thuộc người dùng được giới thiệu qua mã CTV, hoặc đã được tính hoa hồng trước đó.');
+    }
+    return result;
   }
 }
 

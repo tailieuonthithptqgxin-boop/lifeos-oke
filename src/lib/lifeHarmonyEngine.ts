@@ -1,6 +1,7 @@
 // Life Harmony Radar & Scoring Engine for LifeOS
 // STRICT PRODUCTION PRINCIPLE: REAL DATA ONLY (No mock, no random, no fake defaults)
 // Computes holistic balance across 5 dimensions: Tasks, Habits, Study/Focus, Finance, Goals
+import { safeJsonParse } from './utils';
 
 export type DimensionStatus = 'calculated' | 'insufficient_data';
 
@@ -97,12 +98,17 @@ export function compute5DHarmony(params: Compute5DHarmonyInput): LifeHarmonyOver
       ]
     };
   } else {
-    const completedTasks = userTasks.filter(t => t.status === 'Hoàn thành').length;
+    const isTaskDone = (status?: string | null) => {
+      if (!status) return false;
+      const s = status.toLowerCase();
+      return s === 'hoàn thành' || s === 'hoan thanh' || s === 'completed' || s === 'done' || s === 'đã xong';
+    };
+    const completedTasks = userTasks.filter(t => isTaskDone(t.status)).length;
     const completionRate = (completedTasks / totalTasks) * 100;
     
     // Check overdue tasks that are still not completed
     const overdueTasks = userTasks.filter(t => {
-      if (t.status === 'Hoàn thành' || !t.dueDate) return false;
+      if (isTaskDone(t.status) || !t.dueDate) return false;
       return t.dueDate < selectedDate;
     }).length;
 
@@ -171,7 +177,7 @@ export function compute5DHarmony(params: Compute5DHarmonyInput): LifeHarmonyOver
       const dates = Array.isArray(h.completedDates) 
         ? h.completedDates 
         : typeof h.completedDates === 'string' 
-          ? (h.completedDates.startsWith('[') ? JSON.parse(h.completedDates) : []) 
+          ? safeJsonParse<string[]>(h.completedDates, []) 
           : [];
       const hasRecordToday = Array.isArray(habitRecords) && habitRecords.some((r: any) => 
         r.habitId === h.id && r.date === selectedDate && (r.completed === true || r.status === 'Completed')

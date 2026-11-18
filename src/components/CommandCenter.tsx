@@ -6,10 +6,11 @@ import {
   FileText, Target, Repeat, Scale, Cpu, User, ShoppingBag,
   ArrowRight, Sparkles, X, Plus, Clock, Shield, BookOpen, Zap, Heart, Palette, Coffee, Trophy
 } from 'lucide-react';
-import { formatCurrency, formatDate } from '../lib/utils';
+import { formatCurrency, formatDate, formatLocalDateKey, safeJsonParse } from '../lib/utils';
 import { ViewState } from '../lib/types';
 import { soundEngine } from '../lib/soundEngine';
 import { parseCommand } from '../utils/commandParser';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface SearchResultItem {
   id: string;
@@ -37,10 +38,15 @@ export function CommandCenter() {
     addTask,
     addTransaction,
     addNote,
+    addHabit,
     language
   } = useAppStore();
 
   const t = useTranslation(language);
+
+  // Lock body scroll when Omnibar modal is open (Micro-UX)
+  useBodyScrollLock(isCommandOpen);
+  const mouseDownTargetRef = useRef<any>(null);
 
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -87,7 +93,6 @@ export function CommandCenter() {
     { title: 'Theo dõi Thói quen hàng ngày (Habits)', view: 'habits' as ViewState, icon: Repeat },
     { title: 'Đồng hồ Tập trung Pomodoro (Focus)', view: 'focus' as ViewState, icon: Clock },
     { title: 'Hệ thống Quản lý Học tập (Study OS)', view: 'study' as ViewState, icon: BookOpen },
-    { title: 'Động cơ Ra quyết định (Decision Engine)', view: 'decision' as ViewState, icon: Scale },
     { title: 'Quy tắc Tự động hóa (Automation Engine)', view: 'automation' as ViewState, icon: Cpu },
     { title: 'Kho Giao diện & Mẫu Templates (Marketplace)', view: 'marketplace' as ViewState, icon: ShoppingBag },
     { title: 'Gói dịch vụ & Quản lý Đội ngũ (Subscription)', view: 'subscription' as ViewState, icon: Zap },
@@ -256,7 +261,7 @@ export function CommandCenter() {
           badge: 'Nhân vật AI',
           action: () => {
             soundEngine.playPop();
-            const current = JSON.parse(localStorage.getItem('lifeos_companion_settings') || '{}');
+            const current = safeJsonParse<any>(localStorage.getItem('lifeos_companion_settings'), {});
             const nextEnabled = !current.enabled;
             const updated = { ...current, enabled: nextEnabled, focusCompanionMode: nextEnabled ? 'normal' : 'off' };
             localStorage.setItem('lifeos_companion_settings', JSON.stringify(updated));
@@ -302,9 +307,11 @@ export function CommandCenter() {
           action: () => {
             if (cleanTitle) {
               soundEngine.playPop();
+              const tomorrow = new Date();
+              tomorrow.setDate(tomorrow.getDate() + 1);
               const due = isTomorrow 
-                ? new Date(Date.now() + 86400000).toISOString().split('T')[0]
-                : new Date().toISOString().split('T')[0];
+                ? formatLocalDateKey(tomorrow)
+                : formatLocalDateKey(new Date());
               addTask({
                 title: cleanTitle,
                 status: 'Chưa làm',
@@ -340,7 +347,7 @@ export function CommandCenter() {
                 amount: amt,
                 type: 'Chi tiêu',
                 category: 'Ăn uống / Sinh hoạt',
-                date: new Date().toISOString().split('T')[0],
+                date: formatLocalDateKey(new Date()),
                 description: desc
               });
               setSuccessToast(`Đã ghi chi tiêu ${formatCurrency(amt)}: "${desc}"`);
@@ -466,7 +473,7 @@ export function CommandCenter() {
             title: parsedTask.title,
             status: 'Chưa làm',
             priority: parsedTask.energy === 'deep_work' ? 'Khẩn cấp' : (parsedTask.energy === 'shallow' ? 'Trung bình' : 'Thấp'),
-            dueDate: parsedTask.dueDate || new Date().toISOString().split('T')[0],
+            dueDate: parsedTask.dueDate || formatLocalDateKey(new Date()),
             estimatedHours: parsedTask.durationMinutes ? parsedTask.durationMinutes / 60 : undefined,
             tags: parsedTask.tags,
             notes: `Mức năng lượng: ${parsedTask.energyDisplay?.label || 'Chưa định'}`
@@ -522,7 +529,7 @@ export function CommandCenter() {
               amount: num,
               type: 'Thu nhập',
               category: 'Lương & Thưởng',
-              date: new Date().toISOString().split('T')[0],
+              date: formatLocalDateKey(new Date()),
               description: desc
             });
             setSuccessToast(`Đã ghi nhận thu nhập +${formatCurrency(num)}: "${desc}" ✨`);
@@ -558,7 +565,7 @@ export function CommandCenter() {
               amount: rawNum,
               type: 'Chi tiêu',
               category: 'Ăn uống / Sinh hoạt',
-              date: new Date().toISOString().split('T')[0],
+              date: formatLocalDateKey(new Date()),
               description: desc
             });
             setSuccessToast(`Đã ghi chi tiêu ${formatCurrency(rawNum)}: "${desc}" ✨`);
@@ -586,10 +593,39 @@ export function CommandCenter() {
                 title: cleanContent.slice(0, 40),
                 content: cleanContent,
                 tags: ['QuickCapture'],
-                date: new Date().toISOString().split('T')[0]
+                date: formatLocalDateKey(new Date())
               });
             }
             setSuccessToast(`Đã lưu ghi chú "${cleanContent.slice(0, 30)}..." ✨`);
+            setTimeout(() => { toggleCommand(); setSuccessToast(null); }, 600);
+          }
+        });
+      }
+    }
+
+    // 3.1. Natural Language QUICK HABIT (e.g. "#habit Đọc sách", "habit: Tập gym")
+    if (q.startsWith('#habit') || q.startsWith('habit:') || q.startsWith('#thoi quen') || q.startsWith('#quen')) {
+      const cleanHabitName = q.replace(/^(#habit|habit:|#thoi quen|#quen)\s*/i, '').trim();
+      if (cleanHabitName) {
+        list.unshift({
+          id: 'nl-habit',
+          title: `🔄 Tạo thói quen mới: "${cleanHabitName}"`,
+          subtitle: 'Nhấn Enter để theo dõi thói quen hàng ngày (+15 XP)',
+          category: 'Lệnh nhanh',
+          icon: Repeat,
+          badge: 'Thói quen',
+          action: () => {
+            soundEngine.playPop();
+            if (typeof addHabit === 'function') {
+              addHabit({
+                name: cleanHabitName,
+                frequency: 'Daily',
+                streak: 0,
+                target: 1,
+                completedDates: []
+              });
+            }
+            setSuccessToast(`Đã tạo thói quen "${cleanHabitName}" ✨`);
             setTimeout(() => { toggleCommand(); setSuccessToast(null); }, 600);
           }
         });
@@ -609,9 +645,11 @@ export function CommandCenter() {
       const cleanTitle = q.replace(/^(task|việc|todo)\s+/i, '').replace(/!(cao|gap|p1|uutu|thap|low|p3)/gi, '').trim();
       
       if (cleanTitle) {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
         const dueDate = hasTomorrow 
-          ? new Date(Date.now() + 86400000).toISOString().split('T')[0]
-          : new Date().toISOString().split('T')[0];
+          ? formatLocalDateKey(tomorrow)
+          : formatLocalDateKey(new Date());
 
         list.unshift({
           id: 'nl-task',
@@ -763,24 +801,6 @@ export function CommandCenter() {
       }
     });
 
-    // 7. Decisions
-    (decisions || []).forEach((d: any) => {
-      if (d.title?.toLowerCase().includes(q) || d.problem?.toLowerCase().includes(q)) {
-        list.push({
-          id: `dec-${d.id}`,
-          title: d.title,
-          subtitle: `Trạng thái: ${d.status || 'Đang phân tích'} • Điểm số: ${d.score || 0}`,
-          category: 'Quyết định',
-          icon: Scale,
-          badge: d.importance || 'Chiến lược',
-          action: () => {
-            setCurrentView('decision_engine');
-            toggleCommand();
-          }
-        });
-      }
-    });
-
     let filtered = list;
     if (activeCategory === 'commands') filtered = list.filter(i => i.category === 'Lệnh nhanh');
     else if (activeCategory === 'tasks') filtered = list.filter(i => i.category === 'Công việc');
@@ -814,15 +834,25 @@ export function CommandCenter() {
   if (!isCommandOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[10vh] sm:pt-[14vh] px-3 sm:px-4">
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-150"
-        onClick={toggleCommand}
-      />
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (mouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+          toggleCommand();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-end sm:items-start justify-center pt-0 sm:pt-[12vh] px-0 sm:px-4 bg-slate-900/60 dark:bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-150 cursor-default"
+    >
+      {/* Spotlight Window (Bottom Sheet on mobile, Centered Spotlight on desktop) */}
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white dark:bg-[#141E30] w-full max-w-2xl rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden relative z-10 border-t sm:border border-[#E2E8F0] dark:border-white/[0.08] animate-in slide-in-from-bottom-5 sm:zoom-in-95 duration-150 flex flex-col max-h-[88dvh] sm:max-h-[75vh]"
+      >
+        {/* Mobile Grab Handle */}
+        <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto my-2.5 sm:hidden shrink-0" />
 
-      {/* Spotlight Window */}
-      <div className="bg-white dark:bg-[#141E30] w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden relative z-10 border border-[#E2E8F0] dark:border-white/[0.08] animate-in zoom-in-95 duration-150 flex flex-col max-h-[75vh]">
         {/* Input Bar */}
         <div className="relative border-b border-slate-100 dark:border-white/[0.08] p-4 flex items-center gap-3">
           <Search className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
@@ -839,7 +869,8 @@ export function CommandCenter() {
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
+              className="w-8 h-8 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer shrink-0"
+              aria-label="Xóa nội dung"
             >
               <X className="w-4 h-4" />
             </button>
@@ -858,6 +889,7 @@ export function CommandCenter() {
             <button type="button" onClick={() => setQuery('+15m Lương')} className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-emerald-500 cursor-pointer shrink-0 font-medium">"+15m Lương"</button>
             <button type="button" onClick={() => setQuery('Họp 15h mai !gap')} className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-emerald-500 cursor-pointer shrink-0 font-medium">"Họp mai !gap"</button>
             <button type="button" onClick={() => setQuery('#note Ý tưởng mới')} className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-emerald-500 cursor-pointer shrink-0 font-medium">"#note Ý tưởng"</button>
+            <button type="button" onClick={() => setQuery('#habit Đọc sách 20p')} className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-emerald-500 cursor-pointer shrink-0 font-medium">"#habit Đọc sách"</button>
           </div>
         )}
 

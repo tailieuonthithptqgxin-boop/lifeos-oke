@@ -1,15 +1,30 @@
 {
-  "scannedFiles": 213,
+  "scannedFiles": 319,
   "mathRandom": [
     {
       "file": "src/backend/routes/api.ts",
-      "line": 1217,
+      "line": 2326,
       "content": "const orderId = `ORD_${Date.now()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;"
     },
     {
       "file": "src/backend/routes/api.ts",
-      "line": 1925,
+      "line": 3034,
       "content": "const orderId = `ORD_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;"
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "line": 4258,
+      "content": "const backupPin = Math.floor(100000 + Math.random() * 900000).toString();"
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "line": 1527,
+      "content": "const num = Math.floor(1000 + Math.random() * 9000);"
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "line": 1534,
+      "content": "return `RST-${Math.floor(10000 + Math.random() * 90000)}`;"
     },
     {
       "file": "src/backend/services/progression.service.ts",
@@ -23,7 +38,7 @@
     },
     {
       "file": "src/backend/services/referral.service.ts",
-      "line": 48,
+      "line": 90,
       "content": "code += chars.charAt(Math.floor(Math.random() * chars.length));"
     },
     {
@@ -52,8 +67,18 @@
       "content": "const roll = Math.random() * 100;"
     },
     {
+      "file": "src/components/AutomationEngineView.tsx",
+      "line": 308,
+      "content": "id: 'hist_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),"
+    },
+    {
+      "file": "src/components/companion/DopaminePetWidget.tsx",
+      "line": 137,
+      "content": "const randomQuote = GENZ_PET_QUOTES[Math.floor(Math.random() * GENZ_PET_QUOTES.length)];"
+    },
+    {
       "file": "src/components/companion/GlobalCompanionOverlay.tsx",
-      "line": 132,
+      "line": 141,
       "content": "const nextDelay = Math.floor(Math.random() * range) + baseMin;"
     },
     {
@@ -107,19 +132,39 @@
       "content": "const randomGreet = greetings[Math.floor(Math.random() * greetings.length)];"
     },
     {
+      "file": "src/components/DashboardView.tsx",
+      "line": 542,
+      "content": "const randomQuote = GENZ_PET_QUOTES[Math.floor(Math.random() * GENZ_PET_QUOTES.length)];"
+    },
+    {
       "file": "src/components/DecisionEngineView.tsx",
-      "line": 173,
-      "content": "id: `dec_${Math.random().toString(36).substr(2, 9)}`,"
+      "line": 66,
+      "content": "id: `dec_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,"
+    },
+    {
+      "file": "src/components/focus/ZenFocusOverlay.tsx",
+      "line": 80,
+      "content": "const idx = Math.floor(Math.random() * MINDFUL_FOCUS_TIPS.length);"
+    },
+    {
+      "file": "src/components/focus/ZenFocusOverlay.tsx",
+      "line": 165,
+      "content": "const white = Math.random() * 2 - 1;"
+    },
+    {
+      "file": "src/components/focus/ZenFocusOverlay.tsx",
+      "line": 229,
+      "content": "const white = Math.random() * 2 - 1;"
+    },
+    {
+      "file": "src/components/FocusView.tsx",
+      "line": 252,
+      "content": "const sessionId = `foc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;"
     },
     {
       "file": "src/components/GoalsView.tsx",
-      "line": 1302,
+      "line": 1299,
       "content": "id: Math.random().toString(36).substring(2, 9),"
-    },
-    {
-      "file": "src/components/GoalsView.tsx",
-      "line": 1428,
-      "content": "id: goal?.id || Math.random().toString(36).substring(2, 9),"
     },
     {
       "file": "src/components/NotesView.tsx",
@@ -128,33 +173,143 @@
     },
     {
       "file": "src/components/NotesView.tsx",
-      "line": 1528,
+      "line": 1564,
       "content": "id: Math.random().toString(36).substring(2, 11),"
     },
     {
+      "file": "src/components/onboarding/QuickPersonaQuizModal.tsx",
+      "line": 67,
+      "content": "const id = 'task_' + Math.random().toString(36).substring(2, 9);"
+    },
+    {
+      "file": "src/components/spatial/island/LumiCyberCompanion.tsx",
+      "line": 37,
+      "content": "const nextMsg = dialogues[Math.floor(Math.random() * dialogues.length)];"
+    },
+    {
+      "file": "src/components/spatial/universe/SpatialStarField.tsx",
+      "line": 21,
+      "content": "const x = (Math.random() - 0.5) * 80;"
+    },
+    {
+      "file": "src/components/spatial/universe/SpatialStarField.tsx",
+      "line": 22,
+      "content": "const y = (Math.random() - 0.5) * 60;"
+    },
+    {
+      "file": "src/components/spatial/universe/SpatialStarField.tsx",
+      "line": 23,
+      "content": "const z = -Math.random() * 90 + 15; // Spread from front to deep z"
+    },
+    {
+      "file": "src/components/spatial/universe/SpatialStarField.tsx",
+      "line": 24,
+      "content": "const speed = Math.random() * 0.2 + 0.05;"
+    },
+    {
+      "file": "src/components/spatial/universe/SpatialStarField.tsx",
+      "line": 25,
+      "content": "const scale = Math.random() * 0.08 + 0.02;"
+    },
+    {
+      "file": "src/components/TasksView.tsx",
+      "line": 1282,
+      "content": "setSubtasks(prev => [...prev, { id: `st_${Date.now()}_${Math.random()}`, title, completed: false }]);"
+    },
+    {
+      "file": "src/components/vocab/GenZVocabStudyModal.tsx",
+      "line": 41,
+      "content": "const shuffled = [...OXFORD_3000_WORDS].sort(() => 0.5 - Math.random());"
+    },
+    {
+      "file": "src/components/vocab/PersonalizedLessonBuilder.tsx",
+      "line": 164,
+      "content": "const shuffled = [...filteredWords].sort(() => Math.random() - 0.5);"
+    },
+    {
+      "file": "src/components/vocab/PersonalizedLessonBuilder.tsx",
+      "line": 182,
+      "content": "smartPick = [...weakPool].sort(() => Math.random() - 0.5).slice(0, selectedWordCount);"
+    },
+    {
+      "file": "src/components/vocab/PersonalizedLessonBuilder.tsx",
+      "line": 187,
+      "content": "smartPick = [...duePool].sort(() => Math.random() - 0.5).slice(0, selectedWordCount);"
+    },
+    {
+      "file": "src/components/vocab/PersonalizedLessonBuilder.tsx",
+      "line": 192,
+      "content": "smartPick = [...favPool].sort(() => Math.random() - 0.5).slice(0, selectedWordCount);"
+    },
+    {
+      "file": "src/components/vocab/PersonalizedLessonBuilder.tsx",
+      "line": 197,
+      "content": "smartPick = [...newPool, ...allWords].sort(() => Math.random() - 0.5).slice(0, selectedWordCount);"
+    },
+    {
+      "file": "src/components/vocab/SpeedMatchGameModal.tsx",
+      "line": 41,
+      "content": "const idx = Math.floor(Math.random() * available.length);"
+    },
+    {
+      "file": "src/components/vocab/SpeedMatchGameModal.tsx",
+      "line": 66,
+      "content": "const j = Math.floor(Math.random() * (i + 1));"
+    },
+    {
+      "file": "src/components/vocab/SpeedMatchGameModal.tsx",
+      "line": 157,
+      "content": "const idx = Math.floor(Math.random() * available.length);"
+    },
+    {
+      "file": "src/components/vocab/SpeedMatchGameModal.tsx",
+      "line": 179,
+      "content": "const j = Math.floor(Math.random() * (i + 1));"
+    },
+    {
       "file": "src/components/vocab/StudySessionScreen.tsx",
-      "line": 305,
+      "line": 349,
       "content": ".sort(() => Math.random() - 0.5)"
     },
     {
       "file": "src/components/vocab/StudySessionScreen.tsx",
-      "line": 311,
+      "line": 355,
       "content": "return options.sort(() => Math.random() - 0.5);"
     },
     {
       "file": "src/components/vocab/VocabMasterView.tsx",
-      "line": 299,
+      "line": 307,
       "content": "const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, maxCards);"
     },
     {
       "file": "src/components/vocab/VocabMasterView.tsx",
-      "line": 427,
+      "line": 438,
       "content": "id: 'word_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),"
     },
     {
       "file": "src/components/vocab/VocabMasterView.tsx",
-      "line": 1084,
+      "line": 1193,
       "content": "id: 'word_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),"
+    },
+    {
+      "file": "src/lib/ambientSoundMixer.ts",
+      "line": 79,
+      "content": "const white = Math.random() * 2 - 1;"
+    },
+    {
+      "file": "src/lib/ambientSoundMixer.ts",
+      "line": 125,
+      "content": "output[i] = (Math.random() * 2 - 1) * 0.08;"
+    },
+    {
+      "file": "src/lib/ambientSoundMixer.ts",
+      "line": 169,
+      "content": "const pitch = 220 + Math.random() * 60; // Thocky pitch"
+    },
+    {
+      "file": "src/lib/ambientSoundMixer.ts",
+      "line": 184,
+      "content": "const nextDelay = 120 + Math.random() * 260;"
     },
     {
       "file": "src/lib/analytics.ts",
@@ -273,7 +428,7 @@
     },
     {
       "file": "src/lib/soundEngine.ts",
-      "line": 235,
+      "line": 376,
       "content": "const startTime = now + i * 0.05 + Math.random() * 0.02;"
     },
     {
@@ -283,8 +438,13 @@
     },
     {
       "file": "src/lib/store.tsx",
-      "line": 506,
+      "line": 693,
       "content": "const tempId = item.id || `tmp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;"
+    },
+    {
+      "file": "src/lib/toast.ts",
+      "line": 34,
+      "content": "const id = `toast_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;"
     },
     {
       "file": "src/lib/__tests__/companionTest.ts",
@@ -292,43 +452,12 @@
       "content": "const calculateDelay = () => Math.floor(Math.random() * 60000) + 120000;"
     }
   ],
-  "commission30": [
-    {
-      "file": "src/backend/services/referral.service.ts",
-      "line": 159,
-      "content": "const commissionRate = 0.30;"
-    }
-  ],
+  "commission30": [],
   "mockOccurrences": [
     {
       "file": "src/backend/db.ts",
-      "line": 1376,
+      "line": 1784,
       "content": "async seedUserSampleData(userId: string) {"
-    },
-    {
-      "file": "src/backend/routes/api.ts",
-      "line": 3430,
-      "content": "await dbService.seedUserSampleData(userId);"
-    },
-    {
-      "file": "src/components/MyAccountView.tsx",
-      "line": 69,
-      "content": "seedSampleData,"
-    },
-    {
-      "file": "src/components/MyAccountView.tsx",
-      "line": 763,
-      "content": "onClick={seedSampleData}"
-    },
-    {
-      "file": "src/lib/store.tsx",
-      "line": 374,
-      "content": "const seedSampleData = async () => {"
-    },
-    {
-      "file": "src/lib/store.tsx",
-      "line": 795,
-      "content": "seedSampleData,"
     }
   ],
   "apiRoutes": [
@@ -336,733 +465,1057 @@
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/languages",
-      "line": 51
+      "line": 87
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/payments/plans",
-      "line": 68
+      "line": 104
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/notifications/gmail/callback",
+      "line": 143
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/health",
+      "line": 203
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/ready",
+      "line": 218
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/settings/global-free-mode",
+      "line": 228
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/auth/google",
+      "line": 238
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/auth/google/callback",
+      "line": 239
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/data-batch",
+      "line": 344
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/data/:collection",
-      "line": 200
+      "line": 410
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/templates/:id/apply",
-      "line": 234
+      "line": 444
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/journey",
-      "line": 432
+      "line": 1073
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/journey/milestone",
-      "line": 446
+      "line": 1087
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "DELETE",
       "endpoint": "/journey/milestone/:id",
-      "line": 480
+      "line": 1121
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/leaderboard",
+      "line": 1140
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/progression",
-      "line": 499
+      "line": 1157
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/progression/quest/claim",
-      "line": 513
+      "line": 1171
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/progression/challenge/claim",
-      "line": 533
+      "line": 1191
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/progression/reward/unlock",
-      "line": 553
+      "line": 1211
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/progression/reward/equip",
-      "line": 573
+      "line": 1231
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/progression/chest/open",
-      "line": 594
+      "line": 1252
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/rpg/character",
-      "line": 613
+      "line": 1271
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/rpg/monsters",
-      "line": 629
+      "line": 1287
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/rpg/battle",
-      "line": 644
+      "line": 1302
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/rpg/equipment",
-      "line": 664
+      "line": 1322
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/rpg/equipment/equip",
-      "line": 680
+      "line": 1338
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/rpg/equipment/upgrade",
-      "line": 701
+      "line": 1359
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/rpg/skills",
-      "line": 722
+      "line": 1380
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/rpg/skills/unlock",
-      "line": 737
+      "line": 1395
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/rpg/battles/history",
-      "line": 758
+      "line": 1416
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/habits/:id/toggle",
-      "line": 782
+      "line": 1440
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/data/:collection",
-      "line": 857
+      "line": 1515
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "PUT",
       "endpoint": "/data/:collection/:id",
-      "line": 928
+      "line": 1661
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "DELETE",
       "endpoint": "/data/:collection/:id",
-      "line": 1015
+      "line": 1856
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "DELETE",
       "endpoint": "/notifications/all",
-      "line": 1058
+      "line": 1927
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "PUT",
       "endpoint": "/notifications/:id/read",
-      "line": 1075
+      "line": 1944
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "PUT",
+      "endpoint": "/notifications/read-all",
+      "line": 1980
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "DELETE",
+      "endpoint": "/notifications/:id",
+      "line": 2006
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/notifications/settings",
+      "line": 2021
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "PUT",
+      "endpoint": "/notifications/settings",
+      "line": 2058
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "PUT",
+      "endpoint": "/notifications/rules",
+      "line": 2108
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/notifications/gmail/auth-url",
+      "line": 2146
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/notifications/gmail/disconnect",
+      "line": 2164
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/notifications/test-email",
+      "line": 2175
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/notifications/deliveries",
+      "line": 2187
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/coupons/validate",
-      "line": 1097
+      "line": 2206
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/cart/checkout",
-      "line": 1158
+      "line": 2267
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/payments/bank-config",
-      "line": 1518
+      "line": 2627
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/payments/plans",
-      "line": 1528
+      "line": 2637
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "PUT",
       "endpoint": "/admin/payments/bank-config",
-      "line": 1561
+      "line": 2670
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/admin/plans",
-      "line": 1593
+      "line": 2702
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "PUT",
       "endpoint": "/admin/plans/:id",
-      "line": 1607
+      "line": 2716
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/admin/plans/audit-history",
-      "line": 1705
+      "line": 2814
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/admin/plans/reset-defaults",
-      "line": 1723
+      "line": 2832
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/admin/languages",
-      "line": 1754
+      "line": 2863
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "PUT",
       "endpoint": "/admin/languages",
-      "line": 1767
+      "line": 2876
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "DELETE",
       "endpoint": "/admin/languages/:code",
-      "line": 1817
+      "line": 2926
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/payments/checkout-session",
-      "line": 1858
+      "line": 2967
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/payments/submit-request",
-      "line": 2026
+      "line": 3137
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/payments/my-requests",
-      "line": 2100
+      "line": 3243
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/payments/active-pending-request",
-      "line": 2120
+      "line": 3263
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/payments/cancel-request",
-      "line": 2143
+      "line": 3286
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/admin/payments/requests",
-      "line": 2189
+      "line": 3332
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/admin/payments/:id/approve",
-      "line": 2263
+      "line": 3406
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/admin/payments/:id/reject",
-      "line": 2401
+      "line": 3560
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/admin/payments/:id/refund",
-      "line": 2507
+      "line": 3664
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/admin/subscriptions",
-      "line": 2538
+      "line": 3695
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/payments/subscription",
-      "line": 2560
+      "line": 3717
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/team/my-team",
-      "line": 2613
+      "line": 3770
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "PUT",
       "endpoint": "/team/name",
-      "line": 2625
+      "line": 3782
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/team/members",
-      "line": 2642
+      "line": 3799
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "DELETE",
       "endpoint": "/team/members/:userId",
-      "line": 2659
+      "line": 3816
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/team/invite-code",
-      "line": 2673
+      "line": 3830
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/team/join",
-      "line": 2682
-    },
-    {
-      "file": "src/backend/routes/api.ts",
-      "method": "POST",
-      "endpoint": "/payments/simulate-instant-activation",
-      "line": 2702
-    },
-    {
-      "file": "src/backend/routes/api.ts",
-      "method": "POST",
-      "endpoint": "/payments/simulate-expire",
-      "line": 2719
+      "line": 3839
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/payments/subscription/cancel-auto-renew",
-      "line": 2742
+      "line": 3857
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/payments/subscription/resume-auto-renew",
-      "line": 2778
+      "line": 3893
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/auth/upgrade-plan",
-      "line": 2805
+      "line": 3920
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/admin/saas-metrics",
-      "line": 2854
+      "line": 3969
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/admin/users/:id/grant-subscription",
-      "line": 2867
+      "line": 3982
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/admin/users/:id/revoke-subscription",
-      "line": 2903
+      "line": 4018
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/admin/users/:id/detail",
-      "line": 2936
+      "line": 4051
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "PUT",
       "endpoint": "/admin/users/:id/admin-notes",
-      "line": 2993
+      "line": 4108
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/reset-requests",
+      "line": 4134
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
-      "endpoint": "/payments/webhook-simulate",
-      "line": 3015
+      "endpoint": "/admin/reset-requests/:id/action",
+      "line": 4225
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/life-harmony",
-      "line": 3071
+      "line": 4375
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/today",
-      "line": 3091
+      "line": 4395
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/finance/transaction",
-      "line": 3195
+      "line": 4499
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/focus/complete",
-      "line": 3212
+      "line": 4516
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/decisions/:id/select-option",
-      "line": 3280
+      "line": 4584
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/decisions/evaluate",
-      "line": 3314
+      "line": 4618
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/decisions/:id/convert-execution",
-      "line": 3329
+      "line": 4633
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/automations/evaluate",
-      "line": 3382
+      "line": 4686
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/settings",
-      "line": 3397
+      "line": 4701
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "PUT",
       "endpoint": "/settings",
-      "line": 3407
+      "line": 4711
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/clear-workspace",
-      "line": 3417
+      "line": 4721
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/settings/global-free-mode",
+      "line": 4734
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/free-mode",
+      "line": 4744
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
-      "endpoint": "/seed-sample",
-      "line": 3427
+      "endpoint": "/admin/settings/global-free-mode",
+      "line": 4753
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/free-mode/toggle",
+      "line": 4778
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/admin/metrics",
-      "line": 3440
+      "line": 4809
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/admin/users",
-      "line": 3485
+      "line": 4854
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/admin/users",
-      "line": 3502
+      "line": 4871
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "PUT",
       "endpoint": "/admin/users/:id/status",
-      "line": 3556
+      "line": 4925
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "PUT",
       "endpoint": "/admin/users/:id/plan",
-      "line": 3589
+      "line": 4958
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "PUT",
       "endpoint": "/admin/users/:id/reset-password",
-      "line": 3629
+      "line": 4998
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/admin/audit-logs",
-      "line": 3661
+      "line": 5030
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/admin/export/:collection",
-      "line": 3685
+      "line": 5054
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/tasks/:taskId/attachments",
-      "line": 3707
+      "line": 5076
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/tasks/:taskId/attachments",
-      "line": 3733
+      "line": 5102
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "DELETE",
       "endpoint": "/tasks/:taskId/attachments/:attachmentId",
-      "line": 3783
+      "line": 5152
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/workspace/backup/export",
-      "line": 3808
+      "line": 5177
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/workspace/backup/import",
-      "line": 3911
+      "line": 5280
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/admin/gmail/config",
-      "line": 4113
+      "line": 5482
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "PUT",
       "endpoint": "/admin/gmail/config",
-      "line": 4132
+      "line": 5502
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/admin/gmail/test",
-      "line": 4161
+      "line": 5532
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/admin/gmail/logs",
-      "line": 4175
+      "line": 5546
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/email-queue",
+      "line": 5564
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/email-queue/stats",
+      "line": 5586
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/email-queue/:id/retry",
+      "line": 5597
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "DELETE",
+      "endpoint": "/admin/email-queue/:id",
+      "line": 5612
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/email-queue/test",
+      "line": 5627
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/referrals/dashboard",
-      "line": 4193
+      "line": 5675
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/referrals/withdraw",
-      "line": 4208
+      "line": 5690
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/referrals/withdrawals",
-      "line": 4231
+      "line": 5725
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/admin/referrals/overview",
-      "line": 4245
+      "line": 5739
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/admin/referrals/withdrawals",
-      "line": 4259
+      "line": 5753
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/admin/referrals/withdrawals/:id/approve",
-      "line": 4274
+      "line": 5768
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/admin/referrals/withdrawals/:id/reject",
-      "line": 4291
+      "line": 5785
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/referrals/payment-qr",
+      "line": 5806
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/referrals/payment-qr",
+      "line": 5820
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "DELETE",
+      "endpoint": "/referrals/payment-qr",
+      "line": 5849
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/referrals/payment-qrs",
+      "line": 5863
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/referrals/payment-qr/:id/verify",
+      "line": 5881
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/referrals/payment-qr/:id/reject",
+      "line": 5897
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/feedback",
-      "line": 4316
+      "line": 5922
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/feedback/my",
-      "line": 4341
+      "line": 5958
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/feedback/public",
-      "line": 4355
+      "line": 5972
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "POST",
       "endpoint": "/feedback/:id/vote",
-      "line": 4369
+      "line": 5986
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "GET",
       "endpoint": "/admin/feedback",
-      "line": 4383
+      "line": 6000
     },
     {
       "file": "src/backend/routes/api.ts",
       "method": "PATCH",
       "endpoint": "/admin/feedback/:id",
-      "line": 4403
+      "line": 6020
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/announcements/audience-preview",
+      "line": 6049
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/announcements",
+      "line": 6073
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "GET",
+      "endpoint": "/admin/announcements/:id",
+      "line": 6089
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/announcements",
+      "line": 6103
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "PUT",
+      "endpoint": "/admin/announcements/:id",
+      "line": 6122
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/announcements/:id/publish",
+      "line": 6141
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/announcements/:id/cancel",
+      "line": 6160
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/announcements/:id/archive",
+      "line": 6179
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "DELETE",
+      "endpoint": "/admin/announcements/:id",
+      "line": 6198
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/announcements/broadcast-now",
+      "line": 6216
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/announcements/:id/deliveries/:deliveryId/retry",
+      "line": 6235
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "method": "POST",
+      "endpoint": "/admin/announcements/:id/retry-failed",
+      "line": 6250
     },
     {
       "file": "src/backend/routes/auth.ts",
       "method": "POST",
       "endpoint": "/register",
-      "line": 42
+      "line": 47
     },
     {
       "file": "src/backend/routes/auth.ts",
       "method": "POST",
       "endpoint": "/login",
-      "line": 182
+      "line": 204
     },
     {
       "file": "src/backend/routes/auth.ts",
       "method": "POST",
       "endpoint": "/logout",
-      "line": 313
+      "line": 391
     },
     {
       "file": "src/backend/routes/auth.ts",
       "method": "POST",
       "endpoint": "/logout-all",
-      "line": 325
+      "line": 403
     },
     {
       "file": "src/backend/routes/auth.ts",
       "method": "GET",
       "endpoint": "/me",
-      "line": 345
+      "line": 423
     },
     {
       "file": "src/backend/routes/auth.ts",
       "method": "PUT",
       "endpoint": "/profile",
-      "line": 394
+      "line": 485
     },
     {
       "file": "src/backend/routes/auth.ts",
       "method": "POST",
       "endpoint": "/change-password",
-      "line": 431
+      "line": 522
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "DELETE",
+      "endpoint": "/account",
+      "line": 569
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "GET",
+      "endpoint": "/export-data",
+      "line": 676
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "GET",
+      "endpoint": "/verify-reset-token",
+      "line": 742
     },
     {
       "file": "src/backend/routes/auth.ts",
       "method": "POST",
       "endpoint": "/forgot-password",
-      "line": 478
+      "line": 797
     },
     {
       "file": "src/backend/routes/auth.ts",
       "method": "POST",
       "endpoint": "/reset-password",
-      "line": 542
+      "line": 874
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "GET",
+      "endpoint": "/google/config",
+      "line": 958
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "GET",
+      "endpoint": "/google",
+      "line": 1013
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "GET",
+      "endpoint": "/google/callback",
+      "line": 1266
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "GET",
+      "endpoint": "/callback/google",
+      "line": 1267
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "POST",
+      "endpoint": "/google/credential",
+      "line": 1270
     },
     {
       "file": "src/backend/routes/auth.ts",
       "method": "POST",
       "endpoint": "/onboarding-setup",
-      "line": 610
+      "line": 1409
     },
     {
       "file": "src/backend/routes/auth.ts",
       "method": "GET",
       "endpoint": "/sessions",
-      "line": 656
+      "line": 1455
     },
     {
       "file": "src/backend/routes/auth.ts",
       "method": "POST",
       "endpoint": "/sessions/revoke-others",
-      "line": 688
+      "line": 1487
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "POST",
+      "endpoint": "/reset-request",
+      "line": 1538
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "POST",
+      "endpoint": "/reset-status",
+      "line": 1666
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "POST",
+      "endpoint": "/reset-cancel",
+      "line": 1755
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "method": "POST",
+      "endpoint": "/reset-confirm",
+      "line": 1799
     },
     {
       "file": "src/backend/routes/customModules.routes.ts",
@@ -1116,43 +1569,109 @@
       "file": "src/backend/routes/r2.routes.ts",
       "method": "GET",
       "endpoint": "/status",
-      "line": 15
+      "line": 17
     },
     {
       "file": "src/backend/routes/r2.routes.ts",
       "method": "POST",
       "endpoint": "/presigned-url",
-      "line": 33
+      "line": 35
     },
     {
       "file": "src/backend/routes/r2.routes.ts",
       "method": "POST",
       "endpoint": "/upload-base64",
-      "line": 63
+      "line": 65
     },
     {
       "file": "src/backend/routes/r2.routes.ts",
       "method": "GET",
       "endpoint": "/files",
-      "line": 100
+      "line": 112
     },
     {
       "file": "src/backend/routes/r2.routes.ts",
       "method": "GET",
       "endpoint": "/metadata",
-      "line": 122
+      "line": 134
     },
     {
       "file": "src/backend/routes/r2.routes.ts",
       "method": "GET",
       "endpoint": "/download",
-      "line": 149
+      "line": 161
     },
     {
       "file": "src/backend/routes/r2.routes.ts",
       "method": "DELETE",
       "endpoint": "/file",
-      "line": 176
+      "line": 188
+    },
+    {
+      "file": "src/backend/routes/storageAudit.routes.ts",
+      "method": "GET",
+      "endpoint": "/overview",
+      "line": 20
+    },
+    {
+      "file": "src/backend/routes/storageAudit.routes.ts",
+      "method": "GET",
+      "endpoint": "/orphans",
+      "line": 33
+    },
+    {
+      "file": "src/backend/routes/storageAudit.routes.ts",
+      "method": "GET",
+      "endpoint": "/r2-orphans",
+      "line": 46
+    },
+    {
+      "file": "src/backend/routes/storageAudit.routes.ts",
+      "method": "GET",
+      "endpoint": "/cleanup-history",
+      "line": 59
+    },
+    {
+      "file": "src/backend/routes/storageAudit.routes.ts",
+      "method": "POST",
+      "endpoint": "/backup/trigger",
+      "line": 72
+    },
+    {
+      "file": "src/backend/routes/storageAudit.routes.ts",
+      "method": "POST",
+      "endpoint": "/cleanup",
+      "line": 88
+    },
+    {
+      "file": "src/backend/routes/testLab.routes.ts",
+      "method": "GET",
+      "endpoint": "/health-check",
+      "line": 15
+    },
+    {
+      "file": "src/backend/routes/testLab.routes.ts",
+      "method": "POST",
+      "endpoint": "/trigger-notification-test",
+      "line": 90
+    },
+    {
+      "file": "src/backend/routes/testLab.routes.ts",
+      "method": "GET",
+      "endpoint": "/free-mode-simulation",
+      "line": 164
+    },
+    {
+      "file": "src/backend/routes/testLab.routes.ts",
+      "method": "POST",
+      "endpoint": "/seed-sandbox-data",
+      "line": 224
+    },
+    {
+      "file": "src/backend/routes/testLab.routes.ts",
+      "method": "POST",
+      "endpoint": "/clean-sandbox-data",
+      "line": 380
     },
     {
       "file": "src/backend/routes/vocab.routes.ts",
@@ -1179,16 +1698,52 @@
       "line": 114
     },
     {
+      "file": "src/backend/routes/widget.routes.ts",
+      "method": "GET",
+      "endpoint": "/summary",
+      "line": 54
+    },
+    {
+      "file": "src/backend/routes/widget.routes.ts",
+      "method": "POST",
+      "endpoint": "/complete-top-task",
+      "line": 212
+    },
+    {
       "file": "src/backend/serverMain.ts",
       "method": "GET",
       "endpoint": "/health",
-      "line": 111
+      "line": 167
+    },
+    {
+      "file": "src/backend/serverMain.ts",
+      "method": "GET",
+      "endpoint": "/api/health",
+      "line": 189
     },
     {
       "file": "src/backend/serverMain.ts",
       "method": "GET",
       "endpoint": "/ready",
-      "line": 131
+      "line": 207
+    },
+    {
+      "file": "src/backend/serverMain.ts",
+      "method": "GET",
+      "endpoint": "/api/ready",
+      "line": 217
+    },
+    {
+      "file": "src/backend/serverMain.ts",
+      "method": "GET",
+      "endpoint": "/auth/google",
+      "line": 504
+    },
+    {
+      "file": "src/backend/serverMain.ts",
+      "method": "GET",
+      "endpoint": "/auth/google/callback",
+      "line": 505
     }
   ]
 }

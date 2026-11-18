@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Check, Upload, Image as ImageIcon, Trash2, QrCode, Power, Eye, RefreshCw, AlertCircle } from 'lucide-react';
+import { Check, Upload, Image as ImageIcon, Trash2, QrCode, Power, Eye, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { apiCall } from '../../lib/apiClient';
 import { BankConfig } from './types';
+import { compressAndUploadImage, formatBytes, validateImageFile } from '../../lib/imageCompressor';
 
 interface AdminBankConfigTabProps {
   onShowMessage?: (msg: { text: string; type: 'success' | 'error' }) => void;
@@ -19,6 +20,7 @@ export function AdminBankConfigTab({ onShowMessage }: AdminBankConfigTabProps) {
   });
   const [isSavingBankConfig, setIsSavingBankConfig] = useState(false);
   const [isUploadingQr, setIsUploadingQr] = useState(false);
+  const [qrCompressionStats, setQrCompressionStats] = useState<string | null>(null);
   const [previewTab, setPreviewTab] = useState<'vietqr' | 'custom'>('vietqr');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -41,16 +43,39 @@ export function AdminBankConfigTab({ onShowMessage }: AdminBankConfigTabProps) {
   };
 
   useEffect(() => {
-    fetchBankConfig();
+    let isMounted = true;
+    const load = async () => {
+      try {
+        const res = await apiCall('/api/payments/bank-config');
+        if (isMounted && res && res.success && res.config) {
+          setBankConfig({
+            ...res.config,
+            transferPrefix: res.config.transferPrefix || 'DUOTECH',
+            isActive: res.config.isActive ?? true
+          });
+          if (res.config.qrImageUrl) {
+            setPreviewTab('custom');
+          }
+        }
+      } catch (err: any) {
+        if (isMounted) console.warn('Lỗi khi tải cấu hình ngân hàng:', err);
+      }
+    };
+    load();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleQrFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = '';
 
-    if (file.size > 5 * 1024 * 1024) {
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
       onShowMessage?.({
-        text: 'Kích thước ảnh QR không được vượt quá 5MB',
+        text: validation.error || 'Ảnh không hợp lệ',
         type: 'error'
       });
       return;
@@ -58,42 +83,29 @@ export function AdminBankConfigTab({ onShowMessage }: AdminBankConfigTabProps) {
 
     try {
       setIsUploadingQr(true);
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const base64Data = event.target?.result as string;
-        try {
-          const res = await apiCall('/api/r2/upload-base64', 'POST', {
-            base64Data,
-            fileName: file.name,
-            mimeType: file.type || 'image/png',
-            folder: 'qr_codes'
-          });
-          const url = res.file?.url || base64Data;
-          setBankConfig(prev => ({ ...prev, qrImageUrl: url }));
-          setPreviewTab('custom');
-          onShowMessage?.({
-            text: 'Tải ảnh mã QR thành công! Hãy bấm Lưu cấu hình.',
-            type: 'success'
-          });
-        } catch (uploadErr: any) {
-          // Fallback to storing raw base64 data directly in config
-          setBankConfig(prev => ({ ...prev, qrImageUrl: base64Data }));
-          setPreviewTab('custom');
-          onShowMessage?.({
-            text: 'Đã nạp ảnh mã QR! Hãy bấm Lưu cấu hình.',
-            type: 'success'
-          });
-        } finally {
-          setIsUploadingQr(false);
-        }
-      };
-      reader.readAsDataURL(file);
+      setQrCompressionStats(null);
+
+      // Compress client-side with QR preset (sharp, max 400x400, <40KB)
+      const result = await compressAndUploadImage(file, 'qr', 'qr_codes');
+      setBankConfig(prev => ({ ...prev, qrImageUrl: result.url }));
+      setPreviewTab('custom');
+      
+      const statMsg = `Đã nén tối ưu: ${formatBytes(result.originalSize)} ➔ ${formatBytes(result.compressedSize)} (-${result.reductionPercent}%)`;
+      setQrCompressionStats(statMsg);
+
+      onShowMessage?.({
+        text: `Tải ảnh mã QR thành công (${statMsg})! Hãy bấm Lưu cấu hình.`,
+        type: 'success'
+      });
     } catch (err: any) {
+      console.error('QR upload failed:', err);
       setIsUploadingQr(false);
       onShowMessage?.({
-        text: err.message || 'Lỗi khi đọc file ảnh',
+        text: err.message || 'Lỗi khi xử lý nén file ảnh QR',
         type: 'error'
       });
+    } finally {
+      setIsUploadingQr(false);
     }
   };
 
@@ -288,6 +300,13 @@ export function AdminBankConfigTab({ onShowMessage }: AdminBankConfigTabProps) {
                 </button>
               )}
             </div>
+
+            {qrCompressionStats && (
+              <div className="mt-2.5 flex items-center gap-2 text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1.5 rounded-xl">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span>✅ {qrCompressionStats}</span>
+              </div>
+            )}
 
             {bankConfig.qrImageUrl && (
               <div className="mt-3 p-3 bg-blue-50/60 dark:bg-blue-950/40 rounded-xl border border-blue-200 dark:border-blue-900 text-xs text-blue-700 dark:text-blue-300 flex items-center gap-2">

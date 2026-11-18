@@ -28,6 +28,7 @@ interface FinanceOverviewTabProps {
   monthlyTx: any[];
   onOpenTxModal: () => void;
   onOpenAccountModal: (acc?: any) => void;
+  onSelectTab?: (tab: 'overview' | 'analytics' | 'accounts' | 'transactions' | 'budgets' | 'goals' | 'scenario') => void;
 }
 
 export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
@@ -49,7 +50,8 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
   budgets,
   monthlyTx,
   onOpenTxModal,
-  onOpenAccountModal
+  onOpenAccountModal,
+  onSelectTab
 }) => {
   const { language } = useAppStore();
   const isVi = language === 'vi';
@@ -63,27 +65,35 @@ export const FinanceOverviewTab: React.FC<FinanceOverviewTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* 4 Core Stat Cards */}
+      {/* 4 Core Stat Cards with 1-Click Interactive Navigation */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <FinanceStatCard 
           title={isVi ? 'Tổng tài sản' : 'Total Assets'} 
           value={formatCurrency(totalBalance)} 
           icon={<Wallet className="w-4 h-4 text-slate-400" />} 
+          onClick={onSelectTab ? () => onSelectTab('accounts') : undefined}
+          tooltip={isVi ? 'Xem chi tiết các tài khoản & số dư' : 'View accounts & balances'}
         />
         <FinanceStatCard 
           title={isVi ? 'Thu nhập' : 'Income'} 
           value={formatCurrency(monthlyIncome)} 
           icon={<TrendingUp className="w-4 h-4 text-[#10B981]" />} 
+          onClick={onSelectTab ? () => onSelectTab('transactions') : undefined}
+          tooltip={isVi ? 'Xem lịch sử nguồn thu nhập' : 'View income history'}
         />
         <FinanceStatCard 
           title={isVi ? 'Chi tiêu' : 'Expenses'} 
           value={formatCurrency(monthlyExpense)} 
           icon={<TrendingDown className="w-4 h-4 text-rose-500" />} 
+          onClick={onSelectTab ? () => onSelectTab('transactions') : undefined}
+          tooltip={isVi ? 'Xem danh sách các khoản chi tiêu' : 'View expenses'}
         />
         <FinanceStatCard 
           title={isVi ? 'Dòng tiền' : 'Cash Flow'} 
           value={formatCurrency(netIncome)} 
           icon={<Activity className="w-4 h-4 text-slate-400" />} 
+          onClick={onSelectTab ? () => onSelectTab('analytics') : undefined}
+          tooltip={isVi ? 'Xem biểu đồ phân tích dòng tiền chuyên sâu' : 'View cash flow analytics'}
         />
       </div>
 

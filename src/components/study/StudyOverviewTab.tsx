@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAppStore } from '../../lib/store';
 import { BookOpen, Sparkles, Plus, FileCheck, Target, Activity, AlertTriangle, Clock } from 'lucide-react';
-import { StatCard } from './StatCard';
+import { soundEngine } from '../../lib/soundEngine';
 
 interface StudyOverviewTabProps {
   onNewSubject: () => void;
@@ -44,25 +44,82 @@ export function StudyOverviewTab({
           <button 
             type="button" 
             onClick={onNewSubject}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer shrink-0"
+            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm rounded-xl shadow-xs transition-colors flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95"
           >
             <Plus className="w-4 h-4" /> Thêm Môn học Ngay
           </button>
         </div>
       )}
 
-      {/* Metrics */}
+      {/* 4 Interactive Bento KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        <StatCard title="Môn đang học" value={subjects.length} icon={<BookOpen className="w-5 h-5 text-blue-600" />} />
-        <StatCard title="Bài tập chưa xong" value={pendingAssignments.length} icon={<FileCheck className="w-5 h-5 text-amber-600" />} />
-        <StatCard title="Kỳ thi sắp tới" value={upcomingExams.length} icon={<Target className="w-5 h-5 text-rose-600" />} />
-        <StatCard title="Tiến độ trung bình" value={`${avgProgress}%`} icon={<Activity className="w-5 h-5 text-emerald-600" />} />
+        <div 
+          onClick={() => {
+            soundEngine.playPop();
+            onSwitchTab('subjects');
+          }}
+          className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 transition-all active:scale-95 group"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400">Môn đang học</span>
+            <BookOpen className="w-4 h-4 text-blue-600" />
+          </div>
+          <div className="text-2xl font-bold font-mono tabular-nums text-slate-900 dark:text-white">{subjects.length}</div>
+          <span className="text-[10px] text-slate-400 mt-1 block">Bấm để quản lý môn</span>
+        </div>
+
+        <div 
+          onClick={() => {
+            soundEngine.playPop();
+            onSwitchTab('assignments');
+          }}
+          className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs cursor-pointer hover:border-amber-400 dark:hover:border-amber-500 transition-all active:scale-95 group"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 group-hover:text-amber-600 dark:group-hover:text-amber-400">Bài tập chưa xong</span>
+            <FileCheck className="w-4 h-4 text-amber-600" />
+          </div>
+          <div className="text-2xl font-bold font-mono tabular-nums text-amber-600 dark:text-amber-400">{pendingAssignments.length}</div>
+          <span className="text-[10px] text-slate-400 mt-1 block">Bấm để xem danh sách</span>
+        </div>
+
+        <div 
+          onClick={() => {
+            soundEngine.playPop();
+            onSwitchTab('exams');
+          }}
+          className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs cursor-pointer hover:border-rose-400 dark:hover:border-rose-500 transition-all active:scale-95 group"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 group-hover:text-rose-600 dark:group-hover:text-rose-400">Kỳ thi sắp tới</span>
+            <Target className="w-4 h-4 text-rose-600" />
+          </div>
+          <div className="text-2xl font-bold font-mono tabular-nums text-rose-600 dark:text-rose-400">{upcomingExams.length}</div>
+          <span className="text-[10px] text-slate-400 mt-1 block">Bấm để xem lịch thi</span>
+        </div>
+
+        <div 
+          onClick={() => {
+            soundEngine.playPop();
+            onSwitchTab('my-grades');
+          }}
+          className="bg-white dark:bg-[#141E30] p-4 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-500 transition-all active:scale-95 group"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400">Tiến độ trung bình</span>
+            <Activity className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div className="text-2xl font-bold font-mono tabular-nums text-emerald-600 dark:text-emerald-400">{avgProgress}%</div>
+          <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 mt-2 overflow-hidden">
+            <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${avgProgress}%` }}></div>
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           {/* Active Subjects */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-5">
+          <div className="bg-white dark:bg-[#141E30] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-5">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                 <BookOpen className="w-5 h-5 text-blue-600" /> Tiến độ Môn học ({subjects.length})
@@ -105,7 +162,7 @@ export function StudyOverviewTab({
         
         <div className="space-y-6">
           {/* Risk Factors & Deadlines */}
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-5">
+          <div className="bg-white dark:bg-[#141E30] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs p-5">
             <h3 className="font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5 text-amber-500" /> Việc cần chú ý
             </h3>

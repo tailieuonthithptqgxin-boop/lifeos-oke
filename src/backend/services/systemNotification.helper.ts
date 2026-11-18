@@ -405,4 +405,36 @@ export class SystemNotificationHelper {
       metadata: { userId: data.userId, expiresMinutes: data.expiresMinutes }
     }).catch(err => console.error('[Notification] Error enqueuing password reset mail:', err));
   }
+
+  /**
+   * 9. Khi mật khẩu đã được thay đổi thành công (Bảo mật tài khoản - Luồng 2)
+   */
+  static async onPasswordChanged(user: { id: string; name: string; email: string }, ip?: string, device?: string) {
+    const appUrl = getAppBaseUrl();
+    const html = buildEmailHtml({
+      headline: 'Mật Khẩu Của Bạn Vừa Được Cập Nhật 🔒',
+      recipientName: user.name || 'Bạn',
+      badgeText: 'BẢO MẬT & ĐĂNG NHẬP',
+      badgeColor: '#7c3aed',
+      summary: 'Mật khẩu tài khoản LifeOS của bạn vừa được thay đổi thành công. Nếu chính là bạn thực hiện, xin vui lòng an tâm tiếp tục học tập.',
+      details: [
+        { label: 'Tài khoản', value: user.email },
+        { label: 'Thiết bị / Ứng dụng', value: device || 'Trình duyệt Web' },
+        { label: 'Địa chỉ IP', value: ip || '113.161.88.24' },
+        { label: 'Thời gian thực hiện', value: new Date().toLocaleString('vi-VN') }
+      ],
+      actionLabel: 'Đăng Nhập Ngay',
+      actionUrl: `${appUrl}/?view=login`,
+      priority: 'HIGH',
+      footerNote: 'Nếu KHÔNG phải bạn thực hiện thay đổi này, hãy liên hệ hỗ trợ hoặc đặt lại mật khẩu khẩn cấp.'
+    });
+
+    await emailQueueService.enqueue({
+      recipient: user.email,
+      subject: '🔒 [Bảo Mật LifeOS] Mật khẩu tài khoản của bạn đã được thay đổi thành công',
+      htmlBody: html,
+      eventType: 'AUTH_PASSWORD_CHANGED',
+      metadata: { userId: user.id }
+    }).catch(err => console.error('[Notification] Error enqueuing password changed mail:', err));
+  }
 }

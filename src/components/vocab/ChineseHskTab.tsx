@@ -22,6 +22,7 @@ import { verifyChineseWord } from '../../lib/chineseVocab/chineseVerificationEng
 import { ChineseWord, ActiveRecallMode } from '../../lib/chineseVocab/types';
 import { ChineseQualityControlView } from './chinese/ChineseQualityControlView';
 import { ChineseActiveRecallModal } from './chinese/ChineseActiveRecallModal';
+import { formatLocalDateKey } from '../../lib/utils';
 
 interface ChineseHskTabProps {
   systemWords: SystemChineseHskWord[];
@@ -97,7 +98,7 @@ export function ChineseHskTab({
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 30;
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = formatLocalDateKey(new Date());
 
   // Filtering Logic
   const filteredWords = useMemo(() => {
@@ -674,7 +675,7 @@ export function ChineseHskTab({
                 type="button"
                 disabled={currentPage <= 1}
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 flex items-center gap-1 cursor-pointer"
+                className="px-4 py-2 min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer touch-manipulation transition-colors"
               >
                 <ChevronLeft className="w-3.5 h-3.5" /> Trước
               </button>
@@ -683,7 +684,7 @@ export function ChineseHskTab({
                 type="button"
                 disabled={currentPage >= totalPages}
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 flex items-center gap-1 cursor-pointer"
+                className="px-4 py-2 min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50 flex items-center gap-1.5 cursor-pointer touch-manipulation transition-colors"
               >
                 Sau <ChevronRight className="w-3.5 h-3.5" />
               </button>

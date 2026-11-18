@@ -1,6 +1,7 @@
 // Web Audio API Procedural Sound Engine
 // Zero external mp3 dependencies, works 100% offline and instantaneous latency!
 import { hapticEngine } from './hapticEngine';
+import { globalVolumeManager } from './globalVolumeManager';
 
 export type SoundpackId = 'modern_pop' | 'mechanical_thock' | 'water_drop' | 'arcade_8bit';
 
@@ -40,6 +41,7 @@ export const SOUNDPACKS: Record<SoundpackId, SoundpackConfig> = {
 
 class SoundEngine {
   private ctx: AudioContext | null = null;
+  private masterGain: GainNode | null = null;
   private enabled: boolean = true;
   private soundpack: SoundpackId = 'modern_pop';
 
@@ -54,6 +56,21 @@ class SoundEngine {
     } catch {
       this.enabled = true;
     }
+
+    if (typeof window !== 'undefined') {
+      globalVolumeManager.subscribe(() => {
+        this.updateMasterGain();
+      });
+    }
+  }
+
+  public updateMasterGain() {
+    if (!this.ctx || !this.masterGain) return;
+    const vol = globalVolumeManager.getEffectiveSfxVolume(); // 0 to 100
+    const targetGain = this.enabled ? (vol / 100) : 0;
+    try {
+      this.masterGain.gain.setValueAtTime(targetGain, this.ctx.currentTime);
+    } catch {}
   }
 
   private initContext(): AudioContext | null {
@@ -62,6 +79,9 @@ class SoundEngine {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (AudioCtx) {
         this.ctx = new AudioCtx();
+        this.masterGain = this.ctx.createGain();
+        this.updateMasterGain();
+        this.masterGain.connect(this.ctx.destination);
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
@@ -124,7 +144,7 @@ class SoundEngine {
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.masterGain || ctx.destination);
       osc.start(now);
       osc.stop(now + 0.06);
       return;
@@ -143,7 +163,7 @@ class SoundEngine {
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.masterGain || ctx.destination);
       osc.start(now);
       osc.stop(now + 0.09);
       return;
@@ -161,7 +181,7 @@ class SoundEngine {
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.masterGain || ctx.destination);
       osc.start(now);
       osc.stop(now + 0.08);
       return;
@@ -179,7 +199,7 @@ class SoundEngine {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
 
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(this.masterGain || ctx.destination);
 
     osc.start(now);
     osc.stop(now + 0.1);
@@ -208,7 +228,7 @@ class SoundEngine {
       gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.35);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.masterGain || ctx.destination);
 
       osc.start(startTime);
       osc.stop(startTime + 0.35);
@@ -233,7 +253,7 @@ class SoundEngine {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
 
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(this.masterGain || ctx.destination);
 
     osc.start(now);
     osc.stop(now + 0.07);
@@ -260,7 +280,7 @@ class SoundEngine {
       gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.35);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.masterGain || ctx.destination);
 
       osc.start(startTime);
       osc.stop(startTime + 0.35);
@@ -284,7 +304,7 @@ class SoundEngine {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
 
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(this.masterGain || ctx.destination);
 
     osc.start(now);
     osc.stop(now + 1.2);
@@ -312,7 +332,7 @@ class SoundEngine {
       gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.45);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.masterGain || ctx.destination);
 
       osc.start(startTime);
       osc.stop(startTime + 0.45);
@@ -330,6 +350,7 @@ class SoundEngine {
       utterance.rate = 1.05; // Slightly lively rate
       utterance.pitch = 1.2; // Cute higher pitch for cute mascot feel
       utterance.lang = lang;
+      utterance.volume = Math.max(0, Math.min(1, globalVolumeManager.getEffectiveVoiceVolume() / 100));
       window.speechSynthesis.speak(utterance);
     } catch {
       // Graceful fallback if speech synthesis is blocked
@@ -356,7 +377,7 @@ class SoundEngine {
       gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.4);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.masterGain || ctx.destination);
 
       osc.start(startTime);
       osc.stop(startTime + 0.4);
@@ -383,7 +404,7 @@ class SoundEngine {
       gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.09);
 
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.masterGain || ctx.destination);
 
       osc.start(startTime);
       osc.stop(startTime + 0.09);
@@ -406,7 +427,7 @@ class SoundEngine {
       gain.gain.setValueAtTime(0.15, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(this.masterGain || ctx.destination);
       osc.start(now);
       osc.stop(now + 0.15);
     } catch (e) {}
@@ -438,7 +459,7 @@ class SoundEngine {
         gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.45);
 
         osc.connect(gain);
-        gain.connect(ctx.destination);
+        gain.connect(this.masterGain || ctx.destination);
 
         osc.start(startTime);
         osc.stop(startTime + 0.45);

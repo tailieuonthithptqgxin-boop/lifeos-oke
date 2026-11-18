@@ -1,12 +1,12 @@
-import React, { useState, useMemo } from 'react';
-import { TrendingUp, TrendingDown, ArrowRightLeft, Search, Filter, Trash2, Edit2, ArrowUpDown } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { TrendingUp, TrendingDown, ArrowRightLeft, Search, Filter, Trash2, Edit2, ArrowUpDown, X } from 'lucide-react';
 import { useAppStore } from '../../lib/store';
 import { StateHandler } from '../common/StateHandler';
 
 interface FinanceTransactionsTabProps {
   transactions: any[];
   formatCurrency: (val: number) => string;
-  onDeleteTransaction: (id: string) => void;
+  onDeleteTransaction: (id: string, tx?: any) => void;
   onEditTransaction?: (tx: any) => void;
   isLoading?: boolean;
 }
@@ -22,7 +22,22 @@ export const FinanceTransactionsTab: React.FC<FinanceTransactionsTabProps> = ({
   const isVi = language === 'vi';
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'Thu nhập' | 'Chi tiêu' | 'Chuyển tiền'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'Thu nhập' | 'Chi tiêu' | 'Chuyển tiền'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_finance_tx_type_filter') as any;
+        if (saved && ['all', 'Thu nhập', 'Chi tiêu', 'Chuyển tiền'].includes(saved)) return saved;
+      } catch {}
+    }
+    return 'all';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_finance_tx_type_filter', typeFilter);
+    } catch {}
+  }, [typeFilter]);
+
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const filteredTransactions = useMemo(() => {
@@ -37,15 +52,13 @@ export const FinanceTransactionsTab: React.FC<FinanceTransactionsTabProps> = ({
     });
   }, [transactions, searchTerm, typeFilter]);
 
-  const handleDelete = (id: string, e: React.MouseEvent) => {
+  const handleDelete = (tx: any, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm(isVi ? 'Bạn có chắc chắn muốn xóa giao dịch này không?' : 'Are you sure you want to delete this transaction?')) {
-      setDeletingId(id);
-      try {
-        onDeleteTransaction(id);
-      } finally {
-        setDeletingId(null);
-      }
+    setDeletingId(tx.id);
+    try {
+      onDeleteTransaction(tx.id, tx);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -71,8 +84,18 @@ export const FinanceTransactionsTab: React.FC<FinanceTransactionsTabProps> = ({
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               placeholder={isVi ? 'Tìm danh mục, ghi chú...' : 'Search category, note...'}
-              className="w-full pl-9 pr-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+              className="w-full pl-9 pr-8 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                aria-label="Xóa tìm kiếm"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
@@ -178,7 +201,7 @@ export const FinanceTransactionsTab: React.FC<FinanceTransactionsTabProps> = ({
                     <button 
                       type="button"
                       disabled={deletingId === tx.id}
-                      onClick={(e) => handleDelete(tx.id, e)} 
+                      onClick={(e) => handleDelete(tx, e)} 
                       className="w-9 h-9 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer disabled:opacity-50"
                       title={isVi ? 'Xóa' : 'Delete'}
                       aria-label="Delete transaction"

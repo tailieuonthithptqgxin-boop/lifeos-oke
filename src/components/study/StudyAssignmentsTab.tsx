@@ -5,7 +5,7 @@ import { Plus, Check, BookOpen, Calendar, Trash2 } from 'lucide-react';
 interface StudyAssignmentsTabProps {
   onNewAssignment: () => void;
   onEditAssignment: (a: any) => void;
-  onDeleteAssignment: (id: string) => void;
+  onDeleteAssignment: (a: any) => void;
   onToggleStatus: (a: any) => void;
 }
 
@@ -18,7 +18,7 @@ export function StudyAssignmentsTab({
   const { studyAssignments = [], subjects = [] } = useAppStore();
   
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs overflow-hidden">
+    <div className="bg-white dark:bg-[#141E30] rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs overflow-hidden">
       <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/40">
         <div>
           <h3 className="font-bold text-slate-900 dark:text-white">Bài tập & Dự án môn học</h3>
@@ -27,7 +27,7 @@ export function StudyAssignmentsTab({
         <button 
           type="button" 
           onClick={onNewAssignment}
-          className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm rounded-xl transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+          className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm rounded-xl transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
         >
           <Plus className="w-4 h-4" /> Thêm Bài tập
         </button>
@@ -39,7 +39,7 @@ export function StudyAssignmentsTab({
           const isDone = a.status === 'Completed' || a.status === 'Đã xong';
           return (
             <div key={a.id} className="p-4 hover:bg-slate-50/80 dark:hover:bg-slate-800/50 transition-colors flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-              <div className="flex gap-3 items-start min-w-0">
+              <div className="flex gap-3 items-start min-w-0 flex-1">
                 <button
                   type="button"
                   onClick={() => onToggleStatus(a)}
@@ -48,7 +48,7 @@ export function StudyAssignmentsTab({
                 >
                   {isDone && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                 </button>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <h4 className={`font-bold text-sm ${isDone ? 'line-through text-slate-400 dark:text-slate-500' : 'text-slate-900 dark:text-white'}`}>
                     {a.title}
                   </h4>
@@ -76,17 +76,15 @@ export function StudyAssignmentsTab({
                 <button 
                   type="button" 
                   onClick={() => onEditAssignment(a)}
-                  className="px-2.5 py-1 text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 transition-colors"
+                  className="px-2.5 py-1 text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                 >
                   Sửa
                 </button>
                 <button 
                   type="button" 
-                  onClick={() => {
-                    if (confirm(`Bạn có chắc muốn xóa bài tập "${a.title}"?`)) onDeleteAssignment(a.id);
-                  }}
-                  className="p-1 text-slate-400 hover:text-rose-600 rounded-lg transition-colors"
-                  title="Xóa"
+                  onClick={() => onDeleteAssignment(a)}
+                  className="p-1 text-slate-400 hover:text-rose-600 rounded-lg transition-colors cursor-pointer hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                  title="Xóa bài tập (có hoàn tác)"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>

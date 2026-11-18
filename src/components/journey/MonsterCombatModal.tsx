@@ -8,6 +8,7 @@ import { apiCall } from '../../lib/apiClient';
 import { soundEngine } from '../../lib/soundEngine';
 import { triggerConfetti } from '../../lib/confetti';
 import { useAppStore } from '../../lib/store';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 interface MonsterCombatModalProps {
   monster: any | null;
@@ -43,6 +44,20 @@ export function MonsterCombatModal({
   const [isSkipping, setIsSkipping] = useState(false);
 
   const playbackTimerRef = useRef<any>(null);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useBodyScrollLock(isOpen);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && monster) {
@@ -99,7 +114,7 @@ export function MonsterCombatModal({
   const playTurnByIndex = (idx: number, turns: any[], finalResult: any) => {
     if (idx >= turns.length) {
       // Battle animation finished -> transition to final result
-      setTimeout(() => {
+      playbackTimerRef.current = setTimeout(() => {
         if (finalResult.won) {
           soundEngine.playCelebration();
           triggerConfetti();
@@ -173,7 +188,17 @@ export function MonsterCombatModal({
   const monsterHpPercent = Math.max(0, Math.min(100, Math.round((monsterHp / (monsterMaxHp || 1)) * 100)));
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-4 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-200">
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (mouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+      className="fixed inset-0 z-[1000] flex items-center justify-center p-3 sm:p-4 bg-slate-950/90 backdrop-blur-md animate-in fade-in duration-200 cursor-default"
+    >
       <div 
         className="relative w-full max-w-2xl rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl text-white overflow-hidden flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
@@ -200,7 +225,7 @@ export function MonsterCombatModal({
             </span>
           </div>
 
-          <button
+          <button type="button"
             onClick={onClose}
             className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
           >
@@ -321,7 +346,7 @@ export function MonsterCombatModal({
             {/* Action Buttons */}
             <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
               {monster.canChallenge ? (
-                <button
+                <button type="button"
                   onClick={handleStartBattle}
                   disabled={isCallingBattle}
                   className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm uppercase tracking-wider shadow-lg shadow-emerald-500/20 active:scale-95 transition cursor-pointer flex items-center justify-center gap-2"
@@ -335,7 +360,7 @@ export function MonsterCombatModal({
                     ⚠️ Bạn chưa đủ điều kiện hành động thật ngoài đời để khiêu chiến quái vật này!
                   </div>
                   <div className="flex gap-2">
-                    <button
+                    <button type="button"
                       onClick={() => {
                         onClose();
                         onGoToTrain('focus');
@@ -345,7 +370,7 @@ export function MonsterCombatModal({
                       <Clock className="w-4 h-4 text-teal-400" />
                       <span>Tập Trung Focus</span>
                     </button>
-                    <button
+                    <button type="button"
                       onClick={() => {
                         onClose();
                         onGoToTrain('tasks');
@@ -372,7 +397,7 @@ export function MonsterCombatModal({
               <span className="text-xs font-black uppercase text-amber-400 tracking-wider">
                 HIỆP ĐẤU: VÒNG {currentRoundIdx || 1}
               </span>
-              <button
+              <button type="button"
                 onClick={handleSkipAnimation}
                 className="text-xs text-slate-400 hover:text-white transition cursor-pointer"
               >
@@ -522,7 +547,7 @@ export function MonsterCombatModal({
               )}
             </div>
 
-            <button
+            <button type="button"
               onClick={onClose}
               className="w-full max-w-md mx-auto py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider transition cursor-pointer"
             >
@@ -560,7 +585,7 @@ export function MonsterCombatModal({
             {/* Action Buttons to go train */}
             <div className="w-full max-w-md mx-auto space-y-2">
               <div className="grid grid-cols-2 gap-2">
-                <button
+                <button type="button"
                   onClick={() => {
                     onClose();
                     onGoToTrain('focus');
@@ -571,7 +596,7 @@ export function MonsterCombatModal({
                   <span>Đi Tập Trung Focus</span>
                 </button>
 
-                <button
+                <button type="button"
                   onClick={() => {
                     onClose();
                     onGoToTrain('tasks');
@@ -583,7 +608,7 @@ export function MonsterCombatModal({
                 </button>
               </div>
 
-              <button
+              <button type="button"
                 onClick={onClose}
                 className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-xs font-semibold transition cursor-pointer"
               >

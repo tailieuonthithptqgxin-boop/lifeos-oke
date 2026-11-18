@@ -6,7 +6,7 @@ import {
   Zap, BarChart3, RefreshCw, X, AlertCircle, Lock, Unlock,
   Coins, Check, Star, Crown, Palette, Layers, ChevronDown, 
   ArrowRight, Play, Eye, EyeOff, Sparkle, UserCheck, Gift, Skull, Sword, Package,
-  Camera, Upload
+  Camera, Upload, Search
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { apiCall } from '../lib/apiClient';
@@ -22,6 +22,7 @@ import {
   AchievementItem
 } from '../backend/services/progression.service';
 import { MilestoneItem } from '../backend/services/journey.service';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { AchievementShareModal } from './journey/AchievementShareModal';
 import { DailyMysteryChestModal } from './journey/DailyMysteryChestModal';
 import { StageBattleModal } from './journey/StageBattleModal';
@@ -37,6 +38,7 @@ export function JourneyView() {
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   
   // Progression State from Backend
   const [progState, setProgState] = useState<{
@@ -85,8 +87,35 @@ export function JourneyView() {
   // Milestones Timeline State
   const [milestones, setMilestones] = useState<MilestoneItem[]>([]);
 
-  // Navigation tab in Progression Hub (Hero Profile & RPG World Map at the top)
-  const [activeTab, setActiveTab] = useState<'profile' | 'map' | 'skills' | 'milestones' | 'quests' | 'battlepass' | 'achievements' | 'armory'>('profile');
+  // Navigation tab in Progression Hub (Hero Profile & RPG World Map at the top) with F5 persistence
+  const [activeTab, setActiveTab] = useState<'profile' | 'map' | 'skills' | 'milestones' | 'quests' | 'battlepass' | 'achievements' | 'armory'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_journey_active_tab') as any;
+        if (saved && ['profile', 'map', 'skills', 'milestones', 'quests', 'battlepass', 'achievements', 'armory'].includes(saved)) {
+          return saved;
+        }
+      } catch {}
+    }
+    return 'profile';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_journey_active_tab', activeTab);
+    } catch {}
+  }, [activeTab]);
+
+  // Toast notification state
+  const [toastFeedback, setToastFeedback] = useState<{ text: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const toastTimerRef = useRef<any>(null);
+  const showToast = (text: string, type: 'success' | 'error' | 'info' = 'info') => {
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    setToastFeedback({ text, type });
+    toastTimerRef.current = setTimeout(() => {
+      setToastFeedback(null);
+    }, 4000);
+  };
 
   // RPG Real Character Stats & Monster Battle State
   const [charStats, setCharStats] = useState<any | null>(null);
@@ -104,7 +133,7 @@ export function JourneyView() {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      alert('Kích thước ảnh đại diện không được vượt quá 5MB');
+      showToast('Kích thước ảnh đại diện không được vượt quá 5MB', 'error');
       return;
     }
 
@@ -124,10 +153,12 @@ export function JourneyView() {
           await updateProfile({ avatar: newAvatarUrl });
           soundEngine.playSuccess();
           triggerConfetti();
+          showToast('Đã cập nhật ảnh đại diện anh hùng thành công!', 'success');
         } catch (uploadErr) {
           await updateProfile({ avatar: base64Data });
           soundEngine.playSuccess();
           triggerConfetti();
+          showToast('Đã cập nhật ảnh đại diện anh hùng!', 'success');
         } finally {
           setIsUploadingHeroAvatar(false);
         }
@@ -135,12 +166,26 @@ export function JourneyView() {
       reader.readAsDataURL(file);
     } catch (err: any) {
       setIsUploadingHeroAvatar(false);
-      alert(err.message || 'Lỗi khi đọc file ảnh');
+      showToast(err.message || 'Lỗi khi đọc file ảnh', 'error');
     }
   };
 
-  // Armory filter tab: ALL, UNLOCKED, LOCKED
-  const [armoryFilter, setArmoryFilter] = useState<'ALL' | 'UNLOCKED' | 'LOCKED'>('ALL');
+  // Armory filter tab: ALL, UNLOCKED, LOCKED with F5 persistence
+  const [armoryFilter, setArmoryFilter] = useState<'ALL' | 'UNLOCKED' | 'LOCKED'>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_journey_armory_filter') as any;
+        if (saved && ['ALL', 'UNLOCKED', 'LOCKED'].includes(saved)) return saved;
+      } catch {}
+    }
+    return 'ALL';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_journey_armory_filter', armoryFilter);
+    } catch {}
+  }, [armoryFilter]);
 
   // Selected Node in Journey Map for Stage Battle Modal
   const [stageBattleNode, setStageBattleNode] = useState<ChapterNodeItem | null>(null);
@@ -183,32 +228,216 @@ export function JourneyView() {
   const [claimingKey, setClaimingKey] = useState<string | null>(null);
   const [purchasingKey, setPurchasingKey] = useState<string | null>(null);
 
-  // Selected Chapter for inspecting nodes
-  const [selectedChapterIndex, setSelectedChapterIndex] = useState<number>(1);
+  // Selected Chapter for inspecting nodes with F5 persistence
+  const [selectedChapterIndex, setSelectedChapterIndex] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_journey_chapter_idx');
+        if (saved && !isNaN(Number(saved))) return Number(saved);
+      } catch {}
+    }
+    return 1;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_journey_chapter_idx', String(selectedChapterIndex));
+    } catch {}
+  }, [selectedChapterIndex]);
+
+  // Milestone Filter & Quick-Add State with F5 persistence
+  const [milestoneCategoryFilter, setMilestoneCategoryFilter] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_journey_milestone_category');
+        if (saved) return saved;
+      } catch {}
+    }
+    return 'ALL';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_journey_milestone_category', milestoneCategoryFilter);
+    } catch {}
+  }, [milestoneCategoryFilter]);
+
+  const [milestoneSearchQuery, setMilestoneSearchQuery] = useState('');
+  const [quickMilestoneTitle, setQuickMilestoneTitle] = useState('');
+  const [isSubmittingQuickMilestone, setIsSubmittingQuickMilestone] = useState(false);
+
+  // Modal safe dismiss & scroll lock
+  useBodyScrollLock(
+    addMilestoneOpen || 
+    levelUpModalOpen || 
+    chestModalOpen || 
+    !!stageBattleNode || 
+    avatarModalOpen || 
+    combatModalOpen || 
+    skillTreeModalOpen || 
+    shareModalOpen
+  );
+  const milestoneMouseDownTargetRef = useRef<EventTarget | null>(null);
+  const levelUpMouseDownTargetRef = useRef<EventTarget | null>(null);
+  const [isMilestoneShaking, setIsMilestoneShaking] = useState(false);
+  const [undoMilestone, setUndoMilestone] = useState<MilestoneItem | null>(null);
+  const undoTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
+  const isMilestoneDirty = manualTitle.trim().length > 0 || manualDesc.trim().length > 0 || manualMetric.trim().length > 0;
+
+  const triggerMilestoneShake = () => {
+    soundEngine.playPop();
+    setIsMilestoneShaking(true);
+    setTimeout(() => setIsMilestoneShaking(false), 500);
+  };
+
+  const handleSafeDismissMilestone = () => {
+    if (isMilestoneDirty) {
+      triggerMilestoneShake();
+      return;
+    }
+    setAddMilestoneOpen(false);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (addMilestoneOpen) {
+          handleSafeDismissMilestone();
+        } else if (levelUpModalOpen) {
+          setLevelUpModalOpen(false);
+        } else if (stageBattleNode) {
+          setStageBattleNode(null);
+        } else if (chestModalOpen) {
+          setChestModalOpen(false);
+        } else if (avatarModalOpen) {
+          setAvatarModalOpen(false);
+        } else if (combatModalOpen) {
+          setCombatModalOpen(false);
+        } else if (skillTreeModalOpen) {
+          setSkillTreeModalOpen(false);
+        } else if (shareModalOpen) {
+          setShareModalOpen(false);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    addMilestoneOpen, 
+    levelUpModalOpen, 
+    stageBattleNode, 
+    chestModalOpen, 
+    avatarModalOpen, 
+    combatModalOpen, 
+    skillTreeModalOpen, 
+    shareModalOpen, 
+    isMilestoneDirty
+  ]);
+
+  // Handle Quick Add Milestone (Natural Language with tags & emoji)
+  const handleQuickAddMilestone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const raw = quickMilestoneTitle.trim();
+    if (!raw || isSubmittingQuickMilestone) return;
+
+    let category = 'personal';
+    let cleanTitle = raw;
+    let icon = '🏆';
+
+    if (raw.toLowerCase().includes('#work') || raw.toLowerCase().includes('#career')) {
+      category = 'career';
+      cleanTitle = cleanTitle.replace(/#(work|career)/gi, '').trim();
+      icon = '💼';
+    } else if (raw.toLowerCase().includes('#study') || raw.toLowerCase().includes('#learn')) {
+      category = 'learning';
+      cleanTitle = cleanTitle.replace(/#(study|learn)/gi, '').trim();
+      icon = '📚';
+    } else if (raw.toLowerCase().includes('#saving') || raw.toLowerCase().includes('#finance') || raw.toLowerCase().includes('#money')) {
+      category = 'saving';
+      cleanTitle = cleanTitle.replace(/#(saving|finance|money)/gi, '').trim();
+      icon = '💰';
+    } else if (raw.toLowerCase().includes('#health') || raw.toLowerCase().includes('#fitness')) {
+      category = 'health';
+      cleanTitle = cleanTitle.replace(/#(health|fitness)/gi, '').trim();
+      icon = '🔥';
+    } else if (raw.toLowerCase().includes('#personal')) {
+      category = 'personal';
+      cleanTitle = cleanTitle.replace(/#personal/gi, '').trim();
+      icon = '🎯';
+    }
+
+    const emojiMatch = cleanTitle.match(/([\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}])/u);
+    if (emojiMatch) {
+      icon = emojiMatch[0];
+    }
+
+    try {
+      setIsSubmittingQuickMilestone(true);
+      const res = await apiCall('/api/journey/milestone', 'POST', {
+        title: cleanTitle,
+        description: '',
+        category,
+        date: new Date().toISOString().split('T')[0],
+        icon,
+        metricValue: '',
+        metricLabel: '',
+        isHighlighted: true
+      });
+
+      setQuickMilestoneTitle('');
+      soundEngine.playSuccess();
+      triggerConfetti();
+      showToast('Đã ghi lại cột mốc thành tựu mới!', 'success');
+      if (res && res.milestone) {
+        setMilestones(prev => [res.milestone, ...prev]);
+      } else {
+        await fetchAllData(true);
+      }
+    } catch (err: any) {
+      console.error('Failed to create quick milestone:', err);
+      showToast(err.message || 'Lỗi khi lưu cột mốc', 'error');
+    } finally {
+      setIsSubmittingQuickMilestone(false);
+    }
+  };
 
   // Fetch full progression data
   const fetchAllData = async (silent = false) => {
     if (!silent) setLoading(true);
     else setRefreshing(true);
+    setLoadError(null);
 
     try {
-      const [progRes, journeyRes, charRes] = await Promise.all([
+      const [progResult, journeyResult, charResult] = await Promise.allSettled([
         apiCall('/api/progression'),
         apiCall('/api/journey'),
         apiCall('/api/rpg/character')
       ]);
 
-      if (progRes && progRes.data) {
-        setProgState(progRes.data);
+      if (progResult.status === 'fulfilled' && progResult.value && progResult.value.data) {
+        setProgState(progResult.value.data);
+      } else if (!progState) {
+        const errMsg = progResult.status === 'rejected' ? (progResult.reason?.message || 'Không thể tải tiến trình') : null;
+        if (errMsg) setLoadError(errMsg);
       }
-      if (journeyRes && journeyRes.milestones) {
-        setMilestones(journeyRes.milestones);
+
+      if (journeyResult.status === 'fulfilled' && journeyResult.value && journeyResult.value.milestones) {
+        setMilestones(journeyResult.value.milestones);
       }
-      if (charRes && charRes.data) {
-        setCharStats(charRes.data);
+      if (charResult.status === 'fulfilled' && charResult.value && charResult.value.data) {
+        setCharStats(charResult.value.data);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load progression hub data:', err);
+      if (!progState) setLoadError(err?.message || 'Có lỗi xảy ra khi tải dữ liệu hành trình.');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -235,7 +464,7 @@ export function JourneyView() {
       const res = await apiCall('/api/progression/chest/open', 'POST');
       if (res && res.success) {
         if (res.data?.alreadyClaimed) {
-          alert(res.data.message || 'Bạn đã mở rương kho báu hôm nay rồi!');
+          showToast(res.data.message || 'Bạn đã mở rương kho báu hôm nay rồi!', 'info');
         } else {
           setChestReward(res.data);
           setChestModalOpen(true);
@@ -243,7 +472,7 @@ export function JourneyView() {
         }
       }
     } catch (err: any) {
-      alert(err.message || 'Không thể mở rương kho báu');
+      showToast(err.message || 'Không thể mở rương kho báu', 'error');
     } finally {
       setOpeningChest(false);
     }
@@ -271,7 +500,7 @@ export function JourneyView() {
         await fetchAllData(true);
       }
     } catch (err: any) {
-      alert(err.message || 'Không thể nhận thưởng');
+      showToast(err.message || 'Không thể nhận thưởng', 'error');
     } finally {
       setClaimingKey(null);
     }
@@ -299,7 +528,7 @@ export function JourneyView() {
         await fetchAllData(true);
       }
     } catch (err: any) {
-      alert(err.message || 'Không thể nhận thưởng');
+      showToast(err.message || 'Không thể nhận thưởng', 'error');
     } finally {
       setClaimingKey(null);
     }
@@ -313,9 +542,10 @@ export function JourneyView() {
       if (res && res.success) {
         soundEngine.playPop();
         await fetchAllData(true);
+        showToast('Đã mở khóa ngoại trang thành công!', 'success');
       }
     } catch (err: any) {
-      alert(err.message || 'Không thể mở khóa ngoại trang');
+      showToast(err.message || 'Không thể mở khóa ngoại trang', 'error');
     } finally {
       setPurchasingKey(null);
     }
@@ -328,9 +558,10 @@ export function JourneyView() {
       if (res && res.success) {
         soundEngine.playPop();
         await fetchAllData(true);
+        showToast('Đã trang bị ngoại trang!', 'success');
       }
     } catch (err: any) {
-      alert(err.message || 'Không thể trang bị ngoại trang');
+      showToast(err.message || 'Không thể trang bị ngoại trang', 'error');
     }
   };
 
@@ -377,10 +608,39 @@ export function JourneyView() {
       setManualDesc('');
       setManualMetric('');
       setManualLabel('');
+      soundEngine.playSuccess();
+      triggerConfetti();
+      showToast('Đã lưu cột mốc thành tựu mới!', 'success');
       await fetchAllData(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      showToast(err.message || 'Lỗi khi lưu cột mốc', 'error');
     }
+  };
+
+  // Delete Milestone with Optimistic UI & 5-Second Undo Toast
+  const handleDeleteMilestoneWithUndo = async (item: MilestoneItem) => {
+    setMilestones(prev => prev.filter(m => m.id !== item.id));
+    soundEngine.playPop();
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoMilestone(item);
+    undoTimerRef.current = setTimeout(async () => {
+      try {
+        await apiCall(`/api/journey/milestone/${item.id}`, 'DELETE');
+      } catch (err) {
+        console.error('Failed to delete milestone on server:', err);
+      }
+      setUndoMilestone(null);
+    }, 5000);
+  };
+
+  const handleUndoDeleteMilestone = () => {
+    if (!undoMilestone) return;
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setMilestones(prev => [undoMilestone, ...prev]);
+    setUndoMilestone(null);
+    soundEngine.playPop();
+    showToast('Đã khôi phục cột mốc!', 'success');
   };
 
   // Trigger Share Player Card
@@ -389,7 +649,7 @@ export function JourneyView() {
     const playerMilestone: MilestoneItem = {
       id: 'player-profile-card',
       userId: currentUser?.id || '',
-      title: `Life Level ${progState.level} · ${progState.levelTitle}`,
+      title: `Life Level ${progState.level} · ${progState.levelTitle || 'Initiator'}`,
       description: `Đang kiên trì xây dựng phiên bản tốt hơn mỗi ngày trên LifeOS. Chuỗi kỷ luật ${progState.currentStreak} ngày liên tục!`,
       category: 'personal',
       date: new Date().toISOString().split('T')[0],
@@ -404,7 +664,7 @@ export function JourneyView() {
     setShareModalOpen(true);
   };
 
-  if (loading || !progState) {
+  if (loading && !progState) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center min-h-[500px] p-8 text-slate-500">
         <div className="w-10 h-10 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin mb-4" />
@@ -414,6 +674,31 @@ export function JourneyView() {
         <p className="text-xs text-slate-400 mt-1">
           Đang đối chiếu dữ liệu thực tế từ Task, Habit, Focus và Học tập.
         </p>
+      </div>
+    );
+  }
+
+  if (!progState) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center min-h-[450px] p-8 text-center">
+        <div className="max-w-md w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 shadow-xl space-y-4">
+          <div className="w-14 h-14 mx-auto rounded-2xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-2xl">
+            ⚡
+          </div>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">
+            Không thể tải dữ liệu Tiến trình
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+            {loadError || 'Đường truyền máy chủ phản hồi chậm hoặc đang tạm thời kết nối lại. Dữ liệu thành tựu của bạn vẫn được lưu giữ an toàn.'}
+          </p>
+          <button
+            type="button"
+            onClick={() => fetchAllData()}
+            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md transition-all cursor-pointer"
+          >
+            Thử tải lại tiến trình
+          </button>
+        </div>
       </div>
     );
   }
@@ -445,6 +730,25 @@ export function JourneyView() {
   const learningM = learningMinutes % 60;
 
   const selectedChapter = progState.journeyChapters.find(c => c.index === selectedChapterIndex) || progState.journeyChapters[0];
+
+  const filteredMilestones = milestones.filter(item => {
+    const itemCat = (item.category || '').toLowerCase();
+    const filterCat = milestoneCategoryFilter.toLowerCase();
+    const matchesCategory = 
+      filterCat === 'all' || 
+      itemCat === filterCat ||
+      (filterCat === 'saving' && (itemCat === 'finance' || itemCat === 'saving')) ||
+      (filterCat === 'career' && (itemCat === 'work' || itemCat === 'career')) ||
+      (filterCat === 'learning' && (itemCat === 'study' || itemCat === 'learning'));
+    
+    const query = milestoneSearchQuery.trim().toLowerCase();
+    const matchesQuery = 
+      !query || 
+      item.title.toLowerCase().includes(query) || 
+      (item.description && item.description.toLowerCase().includes(query)) ||
+      (item.metricValue && item.metricValue.toLowerCase().includes(query));
+    return matchesCategory && matchesQuery;
+  });
 
   return (
     <div className="flex-1 p-3.5 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6 relative animate-in fade-in duration-200 w-full min-w-0 max-w-full overflow-x-hidden">
@@ -530,7 +834,7 @@ export function JourneyView() {
 
               <div>
                 <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  {progState.levelTitle}
+                  {progState?.levelTitle || 'Chiến Binh Khởi Nghiệp'}
                 </h1>
                 <p className="text-xs text-slate-300 mt-0.5">
                   Mỗi ngày kỷ luật mở khóa một phiên bản xuất sắc hơn của chính bạn.
@@ -560,7 +864,7 @@ export function JourneyView() {
             {/* Right: Actions */}
             <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-start md:self-center">
               {/* Daily Mystery Chest Button */}
-              <button
+              <button type="button"
                 onClick={handleOpenDailyChest}
                 disabled={openingChest}
                 className="relative group flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-amber-500/20 border border-amber-400/40 text-amber-300 font-black text-xs shadow-lg shadow-amber-500/10 hover:border-amber-400 active:scale-95 transition cursor-pointer"
@@ -573,7 +877,7 @@ export function JourneyView() {
                 <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping ml-1" />
               </button>
 
-              <button
+              <button type="button"
                 onClick={() => fetchAllData(true)}
                 disabled={refreshing}
                 className="p-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition cursor-pointer"
@@ -582,12 +886,12 @@ export function JourneyView() {
                 <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
               </button>
 
-              <button
+              <button type="button"
                 onClick={() => {
                   setLevelUpData({
                     fromLevel: progState.level,
                     toLevel: progState.level + 1,
-                    title: progState.levelTitle
+                    title: progState?.levelTitle || 'Khởi Đầu'
                   });
                   setLevelUpModalOpen(true);
                 }}
@@ -597,7 +901,7 @@ export function JourneyView() {
                 <span>Xem Thưởng Level</span>
               </button>
 
-              <button
+              <button type="button"
                 onClick={handleSharePlayerCard}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 active:scale-95 transition cursor-pointer"
               >
@@ -610,7 +914,7 @@ export function JourneyView() {
       )}
 
       {/* REAL PROGRESSION STATS STRIP (MATCH SPEC EXACTLY) */}
-      <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         {/* COMBAT POWER */}
         <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-900 border border-amber-500/30 shadow-xs flex flex-col justify-between">
           <span className="text-[10px] font-black uppercase text-amber-400 tracking-wider">COMBAT POWER (CP)</span>
@@ -680,7 +984,7 @@ export function JourneyView() {
       {/* 2. NAVIGATION BAR (JOURNEY TABS - HERO PROFILE & MILESTONES 1ST) */}
       {/* ============================================================== */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-slate-200 dark:border-slate-800">
-        <button
+        <button type="button"
           onClick={() => setActiveTab('profile')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
             activeTab === 'profile'
@@ -692,7 +996,7 @@ export function JourneyView() {
           <span>Hồ Sơ Anh Hùng & Trang Bị</span>
         </button>
 
-        <button
+        <button type="button"
           onClick={() => setActiveTab('map')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
             activeTab === 'map'
@@ -704,7 +1008,7 @@ export function JourneyView() {
           <span>Bản Đồ Quái Vật & Trùm (RPG World)</span>
         </button>
 
-        <button
+        <button type="button"
           onClick={() => setSkillTreeModalOpen(true)}
           className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/20"
         >
@@ -712,7 +1016,7 @@ export function JourneyView() {
           <span>Cây Kỹ Năng {charStats?.availableSkillPoints > 0 ? `(${charStats.availableSkillPoints}⭐)` : ''}</span>
         </button>
 
-        <button
+        <button type="button"
           onClick={() => setActiveTab('milestones')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
             activeTab === 'milestones'
@@ -724,7 +1028,7 @@ export function JourneyView() {
           <span>Bia Khắc Cột Mốc ({milestones.length})</span>
         </button>
 
-        <button
+        <button type="button"
           onClick={() => setActiveTab('quests')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
             activeTab === 'quests'
@@ -739,7 +1043,7 @@ export function JourneyView() {
           )}
         </button>
 
-        <button
+        <button type="button"
           onClick={() => setActiveTab('battlepass')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
             activeTab === 'battlepass'
@@ -751,7 +1055,7 @@ export function JourneyView() {
           <span>Life Pass (Battle Pass)</span>
         </button>
 
-        <button
+        <button type="button"
           onClick={() => setActiveTab('achievements')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
             activeTab === 'achievements'
@@ -763,7 +1067,7 @@ export function JourneyView() {
           <span>Đền Thờ Thành Tựu</span>
         </button>
 
-        <button
+        <button type="button"
           onClick={() => setActiveTab('armory')}
           className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
             activeTab === 'armory'
@@ -794,7 +1098,7 @@ export function JourneyView() {
         <div className="space-y-8">
           
           {/* Chapter Selector Cards (01 START, 02 BUILD, 03 FOCUS, 04 GROW, 05 MASTER) */}
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {progState.journeyChapters.map((ch) => {
               const isSelected = ch.index === selectedChapterIndex;
               const completedNodesCount = ch.nodes.filter(n => n.status === 'COMPLETED' || n.status === 'MASTERED').length;
@@ -1084,7 +1388,7 @@ export function JourneyView() {
                             ✓ Hoàn Tất
                           </span>
                         ) : canClaim ? (
-                          <button
+                          <button type="button"
                             onClick={() => handleClaimQuest(quest.key, quest)}
                             disabled={claimingKey === quest.key}
                             className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md shadow-amber-500/20 active:scale-95 transition cursor-pointer flex items-center gap-1.5"
@@ -1169,7 +1473,7 @@ export function JourneyView() {
                             ✓ Hoàn Tất Raid
                           </span>
                         ) : canClaim ? (
-                          <button
+                          <button type="button"
                             onClick={() => handleClaimChallenge(w.key, w)}
                             disabled={claimingKey === w.key}
                             className="px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-amber-500 text-white font-black text-xs uppercase tracking-wider shadow-md active:scale-95 transition cursor-pointer"
@@ -1305,7 +1609,7 @@ export function JourneyView() {
               {/* Sub-tabs: ALL, UNLOCKED, LOCKED */}
               <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl text-xs font-bold">
                 {(['ALL', 'UNLOCKED', 'LOCKED'] as const).map(tabKey => (
-                  <button
+                  <button type="button"
                     key={tabKey}
                     onClick={() => setArmoryFilter(tabKey)}
                     className={`px-3 py-1 rounded-xl transition cursor-pointer ${
@@ -1381,21 +1685,21 @@ export function JourneyView() {
                       </span>
 
                       {item.isEquipped ? (
-                        <button
+                        <button type="button"
                           disabled
                           className="px-3.5 py-1.5 rounded-xl bg-emerald-600 text-white text-xs font-bold opacity-80"
                         >
                           Đang dùng
                         </button>
                       ) : item.isUnlocked ? (
-                        <button
+                        <button type="button"
                           onClick={() => handleEquipCosmetic(item.type, item.key)}
                           className="px-4 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-slate-100 dark:hover:bg-white text-white dark:text-slate-900 text-xs font-bold transition active:scale-95 cursor-pointer"
                         >
                           Trang bị
                         </button>
                       ) : (
-                        <button
+                        <button type="button"
                           onClick={() => handleUnlockCosmetic(item.key)}
                           disabled={!canAfford || !meetsLevel || purchasingKey === item.key}
                           className="px-4 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black transition active:scale-95 disabled:opacity-40 cursor-pointer"
@@ -1449,7 +1753,11 @@ export function JourneyView() {
                   {currentUser?.avatar ? (
                     <img
                       src={currentUser.avatar}
-                      alt={currentUser.name || 'Hero Avatar'}
+                      alt={currentUser.name || 'Ảnh đại diện hiệp sĩ học tập'}
+                      loading="lazy"
+                      decoding="async"
+                      width="96"
+                      height="96"
                       className="w-full h-full object-cover rounded-3xl"
                     />
                   ) : (
@@ -1602,7 +1910,7 @@ export function JourneyView() {
               </div>
             </div>
 
-            <button
+            <button type="button"
               onClick={handleSharePlayerCard}
               className="w-full py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-black text-xs shadow-md transition active:scale-95 cursor-pointer mt-4"
             >
@@ -1683,7 +1991,7 @@ export function JourneyView() {
       )}
 
       {/* ============================================================== */}
-      {/* TAB 6: DÒNG THỜI GIAN CỘT MỐC                                  */}
+      {/* TAB 6: DÒNG THỜI GIAN CỘT MỐC (INLINE QUICK-ADD & SMART FILTER)*/}
       {/* ============================================================== */}
       {activeTab === 'milestones' && (
         <div className="space-y-6">
@@ -1691,56 +1999,200 @@ export function JourneyView() {
             <div>
               <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-amber-500" />
-                <span>Nhật Ký Cột Mốc Cuộc Đời ({milestones.length})</span>
+                <span>Nhật Ký Cột Mốc Cuộc Đời ({filteredMilestones.length}/{milestones.length})</span>
               </h3>
               <p className="text-xs text-slate-500 mt-0.5">
                 Các sự kiện đáng nhớ tự động ghi nhận hoặc do bạn tự ghi chép.
               </p>
             </div>
 
-            <button
+            <button type="button"
               onClick={() => setAddMilestoneOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition active:scale-95 cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition active:scale-95 cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
-              <span>Ghi Lại Cột Mốc Mới</span>
+              <span>Ghi Lại Cột Mốc Chi Tiết</span>
             </button>
           </div>
 
-          <div className="space-y-3">
-            {milestones.map((item) => (
-              <div
-                key={item.id}
-                className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4"
+          {/* Inline Natural Language Quick Add Bar */}
+          <form 
+            onSubmit={handleQuickAddMilestone}
+            className="p-3 sm:p-4 rounded-3xl bg-white dark:bg-slate-900 border border-emerald-500/30 shadow-sm space-y-2.5"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <input
+                type="text"
+                value={quickMilestoneTitle}
+                onChange={(e) => setQuickMilestoneTitle(e.target.value)}
+                placeholder="Ghi nhanh cột mốc... (VD: Chạy bộ 21km #health #🔥 hoặc Tiết kiệm 50 triệu #saving)"
+                className="flex-1 bg-transparent text-xs font-semibold text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none"
+              />
+              <button
+                type="submit"
+                disabled={!quickMilestoneTitle.trim() || isSubmittingQuickMilestone}
+                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold text-xs shadow-xs transition active:scale-95 cursor-pointer shrink-0"
               >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xl shrink-0">
-                    {item.icon}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold text-slate-400">{formatDate(item.date)}</span>
-                      <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
-                        {item.category}
-                      </span>
+                {isSubmittingQuickMilestone ? 'Đang lưu...' : 'Lưu Nhanh'}
+              </button>
+            </div>
+
+            {/* Quick Tag Helpers */}
+            <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px] text-slate-400">
+              <span className="font-semibold text-slate-500">Gợi ý hashtag:</span>
+              <button
+                type="button"
+                onClick={() => setQuickMilestoneTitle(prev => prev ? `${prev} #personal` : 'Cột mốc cá nhân #personal ')}
+                className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium cursor-pointer"
+              >
+                #personal
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickMilestoneTitle(prev => prev ? `${prev} #career` : 'Thăng tiến công việc #career ')}
+                className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium cursor-pointer"
+              >
+                #career
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickMilestoneTitle(prev => prev ? `${prev} #study` : 'Học xong chứng chỉ #study ')}
+                className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium cursor-pointer"
+              >
+                #study
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickMilestoneTitle(prev => prev ? `${prev} #saving` : 'Đạt mục tiêu tiết kiệm #saving ')}
+                className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium cursor-pointer"
+              >
+                #saving
+              </button>
+              <button
+                type="button"
+                onClick={() => setQuickMilestoneTitle(prev => prev ? `${prev} #health` : 'Rèn luyện thể lực #health ')}
+                className="px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 font-medium cursor-pointer"
+              >
+                #health
+              </button>
+            </div>
+          </form>
+
+          {/* Search & Category Filter Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            {/* Category Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+              {[
+                { id: 'ALL', label: 'Tất cả' },
+                { id: 'personal', label: 'Cá nhân' },
+                { id: 'career', label: 'Sự nghiệp' },
+                { id: 'learning', label: 'Học tập' },
+                { id: 'saving', label: 'Tài chính' },
+                { id: 'health', label: 'Sức khỏe' }
+              ].map(cat => {
+                const isSelected = milestoneCategoryFilter === cat.id;
+                return (
+                  <button
+                    type="button"
+                    key={cat.id}
+                    onClick={() => {
+                      soundEngine.playPop();
+                      setMilestoneCategoryFilter(cat.id);
+                    }}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+                      isSelected
+                        ? 'bg-emerald-600 text-white shadow-xs'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    }`}
+                  >
+                    {cat.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Search Input */}
+            <div className="relative sm:w-64">
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                value={milestoneSearchQuery}
+                onChange={(e) => setMilestoneSearchQuery(e.target.value)}
+                placeholder="Tìm kiếm cột mốc..."
+                className="w-full pl-8 pr-7 py-1.5 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              />
+              {milestoneSearchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setMilestoneSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {filteredMilestones.length === 0 ? (
+              <div className="p-8 text-center bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 text-slate-400 text-xs">
+                {milestoneSearchQuery || milestoneCategoryFilter !== 'ALL'
+                  ? 'Không tìm thấy cột mốc nào phù hợp với bộ lọc tìm kiếm.'
+                  : 'Chưa có cột mốc nào. Hãy nhập nhanh phía trên hoặc nhấn "Ghi Lại Cột Mốc Chi Tiết" để lưu lại những thành tựu ý nghĩa trong cuộc sống!'}
+              </div>
+            ) : (
+              filteredMilestones.map((item) => (
+                <div
+                  key={item.id}
+                  className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4 shadow-xs hover:border-emerald-500/30 transition"
+                >
+                  <div className="flex items-center gap-4 min-w-0">
+                    <div className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xl shrink-0">
+                      {item.icon}
                     </div>
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">{item.title}</h4>
-                    {item.description && <p className="text-xs text-slate-500 mt-0.5">{item.description}</p>}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-bold text-slate-400">{formatDate(item.date)}</span>
+                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                          {item.category}
+                        </span>
+                        {item.metricValue && (
+                          <span className="text-[10px] font-mono font-bold text-amber-500">
+                            {item.metricValue} {item.metricLabel || ''}
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white mt-0.5 truncate">{item.title}</h4>
+                      {item.description && <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{item.description}</p>}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button type="button"
+                      onClick={() => {
+                        setSelectedMilestoneForShare(item);
+                        setShareModalOpen(true);
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+                      title="Khoe cột mốc này"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Khoe</span>
+                    </button>
+                    <button type="button"
+                      onClick={() => handleDeleteMilestoneWithUndo(item)}
+                      className="p-2 rounded-xl text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition cursor-pointer"
+                      title="Xóa cột mốc (Có thể Hoàn tác 5s)"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
-
-                <button
-                  onClick={() => {
-                    setSelectedMilestoneForShare(item);
-                    setShareModalOpen(true);
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer"
-                >
-                  <Share2 className="w-3.5 h-3.5" />
-                  <span>Khoe</span>
-                </button>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
       )}
@@ -1769,8 +2221,33 @@ export function JourneyView() {
       {/* LEVEL UP CELEBRATION MODAL (EXACT SPEC FORMAT)                 */}
       {/* ============================================================== */}
       {levelUpModalOpen && levelUpData && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in zoom-in-95 duration-200">
-          <div className="relative w-full max-w-sm bg-gradient-to-b from-slate-900 to-slate-950 border border-emerald-500/40 rounded-3xl p-7 text-white text-center shadow-2xl space-y-5">
+        <div 
+          onMouseDown={(e) => {
+            levelUpMouseDownTargetRef.current = e.target;
+          }}
+          onClick={(e) => {
+            if (levelUpMouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+              setLevelUpModalOpen(false);
+            }
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in zoom-in-95 duration-200 cursor-default"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-sm bg-gradient-to-b from-slate-900 to-slate-950 border border-emerald-500/40 rounded-3xl p-7 text-white text-center shadow-2xl space-y-5"
+          >
+            <button
+              type="button"
+              onClick={() => {
+                soundEngine.playSuccess();
+                setLevelUpModalOpen(false);
+              }}
+              className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              title="Đóng"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
             <div className="w-16 h-16 rounded-3xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 mx-auto flex items-center justify-center text-3xl shadow-lg shadow-emerald-500/30">
               ⚡
             </div>
@@ -1798,7 +2275,7 @@ export function JourneyView() {
               </div>
             </div>
 
-            <button
+            <button type="button"
               onClick={() => {
                 soundEngine.playSuccess();
                 setLevelUpModalOpen(false);
@@ -1815,13 +2292,33 @@ export function JourneyView() {
       {/* MODAL: THÊM CỘT MỐC THỦ CÔNG                                  */}
       {/* ============================================================== */}
       {addMilestoneOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6">
+        <div 
+          onMouseDown={(e) => {
+            milestoneMouseDownTargetRef.current = e.target;
+          }}
+          onClick={(e) => {
+            if (milestoneMouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+              handleSafeDismissMilestone();
+            }
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200 cursor-default"
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className={`relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 transition-transform ${
+              isMilestoneShaking ? 'animate-[shake_0.4s_ease-in-out]' : ''
+            }`}
+          >
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                 Ghi Lại Cột Mốc Cá Nhân
               </h3>
-              <button onClick={() => setAddMilestoneOpen(false)} className="text-slate-400 hover:text-white">
+              <button 
+                type="button" 
+                onClick={handleSafeDismissMilestone} 
+                className="text-slate-400 hover:text-white p-1 cursor-pointer"
+                aria-label="Đóng"
+              >
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -1834,6 +2331,7 @@ export function JourneyView() {
                 <input
                   type="text"
                   required
+                  autoFocus
                   value={manualTitle}
                   onChange={(e) => setManualTitle(e.target.value)}
                   placeholder="VD: Chạy bộ 21km, Đọc xong 1 cuốn sách..."
@@ -1861,7 +2359,7 @@ export function JourneyView() {
                   <select
                     value={manualIcon}
                     onChange={(e) => setManualIcon(e.target.value)}
-                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white"
+                    className="w-full px-3 py-2 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white cursor-pointer"
                   >
                     <option value="🏆">🏆 Cúp Vàng</option>
                     <option value="🔥">🔥 Ngọn Lửa</option>
@@ -1889,7 +2387,7 @@ export function JourneyView() {
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setAddMilestoneOpen(false)}
+                  onClick={handleSafeDismissMilestone}
                   className="px-3 py-1.5 text-xs text-slate-400 hover:text-white cursor-pointer"
                 >
                   Hủy
@@ -1947,6 +2445,69 @@ export function JourneyView() {
         onClose={() => setSkillTreeModalOpen(false)}
         onSkillUnlocked={() => fetchAllData(true)}
       />
+
+      {/* ============================================================== */}
+      {/* FLOATING TOAST NOTIFICATION & 5-SECOND UNDO TOAST             */}
+      {/* ============================================================== */}
+      {toastFeedback && (
+        <div className={`fixed ${undoMilestone ? 'bottom-20' : 'bottom-6'} right-6 z-50 px-4 py-3 rounded-2xl shadow-2xl border flex items-center gap-3 animate-fade-in backdrop-blur-md text-xs font-semibold ${
+          toastFeedback.type === 'error'
+            ? 'bg-rose-950/90 text-rose-200 border-rose-800'
+            : toastFeedback.type === 'success'
+            ? 'bg-emerald-950/90 text-emerald-200 border-emerald-800'
+            : 'bg-slate-900/90 text-slate-200 border-slate-700'
+        }`}>
+          {toastFeedback.type === 'error' ? (
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+          ) : toastFeedback.type === 'success' ? (
+            <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+          ) : (
+            <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+          )}
+          <span>{toastFeedback.text}</span>
+          <button
+            type="button"
+            onClick={() => {
+              if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+              setToastFeedback(null);
+            }}
+            className="p-1 hover:text-white transition-colors cursor-pointer ml-1 text-slate-400"
+            title="Đóng thông báo"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {undoMilestone && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700/80 flex items-center gap-3 animate-fade-in backdrop-blur-md">
+          <Trash2 className="w-4 h-4 text-rose-400 shrink-0" />
+          <div className="text-xs">
+            <span>Đã xóa cột mốc: </span>
+            <strong className="text-white max-w-[150px] inline-block truncate align-bottom">{undoMilestone.title}</strong>
+          </div>
+          <button
+            type="button"
+            onClick={handleUndoDeleteMilestone}
+            className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition cursor-pointer flex items-center gap-1 shrink-0"
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span>Hoàn tác (5s)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+              apiCall(`/api/journey/milestone/${undoMilestone.id}`, 'DELETE').catch(console.error);
+              setUndoMilestone(null);
+            }}
+            className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer shrink-0"
+            title="Đóng"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
     </div>
   );

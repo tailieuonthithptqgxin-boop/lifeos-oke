@@ -1,8 +1,11 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Task, Project, Event, Transaction, StudySubject, StudyTopic, StudyAssignment, StudyExam, Habit, HabitRecord, Routine, Goal, GoalMilestone, GoalReview, Note, ViewState, LifeScore, User, Product, CartItem, Order, WorkspaceMode, InboxItem, FocusSession, FocusGoal, DecisionItem, DecisionRule, DecisionReviewData, AutomationRule, AutomationHistoryEntry, AutomationConflictItem, AppNotification, OnboardingPreferences, UserSubscriptionStatus } from './types';
 import { apiCall } from './apiClient';
 import { offlineSyncQueue } from './offlineSyncQueue';
+import { formatLocalDateKey } from './utils';
+import { normalizeUserStats, syncAllScreensUI, recordUserActivity, GLOBAL_SYNC_EVENT } from './globalUserSync';
+import { unifiedNotificationEngine } from './unifiedNotificationEngine';
 
 // Multi-Tab Real-time Synchronization Bus via Web BroadcastChannel API
 const tabSyncChannel: BroadcastChannel | null = 
@@ -77,6 +80,7 @@ interface AppContextType extends AppState {
   setCurrentView: (view: ViewState) => void;
   setWorkspaceMode: (mode: WorkspaceMode) => void;
   toggleCommand: () => void;
+  addNotification: (notification: Partial<AppNotification> & { title: string; message: string }) => void;
   clearAllNotifications: () => Promise<void>;
   deleteNotification: (id: string) => Promise<void>;
   deleteAllNotifications: () => Promise<void>;
@@ -101,13 +105,13 @@ const defaultState: AppState = {
   theme: (typeof window !== 'undefined' && (localStorage.getItem('lifeos_theme') as 'light' | 'dark')) || "light",
   toggleMobileMenu: () => {},
   setTheme: () => {},
-  language: (typeof window !== 'undefined' && localStorage.getItem('lifeos_lang')) || "en",
+  language: (typeof window !== 'undefined' && localStorage.getItem('lifeos_lang')) || "vi",
   setLanguage: () => {},
   activeLanguages: [
-    { code: 'en', name: 'English', flag: '🇬🇧', status: 'ACTIVE', isDefault: true },
-    { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳', status: 'ACTIVE', isDefault: false }
+    { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳', status: 'ACTIVE', isDefault: true },
+    { code: 'en', name: 'English', flag: '🇬🇧', status: 'ACTIVE', isDefault: false }
   ],
-  defaultLanguage: 'en',
+  defaultLanguage: 'vi',
   refreshLanguages: async () => {},
   dailyCapacity: 8,
   inbox: [],
@@ -149,6 +153,25 @@ const defaultState: AppState = {
   clearSyncState: () => {}
 };
 
+const VALID_VIEWS = new Set<string>([
+  'dashboard', 'tasks', 'calendar', 'finance', 'focus', 'projects', 'study', 'goals', 'notes',
+  'habits', 'journey', 'decision', 'decision_engine', 'automation', 'automation_engine',
+  'marketplace', 'cart', 'account', 'my_account', 'subscription', 'checkout', 'admin',
+  'referral', 'affiliate', 'feedback', 'privacy', 'privacy-policy', 'terms', 'terms-of-service',
+  'cookies', 'cookie-policy', 'refund', 'refund-policy',
+  'study-space', 'classroom', 'connect', 'feed'
+]);
+
+function safeJsonParse<T>(value: string | null, fallback: T): T {
+  if (!value) return fallback;
+  try {
+    const parsed = JSON.parse(value);
+    return (parsed !== null && parsed !== undefined) ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 // Technique 3: SWR (Stale-While-Revalidate) Synchronous Instant Hydration
 const getInitialState = (): AppState => {
   if (typeof window === 'undefined') return { ...defaultState, isAppLoaded: true };
@@ -158,6 +181,7 @@ const getInitialState = (): AppState => {
   let cachedSub: UserSubscriptionStatus | null = null;
   let token: string | null = null;
   let isGoogleCallback = false;
+  let initialView: ViewState = 'dashboard';
 
   try {
     const params = new URLSearchParams(window.location.search);
@@ -169,42 +193,49 @@ const getInitialState = (): AppState => {
     } else {
       token = localStorage.getItem('token');
     }
-    const userStr = localStorage.getItem('lifeos_swr_user');
-    if (userStr) cachedUser = JSON.parse(userStr);
-    const colStr = localStorage.getItem('lifeos_swr_collections');
-    if (colStr) cachedCollections = JSON.parse(colStr);
-    const subStr = localStorage.getItem('lifeos_swr_sub');
-    if (subStr) cachedSub = JSON.parse(subStr);
+
+    const tabParam = params.get('tab') as ViewState;
+    const storedView = localStorage.getItem('lifeos_current_view') as ViewState;
+    if (tabParam && (VALID_VIEWS.has(tabParam) || tabParam.startsWith('custom_module_'))) {
+      initialView = tabParam;
+    } else if (storedView && (VALID_VIEWS.has(storedView) || storedView.startsWith('custom_module_'))) {
+      initialView = storedView;
+    } else {
+      initialView = 'dashboard';
+    }
+
+    cachedUser = safeJsonParse(localStorage.getItem('lifeos_swr_user'), null);
+    cachedCollections = safeJsonParse(localStorage.getItem('lifeos_swr_collections'), {});
+    cachedSub = safeJsonParse(localStorage.getItem('lifeos_swr_sub'), null);
   } catch (e) {}
 
-  // If token and cachedUser exist OR returning from successful Google OAuth
-  const hasAuth = Boolean((token && cachedUser) || (token && isGoogleCallback));
+  // Support both Token and Cookie-based SWR sessions:
+  // If cachedUser exists OR active token exists OR returning from Google callback, preserve authenticated state immediately
+  const hasAuth = Boolean(cachedUser || (token && token.length > 20) || isGoogleCallback);
 
   const userRole = (cachedUser?.role || '').toUpperCase();
   const isAdmin = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
-  const effectiveSub: UserSubscriptionStatus | null = isAdmin
-    ? {
-        hasAccess: true,
-        lifecycleStatus: 'ACTIVE',
-        planId: 'ADMIN',
-        planType: 'TEAM',
-        planName: 'Quản trị viên Hệ thống',
-        status: 'ACTIVE',
-        remainingDays: 9999,
-        role: cachedUser?.role,
-        isTrial: false,
-        isTrialActive: false,
-        isTrialExpired: false
-      }
-    : cachedSub;
+  // 100% Free-to-use mode: Permanent Full Access for all users
+  const effectiveSub: UserSubscriptionStatus = {
+    hasAccess: true,
+    lifecycleStatus: 'ACTIVE',
+    planId: 'FREE_FULL_ACCESS',
+    planType: 'PERSONAL',
+    planName: 'Trải nghiệm Miễn phí (Full Access)',
+    status: 'ACTIVE',
+    remainingDays: 99999,
+    role: cachedUser?.role,
+    isTrial: false,
+    isTrialActive: false,
+    isTrialExpired: false,
+    isGlobalFreeMode: true
+  };
 
   let initialMode: WorkspaceMode = 'Advanced';
   let storedPrefs: OnboardingPreferences | null = null;
   if (cachedUser?.id) {
-    try {
-      const raw = localStorage.getItem(`lifeos_user_onboarding_prefs_${cachedUser.id}`) || localStorage.getItem('lifeos_user_onboarding_prefs_current');
-      if (raw) storedPrefs = JSON.parse(raw);
-    } catch (e) {}
+    const raw = localStorage.getItem(`lifeos_user_onboarding_prefs_${cachedUser.id}`) || localStorage.getItem('lifeos_user_onboarding_prefs_current');
+    storedPrefs = safeJsonParse(raw, null);
     if (storedPrefs?.purpose === 'simple') initialMode = 'Simple';
     else if (storedPrefs?.purpose === 'pro') initialMode = 'Power';
     else if (storedPrefs?.domain === 'worker') initialMode = 'Work';
@@ -213,19 +244,21 @@ const getInitialState = (): AppState => {
 
   return {
     ...defaultState,
+    currentView: initialView,
     isAuthenticated: hasAuth,
-    currentUser: cachedUser,
+    currentUser: cachedUser ? normalizeUserStats(cachedUser) : null,
     subscriptionStatus: effectiveSub,
     hasCompletedOnboarding: !!cachedUser?.onboardingCompleted,
     onboardingPreferences: storedPrefs,
     workspaceMode: initialMode,
-    isAppLoaded: true, // Non-blocking: 0ms initial load
+    isAppLoaded: hasAuth, // If cached auth exists, show workspace immediately (0ms). If guest, wait for initApp.
     ...(typeof cachedCollections === 'object' && cachedCollections ? cachedCollections : {})
   };
 };
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState<AppState>(getInitialState);
+  const activeItemMutations = useRef(new Set<string>());
 
   useEffect(() => {
     let urlToken: string | null = null;
@@ -251,8 +284,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
             return {
               ...s,
               activeLanguages: res.languages,
-              defaultLanguage: res.defaultLanguage || 'en',
-              language: currentLangValid ? s.language : (res.defaultLanguage || 'en')
+              defaultLanguage: res.defaultLanguage || 'vi',
+              language: currentLangValid ? s.language : (res.defaultLanguage || 'vi')
             };
           });
         }
@@ -264,16 +297,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const initApp = async () => {
       // Always verify user with /api/auth/me (supports Bearer token and HttpOnly cookie sessions)
       try {
-        // Technique 2: Parallel Promise.allSettled execution for user auth + subscription
-        const [authRes, subRes] = await Promise.allSettled([
-          apiCall('/api/auth/me'),
-          fetchSubscriptionStatus()
-        ]);
+        // Safe 8s timeout to guarantee UI never freezes indefinitely on startup
+        const authRes = await apiCall('/api/auth/me', 'GET', undefined, 8000).catch(err => {
+          return { __isAuthError: true, error: err };
+        });
 
-        if (authRes.status === 'fulfilled' && authRes.value && (authRes.value.user || authRes.value.id)) {
-          const user = authRes.value.user || authRes.value;
-          if (authRes.value.token) {
-            try { localStorage.setItem('token', authRes.value.token); } catch (e) {}
+        if (authRes && !authRes.__isAuthError && (authRes.user || authRes.id)) {
+          const user = authRes.user || authRes;
+          if (authRes.token) {
+            try { localStorage.setItem('token', authRes.token); } catch (e) {}
           }
           try {
             localStorage.setItem('lifeos_swr_user', JSON.stringify(user));
@@ -291,45 +323,56 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           else if (storedPrefs?.domain === 'worker') initialMode = 'Work';
           else if (storedPrefs?.domain === 'student') initialMode = 'Personal';
 
+          const unifiedUser = normalizeUserStats(user);
+          try {
+            localStorage.setItem('lifeos_user', JSON.stringify(unifiedUser));
+          } catch {}
+
           setState(s => ({
             ...s,
             isAuthenticated: true,
-            currentUser: user,
-            subscriptionStatus: authRes.value.subscriptionStatus || (subRes.status === 'fulfilled' ? subRes.value : s.subscriptionStatus),
+            currentUser: unifiedUser,
+            subscriptionStatus: authRes.subscriptionStatus || s.subscriptionStatus,
             hasCompletedOnboarding: !!user.onboardingCompleted,
             onboardingPreferences: storedPrefs,
             workspaceMode: initialMode,
             isAppLoaded: true
           }));
 
-          // Background revalidation: Load all collections in background without blocking UI
+          // Background revalidation: Load all collections and subscription in background without blocking UI
           loadAllData().catch((loadErr) => {
             console.warn("Background data load completed with non-fatal warnings:", loadErr);
             setState(s => ({ ...s, isAppLoaded: true }));
           });
+          fetchSubscriptionStatus().catch(() => {});
         } else {
-          // Only clear tokens if not an in-progress Google redirect
-          if (!isGoogleLogin) {
+          // Check if server explicitly confirmed session is expired, invalid or no token
+          const authErr = authRes?.error;
+          const status = authErr?.status;
+          const errorCode = authErr?.data?.error?.code || authErr?.code;
+          const isExplicitUnauthorized = status === 401 || status === 403 ||
+            errorCode === 'NO_TOKEN' || errorCode === 'TOKEN_EXPIRED' ||
+            errorCode === 'SESSION_REVOKED' || errorCode === 'USER_NOT_FOUND' ||
+            errorCode === 'INVALID_TOKEN' || errorCode === 'UNAUTHORIZED';
+
+          if (isExplicitUnauthorized) {
             try {
               localStorage.removeItem('token');
               localStorage.removeItem('lifeos_swr_user');
               localStorage.removeItem('lifeos_swr_collections');
+              localStorage.removeItem('lifeos_swr_sub');
             } catch (e) {}
+            setState(s => ({ ...s, isAuthenticated: false, currentUser: null, isAppLoaded: true }));
+          } else {
+            // Transient offline / network failure: keep cached user if present, release loading state
+            setState(s => ({ ...s, isAppLoaded: true }));
           }
-          setState(s => ({ ...s, isAuthenticated: false, currentUser: null, isAppLoaded: true }));
         }
       } catch (err: any) {
-        if (!isGoogleLogin) {
-          try {
-            localStorage.removeItem('token');
-            localStorage.removeItem('lifeos_swr_user');
-            localStorage.removeItem('lifeos_swr_collections');
-          } catch (e) {}
-        }
+        console.warn('initApp transient network check warning:', err?.message || err);
+        // Guarantee loading state is released
         setState(s => ({
           ...s,
-          isAuthenticated: false,
-          currentUser: null,
           isAppLoaded: true
         }));
       }
@@ -339,6 +382,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     loadLanguages();
 
     const handleSessionExpired = () => {
+      // Check if user is in an active learning session: never kick out mid-study!
+      const isStudying = Boolean(
+        localStorage.getItem('lifeos_vocab_session_state') ||
+        localStorage.getItem('lifeos_pomodoro_active_session') ||
+        sessionStorage.getItem('lifeos_active_study')
+      );
+      if (isStudying) {
+        console.warn('[Store] Suppressed session expiry kickout because user is actively studying.');
+        return;
+      }
       try { localStorage.removeItem('token'); } catch (e) {}
       setState(s => ({
         ...s,
@@ -350,10 +403,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     window.addEventListener('lifeos:session-expired', handleSessionExpired);
 
-    // Auto-refresh current user plan/role on window focus or light interval so upgrades appear immediately
+    // Auto-refresh current user plan/role on window focus or safe background interval
     const refreshUserSilent = async () => {
+      // Free-Tier 10k Scale Guard: Do not poll when tab is hidden or device is offline
+      if (typeof document !== 'undefined' && document.hidden) return;
+      if (typeof navigator !== 'undefined' && !navigator.onLine) return;
       try {
-        const res = await apiCall('/api/auth/me');
+        const res = await apiCall('/api/auth/me', 'GET', undefined, { silent: true });
         if (res && (res.user || res.id)) {
           const u = res.user || res;
           const sub = res.subscriptionStatus;
@@ -385,12 +441,27 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     window.addEventListener('focus', refreshUserSilent);
-    // OPT-001: Polling at 2-minute interval (plus immediate 'focus' event) prevents request explosion across multiple tabs/users
-    const intervalId = setInterval(refreshUserSilent, 120000);
+    // OPT-001: Polling at 5-minute interval (with document.hidden guard & window focus event) prevents server overload on Free Tier
+    const intervalId = setInterval(refreshUserSilent, 300000);
+
+    const handleGlobalUserSync = (e: any) => {
+      if (e?.detail) {
+        setState(s => ({
+          ...s,
+          currentUser: { ...(s.currentUser || {}), ...e.detail }
+        }));
+      }
+    };
+    window.addEventListener(GLOBAL_SYNC_EVENT, handleGlobalUserSync);
 
     const handleTabSyncMessage = (event: MessageEvent) => {
       if (event.data?.type === 'LIFEOS_MUTATION_SYNC') {
         loadAllData();
+      } else if (event.data?.type === 'LIFEOS_USER_SYNC' && event.data?.payload) {
+        setState(s => ({
+          ...s,
+          currentUser: { ...(s.currentUser || {}), ...event.data.payload }
+        }));
       }
     };
     if (tabSyncChannel) {
@@ -421,6 +492,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       window.removeEventListener('lifeos:session-expired', handleSessionExpired);
       window.removeEventListener('focus', refreshUserSilent);
       window.removeEventListener('online', handleOnline);
+      window.removeEventListener(GLOBAL_SYNC_EVENT, handleGlobalUserSync);
       if (tabSyncChannel) {
         tabSyncChannel.removeEventListener('message', handleTabSyncMessage);
       }
@@ -513,27 +585,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const login = async (user: User) => {
+    const unifiedUser = normalizeUserStats(user);
     try {
-      localStorage.setItem('lifeos_swr_user', JSON.stringify(user));
+      localStorage.setItem('lifeos_swr_user', JSON.stringify(unifiedUser));
+      localStorage.setItem('lifeos_user', JSON.stringify(unifiedUser));
     } catch (e) {}
 
-    const userRole = (user.role || '').toUpperCase();
+    const userRole = (unifiedUser.role || '').toUpperCase();
     const isAdmin = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
-    const initialSub: UserSubscriptionStatus | null = isAdmin
-      ? {
-          hasAccess: true,
-          lifecycleStatus: 'ACTIVE',
-          planId: 'ADMIN',
-          planType: 'TEAM',
-          planName: 'Quản trị viên Hệ thống',
-          status: 'ACTIVE',
-          remainingDays: 9999,
-          role: user.role,
-          isTrial: false,
-          isTrialActive: false,
-          isTrialExpired: false
-        }
-      : null;
+    // 100% Free-to-use mode: Permanent Full Access for all users
+    const initialSub: UserSubscriptionStatus = {
+      hasAccess: true,
+      lifecycleStatus: 'ACTIVE',
+      planId: 'FREE_FULL_ACCESS',
+      planType: 'PERSONAL',
+      planName: 'Trải nghiệm Miễn phí (Full Access)',
+      status: 'ACTIVE',
+      remainingDays: 99999,
+      role: unifiedUser.role,
+      isTrial: false,
+      isTrialActive: false,
+      isTrialExpired: false,
+      isGlobalFreeMode: true
+    };
 
     if (initialSub) {
       try {
@@ -545,7 +619,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setState(s => ({
       ...defaultState,
       isAuthenticated: true,
-      currentUser: user,
+      currentUser: unifiedUser,
       subscriptionStatus: initialSub || s.subscriptionStatus,
       hasCompletedOnboarding: !!user.onboardingCompleted,
       theme: s.theme,
@@ -559,6 +633,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     ]).catch(err => {
       console.warn("Background login revalidation warning:", err);
     });
+
+    // Real Security Event Notification: Successful Login
+    try {
+      unifiedNotificationEngine.notifyAuthSecurity('LOGIN_SUCCESS', unifiedUser.email, unifiedUser.name).catch(() => {});
+    } catch (e) {}
   };
 
   const logout = () => {
@@ -566,8 +645,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       localStorage.removeItem('token');
       localStorage.removeItem('lifeos_swr_user');
+      localStorage.removeItem('lifeos_current_view');
       localStorage.removeItem('lifeos_swr_collections');
       localStorage.removeItem('lifeos_swr_sub');
+      sessionStorage.clear();
+      window.history.replaceState(null, '', '/');
     } catch (e) {}
     setState(s => ({
       ...defaultState,
@@ -645,6 +727,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const setCurrentView = (view: ViewState) => {
+    try {
+      localStorage.setItem('lifeos_current_view', view);
+    } catch {}
     setState(s => ({ ...s, currentView: view, isMobileMenuOpen: false }));
     try {
       if (typeof window !== 'undefined' && window.history && window.history.replaceState) {
@@ -677,6 +762,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const _add = async (collection: string, item: any, stateKey: keyof AppState) => {
+    // Sanitize item & guard against whitespace-only mutations (Scenario 3)
+    if (item && typeof item === 'object') {
+      if ('title' in item && typeof item.title === 'string' && !item.title.trim()) {
+        throw new Error('Tiêu đề không được để trống hoặc chỉ chứa dấu cách.');
+      }
+      if ('name' in item && typeof item.name === 'string' && !item.name.trim()) {
+        throw new Error('Tên không được để trống hoặc chỉ chứa dấu cách.');
+      }
+    }
+
     const tempId = item.id || `tmp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const tempItem = { ...item, id: tempId };
     
@@ -684,17 +779,26 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setState(s => ({ ...s, [stateKey]: [...(s[stateKey] as any[]), tempItem] }));
 
     let resultItem = tempItem;
-    await withSync(async () => {
-      const created = await apiCall(`/api/data/${collection}`, 'POST', item);
-      if (created && created.id) {
-        resultItem = created;
-        setState(s => ({
-          ...s,
-          [stateKey]: (s[stateKey] as any[]).map((i: any) => i.id === tempId ? created : i)
-        }));
-      }
-    }, 'Thêm thành công');
-    return resultItem;
+    try {
+      await withSync(async () => {
+        const created = await apiCall(`/api/data/${collection}`, 'POST', item);
+        if (created && created.id) {
+          resultItem = created;
+          setState(s => ({
+            ...s,
+            [stateKey]: (s[stateKey] as any[]).map((i: any) => i.id === tempId ? created : i)
+          }));
+        }
+      }, 'Thêm thành công');
+      return resultItem;
+    } catch (err) {
+      // Automatic optimistic rollback on server failure / network chaos (Scenario 2)
+      setState(s => ({
+        ...s,
+        [stateKey]: (s[stateKey] as any[]).filter((i: any) => i.id !== tempId)
+      }));
+      throw err;
+    }
   };
   
   const _update = async (collection: string, id: string, updates: any, stateKey: keyof AppState) => {
@@ -703,15 +807,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
 
-    // Instant optimistic update
-    setState(s => ({
-      ...s,
-      [stateKey]: (s[stateKey] as any[]).map((item: any) => item.id === id ? { ...item, ...updates } : item)
-    }));
+    // In-flight mutation locking against spam clicks & race conditions (Scenario 1)
+    const mutationLockKey = `update:${collection}:${id}`;
+    if (activeItemMutations.current.has(mutationLockKey)) {
+      return;
+    }
+    activeItemMutations.current.add(mutationLockKey);
 
-    await withSync(async () => {
-      await apiCall(`/api/data/${collection}/${id}`, 'PUT', updates);
-    }, 'Cập nhật thành công');
+    let previousItem: any = null;
+    setState(s => {
+      previousItem = (s[stateKey] as any[]).find((item: any) => item.id === id);
+      return {
+        ...s,
+        [stateKey]: (s[stateKey] as any[]).map((item: any) => item.id === id ? { ...item, ...updates } : item)
+      };
+    });
+
+    try {
+      await withSync(async () => {
+        await apiCall(`/api/data/${collection}/${id}`, 'PUT', updates);
+      }, 'Cập nhật thành công');
+    } catch (err) {
+      // Automatic rollback to exact previous state on failure (Scenario 2)
+      if (previousItem) {
+        setState(s => ({
+          ...s,
+          [stateKey]: (s[stateKey] as any[]).map((item: any) => item.id === id ? previousItem : item)
+        }));
+      }
+      throw err;
+    } finally {
+      activeItemMutations.current.delete(mutationLockKey);
+    }
   };
   
   const _delete = async (collection: string, id: string, stateKey: keyof AppState) => {
@@ -720,15 +847,38 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       return;
     }
 
-    // Instant optimistic delete
-    setState(s => ({
-      ...s,
-      [stateKey]: (s[stateKey] as any[]).filter((item: any) => item.id !== id)
-    }));
+    // In-flight mutation locking against double-delete spam (Scenario 1)
+    const mutationLockKey = `delete:${collection}:${id}`;
+    if (activeItemMutations.current.has(mutationLockKey)) {
+      return;
+    }
+    activeItemMutations.current.add(mutationLockKey);
 
-    await withSync(async () => {
-      await apiCall(`/api/data/${collection}/${id}`, 'DELETE');
-    }, 'Xóa thành công');
+    let previousItem: any = null;
+    setState(s => {
+      previousItem = (s[stateKey] as any[]).find((item: any) => item.id === id);
+      return {
+        ...s,
+        [stateKey]: (s[stateKey] as any[]).filter((item: any) => item.id !== id)
+      };
+    });
+
+    try {
+      await withSync(async () => {
+        await apiCall(`/api/data/${collection}/${id}`, 'DELETE');
+      }, 'Xóa thành công');
+    } catch (err) {
+      // Automatic rollback to restore deleted item if server rejected (Scenario 2)
+      if (previousItem) {
+        setState(s => ({
+          ...s,
+          [stateKey]: [...(s[stateKey] as any[]), previousItem]
+        }));
+      }
+      throw err;
+    } finally {
+      activeItemMutations.current.delete(mutationLockKey);
+    }
   };
 
   // Generate dynamic CRUD functions
@@ -783,6 +933,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           console.warn('Syncing finance accounts after transaction add:', syncErr);
         }
       }
+
+      // Luồng 1 [Lịch Thời Gian Biểu & Deadline]: Tự động gửi thông báo khi thêm lịch/nhiệm vụ
+      if (col.name === 'tasks' && item) {
+        unifiedNotificationEngine.dispatch({
+          category: 'GENERAL',
+          title: `Nhiệm vụ mới: ${item.title || 'Nhiệm vụ'} 📌`,
+          message: item.dueDate
+            ? `Hạn chót: ${item.dueDate} ${item.dueTime || ''}. Hệ thống sẽ tự động quét và nhắc trước 2h, 1h và 30m.`
+            : 'Nhiệm vụ mới đã được lưu thành công.',
+          link: '/?tab=tasks',
+          suppressEmail: true,
+          playAudio: false
+        }).catch(() => {});
+      } else if (col.name === 'events' && item) {
+        unifiedNotificationEngine.dispatch({
+          category: 'SCHEDULE_2H',
+          title: `Lịch mới: ${item.title || 'Lịch hẹn'} 📅`,
+          message: `Đã xếp lịch lúc ${item.startTime || ''} ${item.date || ''}. Trợ lý sẽ tự động báo trước 2h, 1h và 30m.`,
+          link: '/?tab=calendar',
+          suppressEmail: true,
+          playAudio: false
+        }).catch(() => {});
+      }
       return res;
     };
 
@@ -803,6 +976,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         } catch (syncErr) {
           console.warn('Syncing finance accounts after transaction update:', syncErr);
         }
+      }
+
+      // Luồng 1 [Lịch Thời Gian Biểu & Deadline]: Tự động gửi thông báo khi cập nhật
+      if (col.name === 'tasks' && updates) {
+        if (updates.status === 'Hoàn thành' || updates.status === 'Done' || updates.status === 'Completed') {
+          recordUserActivity('task', 0);
+          unifiedNotificationEngine.dispatch({
+            category: 'GENERAL',
+            title: `Hoàn thành nhiệm vụ: ${updates.title || 'Nhiệm vụ'} 🎉`,
+            message: 'Chúc mừng bạn đã hoàn thành thêm một mục tiêu trong danh sách!',
+            link: '/?tab=tasks',
+            suppressEmail: true,
+            playAudio: true
+          }).catch(() => {});
+        }
+      } else if (col.name === 'events' && updates) {
+        unifiedNotificationEngine.dispatch({
+          category: 'SCHEDULE_1H',
+          title: `Cập nhật lịch: ${updates.title || 'Lịch hẹn'} 📅`,
+          message: 'Thời gian biểu đã được cập nhật thành công.',
+          link: '/?tab=calendar',
+          suppressEmail: true,
+          playAudio: false
+        }).catch(() => {});
       }
       return res;
     };
@@ -846,8 +1043,57 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
   
-  const completeTaskWithLinks = async (id: string) => { await _update('tasks', id, {status: "Hoàn thành"}, 'tasks'); };
+  const completeTaskWithLinks = async (id: string) => { 
+    await _update('tasks', id, {status: "Hoàn thành"}, 'tasks'); 
+    recordUserActivity('task', 0);
+  };
   const toggleHabit = async (id: string) => {
+    const todayStr = formatLocalDateKey(new Date());
+    let previousHabits: Habit[] = [];
+    let previousRecords: HabitRecord[] = [];
+
+    // Instant optimistic update across all views (0ms response)
+    setState(s => {
+      previousHabits = s.habits || [];
+      previousRecords = s.habitRecords || [];
+      const habit = (s.habits || []).find(h => h.id === id);
+      if (!habit) return s;
+
+      const isCompleted = habit.completedDates?.includes(todayStr) ||
+        (s.habitRecords || []).some(r => r.habitId === id && r.date === todayStr && r.status === 'Completed');
+
+      if (!isCompleted) {
+        recordUserActivity('habit', 0);
+      }
+
+      const nextDates = isCompleted
+        ? (habit.completedDates || []).filter(d => d !== todayStr)
+        : [...(habit.completedDates || []), todayStr];
+
+      const nextStreak = isCompleted ? Math.max(0, (habit.streak ?? 0) - 1) : (habit.streak ?? 0) + 1;
+
+      const updatedHabits = (s.habits || []).map(h => 
+        h.id === id ? { ...h, completedDates: nextDates, streak: nextStreak } : h
+      );
+
+      const updatedRecords = (s.habitRecords || []).filter(r => !(r.habitId === id && r.date === todayStr));
+      if (!isCompleted) {
+        updatedRecords.push({
+          id: `hr_${Date.now()}_${id}`,
+          habitId: id,
+          date: todayStr,
+          status: 'Completed',
+          actualValue: habit.target || 1
+        });
+      }
+
+      return {
+        ...s,
+        habits: updatedHabits,
+        habitRecords: updatedRecords
+      };
+    });
+
     try {
       const res = await apiCall(`/api/habits/${id}/toggle`, 'POST');
       if (res && res.habit) {
@@ -856,8 +1102,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           habits: (s.habits || []).map(h => h.id === id ? { ...h, ...res.habit } : h)
         }));
       }
+      if (tabSyncChannel) {
+        try {
+          tabSyncChannel.postMessage({ type: 'LIFEOS_MUTATION_SYNC', timestamp: Date.now() });
+        } catch {}
+      }
     } catch (e) {
       console.error('Failed to toggle habit:', e);
+      // Rollback on network failure
+      setState(s => ({
+        ...s,
+        habits: previousHabits,
+        habitRecords: previousRecords
+      }));
     }
   };
   const removeFromCart = async (id: string) => _delete('cart', id, 'cart');
@@ -868,10 +1125,40 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     try {
       await apiCall('/api/auth/profile', 'PUT', data);
       setState(s => ({ ...s, currentUser: { ...s.currentUser, ...data } as User }));
+      try {
+        unifiedNotificationEngine.notifyAuthSecurity(
+          'PROFILE_UPDATED',
+          state.currentUser?.email,
+          data.name || state.currentUser?.name
+        ).catch(() => {});
+      } catch (e) {}
     } catch (e) {
       console.error(e);
       throw e;
     }
+  };
+
+  const addNotification = (item: Partial<AppNotification> & { title: string; message: string }) => {
+    const newNotif: AppNotification = {
+      id: item.id || `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      userId: state.currentUser?.id || 'anonymous',
+      title: item.title,
+      message: item.message,
+      content: item.message,
+      type: item.type || 'info',
+      category: item.category || 'GENERAL',
+      link: item.link || item.actionUrl,
+      actionUrl: item.actionUrl || item.link,
+      actionLabel: item.actionLabel,
+      read: false,
+      readAt: null,
+      metadata: item.metadata,
+      createdAt: item.createdAt || new Date().toISOString()
+    };
+    setState(s => ({
+      ...s,
+      notifications: [newNotif, ...(s.notifications || [])]
+    }));
   };
 
   const clearAllNotifications = async () => {
@@ -1002,98 +1289,115 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setState(s => ({ ...s, currentView: 'subscription' }));
   };
 
+  // Compute goal progress dynamically once per state change, not on every component invocation
+  const computedGoals = React.useMemo(() => {
+    const isTaskDone = (status?: string | null) => {
+      if (!status) return false;
+      const s = status.toLowerCase();
+      return s === 'hoàn thành' || s === 'hoan thanh' || s === 'completed' || s === 'done' || s === 'đã xong';
+    };
+
+    return (state.goals || []).map(g => {
+      let calcProgress = g.progress;
+      if (g.calcMode === 'task_based') {
+        const gTasks = (state.tasks || []).filter(t => t.linkedGoalId === g.id);
+        if (gTasks.length > 0) {
+          const completed = gTasks.filter(t => isTaskDone(t.status)).length;
+          calcProgress = Math.round((completed / gTasks.length) * 100);
+        } else {
+          calcProgress = 0;
+        }
+      } else if (g.calcMode === 'milestone_based' && g.milestones && g.milestones.length > 0) {
+        const total = g.milestones.reduce((acc, m) => acc + (m.progress || 0), 0);
+        calcProgress = Math.round(total / g.milestones.length);
+      }
+      return { ...g, progress: Math.min(100, Math.max(0, calcProgress || 0)) };
+    });
+  }, [state.goals, state.tasks]);
+
+  const contextValue = React.useMemo(() => ({
+    ...state,
+    goals: computedGoals,
+    setLanguage: (lang: string) => {
+      try { localStorage.setItem('lifeos_lang', lang); } catch (e) {}
+      setState(s => ({ ...s, language: lang }));
+    },
+    setTheme: (newTheme: 'light' | 'dark') => {
+      try { localStorage.setItem('lifeos_theme', newTheme); } catch (e) {}
+      if (typeof document !== 'undefined') {
+        if (newTheme === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }
+      setState(s => ({ ...s, theme: newTheme }));
+    },
+    toggleMobileMenu: () => {
+      setState(s => ({ ...s, isMobileMenuOpen: !s.isMobileMenuOpen }));
+    },
+    refreshLanguages: async () => {
+      try {
+        const res = await apiCall('/api/languages');
+        if (res && res.success && Array.isArray(res.languages)) {
+          setState(s => ({
+            ...s,
+            activeLanguages: res.languages,
+            defaultLanguage: res.defaultLanguage || 'vi'
+          }));
+        }
+      } catch (e) {}
+    },
+    clearSyncState: () => setState(s => ({ ...s, syncState: "idle", syncMessage: "" })),
+    login,
+    logout,
+    clearWorkspace,
+    loadAllData,
+    completeOnboarding,
+    resetOnboarding,
+    setOnboardingPreferences,
+    updateProfile,
+    upgradePlan,
+    fetchSubscriptionStatus,
+    checkout,
+    addNotification,
+    clearAllNotifications,
+    deleteNotification,
+    deleteAllNotifications,
+    setCurrentView,
+    setWorkspaceMode,
+    toggleCommand,
+    selectDecisionOption,
+    convertDecisionToExecution,
+    toggleDecisionRule,
+    toggleAutomationRule,
+    approveAutomationHistory,
+    rejectAutomationHistory,
+    addAutomationHistoryEntry,
+    toggleHabit,
+    ...dynamicMethods,
+  }), [state, computedGoals]);
+
+  _latestAppContextValue = contextValue;
+
   return (
-    <AppContext.Provider
-      value={{
-        ...state,
-        setLanguage: (lang: string) => {
-          try { localStorage.setItem('lifeos_lang', lang); } catch (e) {}
-          setState(s => ({ ...s, language: lang }));
-        },
-        setTheme: (newTheme: 'light' | 'dark') => {
-          try { localStorage.setItem('lifeos_theme', newTheme); } catch (e) {}
-          if (typeof document !== 'undefined') {
-            if (newTheme === 'dark') {
-              document.documentElement.classList.add('dark');
-            } else {
-              document.documentElement.classList.remove('dark');
-            }
-          }
-          setState(s => ({ ...s, theme: newTheme }));
-        },
-        toggleMobileMenu: () => {
-          setState(s => ({ ...s, isMobileMenuOpen: !s.isMobileMenuOpen }));
-        },
-        refreshLanguages: async () => {
-          try {
-            const res = await apiCall('/api/languages');
-            if (res && res.success && Array.isArray(res.languages)) {
-              setState(s => ({
-                ...s,
-                activeLanguages: res.languages,
-                defaultLanguage: res.defaultLanguage || 'vi'
-              }));
-            }
-          } catch (e) {}
-        },
-        clearSyncState: () => setState(s => ({ ...s, syncState: "idle", syncMessage: "" })),
-        login,
-        logout,
-        clearWorkspace,
-        loadAllData,
-        completeOnboarding,
-        resetOnboarding,
-        setOnboardingPreferences,
-        updateProfile,
-        upgradePlan,
-        fetchSubscriptionStatus,
-        checkout,
-        clearAllNotifications,
-        deleteNotification,
-        deleteAllNotifications,
-        setCurrentView,
-        setWorkspaceMode,
-        toggleCommand,
-        selectDecisionOption,
-        convertDecisionToExecution,
-        toggleDecisionRule,
-        toggleAutomationRule,
-        approveAutomationHistory,
-        rejectAutomationHistory,
-        addAutomationHistoryEntry,
-        toggleHabit,
-        ...dynamicMethods,
-        
-      }}
-    >
+    <AppContext.Provider value={contextValue}>
       {children}
     </AppContext.Provider>
   );
 };
+
+let _latestAppContextValue: any = null;
 
 export const useAppStore = () => {
   const context = useContext(AppContext);
   if (context === undefined) {
     throw new Error('useAppStore must be used within an AppProvider');
   }
-  
-  // Compute goal progress dynamically here so all components get it
-  const computedGoals = (context.goals || []).map(g => {
-    let calcProgress = g.progress;
-    if (g.calcMode === 'task_based') {
-      const gTasks = (context.tasks || []).filter(t => t.linkedGoalId === g.id);
-      if (gTasks.length > 0) {
-        const completed = gTasks.filter(t => t.status === 'Hoàn thành').length;
-        calcProgress = Math.round((completed / gTasks.length) * 100);
-      } else {
-        calcProgress = 0;
-      }
-    } else if (g.calcMode === 'milestone_based' && g.milestones && g.milestones.length > 0) {
-      const total = g.milestones.reduce((acc, m) => acc + (m.progress || 0), 0);
-      calcProgress = Math.round(total / g.milestones.length);
-    }
-    return { ...g, progress: calcProgress };
-  });
+  return context;
+};
 
-  return { ...context, goals: computedGoals };
+// Global non-React accessor for schedulers, workers and background services
+(useAppStore as any).getState = () => {
+  return _latestAppContextValue || {};
 };

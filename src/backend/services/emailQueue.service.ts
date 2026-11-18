@@ -269,6 +269,59 @@ class EmailQueueService {
       };
     }
 
+    // Branch 0: Google Apps Script Webhook (Port 443 HTTPS - 100% Free & No SMTP block)
+    if (config.serviceType === 'webhook' && config.webhookUrl) {
+      try {
+        const response = await fetch(config.webhookUrl.trim(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            recipient: item.recipient,
+            subject: item.subject,
+            htmlBody: item.htmlBody,
+            eventType: item.eventType,
+            timestamp: new Date().toISOString()
+          })
+        });
+        if (response.ok) {
+          return { success: true };
+        }
+        const errText = await response.text().catch(() => '');
+        return { success: false, error: `Google Apps Script Webhook trả về lỗi: ${response.status} ${errText}` };
+      } catch (webhookErr: any) {
+        return { success: false, error: `Không thể kết nối Webhook: ${webhookErr.message}` };
+      }
+    }
+
+    // Branch 0.5: EmailJS API
+    if (config.serviceType === 'emailjs' && config.emailjsServiceId && config.emailjsTemplateId && config.emailjsPublicKey) {
+      try {
+        const payload: any = {
+          service_id: config.emailjsServiceId,
+          template_id: config.emailjsTemplateId,
+          user_id: config.emailjsPublicKey,
+          template_params: {
+            to_email: item.recipient,
+            subject: item.subject,
+            html_content: item.htmlBody
+          }
+        };
+        if (config.emailjsPrivateKey) payload.accessToken = config.emailjsPrivateKey;
+        const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        if (response.ok) {
+          return { success: true };
+        }
+        const errText = await response.text().catch(() => '');
+        return { success: false, error: `EmailJS API lỗi: ${response.status} ${errText}` };
+      } catch (ejsErr: any) {
+        return { success: false, error: `EmailJS kết nối thất bại: ${ejsErr.message}` };
+      }
+    }
+
     // Branch 1: Resend HTTP API (Port 443 HTTPS)
     if (config.serviceType === 'resend') {
       const res = await gmailService.sendViaResend(config, item.recipient, item.subject, item.htmlBody);

@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { useAppStore } from '../../lib/store';
 import { soundEngine } from '../../lib/soundEngine';
+import { pronunciationService } from '../../lib/pronunciationService';
 import { triggerConfetti } from '../../lib/confetti';
 import {
   X, Volume2, Sparkles, Check, RotateCcw,
@@ -17,6 +20,18 @@ interface GenZVocabStudyModalProps {
 }
 
 export function GenZVocabStudyModal({ isOpen, onClose, initialMode = 'flashcard' }: GenZVocabStudyModalProps) {
+  useBodyScrollLock(isOpen);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useEffect(() => {
+    if (!(isOpen)) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   const { addXp, addCoins } = useAppStore() as any;
   const [activeMode, setActiveMode] = useState<'flashcard' | 'cloze' | 'speed_match' | 'dictation'>(initialMode);
   const [wordList, setWordList] = useState<System3000Word[]>([]);
@@ -54,11 +69,10 @@ export function GenZVocabStudyModal({ isOpen, onClose, initialMode = 'flashcard'
   if (!isOpen || !currentWord) return null;
 
   const playSpeech = (text?: string) => {
-    const term = text || currentWord.term;
-    if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      const utter = new SpeechSynthesisUtterance(term);
-      utter.lang = 'en-US';
-      window.speechSynthesis.speak(utter);
+    if (text) {
+      pronunciationService.speak(text, { languageId: currentWord.languageId || 'en' });
+    } else {
+      pronunciationService.speak(currentWord);
     }
   };
 
@@ -169,8 +183,19 @@ export function GenZVocabStudyModal({ isOpen, onClose, initialMode = 'flashcard'
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in">
-      <div className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in cursor-default"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-xl bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
+      >
         {/* Header with Mode Switcher */}
         <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-850/50">
           <div className="flex items-center gap-2">
@@ -245,55 +270,85 @@ export function GenZVocabStudyModal({ isOpen, onClose, initialMode = 'flashcard'
 
         {/* Mode Body */}
         <div className="p-5 overflow-y-auto flex-1">
-          {/* MODE 1: 3D FLASHCARD */}
+          {/* MODE 1: 3D FLASHCARD (SPATIAL 180° FLIP DECK) */}
           {activeMode === 'flashcard' && (
             <div className="space-y-4">
-              <div
+              <div 
+                className="relative w-full max-w-md mx-auto h-[280px] cursor-pointer select-none group"
+                style={{ perspective: '1200px' }}
                 onClick={() => { setIsFlipped(!isFlipped); soundEngine.playPop(); }}
-                className="relative rounded-3xl border border-slate-200/80 dark:border-slate-800 bg-gradient-to-br from-slate-50 to-indigo-50/20 dark:from-slate-850 dark:to-indigo-950/20 p-8 min-h-[260px] flex flex-col items-center justify-center text-center cursor-pointer shadow-sm hover:shadow-md transition-all select-none group"
               >
-                {!isFlipped ? (
-                  /* Front Side */
-                  <div className="space-y-3 animate-in fade-in duration-150">
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-200/60 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                <motion.div
+                  animate={{ rotateY: isFlipped ? 180 : 0 }}
+                  transition={{ duration: 0.6, type: 'spring', stiffness: 240, damping: 22 }}
+                  style={{ transformStyle: 'preserve-3d' }}
+                  className="w-full h-full relative"
+                >
+                  {/* FRONT FACE (Term, Phonetic, POS) */}
+                  <div 
+                    style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
+                    className="absolute inset-0 rounded-3xl border border-slate-200/80 dark:border-white/[0.08] bg-white/95 dark:bg-[#0B1120] backdrop-blur-xl p-8 flex flex-col items-center justify-center text-center shadow-md group-hover:shadow-xl group-hover:border-emerald-500/40 transition-all"
+                  >
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
+                    <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-white/[0.06] text-slate-600 dark:text-slate-300 border border-slate-200/60 dark:border-white/[0.04]">
                       {currentWord.pos || 'vocabulary'}
                     </span>
-                    <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white capitalize tracking-tight">
+                    <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white capitalize tracking-tight mt-3">
                       {currentWord.term}
                     </h2>
-                    <p className="text-sm font-mono text-emerald-600 dark:text-emerald-400">
+                    <p className="text-sm font-mono text-emerald-600 dark:text-emerald-400 mt-1">
                       {currentWord.phonetic || `/${currentWord.term}/`}
                     </p>
-                    <p className="text-xs text-slate-400 pt-4 flex items-center justify-center gap-1">
-                      <RotateCcw className="w-3 h-3" /> Chạm để lật mặt sau
+                    <p className="text-xs text-slate-400 pt-5 flex items-center justify-center gap-1.5 font-medium">
+                      <RotateCcw className="w-3.5 h-3.5 text-emerald-500" /> Chạm để lật mặt sau
                     </p>
+
+                    <button
+                      type="button"
+                      onClick={e => {
+                        e.stopPropagation();
+                        playSpeech();
+                      }}
+                      className="absolute bottom-4 right-4 p-2.5 rounded-full bg-slate-100 dark:bg-white/[0.08] text-slate-700 dark:text-slate-200 shadow-sm hover:scale-110 active:scale-95 transition-all border border-slate-200/50 dark:border-white/[0.06]"
+                      title="Phát âm"
+                    >
+                      <Volume2 className="w-4 h-4 text-emerald-500" />
+                    </button>
                   </div>
-                ) : (
-                  /* Back Side */
-                  <div className="space-y-3 animate-in fade-in duration-150">
-                    <p className="text-xs font-bold text-indigo-500 uppercase tracking-wider">
-                      Định nghĩa tiếng Việt
+
+                  {/* BACK FACE (Meaning, Context Sentence) */}
+                  <div 
+                    style={{ 
+                      backfaceVisibility: 'hidden', 
+                      WebkitBackfaceVisibility: 'hidden',
+                      transform: 'rotateY(180deg)'
+                    }}
+                    className="absolute inset-0 rounded-3xl border border-emerald-500/30 dark:border-emerald-400/20 bg-gradient-to-br from-white via-slate-50 to-emerald-50/20 dark:from-[#0B1120] dark:via-[#0F172A] dark:to-emerald-950/20 backdrop-blur-xl p-8 flex flex-col items-center justify-center text-center shadow-md group-hover:shadow-xl transition-all"
+                  >
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent" />
+                    <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider font-mono">
+                      Ý NGHĨA TIẾNG VIỆT
                     </p>
-                    <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white leading-relaxed">
+                    <p className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white leading-relaxed mt-2">
                       {currentWord.meaning}
                     </p>
-                    <div className="p-3 rounded-2xl bg-white/80 dark:bg-slate-800/80 border border-slate-200/50 dark:border-slate-700/50 text-xs sm:text-sm text-slate-600 dark:text-slate-300 italic">
+                    <div className="mt-3 p-3 rounded-2xl bg-slate-100/80 dark:bg-black/30 border border-slate-200/50 dark:border-white/[0.06] text-xs sm:text-sm text-slate-600 dark:text-slate-300 italic max-w-sm">
                       &ldquo;The {currentWord.term} plays a key role in our daily routine.&rdquo;
                     </div>
-                  </div>
-                )}
 
-                <button
-                  type="button"
-                  onClick={e => {
-                    e.stopPropagation();
-                    playSpeech();
-                  }}
-                  className="absolute bottom-4 right-4 p-2.5 rounded-full bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 shadow-sm hover:scale-110 active:scale-95 transition-all"
-                  title="Phát âm"
-                >
-                  <Volume2 className="w-4 h-4" />
-                </button>
+                    <button
+                      type="button"
+                      onClick={e => {
+                        e.stopPropagation();
+                        playSpeech();
+                      }}
+                      className="absolute bottom-4 right-4 p-2.5 rounded-full bg-slate-100 dark:bg-white/[0.08] text-slate-700 dark:text-slate-200 shadow-sm hover:scale-110 active:scale-95 transition-all border border-slate-200/50 dark:border-white/[0.06]"
+                      title="Phát âm"
+                    >
+                      <Volume2 className="w-4 h-4 text-emerald-500" />
+                    </button>
+                  </div>
+                </motion.div>
               </div>
 
               {/* FSRS Rating Buttons */}

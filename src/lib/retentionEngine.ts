@@ -181,7 +181,15 @@ export const retentionEngine = {
   saveProfile(profile: RetentionProfile, userId?: string) {
     try {
       const key = this.getStorageKey(userId);
-      localStorage.setItem(key, JSON.stringify(profile));
+      const serialized = JSON.stringify(profile);
+      const existing = localStorage.getItem(key);
+      if (existing === serialized) {
+        return;
+      }
+      localStorage.setItem(key, serialized);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('lifeos-progression-updated', { detail: profile }));
+      }
     } catch (e) {
       console.warn('Failed to save retention profile:', e);
     }

@@ -5,7 +5,7 @@ import { Target, Plus, Edit3, Trash2, Calendar } from 'lucide-react';
 interface StudyExamsTabProps {
   onNewExam: () => void;
   onEditExam: (exam: any) => void;
-  onDeleteExam: (id: string) => void;
+  onDeleteExam: (exam: any) => void;
   onCreateStudyTask: (exam: any) => void;
 }
 
@@ -27,7 +27,7 @@ export function StudyExamsTab({
         <button 
           type="button" 
           onClick={onNewExam}
-          className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm rounded-xl transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+          className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs sm:text-sm rounded-xl transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
         >
           <Plus className="w-4 h-4" /> Thêm Kỳ thi
         </button>
@@ -41,7 +41,7 @@ export function StudyExamsTab({
           <button 
             type="button" 
             onClick={onNewExam}
-            className="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl hover:bg-blue-700 transition-colors cursor-pointer"
+            className="px-4 py-2 bg-blue-600 text-white font-bold text-xs rounded-xl hover:bg-blue-700 transition-colors cursor-pointer active:scale-95"
           >
             Thêm ngay
           </button>
@@ -54,7 +54,7 @@ export function StudyExamsTab({
             const daysLeft = examDateVal ? Math.ceil((new Date(examDateVal).getTime() - Date.now()) / (1000 * 3600 * 24)) : null;
             
             return (
-              <div key={exam.id} className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between space-y-4">
+              <div key={exam.id} className="bg-white dark:bg-[#141E30] p-5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs flex flex-col justify-between space-y-4">
                 <div>
                   <div className="flex justify-between items-start mb-2">
                     <span className="px-2.5 py-1 rounded-lg bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
@@ -73,18 +73,16 @@ export function StudyExamsTab({
                       <button 
                         type="button" 
                         onClick={() => onEditExam(exam)}
-                        className="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors"
+                        className="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors cursor-pointer"
                         title="Sửa"
                       >
                         <Edit3 className="w-3.5 h-3.5" />
                       </button>
                       <button 
                         type="button" 
-                        onClick={() => {
-                          if (confirm(`Bạn có chắc muốn xóa kỳ thi "${exam.title}"?`)) onDeleteExam(exam.id);
-                        }}
-                        className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
-                        title="Xóa"
+                        onClick={() => onDeleteExam(exam)}
+                        className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors cursor-pointer hover:bg-rose-50 dark:hover:bg-rose-950/40"
+                        title="Xóa kỳ thi (có hoàn tác)"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -117,15 +115,13 @@ export function StudyExamsTab({
                       </span>
                     </div>
                   )}
-                </div>
-                
-                <div className="pt-2">
-                  <button 
-                    type="button" 
+
+                  <button
+                    type="button"
                     onClick={() => onCreateStudyTask(exam)}
-                    className="w-full py-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white text-xs font-bold rounded-xl transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full mt-2 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-950/50 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 rounded-xl font-bold text-xs transition-colors cursor-pointer"
                   >
-                    <Plus className="w-3.5 h-3.5" /> Tạo Nhiệm Vụ Ôn Thi
+                    + Tạo Task Ôn thi trong Công việc
                   </button>
                 </div>
               </div>

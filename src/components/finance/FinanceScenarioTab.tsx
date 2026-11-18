@@ -1,5 +1,5 @@
-import React from 'react';
-import { Activity, Plus } from 'lucide-react';
+import React, { useState } from 'react';
+import { Activity, Plus, AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { useAppStore } from '../../lib/store';
 
 interface FinanceScenarioTabProps {
@@ -37,6 +37,8 @@ export const FinanceScenarioTab: React.FC<FinanceScenarioTabProps> = ({
 }) => {
   const { language } = useAppStore();
   const isVi = language === 'vi';
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const currentAccount = (financeAccounts || []).find((a: any) => a.id === selectedAccId) || (financeAccounts && financeAccounts.length > 0 ? financeAccounts[0] : null);
   const accountBalance = currentAccount ? (currentAccount.balance || 0) : 0;
@@ -101,12 +103,24 @@ export const FinanceScenarioTab: React.FC<FinanceScenarioTabProps> = ({
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     {isVi ? 'Danh mục ngân sách:' : 'Budget category:'}
                   </label>
-                  <input 
-                    type="text" 
-                    value={forecastCategory} 
-                    onChange={e => setForecastCategory(e.target.value)} 
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white" 
-                  />
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      value={forecastCategory} 
+                      onChange={e => setForecastCategory(e.target.value)} 
+                      className="w-full px-3 py-2 pr-8 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white" 
+                    />
+                    {forecastCategory && (
+                      <button
+                        type="button"
+                        onClick={() => setForecastCategory('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                        title="Xóa danh mục"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -127,12 +141,24 @@ export const FinanceScenarioTab: React.FC<FinanceScenarioTabProps> = ({
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
                     {isVi ? 'Ghi chú mục đích:' : 'Purpose note:'}
                   </label>
-                  <input 
-                    type="text" 
-                    value={forecastNote} 
-                    onChange={e => setForecastNote(e.target.value)} 
-                    className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white" 
-                  />
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      value={forecastNote} 
+                      onChange={e => setForecastNote(e.target.value)} 
+                      className="w-full px-3 py-2 pr-8 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-white" 
+                    />
+                    {forecastNote && (
+                      <button
+                        type="button"
+                        onClick={() => setForecastNote('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                        title="Xóa ghi chú"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
               
@@ -168,11 +194,39 @@ export const FinanceScenarioTab: React.FC<FinanceScenarioTabProps> = ({
                   </div>
                 )}
 
+                {errorMessage && (
+                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
+
+                {successMessage && (
+                  <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold flex items-center gap-2 animate-in fade-in">
+                    <CheckCircle2 className="w-4 h-4 shrink-0" />
+                    <span>{successMessage}</span>
+                  </div>
+                )}
+
                 <div className="pt-2">
                   <button
                     type="button"
-                    onClick={onExecuteRealTransaction}
-                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+                    onClick={() => {
+                      setErrorMessage(null);
+                      setSuccessMessage(null);
+                      if (!currentAccount) {
+                        setErrorMessage(isVi ? 'Vui lòng tạo hoặc chọn một tài khoản trước.' : 'Please create or select an account first.');
+                        return;
+                      }
+                      if (forecastAmount <= 0) {
+                        setErrorMessage(isVi ? 'Vui lòng nhập số tiền dự báo lớn hơn 0.' : 'Please enter an expense amount greater than 0.');
+                        return;
+                      }
+                      onExecuteRealTransaction();
+                      setSuccessMessage(isVi ? 'Đã ghi nhận giao dịch thành công vào tài khoản!' : 'Successfully recorded transaction into account!');
+                      setTimeout(() => setSuccessMessage(null), 4000);
+                    }}
+                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-sm transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                   >
                     <Plus className="w-4 h-4" />
                     {isVi ? 'Ghi nhận giao dịch thực tế vào tài khoản ngay' : 'Record Real Transaction into Account Now'}

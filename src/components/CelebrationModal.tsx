@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Sparkles, Trophy, Flame, CheckCircle2, X, ArrowRight } from 'lucide-react';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface CelebrationModalProps {
   title: string;
@@ -20,6 +21,9 @@ export function CelebrationModal({
   badgeIcon = '🏆',
   onClose
 }: CelebrationModalProps) {
+  useBodyScrollLock(true);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -30,12 +34,18 @@ export function CelebrationModal({
 
   return (
     <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) {
+          onClose();
+        }
       }}
       className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-200 cursor-default"
     >
       <div 
+        onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
         className="relative max-w-sm w-full bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-indigo-200/80 dark:border-indigo-800/80 shadow-2xl text-center overflow-hidden animate-in zoom-in-95 duration-200"
       >

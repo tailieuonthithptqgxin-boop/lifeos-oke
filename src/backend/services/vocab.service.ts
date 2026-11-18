@@ -112,82 +112,86 @@ export class VocabService {
 
     let progressId = progress?.id;
 
-    if (!progress) {
-      // Insert new progress
-      const inserted = await prisma.$queryRawUnsafe<any[]>(
-        `INSERT INTO vocab_word_progress (
-          id, "userId", "languageId", "wordId", term, meaning, phonetic, "partOfSpeech",
-          "memoryLevel", "repetitionCount", "easeFactor", "intervalDays", "lastReviewedAt",
-          "nextReviewAt", "correctCount", "incorrectCount", lapses, state, "createdAt", "updatedAt"
-        ) VALUES (
-          gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW(), NOW()
-        ) RETURNING id`,
-        userId,
-        languageId,
-        input.wordId,
-        input.term,
-        input.meaning,
-        input.phonetic || null,
-        input.partOfSpeech || null,
-        nextLevel,
-        nextRep,
-        nextEf,
-        nextInterval,
-        now,
-        nextReviewDate,
-        correctCount,
-        incorrectCount,
-        nextLapses,
-        nextState
-      );
-      progressId = inserted[0]?.id;
-    } else {
-      // Update existing progress
-      await prisma.$queryRawUnsafe(
-        `UPDATE vocab_word_progress SET
-          term = $1, meaning = $2, phonetic = $3, "partOfSpeech" = $4,
-          "memoryLevel" = $5, "repetitionCount" = $6, "easeFactor" = $7, "intervalDays" = $8,
-          "lastReviewedAt" = $9, "nextReviewAt" = $10, "correctCount" = $11, "incorrectCount" = $12,
-          lapses = $13, state = $14, "updatedAt" = NOW()
-        WHERE id = $15`,
-        input.term,
-        input.meaning,
-        input.phonetic || null,
-        input.partOfSpeech || null,
-        nextLevel,
-        nextRep,
-        nextEf,
-        nextInterval,
-        now,
-        nextReviewDate,
-        correctCount,
-        incorrectCount,
-        nextLapses,
-        nextState,
-        progressId
-      );
-    }
+    // Atomically persist progress update and review history log inside a database transaction with tenant ID enforcement
+    await prisma.$transaction(async (tx) => {
+      if (!progress) {
+        // Insert new progress
+        const inserted = await tx.$queryRawUnsafe<any[]>(
+          `INSERT INTO vocab_word_progress (
+            id, "userId", "languageId", "wordId", term, meaning, phonetic, "partOfSpeech",
+            "memoryLevel", "repetitionCount", "easeFactor", "intervalDays", "lastReviewedAt",
+            "nextReviewAt", "correctCount", "incorrectCount", lapses, state, "createdAt", "updatedAt"
+          ) VALUES (
+            gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW(), NOW()
+          ) RETURNING id`,
+          userId,
+          languageId,
+          input.wordId,
+          input.term,
+          input.meaning,
+          input.phonetic || null,
+          input.partOfSpeech || null,
+          nextLevel,
+          nextRep,
+          nextEf,
+          nextInterval,
+          now,
+          nextReviewDate,
+          correctCount,
+          incorrectCount,
+          nextLapses,
+          nextState
+        );
+        progressId = inserted[0]?.id;
+      } else {
+        // Update existing progress with strict multi-tenant ownership enforcement
+        await tx.$queryRawUnsafe(
+          `UPDATE vocab_word_progress SET
+            term = $1, meaning = $2, phonetic = $3, "partOfSpeech" = $4,
+            "memoryLevel" = $5, "repetitionCount" = $6, "easeFactor" = $7, "intervalDays" = $8,
+            "lastReviewedAt" = $9, "nextReviewAt" = $10, "correctCount" = $11, "incorrectCount" = $12,
+            lapses = $13, state = $14, "updatedAt" = NOW()
+          WHERE id = $15 AND "userId" = $16`,
+          input.term,
+          input.meaning,
+          input.phonetic || null,
+          input.partOfSpeech || null,
+          nextLevel,
+          nextRep,
+          nextEf,
+          nextInterval,
+          now,
+          nextReviewDate,
+          correctCount,
+          incorrectCount,
+          nextLapses,
+          nextState,
+          progressId,
+          userId
+        );
+      }
 
-    // 3. Insert Review Log
-    await prisma.$queryRawUnsafe(
-      `INSERT INTO vocab_review_logs (
-        id, "userId", "progressId", "wordId", "exerciseType", rating, "isCorrect",
-        "responseTimeMs", "memoryLevelBefore", "memoryLevelAfter", "intervalBefore", "intervalAfter", "reviewedAt"
-      ) VALUES (
-        gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW()
-      )`,
-      userId,
-      progressId,
-      input.wordId,
-      input.exerciseType,
-      input.rating,
-      isCorrect,
-      input.responseTimeMs || null,
-      memoryLevelBefore,
-      nextLevel,
-      intervalBefore,
-      nextInterval
-    );
+      // 3. Insert Review Log
+      await tx.$queryRawUnsafe(
+        `INSERT INTO vocab_review_logs (
+          id, "userId", "progressId", "wordId", "exerciseType", rating, "isCorrect",
+          "responseTimeMs", "memoryLevelBefore", "memoryLevelAfter", "intervalBefore", "intervalAfter", "reviewedAt"
+        ) VALUES (
+          gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW()
+        )`,
+        userId,
+        progressId,
+        input.wordId,
+        input.exerciseType,
+        input.rating,
+        isCorrect,
+        input.responseTimeMs || null,
+        memoryLevelBefore,
+        nextLevel,
+        intervalBefore,
+        nextInterval
+      );
+    });
 
     return {
       wordId: input.wordId,

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { 
   CompanionCharacterProfile, 
   getCharacterProfile 
@@ -60,6 +61,18 @@ export const InteractiveCompanionChatModal: React.FC<InteractiveCompanionChatMod
   onOpenSettings,
   onMoodChange
 }) => {
+  useBodyScrollLock(isOpen);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useEffect(() => {
+    if (!(isOpen)) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   const character: CompanionCharacterProfile = getCharacterProfile(settings.mascotId);
   const screenContext = companionContextEngine.getScreenContext(currentView);
 
@@ -181,8 +194,17 @@ export const InteractiveCompanionChatModal: React.FC<InteractiveCompanionChatMod
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-slate-950/40 backdrop-blur-xs animate-in fade-in duration-200">
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 bg-slate-950/40 backdrop-blur-xs animate-in fade-in duration-200 cursor-default"
+    >
       <div 
+        onClick={(e) => e.stopPropagation()}
         className="w-full max-w-lg bg-white dark:bg-slate-900 border border-[#E2E8F0] dark:border-slate-800 rounded-xl shadow-lg flex flex-col overflow-hidden max-h-[85vh] sm:max-h-[620px] transition-all"
       >
         {/* Header */}
@@ -194,6 +216,7 @@ export const InteractiveCompanionChatModal: React.FC<InteractiveCompanionChatMod
               <LiveMascotCharacter 
                 mood={isTyping ? 'thinking' : 'idle'}
                 mascotId={character.id}
+                equippedAccessoryId={settings.equippedAccessoryId}
                 size="compact"
                 showAura={false}
               />
@@ -386,13 +409,13 @@ export const InteractiveCompanionChatModal: React.FC<InteractiveCompanionChatMod
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             placeholder={`Hỏi ${character.name} về tính năng hoặc công việc...`}
-            className="flex-1 px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs sm:text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-emerald-500 font-normal"
+            className="flex-1 px-3.5 py-2 min-h-[44px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-base sm:text-sm text-slate-800 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-emerald-500 font-normal"
           />
 
           <button
             type="submit"
             disabled={!inputValue.trim() || isTyping}
-            className="p-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-xs cursor-pointer shrink-0"
+            className="p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-xs cursor-pointer shrink-0"
             title="Gửi câu hỏi"
           >
             <Send className="w-4 h-4 stroke-[2.2]" />

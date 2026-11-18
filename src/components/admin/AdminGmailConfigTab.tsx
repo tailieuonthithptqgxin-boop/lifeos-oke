@@ -3,10 +3,16 @@ import {
   Mail, RefreshCw, Check, Send, BellRing, CheckCircle2, 
   AlertCircle, KeyRound, History, CheckCheck, Eye, EyeOff, Server, 
   ShieldCheck, RotateCw, Trash2, Clock, Inbox, AlertTriangle, Layers,
-  ExternalLink, Search, Filter
+  ExternalLink, Search, Filter, X, Zap, Sparkles, Activity
 } from 'lucide-react';
 import { apiCall } from '../../lib/apiClient';
 import { GmailConfig } from './types';
+import { AdminConfirmModal } from './AdminConfirmModal';
+import { GmailPreviewModal } from '../notifications/GmailPreviewModal';
+import { scheduleReminderScheduler } from '../../lib/scheduleReminderScheduler';
+import { unifiedNotificationEngine } from '../../lib/unifiedNotificationEngine';
+import { EmailCategoryType } from '../../lib/beautifulEmailTemplate';
+import { useAppStore } from '../../lib/store';
 
 interface AdminGmailConfigTabProps {
   onShowMessage?: (msg: { text: string; type: 'success' | 'error' }) => void;
@@ -68,8 +74,31 @@ export function AdminGmailConfigTab({ onShowMessage }: AdminGmailConfigTabProps)
   const [queueStatusFilter, setQueueStatusFilter] = useState<string>('ALL');
   const [queueSearch, setQueueSearch] = useState<string>('');
   const [isLoadingQueue, setIsLoadingQueue] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isDeletingQueueItem, setIsDeletingQueueItem] = useState(false);
   const [retryingId, setRetryingId] = useState<string | null>(null);
   const [selectedPreviewItem, setSelectedPreviewItem] = useState<EmailQueueItem | null>(null);
+
+  const { currentUser } = useAppStore();
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewCategory, setPreviewCategory] = useState<EmailCategoryType>('SCHEDULE_2H');
+  const [showSimulateMenu, setShowSimulateMenu] = useState(false);
+
+  const handleSimulateMilestone = (milestone: '2h' | '1h' | '30m') => {
+    setShowSimulateMenu(false);
+    scheduleReminderScheduler.triggerSimulation(milestone);
+    const labelMap = { '2h': 'Trước 2 Giờ (120 phút)', '1h': 'Trước 1 Giờ (60 phút)', '30m': 'Khẩn Cấp Trước 30 Phút' };
+    onShowMessage?.({ text: `⚡ Đã kích hoạt giả lập Deadline "${labelMap[milestone]}"! Chuông đã reo & email đã bắn.`, type: 'success' });
+  };
+
+  const handleSendLiveReport = async () => {
+    await unifiedNotificationEngine.notifyActivityReport({
+      streakDays: currentUser?.streakDays ?? 0,
+      todayStudyMinutes: currentUser?.todayStudyMinutes ?? 0,
+      badgeLevel: currentUser?.badgeLevel || 'Tân Binh'
+    });
+    onShowMessage?.({ text: '📊 Đã tổng hợp số liệu thật và phát hành Báo Cáo Kỷ Luật thành công!', type: 'success' });
+  };
 
   const fetchGmailConfig = async () => {
     try {
@@ -197,16 +226,24 @@ export function AdminGmailConfigTab({ onShowMessage }: AdminGmailConfigTabProps)
     }
   };
 
-  const handleDeleteItem = async (id: string) => {
-    if (!window.confirm('Bạn có chắc chắn muốn xóa email này khỏi hàng đợi?')) return;
+  const handleDeleteItem = (id: string) => {
+    setDeleteConfirmId(id);
+  };
+
+  const executeDeleteItem = async () => {
+    if (!deleteConfirmId) return;
     try {
-      const res = await apiCall(`/api/admin/email-queue/${id}`, 'DELETE');
+      setIsDeletingQueueItem(true);
+      const res = await apiCall(`/api/admin/email-queue/${deleteConfirmId}`, 'DELETE');
       if (res && res.success) {
         onShowMessage?.({ text: 'Đã xóa bản ghi email khỏi hàng đợi.', type: 'success' });
+        setDeleteConfirmId(null);
         await fetchQueueData();
       }
     } catch (err: any) {
       onShowMessage?.({ text: err.message || 'Lỗi khi xóa', type: 'error' });
+    } finally {
+      setIsDeletingQueueItem(false);
     }
   };
 
@@ -268,6 +305,89 @@ export function AdminGmailConfigTab({ onShowMessage }: AdminGmailConfigTabProps)
         </div>
       </div>
 
+      {/* ------------------------------------------------------------- */}
+      {/* 1-TAP VERIFICATION & PREVIEW TOOLBAR                          */}
+      {/* ------------------------------------------------------------- */}
+      <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-rose-50/70 via-amber-50/60 to-indigo-50/70 dark:from-rose-950/30 dark:via-amber-950/20 dark:to-indigo-950/30 border border-rose-200/80 dark:border-rose-900/50 flex flex-wrap items-center justify-between gap-2.5">
+        <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-200">
+          <Sparkles className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+          <span>Trung Tâm Nghiệm Thu 1-Chạm:</span>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Nút 1: Xem trước thư Gmail */}
+          <button
+            type="button"
+            onClick={() => {
+              setPreviewCategory('SCHEDULE_2H');
+              setShowPreviewModal(true);
+            }}
+            className="min-h-[40px] px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 text-xs font-extrabold flex items-center gap-2 shadow-2xs transition-all active:scale-95 cursor-pointer"
+          >
+            <Eye className="w-3.5 h-3.5 text-rose-600" />
+            <span>👁️ Xem trước Giao diện Thư Gmail</span>
+          </button>
+
+          {/* Nút 2: Giả lập nhắc Deadline 3 mốc */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowSimulateMenu(!showSimulateMenu)}
+              className="min-h-[40px] px-3.5 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 text-xs font-black flex items-center gap-2 shadow-xs transition-all active:scale-95 cursor-pointer"
+            >
+              <Zap className="w-3.5 h-3.5 fill-slate-950" />
+              <span>⚡ Giả lập Nhắc Deadline (2h / 1h / 30m)</span>
+            </button>
+
+            {showSimulateMenu && (
+              <div className="absolute right-0 top-full mt-1.5 w-52 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-2 z-30 space-y-1 animate-in fade-in duration-100">
+                <button
+                  type="button"
+                  onClick={() => handleSimulateMilestone('2h')}
+                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-950/50 text-xs font-bold text-blue-700 dark:text-blue-300 flex items-center gap-2 cursor-pointer"
+                >
+                  <span>🦉</span>
+                  <span>Mốc 1 (Trước 2 giờ)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSimulateMilestone('1h')}
+                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-orange-50 dark:hover:bg-orange-950/50 text-xs font-bold text-orange-700 dark:text-orange-300 flex items-center gap-2 cursor-pointer"
+                >
+                  <span>⏰</span>
+                  <span>Mốc 2 (Trước 1 giờ)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSimulateMilestone('30m')}
+                  className="w-full text-left px-3 py-2 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/50 text-xs font-black text-rose-600 dark:text-rose-400 flex items-center gap-2 cursor-pointer"
+                >
+                  <span>🚨</span>
+                  <span>Mốc 3 (Trước 30m - Khẩn)</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Nút 3: Gửi báo cáo hoạt động ngay */}
+          <button
+            type="button"
+            onClick={handleSendLiveReport}
+            className="min-h-[40px] px-3.5 py-2 rounded-xl bg-white dark:bg-slate-800 hover:bg-emerald-50 dark:hover:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-bold flex items-center gap-2 shadow-2xs transition-all active:scale-95 cursor-pointer"
+          >
+            <Activity className="w-3.5 h-3.5 text-emerald-600" />
+            <span>📊 Gửi Báo Cáo Hoạt Động Ngay</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Gmail Preview Modal */}
+      <GmailPreviewModal
+        isOpen={showPreviewModal}
+        onClose={() => setShowPreviewModal(false)}
+        defaultCategory={previewCategory}
+      />
+
       {/* VIEW 1: OUTBOX QUEUE MONITOR */}
       {activeSubView === 'queue' && (
         <div className="space-y-6">
@@ -309,8 +429,18 @@ export function AdminGmailConfigTab({ onShowMessage }: AdminGmailConfigTabProps)
                   onChange={e => setQueueSearch(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && fetchQueueData()}
                   placeholder="Tìm theo người nhận, tiêu đề, loại sự kiện..."
-                  className="w-full pl-9 pr-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-rose-500"
+                  className="w-full pl-9 pr-9 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-rose-500"
                 />
+                {queueSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setQueueSearch('')}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                    title="Xóa tìm kiếm"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
               </div>
 
               <select
@@ -726,10 +856,14 @@ export function AdminGmailConfigTab({ onShowMessage }: AdminGmailConfigTabProps)
             </div>
 
             <div className="p-6 overflow-y-auto flex-1 bg-slate-50 dark:bg-slate-950">
-              <div 
-                className="bg-white rounded-2xl shadow-xs overflow-hidden"
-                dangerouslySetInnerHTML={{ __html: selectedPreviewItem.htmlBody }} 
-              />
+              <div className="bg-white rounded-2xl shadow-xs overflow-hidden border border-slate-200 dark:border-slate-800 min-h-[350px]">
+                <iframe
+                  title="Email Preview"
+                  srcDoc={selectedPreviewItem.htmlBody}
+                  sandbox=""
+                  className="w-full h-[400px] border-none bg-white"
+                />
+              </div>
 
               {selectedPreviewItem.lastError && (
                 <div className="mt-4 p-3 bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 rounded-xl text-xs text-rose-700 dark:text-rose-300 space-y-1">
@@ -768,6 +902,18 @@ export function AdminGmailConfigTab({ onShowMessage }: AdminGmailConfigTabProps)
           </div>
         </div>
       )}
+
+      {/* Delete Queue Item Confirmation Modal */}
+      <AdminConfirmModal
+        isOpen={!!deleteConfirmId}
+        title="Xóa email khỏi hàng đợi"
+        description="Bạn có chắc chắn muốn xóa bản ghi email này khỏi hàng đợi gửi tự động? Hành động này không thể hoàn tác."
+        confirmLabel="Xóa bản ghi"
+        variant="danger"
+        isProcessing={isDeletingQueueItem}
+        onConfirm={executeDeleteItem}
+        onClose={() => setDeleteConfirmId(null)}
+      />
     </div>
   );
 }

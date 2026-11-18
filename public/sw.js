@@ -8,7 +8,7 @@
  * 4. Cache Versioning & Self-Cleanup: Tự động dọn dẹp các cache cũ khi triển khai bản mới.
  */
 
-const CACHE_VERSION = 'quan-li-ca-nhan-v2.0.0-clean';
+const CACHE_VERSION = 'quan-li-ca-nhan-v2.0.3-unified-sidebar';
 const STATIC_CACHE_NAME = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE_NAME = `runtime-${CACHE_VERSION}`;
 
@@ -179,5 +179,156 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  } else if (event.data && event.data.type === 'CHECK_VERSION') {
+    if (event.ports && event.ports[0]) {
+      event.ports[0].postMessage({
+        type: 'VERSION_INFO',
+        cacheVersion: CACHE_VERSION
+      });
+    }
+  } else if (event.data && event.data.type === 'SHOW_LOCKSCREEN_WIDGET') {
+    const summary = event.data.summary || {};
+    const { title, options } = buildScheduleNotificationOptions(summary);
+    event.waitUntil(self.registration.showNotification(title, options));
   }
+});
+
+// ============================================================================
+// 5. LOCK SCREEN SCHEDULE CARD (Duolingo-style Live Schedule Widget for PWA)
+// ============================================================================
+
+function buildScheduleNotificationOptions(rawSummary) {
+  const summary = (rawSummary && rawSummary.data) ? rawSummary.data : (rawSummary || {});
+  const streak = summary.streak || 0;
+  const completionPercent = summary.completionPercent !== undefined ? summary.completionPercent : 0;
+  const mascot = summary.mascot || {
+    mood: 'nudging',
+    quote: summary.reminder || 'Đừng để streak bị đứt nhé! Hãy bắt đầu công việc hôm nay nào! 💪',
+    imageUrl: '/assets/mascot/lumi_reference.png'
+  };
+  const quote = mascot.quote || summary.reminder || 'Đừng để streak bị đứt nhé! Hãy bắt đầu công việc hôm nay nào! 💪';
+
+  let taskListText = '';
+  if (summary.topTasks && summary.topTasks.length > 0) {
+    taskListText = summary.topTasks
+      .map((t, idx) => {
+        const timeStr = t.timeSlot ? '[' + t.timeSlot + '] ' : '';
+        return (idx + 1) + '. ' + timeStr + t.title;
+      })
+      .join('\n');
+  } else {
+    taskListText = '🎉 Đã hoàn thành tất cả công việc hôm nay! Tuyệt vời!';
+  }
+
+  const title = '🔥 Streak ' + streak + ' ngày • Tiến độ ' + completionPercent + '%';
+  const body = taskListText + '\n\n💬 "' + quote + '"';
+
+  return {
+    title,
+    options: {
+      body,
+      icon: mascot.imageUrl || '/assets/mascot/lumi_reference.png',
+      badge: '/icons/icon-192x192.png',
+      image: mascot.imageUrl || '/assets/mascot/lumi_reference.png',
+      tag: 'live-schedule-widget',
+      renotify: false,
+      requireInteraction: true,
+      silent: true,
+      data: {
+        url: '/?tab=dashboard',
+        summary,
+        updatedAt: Date.now()
+      },
+      actions: [
+        { action: 'complete-current-task', title: '✅ Hoàn thành việc hiện tại' },
+        { action: 'open-schedule', title: '📅 Mở lịch trình' }
+      ]
+    }
+  };
+}
+
+// Lắng nghe Web Push Notification từ server
+self.addEventListener('push', (event) => {
+  let summary = null;
+  if (event.data) {
+    try {
+      summary = event.data.json();
+    } catch {
+      summary = null;
+    }
+  }
+
+  const promiseChain = (async () => {
+    if (!summary || !summary.topTasks) {
+      try {
+        const res = await fetch('/api/widget/summary', { credentials: 'include' });
+        if (res.ok) {
+          summary = await res.json();
+        }
+      } catch (e) {
+        console.warn('[SW Push] Failed to fetch fresh widget summary:', e);
+      }
+    }
+    const { title, options } = buildScheduleNotificationOptions(summary || {});
+    return self.registration.showNotification(title, options);
+  })();
+
+  event.waitUntil(promiseChain);
+});
+
+// Xử lý tương tác nút bấm trực tiếp từ màn hình khóa (Lock Screen Actions)
+self.addEventListener('notificationclick', (event) => {
+  const action = event.action;
+  const notification = event.notification;
+
+  if (action === 'complete-current-task') {
+    event.waitUntil((async () => {
+      try {
+        // 1. Gọi API hoàn thành công việc ưu tiên nhất hôm nay
+        await fetch('/api/widget/complete-top-task', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include'
+        });
+
+        // 2. Lấy ngay summary mới để cập nhật thẻ khóa mà không làm phiền rung/chuông
+        const summaryRes = await fetch('/api/widget/summary', { credentials: 'include' });
+        if (summaryRes.ok) {
+          const newSummary = await summaryRes.json();
+          const { title, options } = buildScheduleNotificationOptions(newSummary);
+          await self.registration.showNotification(title, options);
+        }
+
+        // 3. Bắn event cho các tab Client UI đang mở để đồng bộ dữ liệu giao diện
+        const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+        for (const client of clientList) {
+          client.postMessage({
+            type: 'LIFEOS_TASK_COMPLETED_FROM_LOCKSCREEN',
+            timestamp: Date.now()
+          });
+        }
+      } catch (err) {
+        console.error('[SW NotificationClick] Error completing task from lock screen:', err);
+      }
+    })());
+    return;
+  }
+
+  // Khi bấm 'Mở lịch trình' hoặc chạm vào thông báo
+  event.waitUntil((async () => {
+    notification.close();
+    const urlToOpen = (notification.data && notification.data.url) ? notification.data.url : '/?tab=dashboard';
+    const clientList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+
+    for (const client of clientList) {
+      if ('focus' in client) {
+        client.navigate(urlToOpen);
+        return client.focus();
+      }
+    }
+
+    if (self.clients.openWindow) {
+      return self.clients.openWindow(urlToOpen);
+    }
+  })());
 });

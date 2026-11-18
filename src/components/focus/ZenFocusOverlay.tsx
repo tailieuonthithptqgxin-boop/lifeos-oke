@@ -8,6 +8,7 @@ import { useAppStore } from '../../lib/store';
 import { soundEngine } from '../../lib/soundEngine';
 import { triggerConfetti } from '../../lib/confetti';
 import { apiCall } from '../../lib/apiClient';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 interface ZenFocusOverlayProps {
   isOpen: boolean;
@@ -28,6 +29,8 @@ const MINDFUL_FOCUS_TIPS = [
 
 export function ZenFocusOverlay({ isOpen, onClose, defaultTaskId }: ZenFocusOverlayProps) {
   const { tasks = [], focusSessions = [], addFocusSession, updateTask } = useAppStore();
+
+  useBodyScrollLock(isOpen);
 
   const [mode, setMode] = useState<'POMODORO' | 'FLOW'>('POMODORO');
   const [durationMinutes, setDurationMinutes] = useState(25);
@@ -76,14 +79,32 @@ export function ZenFocusOverlay({ isOpen, onClose, defaultTaskId }: ZenFocusOver
       return;
     }
 
+    let toastTimeout: any = null;
     const interval = setInterval(() => {
       const idx = Math.floor(Math.random() * MINDFUL_FOCUS_TIPS.length);
       setActivePeerToast(MINDFUL_FOCUS_TIPS[idx]);
-      setTimeout(() => setActivePeerToast(null), 6500);
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => setActivePeerToast(null), 6500);
     }, 25000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (toastTimeout) clearTimeout(toastTimeout);
+    };
   }, [isOpen, isRunning]);
+
+  // Escape key handler to exit Zen mode
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        stopAmbientSound();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   // Sync defaultTaskId
   useEffect(() => {
@@ -318,7 +339,7 @@ export function ZenFocusOverlay({ isOpen, onClose, defaultTaskId }: ZenFocusOver
   const currentTask = tasks.find(t => t.id === selectedTaskId);
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-between bg-slate-950 text-white animate-in fade-in duration-300 select-none overflow-hidden font-sans">
+    <div className="fixed inset-0 z-50 flex flex-col justify-between bg-slate-950 text-white animate-in fade-in duration-300 select-none overflow-hidden font-sans h-[100dvh] max-h-[100dvh]">
       
       {/* Ambient background glow orbs */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/10 rounded-full blur-[140px] pointer-events-none" />
@@ -357,7 +378,7 @@ export function ZenFocusOverlay({ isOpen, onClose, defaultTaskId }: ZenFocusOver
           </div>
 
           {/* Exit Fullscreen */}
-          <button
+          <button type="button"
             onClick={() => {
               stopAmbientSound();
               onClose();
@@ -427,7 +448,7 @@ export function ZenFocusOverlay({ isOpen, onClose, defaultTaskId }: ZenFocusOver
 
         {/* Primary Play / Pause / Complete Controls */}
         <div className="flex items-center gap-4">
-          <button
+          <button type="button"
             onClick={resetTimer}
             title="Làm mới thời gian"
             className="p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition cursor-pointer"
@@ -435,7 +456,7 @@ export function ZenFocusOverlay({ isOpen, onClose, defaultTaskId }: ZenFocusOver
             <RotateCcw className="w-5 h-5" />
           </button>
 
-          <button
+          <button type="button"
             onClick={toggleTimer}
             className={`px-8 py-4 rounded-3xl font-black text-sm tracking-wide shadow-xl flex items-center gap-2.5 transition transform active:scale-95 cursor-pointer ${
               isRunning 
@@ -457,7 +478,7 @@ export function ZenFocusOverlay({ isOpen, onClose, defaultTaskId }: ZenFocusOver
           </button>
 
           {elapsedTotalSeconds >= 60 && (
-            <button
+            <button type="button"
               onClick={handleCompleteSession}
               title="Hoàn thành & Lưu kết quả"
               className="p-3.5 rounded-2xl bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-500/50 text-emerald-300 transition cursor-pointer"
@@ -471,7 +492,7 @@ export function ZenFocusOverlay({ isOpen, onClose, defaultTaskId }: ZenFocusOver
         {mode === 'POMODORO' && !isRunning && (
           <div className="flex items-center gap-2">
             {[15, 25, 45, 60].map(mins => (
-              <button
+              <button type="button"
                 key={mins}
                 onClick={() => handleSelectPreset(mins)}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
@@ -523,7 +544,7 @@ export function ZenFocusOverlay({ isOpen, onClose, defaultTaskId }: ZenFocusOver
                 cafe: '☕ Quán Cafe'
               };
               return (
-                <button
+                <button type="button"
                   key={track}
                   onClick={() => setAmbientTrack(track)}
                   className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition cursor-pointer shrink-0 ${

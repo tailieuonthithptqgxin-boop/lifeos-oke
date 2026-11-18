@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   TrendingUp, TrendingDown, Calendar, DollarSign, PieChart as PieChartIcon, 
   BarChart3, Activity, AlertCircle, CheckCircle2, Info, Sparkles, 
@@ -52,11 +52,55 @@ export const FinanceMonthlyComparisonTab: React.FC<FinanceMonthlyComparisonTabPr
   const { language } = useAppStore();
   const isVi = language === 'vi';
 
-  const [rangeOption, setRangeOption] = useState<MonthRangeOption>('last_3');
+  const [rangeOption, setRangeOption] = useState<MonthRangeOption>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_finance_monthly_range') as any;
+        if (saved && ['last_3', 'last_6', 'last_12', 'custom'].includes(saved)) return saved;
+      } catch {}
+    }
+    return 'last_3';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_finance_monthly_range', rangeOption);
+    } catch {}
+  }, [rangeOption]);
+
   const [customStartMonth, setCustomStartMonth] = useState<string>('');
   const [customEndMonth, setCustomEndMonth] = useState<string>('');
-  const [chartMode, setChartMode] = useState<ChartDisplayMode>('bar');
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  const [chartMode, setChartMode] = useState<ChartDisplayMode>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_finance_monthly_chart_mode') as any;
+        if (saved && ['bar', 'line'].includes(saved)) return saved;
+      } catch {}
+    }
+    return 'bar';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_finance_monthly_chart_mode', chartMode);
+    } catch {}
+  }, [chartMode]);
+
+  const [selectedCategory, setSelectedCategory] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        return localStorage.getItem('lifeos_finance_monthly_cat') || 'all';
+      } catch {}
+    }
+    return 'all';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_finance_monthly_cat', selectedCategory);
+    } catch {}
+  }, [selectedCategory]);
 
   const now = useMemo(() => new Date(), []);
   const currentYear = now.getFullYear();

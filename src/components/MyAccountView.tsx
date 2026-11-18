@@ -27,13 +27,26 @@ import {
   FileJson,
   Loader2,
   Bell,
-  Mail
+  Mail,
+  Flame,
+  Trophy,
+  Users
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
+import { compressAndUploadImage, formatBytes, validateImageFile } from '../lib/imageCompressor';
 import { apiCall } from '../lib/apiClient';
-import { formatCurrency } from '../lib/utils';
+import { formatCurrency, formatLocalDateKey } from '../lib/utils';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { StudyCompanionWidget } from './companion/StudyCompanionWidget';
 import { NotificationSettingsModal } from './notifications/NotificationSettingsModal';
+import { notifyAuthSecurity } from '../lib/unifiedNotificationEngine';
+import { soundEngine } from '../lib/soundEngine';
+import { 
+  checkForAppUpdates, 
+  applyPwaUpdate, 
+  CURRENT_CLIENT_VERSION, 
+  CURRENT_BUILD_ID 
+} from '../lib/pwa';
 
 interface PaymentHistoryItem {
   id: string;
@@ -100,6 +113,62 @@ export function MyAccountView() {
   const [isLoadingSessions, setIsLoadingSessions] = useState(false);
   const [isRevokingSessions, setIsRevokingSessions] = useState(false);
 
+  // System Version & Update Lifecycle State
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+  const [isApplyingUpdate, setIsApplyingUpdate] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState<{
+    checked: boolean;
+    hasUpdate: boolean;
+    latestVersion?: string;
+    changelog?: string[];
+    message?: string;
+  } | null>(null);
+
+  const handleManualCheckUpdate = async () => {
+    setIsCheckingUpdate(true);
+    setUpdateInfo(null);
+    try {
+      const res = await checkForAppUpdates(true);
+      if (res.hasUpdate) {
+        setUpdateInfo({
+          checked: true,
+          hasUpdate: true,
+          latestVersion: res.latestVersion,
+          changelog: res.changelog,
+          message: `Đã có phiên bản mới v${res.latestVersion}! Bạn có thể cập nhật ngay bây giờ.`
+        });
+      } else {
+        setUpdateInfo({
+          checked: true,
+          hasUpdate: false,
+          latestVersion: res.currentVersion,
+          message: `Ứng dụng đang chạy phiên bản mới nhất (v${res.currentVersion}).`
+        });
+      }
+    } catch (err: any) {
+      setUpdateInfo({
+        checked: true,
+        hasUpdate: false,
+        message: err.message || 'Không thể kiểm tra cập nhật vào lúc này.'
+      });
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
+
+  const handleApplyUpdateFromAccount = async () => {
+    setIsApplyingUpdate(true);
+    try {
+      await applyPwaUpdate();
+    } catch (err: any) {
+      setStatusMsg({
+        text: err.message || 'Không thể áp dụng bản cập nhật.',
+        type: 'error'
+      });
+      setIsApplyingUpdate(false);
+    }
+  };
+
   // Workspace Backup & Restore State
   const [isExportingBackup, setIsExportingBackup] = useState(false);
   const [isImportingBackup, setIsImportingBackup] = useState(false);
@@ -108,6 +177,98 @@ export function MyAccountView() {
   const [importMode, setImportMode] = useState<'merge' | 'replace'>('merge');
   const backupInputRef = useRef<HTMLInputElement>(null);
   const [showNotificationSettings, setShowNotificationSettings] = useState(false);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  // Full-Stack Account Deletion & GDPR Data Portability State (Nghị định 13/2023/NĐ-CP)
+  const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
+  const [deleteConfirmationPhrase, setDeleteConfirmationPhrase] = useState('');
+  const [deletePassword, setDeletePassword] = useState('');
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isExportingGdpr, setIsExportingGdpr] = useState(false);
+
+  // Custom confirmation modals
+  const [confirmRevokeModal, setConfirmRevokeModal] = useState(false);
+  const [confirmClearWorkspaceModal, setConfirmClearWorkspaceModal] = useState(false);
+
+  const statusMsgTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showStatus = (text: string, type: 'success' | 'error') => {
+    if (statusMsgTimerRef.current) clearTimeout(statusMsgTimerRef.current);
+    setStatusMsg({ text, type });
+    statusMsgTimerRef.current = setTimeout(() => {
+      setStatusMsg(null);
+    }, 3500);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (statusMsgTimerRef.current) clearTimeout(statusMsgTimerRef.current);
+    };
+  }, []);
+
+  useBodyScrollLock(
+    showImportModal || 
+    showCancelModal || 
+    !!selectedInvoice || 
+    showDeleteAccountModal || 
+    showNotificationSettings ||
+    confirmRevokeModal ||
+    confirmClearWorkspaceModal
+  );
+
+  const handleExportGdprData = async () => {
+    try {
+      setIsExportingGdpr(true);
+      const res = await fetch('/api/auth/export-data', { credentials: 'include' });
+      if (!res.ok) throw new Error('Không thể tải tệp xuất dữ liệu từ máy chủ.');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `lifeos_personal_data_export_${formatLocalDateKey(new Date())}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showStatus('Đã xuất toàn bộ dữ liệu cá nhân theo Nghị định 13 & GDPR thành công!', 'success');
+      soundEngine.playSuccess();
+    } catch (err: any) {
+      showStatus('Lỗi khi xuất dữ liệu: ' + err.message, 'error');
+      soundEngine.playPop();
+    } finally {
+      setIsExportingGdpr(false);
+    }
+  };
+
+  const handleConfirmDeleteAccount = async () => {
+    if (deleteConfirmationPhrase.trim() !== 'XÓA VĨNH VIỄN') {
+      setDeleteError('Vui lòng gõ chính xác cụm từ "XÓA VĨNH VIỄN" (chữ hoa) để xác nhận.');
+      return;
+    }
+    setIsDeletingAccount(true);
+    setDeleteError(null);
+    try {
+      const res = await apiCall('/api/auth/account', 'DELETE', {
+        confirmation: deleteConfirmationPhrase.trim(),
+        password: deletePassword || undefined
+      });
+      if (res && (res.success || res.status === 200)) {
+        showStatus('Tài khoản và toàn bộ dữ liệu cá nhân của bạn đã được xóa sạch vĩnh viễn khỏi hệ thống.', 'success');
+        soundEngine.playSuccess();
+        setTimeout(() => {
+          logout();
+          window.location.href = '/';
+        }, 1200);
+      } else {
+        setDeleteError(res?.message || 'Không thể xóa tài khoản. Vui lòng thử lại.');
+      }
+    } catch (err: any) {
+      setDeleteError(err.message || 'Lỗi hệ thống khi xóa tài khoản.');
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
 
   const fetchSubscription = async () => {
     try {
@@ -173,68 +334,68 @@ export function MyAccountView() {
         if (showImportModal) setShowImportModal(false);
         if (showCancelModal) setShowCancelModal(false);
         if (selectedInvoice) setSelectedInvoice(null);
+        if (showDeleteAccountModal && !isDeletingAccount) setShowDeleteAccountModal(false);
+        if (confirmRevokeModal && !isRevokingSessions) setConfirmRevokeModal(false);
+        if (confirmClearWorkspaceModal) setConfirmClearWorkspaceModal(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showImportModal, showCancelModal, selectedInvoice]);
+  }, [showImportModal, showCancelModal, selectedInvoice, showDeleteAccountModal, isDeletingAccount, confirmRevokeModal, isRevokingSessions, confirmClearWorkspaceModal]);
 
   const handleAvatarFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = '';
 
-    if (file.size > 5 * 1024 * 1024) {
-      setStatusMsg({ text: 'Kích thước ảnh đại diện không được vượt quá 5MB', type: 'error' });
+    const validation = validateImageFile(file);
+    if (!validation.valid) {
+      setStatusMsg({ text: validation.error || 'Ảnh không hợp lệ', type: 'error' });
       return;
     }
 
     try {
       setIsUploadingAvatar(true);
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const base64Data = event.target?.result as string;
-        try {
-          const res = await apiCall('/api/r2/upload-base64', 'POST', {
-            base64Data,
-            fileName: file.name,
-            mimeType: file.type || 'image/png',
-            folder: 'avatars'
-          });
+      setStatusMsg(null);
 
-          const newAvatarUrl = res.file?.url || base64Data;
-          setAvatar(newAvatarUrl);
-          await updateProfile({ name, avatar: newAvatarUrl });
-          setStatusMsg({ text: 'Đã tải ảnh đại diện lên Cloudflare R2 thành công!', type: 'success' });
-          setTimeout(() => setStatusMsg(null), 3500);
-        } catch (uploadErr: any) {
-          // Fallback to direct base64 if R2 credentials not configured
-          setAvatar(base64Data);
-          await updateProfile({ name, avatar: base64Data });
-          setStatusMsg({ text: 'Đã lưu ảnh đại diện (Chế độ lưu trực tiếp)', type: 'success' });
-          setTimeout(() => setStatusMsg(null), 3500);
-        } finally {
-          setIsUploadingAvatar(false);
-        }
-      };
-      reader.readAsDataURL(file);
+      // Compress client-side directly into 200x200 square WebP (~10-15KB)
+      const result = await compressAndUploadImage(file, 'avatar', 'avatars');
+      const newAvatarUrl = result.url;
+
+      setAvatar(newAvatarUrl);
+      await updateProfile({ name, avatar: newAvatarUrl });
+
+      const statMsg = `✅ Đã tối ưu nhẹ avatar: ${formatBytes(result.originalSize)} ➔ ${formatBytes(result.compressedSize)} (-${result.reductionPercent}%)`;
+      setStatusMsg({ 
+        text: `Cập nhật ảnh đại diện thành công! (${statMsg})`, 
+        type: 'success' 
+      });
+      setTimeout(() => setStatusMsg(null), 4000);
     } catch (err: any) {
+      console.error('Avatar update failed:', err);
       setIsUploadingAvatar(false);
-      setStatusMsg({ text: err.message || 'Lỗi khi tải ảnh đại diện', type: 'error' });
+      setStatusMsg({ text: err.message || 'Lỗi khi tải và nén ảnh đại diện', type: 'error' });
+    } finally {
+      setIsUploadingAvatar(false);
     }
   };
 
-  const handleRevokeOtherSessions = async () => {
-    if (!window.confirm('Bạn có chắc chắn muốn đăng xuất khỏi tất cả các thiết bị khác?')) return;
+  const handleRevokeOtherSessions = () => {
+    setConfirmRevokeModal(true);
+  };
+
+  const executeRevokeOtherSessions = async () => {
     try {
       setIsRevokingSessions(true);
       const res = await apiCall('/api/auth/sessions/revoke-others', 'POST');
       if (res && res.success) {
-        setStatusMsg({ text: res.message || 'Đã đăng xuất khỏi các thiết bị khác', type: 'success' });
+        showStatus(res.message || 'Đã đăng xuất khỏi các thiết bị khác', 'success');
         await fetchSessions();
-        setTimeout(() => setStatusMsg(null), 3000);
+        soundEngine.playSuccess();
       }
     } catch (err: any) {
-      setStatusMsg({ text: err.message || 'Không thể đăng xuất các phiên khác', type: 'error' });
+      showStatus(err.message || 'Không thể đăng xuất các phiên khác', 'error');
+      soundEngine.playPop();
     } finally {
       setIsRevokingSessions(false);
     }
@@ -316,6 +477,7 @@ export function MyAccountView() {
     try {
       setIsSaving(true);
       await updateProfile({ name, avatar });
+      notifyAuthSecurity('PROFILE_UPDATED', { email: currentUser?.email }, name).catch(() => {});
       setStatusMsg({ text: 'Cập nhật thông tin thành công', type: 'success' });
       setTimeout(() => setStatusMsg(null), 3000);
     } catch (err: any) {
@@ -389,14 +551,27 @@ export function MyAccountView() {
 
       {statusMsg && (
         <div
-          className={`p-4 rounded-xl flex items-center gap-3 text-xs sm:text-sm font-medium animate-in fade-in duration-150 ${
+          className={`p-4 rounded-2xl flex items-center justify-between gap-3 text-xs sm:text-sm font-medium animate-in fade-in duration-150 ${
             statusMsg.type === 'success'
-              ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 border border-emerald-200 dark:border-emerald-800'
-              : 'bg-rose-50 dark:bg-rose-950/50 text-rose-600 border border-rose-200 dark:border-rose-800'
+              ? 'bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+              : 'bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800'
           }`}
         >
-          {statusMsg.type === 'success' ? <CheckCircle2 className="w-5 h-5 shrink-0" /> : <AlertCircle className="w-5 h-5 shrink-0" />}
-          <span>{statusMsg.text}</span>
+          <div className="flex items-center gap-2.5">
+            {statusMsg.type === 'success' ? <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400" /> : <AlertCircle className="w-5 h-5 shrink-0 text-rose-600 dark:text-rose-400" />}
+            <span>{statusMsg.text}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (statusMsgTimerRef.current) clearTimeout(statusMsgTimerRef.current);
+              setStatusMsg(null);
+            }}
+            className="p-1 rounded-lg opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
+            aria-label="Đóng thông báo"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
 
@@ -406,7 +581,11 @@ export function MyAccountView() {
           <div className="flex items-center gap-4">
             <img
               src={currentUser?.avatar || 'https://ui-avatars.com/api/?name=User&background=random'}
-              alt={currentUser?.name || 'User'}
+              alt={currentUser?.name || 'Ảnh đại diện người dùng'}
+              loading="lazy"
+              decoding="async"
+              width="64"
+              height="64"
               className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 object-cover"
             />
             <div>
@@ -436,6 +615,58 @@ export function MyAccountView() {
           </button>
         </div>
 
+        {/* Unified Real Stats Card (Zero Mock) */}
+        <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+            Chỉ Số Cá Nhân Đồng Bộ (Single Source of Truth)
+          </h4>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
+            {/* Streak Days */}
+            <div className="p-3 rounded-2xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-amber-700 dark:text-amber-400">
+                <Flame className="w-3.5 h-3.5 text-amber-500" />
+                <span>Chuỗi kỷ luật</span>
+              </div>
+              <div className="text-base sm:text-lg font-black text-amber-600 dark:text-amber-300 mt-1">
+                {currentUser?.streakDays ?? 0} ngày 🔥
+              </div>
+            </div>
+
+            {/* Total Study Minutes */}
+            <div className="p-3 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/20 border border-indigo-200/60 dark:border-indigo-900/40">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-indigo-700 dark:text-indigo-400">
+                <Clock className="w-3.5 h-3.5 text-indigo-500" />
+                <span>Tổng giờ học</span>
+              </div>
+              <div className="text-base sm:text-lg font-black text-indigo-600 dark:text-indigo-300 mt-1">
+                {Math.floor((currentUser?.totalStudyMinutes ?? 0) / 60)}h {(currentUser?.totalStudyMinutes ?? 0) % 60}p
+              </div>
+            </div>
+
+            {/* Rank / Badge */}
+            <div className="p-3 rounded-2xl bg-purple-50/60 dark:bg-purple-950/20 border border-purple-200/60 dark:border-purple-900/40">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-purple-700 dark:text-purple-400">
+                <Trophy className="w-3.5 h-3.5 text-purple-500" />
+                <span>Danh hiệu</span>
+              </div>
+              <div className="text-base sm:text-lg font-black text-purple-600 dark:text-purple-300 mt-1 truncate">
+                {currentUser?.badgeLevel || 'Tân Binh'}
+              </div>
+            </div>
+
+            {/* Referral / Affiliate */}
+            <div className="p-3 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/60 dark:border-emerald-900/40">
+              <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-400">
+                <Users className="w-3.5 h-3.5 text-emerald-500" />
+                <span>Giới thiệu</span>
+              </div>
+              <div className="text-base sm:text-lg font-black text-emerald-600 dark:text-emerald-300 mt-1">
+                {currentUser?.referredCount ?? 0} bạn
+              </div>
+            </div>
+          </div>
+        </div>
+
         <form onSubmit={handleSaveProfile} className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -446,49 +677,70 @@ export function MyAccountView() {
                 type="text"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                className="w-full min-h-[44px] px-3.5 py-2.5 text-base sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
               />
             </div>
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                  Ảnh đại diện (Cloudflare R2 Storage)
-                </label>
-                <input
-                  type="file"
-                  ref={avatarInputRef}
-                  accept="image/png, image/jpeg, image/webp, image/gif"
-                  onChange={handleAvatarFileSelect}
-                  className="hidden"
-                />
-                <button
-                  type="button"
-                  onClick={() => avatarInputRef.current?.click()}
-                  disabled={isUploadingAvatar}
-                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400 hover:underline cursor-pointer disabled:opacity-50"
-                >
-                  {isUploadingAvatar ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Đang tải lên R2...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-3.5 h-3.5" />
-                      <span>Tải ảnh từ máy</span>
-                    </>
-                  )}
-                </button>
-              </div>
+              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                Ảnh đại diện cá nhân (Tự động nén siêu nhẹ ~10KB)
+              </label>
               <input
-                type="text"
-                value={avatar}
-                onChange={e => setAvatar(e.target.value)}
-                placeholder="https://..."
-                className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                type="file"
+                ref={avatarInputRef}
+                accept="image/png, image/jpeg, image/webp, image/gif, image/heic, image/*"
+                onChange={handleAvatarFileSelect}
+                className="hidden"
               />
-              <p className="text-[10px] text-slate-400 mt-1">
-                Hỗ trợ chọn ảnh từ máy tính/điện thoại tải trực tiếp lên Cloudflare R2 hoặc dán liên kết URL.
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shrink-0">
+                  {avatar ? (
+                    <img
+                      src={avatar}
+                      alt="Ảnh đại diện chỉnh sửa"
+                      loading="lazy"
+                      decoding="async"
+                      width="48"
+                      height="48"
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center font-bold text-slate-500">
+                      {name.charAt(0) || 'U'}
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => avatarInputRef.current?.click()}
+                    disabled={isUploadingAvatar}
+                    className="min-h-[44px] px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-bold text-xs flex items-center gap-2 transition-all cursor-pointer active:scale-98 disabled:opacity-50"
+                  >
+                    {isUploadingAvatar ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                        <span>Đang tối ưu ảnh...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4 text-blue-600" />
+                        <span>📷 Tải ảnh từ máy</span>
+                      </>
+                    )}
+                  </button>
+                  {avatar && (
+                    <button
+                      type="button"
+                      onClick={() => setAvatar('')}
+                      className="min-h-[44px] px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-semibold transition-colors cursor-pointer"
+                    >
+                      Xóa ảnh
+                    </button>
+                  )}
+                </div>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1.5">
+                Tự động cắt chuẩn 200x200px, nén siêu nhẹ dưới 15KB để tối ưu tốc độ tải và bảo vệ bộ nhớ.
               </p>
             </div>
           </div>
@@ -502,60 +754,20 @@ export function MyAccountView() {
         </form>
       </div>
 
-      {/* Pending Payment Request Notification Banner */}
-      {pendingRequest && (
-        <div className="p-4 sm:p-5 rounded-3xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs animate-in fade-in">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-200 dark:bg-amber-900/60 text-amber-800 dark:text-amber-300 flex items-center justify-center shrink-0 shadow-inner">
-              <Clock className="w-5 h-5 animate-spin" />
-            </div>
-            <div>
-              <span className="font-bold text-xs sm:text-sm block text-amber-950 dark:text-amber-100">
-                Đang có 1 yêu cầu nâng cấp gói {pendingRequest.planRequested} chờ Admin duyệt
-              </span>
-              <span className="text-[11px] text-amber-700 dark:text-amber-400 font-mono">
-                Mã giao dịch: {pendingRequest.txReference} ({formatCurrency(pendingRequest.amount)})
-              </span>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => setCurrentView('checkout')}
-            className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-colors self-start sm:self-auto shadow-xs cursor-pointer"
-          >
-            <span>Xem chi tiết / Theo dõi</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      )}
-
-      {/* Subscription & Plan Status (Requirement 6) */}
+      {/* Subscription & Plan Status (100% Free Mode) */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100 dark:border-slate-800">
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="font-bold text-slate-900 dark:text-white text-lg">Gói Dịch Vụ & Đăng Ký</h3>
-              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase ${
-                currentPlan === 'FREE'
-                  ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
-                  : 'bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300'
-              }`}>
-                {currentPlan === 'FREE' ? 'Miễn phí' : isCancelledAutoRenew ? 'Đã hủy tự động gia hạn' : 'Đang kích hoạt'}
+              <h3 className="font-bold text-slate-900 dark:text-white text-lg">Gói Dịch Vụ & Bản Quyền</h3>
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+                Miễn phí 100% (Full Access)
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Phần mềm trực tuyến LifeOS - Kích hoạt quyền sử dụng công cụ trực tuyến
+              Hệ thống LifeOS đang mở toàn bộ phân hệ nâng cao miễn phí cho tất cả người dùng
             </p>
           </div>
-
-          <button
-            type="button"
-            onClick={() => setCurrentView('subscription')}
-            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer self-start sm:self-auto"
-          >
-            <Zap className="w-4 h-4 fill-white" />
-            <span>Quản lý Gói & Đội Ngũ</span>
-          </button>
         </div>
 
         {/* Current Active Plan Overview Card */}
@@ -564,140 +776,35 @@ export function MyAccountView() {
             <div>
               <span className="text-slate-400 block text-[11px] mb-0.5">Gói dịch vụ hiện tại</span>
               <span className="font-black text-slate-900 dark:text-white text-base">
-                {isAdmin
-                  ? 'Quản trị viên Hệ thống'
-                  : subscriptionStatus?.isTrial
-                  ? (subscriptionStatus.hasAccess ? '🎁 Dùng Thử 7 Ngày' : '🔒 Dùng Thử Đã Kết Thúc')
-                  : subscriptionStatus?.planName || (subscriptionStatus?.hasAccess ? 'Gói Đang Hoạt Động' : 'Chưa kích hoạt')}
+                Trải nghiệm Miễn phí (Full Access)
               </span>
-              <span className="block text-[11px] text-slate-500 mt-0.5">
-                {isAdmin
-                  ? 'Toàn quyền quản trị & mở khóa 100% tính năng LifeOS'
-                  : subscriptionStatus?.isTrial
-                  ? (subscriptionStatus.hasAccess ? 'Trải nghiệm 100% tính năng Premium' : 'Hết 7 ngày trải nghiệm miễn phí')
-                  : subscriptionStatus?.hasAccess ? 'Mở khóa toàn bộ chức năng LifeOS' : 'Cần kích hoạt gói để sử dụng'}
+              <span className="block text-[11px] text-emerald-600 dark:text-emerald-400 mt-0.5 font-medium">
+                Mở khóa 100% tất cả các tính năng cao cấp của LifeOS
               </span>
             </div>
 
             <div>
               <span className="text-slate-400 block text-[11px] mb-0.5">Thời hạn hiệu lực</span>
               <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
-                {isAdmin
-                  ? 'Vô thời hạn'
-                  : subscriptionStatus?.endDate ? new Date(subscriptionStatus.endDate).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Chưa kích hoạt'}
+                Vô thời hạn
               </span>
               <span className="block text-[11px] text-slate-500 mt-0.5">
-                {isAdmin
-                  ? 'Không giới hạn thời gian sử dụng'
-                  : subscriptionStatus?.hasAccess ? `Còn lại ${subscriptionStatus.remainingDays || 0} ngày sử dụng` : 'Hết hạn truy cập'}
+                Không giới hạn thời gian sử dụng
               </span>
             </div>
 
             <div>
               <span className="text-slate-400 block text-[11px] mb-0.5">Trạng thái quyền truy cập</span>
               <div className="flex items-center gap-1.5">
-                <span className={`w-2 h-2 rounded-full ${
-                  (isAdmin || subscriptionStatus?.hasAccess) ? 'bg-emerald-500' : 'bg-rose-500'
-                }`}></span>
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
                 <span className="font-semibold text-slate-800 dark:text-slate-200 text-xs">
-                  {isAdmin
-                    ? 'Đang hoạt động (Toàn quyền quản trị)'
-                    : subscriptionStatus?.isTrial
-                    ? (subscriptionStatus.hasAccess ? 'Đang dùng thử (Đầy đủ chức năng)' : 'Hết hạn dùng thử (Cần mua gói)')
-                    : subscriptionStatus?.hasAccess ? 'Đang hoạt động (Đầy đủ chức năng)' : 'Tạm khóa (Cần gia hạn)'}
+                  Đang hoạt động (Toàn quyền)
                 </span>
               </div>
               <span className="block text-[11px] text-slate-500 mt-0.5">
-                {isAdmin || subscriptionStatus?.hasAccess ? 'Mọi chức năng hệ thống đều khả dụng' : 'Vui lòng chọn gói để tiếp tục'}
+                Mọi chức năng hệ thống đều khả dụng
               </span>
             </div>
-          </div>
-        </div>
-
-        {/* Official Service Plans Overview Card */}
-        <div className="p-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
-              <h4 className="font-bold text-slate-900 dark:text-white text-sm">
-                Các Gói Dịch Vụ Hệ Thống (Mở Khóa Toàn Bộ Chức Năng)
-              </h4>
-              <p className="text-xs text-slate-500">
-                Tất cả các chức năng đều như nhau khi có gói dịch vụ còn hạn. Không giới hạn chức năng riêng lẻ.
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setCurrentView('subscription')}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0"
-            >
-              Xem Chi Tiết & Mua Gói
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
-            {(plans && plans.length > 0 ? plans : [
-              {
-                id: 'PERSONAL_1M',
-                name: 'Cá Nhân (1 Tháng)',
-                price: 29000,
-                durationDays: 30,
-                billingCycle: '1 tháng (30 ngày)',
-                description: 'Toàn bộ chức năng quản lý cá nhân, tài chính, công việc, mục tiêu.'
-              },
-              {
-                id: 'PERSONAL_3M',
-                name: 'Cá Nhân (3 Tháng)',
-                price: 79000,
-                durationDays: 90,
-                badge: 'Tiết kiệm',
-                billingCycle: '3 tháng (90 ngày)',
-                description: 'Mở khóa toàn bộ chức năng trong 3 tháng liên tục, tiết kiệm chi phí.'
-              },
-              {
-                id: 'TEAM_1M',
-                name: 'Gói Đội Ngũ (Team 1 Tháng)',
-                price: 99000,
-                durationDays: 30,
-                badge: 'Tối đa 5 người',
-                billingCycle: '1 tháng (30 ngày)',
-                description: 'Chủ team thêm tối đa 5 người. Tất cả thành viên dùng đầy đủ mọi chức năng.'
-              }
-            ]).map((p: any) => {
-              const isTeam = p.id?.includes('TEAM') || p.type === 'TEAM';
-              const is3M = p.durationDays === 90 || p.id === 'PERSONAL_3M';
-              return (
-                <div
-                  key={p.id}
-                  className={`p-4 rounded-xl border space-y-2 ${
-                    isTeam
-                      ? 'border-purple-200 dark:border-purple-900/60 bg-purple-50/40 dark:bg-purple-950/20'
-                      : is3M
-                      ? 'border-blue-200 dark:border-blue-900/60 bg-blue-50/40 dark:bg-blue-950/20'
-                      : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50'
-                  }`}
-                >
-                  <div className="font-bold text-slate-900 dark:text-white text-sm flex items-center justify-between">
-                    <span>{p.name}</span>
-                    {p.badge && (
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
-                        isTeam
-                          ? 'bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300'
-                          : 'bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300'
-                      }`}>
-                        {p.badge}
-                      </span>
-                    )}
-                  </div>
-                  <div className={`text-lg font-black ${isTeam ? 'text-purple-600' : 'text-blue-600'}`}>
-                    {formatCurrency(p.price || p.monthlyPrice || 0)}{' '}
-                    <span className="text-xs text-slate-400 font-normal">
-                      / {p.durationDays ? `${p.durationDays} ngày` : p.billingCycle || '30 ngày'}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-500">{p.description}</p>
-                </div>
-              );
-            })}
           </div>
         </div>
 
@@ -794,11 +901,8 @@ export function MyAccountView() {
             <RotateCcw className="w-4 h-4 text-blue-600" /> Làm lại khảo sát cá nhân hóa (Onboarding)
           </button>
           <button
-            onClick={() => {
-              if (window.confirm('Bạn có chắc chắn muốn làm sạch toàn bộ dữ liệu trong workspace của tài khoản này?')) {
-                clearWorkspace();
-              }
-            }}
+            type="button"
+            onClick={() => setConfirmClearWorkspaceModal(true)}
             className="px-4 py-2 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400 text-xs font-semibold rounded-xl flex items-center gap-2 transition-colors cursor-pointer"
           >
             <Trash2 className="w-4 h-4" /> Làm sạch Workspace của tôi
@@ -935,6 +1039,104 @@ export function MyAccountView() {
         </div>
       </div>
 
+      {/* SYSTEM VERSION & PWA UPDATE LIFECYCLE */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xs">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-blue-600 dark:text-blue-400 shrink-0">
+              <RefreshCw className={`w-5 h-5 ${isCheckingUpdate ? 'animate-spin' : ''}`} />
+            </div>
+            <div>
+              <h4 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
+                <span>Phiên Bản & Cập Nhật Hệ Thống</span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
+                  v{CURRENT_CLIENT_VERSION}
+                </span>
+              </h4>
+              <p className="text-xs text-slate-500 mt-1">
+                Quản lý vòng đời cập nhật ứng dụng, kiểm tra tính toàn vẹn bản phát hành và đồng bộ Service Worker ngoại tuyến.
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            id="btn-account-check-update"
+            onClick={handleManualCheckUpdate}
+            disabled={isCheckingUpdate || isApplyingUpdate}
+            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs flex items-center gap-2 transition-all shadow-xs cursor-pointer self-start sm:self-auto shrink-0 disabled:opacity-60"
+          >
+            <RefreshCw className={`w-4 h-4 ${isCheckingUpdate ? 'animate-spin' : ''}`} />
+            <span>{isCheckingUpdate ? 'Đang kiểm tra...' : 'Kiểm tra bản cập nhật'}</span>
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+            <span className="text-[11px] text-slate-400 block font-medium">Bản phát hành hiện tại</span>
+            <span className="font-bold text-slate-800 dark:text-slate-200 block mt-0.5 font-mono">
+              v{CURRENT_CLIENT_VERSION} ({CURRENT_BUILD_ID})
+            </span>
+          </div>
+          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+            <span className="text-[11px] text-slate-400 block font-medium">Trạng thái Service Worker</span>
+            <span className="font-bold text-emerald-600 dark:text-emerald-400 block mt-0.5">
+              Đang hoạt động (Active & Offline Cache)
+            </span>
+          </div>
+          <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+            <span className="text-[11px] text-slate-400 block font-medium">Bảo toàn biểu mẫu & Dữ liệu</span>
+            <span className="font-bold text-emerald-600 dark:text-emerald-400 block mt-0.5">
+              Tự động lưu nháp & Hoãn 24h
+            </span>
+          </div>
+        </div>
+
+        {updateInfo && (
+          <div className={`p-4 rounded-2xl border text-xs animate-in fade-in duration-200 ${
+            updateInfo.hasUpdate 
+              ? 'bg-blue-50/80 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800/60 text-blue-900 dark:text-blue-100'
+              : 'bg-emerald-50/80 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/60 text-emerald-900 dark:text-emerald-100'
+          }`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <div className="font-bold text-sm flex items-center gap-1.5">
+                  {updateInfo.hasUpdate ? <Zap className="w-4 h-4 text-blue-600" /> : <CheckCircle2 className="w-4 h-4 text-emerald-600" />}
+                  <span>{updateInfo.hasUpdate ? `Bản cập nhật v${updateInfo.latestVersion} sẵn sàng!` : 'Hệ thống đã là bản mới nhất'}</span>
+                </div>
+                <p className="text-xs opacity-90 leading-relaxed">
+                  {updateInfo.message}
+                </p>
+
+                {updateInfo.changelog && updateInfo.changelog.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-blue-200/50 dark:border-blue-800/40">
+                    <span className="font-semibold block mb-1">Các điểm nâng cấp chính:</span>
+                    <ul className="list-disc list-inside space-y-0.5 opacity-90 pl-1">
+                      {updateInfo.changelog.map((item, idx) => (
+                        <li key={idx}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {updateInfo.hasUpdate && (
+                <button
+                  type="button"
+                  id="btn-account-apply-update"
+                  onClick={handleApplyUpdateFromAccount}
+                  disabled={isApplyingUpdate}
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 active:scale-95 text-white font-bold text-xs rounded-xl shadow-xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0 disabled:opacity-60"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 ${isApplyingUpdate ? 'animate-spin' : ''}`} />
+                  <span>{isApplyingUpdate ? 'Đang cập nhật...' : 'Cập nhật ngay'}</span>
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* ACTIVE SESSIONS & DEVICE SECURITY */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
@@ -1010,11 +1212,131 @@ export function MyAccountView() {
         </div>
       </div>
 
+      {/* QUYỀN RIÊNG TƯ & BẢO VỆ DỮ LIỆU CÁ NHÂN (NGHỊ ĐỊNH 13/2023/NĐ-CP & GDPR) */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 sm:p-6 space-y-5 shadow-xs">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 flex items-center justify-center">
+            <Shield className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm sm:text-base">
+              Quyền Riêng Tư & Bảo Vệ Dữ Liệu Cá Nhân
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Tuân thủ Nghị định 13/2023/NĐ-CP và Tiêu chuẩn quốc tế GDPR / CCPA
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          {/* Action 1: Export Personal Data */}
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 flex flex-col justify-between space-y-3">
+            <div>
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-white">
+                <FileJson className="w-4 h-4 text-emerald-500" />
+                <span>Quyền Xuất Dữ Liệu (Data Portability)</span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                Tải xuống toàn bộ hồ sơ cá nhân, danh mục tài chính, nhiệm vụ, dự án và ghi chú của bạn dưới định dạng tệp JSON mở.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleExportGdprData}
+              disabled={isExportingGdpr}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-50"
+            >
+              {isExportingGdpr ? (
+                <>
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Đang trích xuất dữ liệu...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Xuất dữ liệu cá nhân (.json)</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Action 2: View Policies */}
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200/70 dark:border-slate-700/60 flex flex-col justify-between space-y-3">
+            <div>
+              <div className="flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-white">
+                <Shield className="w-4 h-4 text-emerald-500" />
+                <span>Minh Bạch Chính Sách & Đơn Vị Vận Hành</span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                Xem chi tiết danh mục dữ liệu được thu thập, mục đích sử dụng, hỗ trợ kỹ thuật (adminteamdaniel@gmail.com) và chính sách hoàn tiền cho sự cố kỹ thuật website.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <a
+                href="/privacy-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-[11px] font-semibold transition-colors"
+              >
+                Chính sách bảo mật
+              </a>
+              <a
+                href="/terms-of-service"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-[11px] font-semibold transition-colors"
+              >
+                Điều khoản dịch vụ
+              </a>
+              <a
+                href="/refund-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 text-[11px] font-semibold transition-colors"
+              >
+                Chính sách hoàn tiền
+              </a>
+            </div>
+          </div>
+        </div>
+
+        {/* DANGER ZONE: Permanent Account & Data Deletion */}
+        <div className="mt-4 pt-4 border-t border-rose-200/60 dark:border-rose-950/80 p-4 rounded-xl bg-rose-50/40 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-xs font-bold text-rose-700 dark:text-rose-400">
+              <Trash2 className="w-4 h-4 shrink-0" />
+              <span>Vùng Nguy Hiểm: Quyền Yêu Cầu Xóa Dữ Liệu (Right to Erasure)</span>
+            </div>
+            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+              Xóa sạch vĩnh viễn tài khoản và toàn bộ bản ghi nhiệm vụ, tài chính, từ vựng, phiên làm việc khỏi cơ sở dữ liệu. Thao tác này <strong>không thể hoàn tác</strong>.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              setDeleteConfirmationPhrase('');
+              setDeletePassword('');
+              setDeleteError(null);
+              setShowDeleteAccountModal(true);
+            }}
+            className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition-all shadow-xs cursor-pointer shrink-0 flex items-center justify-center gap-1.5 active:scale-[0.98]"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Xóa tài khoản & dữ liệu</span>
+          </button>
+        </div>
+      </div>
+
       {/* IMPORT BACKUP CONFIRMATION MODAL */}
       {showImportModal && importPreview && (
         <div 
           className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-100"
-          onClick={() => setShowImportModal(false)}
+          onMouseDown={(e) => { mouseDownTargetRef.current = e.target; }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) {
+              setShowImportModal(false);
+            }
+          }}
         >
           <div 
             className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5"
@@ -1138,7 +1460,12 @@ export function MyAccountView() {
       {showCancelModal && (
         <div 
           className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-100"
-          onClick={() => setShowCancelModal(false)}
+          onMouseDown={(e) => { mouseDownTargetRef.current = e.target; }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) {
+              setShowCancelModal(false);
+            }
+          }}
         >
           <div 
             className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5"
@@ -1202,7 +1529,12 @@ export function MyAccountView() {
       {selectedInvoice && (
         <div 
           className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-in fade-in duration-100"
-          onClick={() => setSelectedInvoice(null)}
+          onMouseDown={(e) => { mouseDownTargetRef.current = e.target; }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) {
+              setSelectedInvoice(null);
+            }
+          }}
         >
           <div 
             className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-8 max-w-md w-full shadow-2xl space-y-5"
@@ -1264,11 +1596,232 @@ export function MyAccountView() {
         </div>
       )}
 
+{/* MODAL XÁC NHẬN XÓA TÀI KHOẢN VĨNH VIỄN (NGHỊ ĐỊNH 13 & GDPR RIGHT TO ERASURE) */}
+      {showDeleteAccountModal && (
+        <div 
+          className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs animate-in fade-in duration-150"
+          onMouseDown={(e) => { mouseDownTargetRef.current = e.target; }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget && !isDeletingAccount) {
+              setShowDeleteAccountModal(false);
+            }
+          }}
+        >
+          <div 
+            className="bg-white dark:bg-slate-900 rounded-3xl border border-rose-200 dark:border-rose-900/70 p-6 sm:p-8 max-w-lg w-full shadow-2xl space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-rose-100 dark:bg-rose-950/80 text-rose-600 flex items-center justify-center shrink-0">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+                  Xác nhận xóa vĩnh viễn tài khoản?
+                </h3>
+                <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold mt-0.5">
+                  Thao tác này là không thể hoàn tác theo Điều 9 Nghị định 13/2023/NĐ-CP
+                </p>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/40 text-xs text-rose-900 dark:text-rose-200 space-y-2">
+              <p className="font-bold">Khi bạn nhấn xác nhận, hệ thống sẽ tự động:</p>
+              <ul className="space-y-1 list-disc list-inside text-rose-800 dark:text-rose-300">
+                <li>Xóa toàn bộ nhiệm vụ, dự án P.A.R.A và mục tiêu cá nhân.</li>
+                <li>Xóa sạch toàn bộ bản ghi tài chính, thu chi, tài khoản ví và ngân sách.</li>
+                <li>Xóa toàn bộ lịch sử phiên Pomodoro, từ vựng flashcard và tiến độ học tập.</li>
+                <li>Hủy bỏ toàn bộ phiên đăng nhập, cookie và mã token thiết bị.</li>
+                <li>Xóa vĩnh viễn hồ sơ người dùng khỏi cơ sở dữ liệu LifeOS.</li>
+              </ul>
+            </div>
+
+            {deleteError && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-semibold">
+                {deleteError}
+              </div>
+            )}
+
+            <div className="space-y-3 pt-1">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Để xác nhận, vui lòng gõ chính xác cụm từ <span className="font-mono text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-1.5 py-0.5 rounded">XÓA VĨNH VIỄN</span>:
+                </label>
+                <input
+                  type="text"
+                  value={deleteConfirmationPhrase}
+                  onChange={(e) => setDeleteConfirmationPhrase(e.target.value)}
+                  placeholder="XÓA VĨNH VIỄN"
+                  className="w-full h-11 min-h-[44px] px-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-base sm:text-sm text-slate-900 dark:text-white font-mono focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Mật khẩu tài khoản (nếu đăng ký bằng mật khẩu):
+                </label>
+                <input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full h-11 min-h-[44px] px-3.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-base sm:text-sm text-slate-900 dark:text-white focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                disabled={isDeletingAccount}
+                onClick={() => setShowDeleteAccountModal(false)}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                disabled={isDeletingAccount || deleteConfirmationPhrase.trim() !== 'XÓA VĨNH VIỄN'}
+                onClick={handleConfirmDeleteAccount}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold shadow-md shadow-rose-600/30 transition-all cursor-pointer flex items-center justify-center gap-2"
+              >
+                {isDeletingAccount ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Đang xóa toàn bộ dữ liệu...</span>
+                  </>
+                ) : (
+                  <span>Xác nhận xóa vĩnh viễn</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Notification Settings Modal */}
       <NotificationSettingsModal
         isOpen={showNotificationSettings}
         onClose={() => setShowNotificationSettings(false)}
       />
+
+      {/* CONFIRM REVOKE SESSIONS MODAL */}
+      {confirmRevokeModal && (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-backdrop-fade cursor-default"
+          onMouseDown={(e) => { mouseDownTargetRef.current = e.target; }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget && !isRevokingSessions) {
+              setConfirmRevokeModal(false);
+            }
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-4 animate-modal-enter"
+          >
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-amber-50 dark:bg-amber-950/60 text-amber-600 flex items-center justify-center shrink-0 border border-amber-200 dark:border-amber-900/50">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Đăng xuất khỏi tất cả các thiết bị khác?
+                </h3>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Tất cả các phiên làm việc đang mở trên điện thoại hoặc máy tính khác sẽ bị vô hiệu hóa ngay lập tức. Phiên hiện tại của bạn vẫn được giữ nguyên.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                disabled={isRevokingSessions}
+                onClick={() => setConfirmRevokeModal(false)}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                disabled={isRevokingSessions}
+                onClick={async () => {
+                  setConfirmRevokeModal(false);
+                  await executeRevokeOtherSessions();
+                }}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                {isRevokingSessions ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Đang xử lý...</span>
+                  </>
+                ) : (
+                  <span>Xác nhận đăng xuất</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRM CLEAR WORKSPACE MODAL */}
+      {confirmClearWorkspaceModal && (
+        <div
+          className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-backdrop-fade cursor-default"
+          onMouseDown={(e) => { mouseDownTargetRef.current = e.target; }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) {
+              setConfirmClearWorkspaceModal(false);
+            }
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-slate-900 rounded-3xl border border-rose-200 dark:border-rose-900/60 p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-4 animate-modal-enter"
+          >
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 flex items-center justify-center shrink-0 border border-rose-200 dark:border-rose-900/50">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Làm sạch Workspace của bạn?
+                </h3>
+                <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold mt-0.5">
+                  Lưu ý: Dữ liệu công việc, dự án, mục tiêu và thói quen trong workspace sẽ được xóa sạch.
+                </p>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Tài khoản đăng nhập và gói dịch vụ của bạn vẫn được giữ nguyên. Bạn nên xuất file sao lưu (Export Backup) trước khi thực hiện.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                onClick={() => setConfirmClearWorkspaceModal(false)}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setConfirmClearWorkspaceModal(false);
+                  await clearWorkspace();
+                  showStatus('Đã làm sạch không gian làm việc của bạn', 'success');
+                  soundEngine.playPop();
+                }}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <span>Xác nhận làm sạch</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../lib/store';
 import { soundEngine } from '../lib/soundEngine';
 import { triggerConfetti } from '../lib/confetti';
+import { companionEngine } from '../lib/companionEngine';
 import {
   FileEdit, Trash2, Clock, CheckSquare, BookOpen,
   ChevronDown, ChevronUp, Copy, Check, Sparkles, AlertCircle
@@ -16,7 +17,7 @@ const STORAGE_KEY = 'lifeos_scratchpad_data';
 const EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export function ScratchpadWidget() {
-  const { addTask, setCurrentView } = useAppStore();
+  const { addTask, setCurrentView, currentUser } = useAppStore();
   const [isOpen, setIsOpen] = useState(false);
   const [content, setContent] = useState('');
   const [createdAt, setCreatedAt] = useState<number>(Date.now());
@@ -26,6 +27,37 @@ export function ScratchpadWidget() {
   const [copied, setCopied] = useState(false);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const [hasMascotOnRight, setHasMascotOnRight] = useState(() => {
+    try {
+      const s = companionEngine.getSettings(currentUser?.id);
+      return s.enabled && s.focusCompanionMode !== 'off' && s.position !== 'bottom-left';
+    } catch {
+      return true;
+    }
+  });
+
+  const [hasMascotOnLeft, setHasMascotOnLeft] = useState(() => {
+    try {
+      const s = companionEngine.getSettings(currentUser?.id);
+      return s.enabled && s.focusCompanionMode !== 'off' && s.position === 'bottom-left';
+    } catch {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    const handleSettingsUpdate = () => {
+      try {
+        const s = companionEngine.getSettings(currentUser?.id);
+        const enabled = s.enabled && s.focusCompanionMode !== 'off';
+        setHasMascotOnRight(enabled && s.position !== 'bottom-left');
+        setHasMascotOnLeft(enabled && s.position === 'bottom-left');
+      } catch {}
+    };
+    window.addEventListener('lifeos-companion-settings-updated', handleSettingsUpdate);
+    return () => window.removeEventListener('lifeos-companion-settings-updated', handleSettingsUpdate);
+  }, [currentUser]);
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -169,9 +201,17 @@ export function ScratchpadWidget() {
       )}
 
       {/* Floating Toggle Button / Docked Widget */}
-      <div className="fixed bottom-5 right-5 z-40 flex flex-col items-end">
+      <div 
+        className={`fixed z-40 flex flex-col pointer-events-none transition-all duration-300 ${
+          hasMascotOnRight 
+            ? 'bottom-[calc(5rem+env(safe-area-inset-bottom))] left-3.5 items-start sm:bottom-6 sm:left-auto sm:right-36 md:right-40 sm:items-end' 
+            : hasMascotOnLeft
+              ? 'bottom-[calc(5rem+env(safe-area-inset-bottom))] right-3.5 items-end sm:bottom-6 sm:right-6 sm:items-end'
+              : 'bottom-[calc(5rem+env(safe-area-inset-bottom))] right-3.5 items-end sm:bottom-6 sm:right-6 sm:items-end'
+        }`}
+      >
         {isOpen && (
-          <div className="w-80 sm:w-96 rounded-2xl bg-white/95 dark:bg-[#111827]/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 shadow-2xl p-4 mb-3 transition-all animate-in fade-in zoom-in-95 duration-200">
+          <div className="pointer-events-auto w-80 sm:w-96 max-w-[calc(100vw-1.75rem)] rounded-2xl bg-white/95 dark:bg-[#111827]/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 shadow-2xl p-4 mb-3 transition-all animate-in fade-in zoom-in-95 duration-200">
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-2">
@@ -264,9 +304,16 @@ export function ScratchpadWidget() {
                   <button
                     type="button"
                     onClick={() => handleCreateTask(content)}
-                    className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
+                    className="px-2 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/60 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 transition-colors cursor-pointer"
                   >
-                    Tạo Task từ nháp
+                    + Task
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleCreateVocab(content)}
+                    className="px-2 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/60 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 transition-colors cursor-pointer"
+                  >
+                    + Từ vựng
                   </button>
                 </div>
               )}
@@ -281,7 +328,7 @@ export function ScratchpadWidget() {
             soundEngine.playPop();
             setIsOpen(!isOpen);
           }}
-          className={`flex items-center gap-2 px-3.5 py-2.5 rounded-full shadow-lg border transition-all ${
+          className={`pointer-events-auto cursor-pointer flex items-center gap-2 px-3.5 py-2.5 rounded-full shadow-lg border transition-all ${
             isOpen
               ? 'bg-slate-900 text-white border-slate-800 dark:bg-white dark:text-slate-900'
               : 'bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-200/80 dark:border-slate-800 backdrop-blur-md hover:scale-105 active:scale-95'

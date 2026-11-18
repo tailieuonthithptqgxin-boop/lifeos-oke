@@ -1,10 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Layers, Plus, Trash2, Edit3, CheckCircle2, AlertCircle, RefreshCw,
   Search, X, Check, Eye, Sliders, ChevronRight, Hash, Type, Calendar,
   DollarSign, CheckSquare, ListFilter, Shield
 } from 'lucide-react';
 import { apiCall } from '../lib/apiClient';
+import { toast } from '../lib/toast';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+import { AdminConfirmModal } from './admin/AdminConfirmModal';
 
 interface CustomField {
   name: string;
@@ -54,6 +57,19 @@ export function AdminCustomModulesTab() {
 
   // Modal Create / Edit
   const [isModalOpen, setIsModalOpen] = useState(false);
+  useBodyScrollLock(isModalOpen);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setIsModalOpen(false);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen]);
+  const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<{ id: string; name: string } | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [editingModule, setEditingModule] = useState<CustomModuleItem | null>(null);
   const [name, setName] = useState('');
   const [slug, setSlug] = useState('');
@@ -179,22 +195,27 @@ export function AdminCustomModulesTab() {
     }
   };
 
-  const handleDelete = async (id: string, moduleName: string) => {
-    if (!window.confirm(`Xác nhận xóa hoàn toàn module "${moduleName}" cùng toàn bộ dữ liệu người dùng trong module này? Thao tác không thể hoàn tác.`)) {
-      return;
-    }
+  const confirmDeleteModule = async () => {
+    if (!deleteConfirmTarget) return;
+    const { id, name } = deleteConfirmTarget;
 
     try {
+      setIsDeleting(true);
       const res = await apiCall<{ success: boolean; message: string }>(
         `/api/custom-modules/${id}`,
         'DELETE'
       );
       if (res.success) {
-        setSuccess(`Đã xóa module "${moduleName}" thành công.`);
+        setSuccess(`Đã xóa module "${name}" thành công.`);
         setModules(prev => prev.filter(m => m.id !== id));
+        toast.success(`Đã xóa module "${name}" thành công.`);
       }
     } catch (err: any) {
       setError(err.message || 'Lỗi khi xóa module.');
+      toast.error(err.message || 'Lỗi khi xóa module.');
+    } finally {
+      setIsDeleting(false);
+      setDeleteConfirmTarget(null);
     }
   };
 
@@ -216,7 +237,7 @@ export function AdminCustomModulesTab() {
           </p>
         </div>
 
-        <button
+        <button type="button"
           onClick={handleOpenCreate}
           className="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all flex items-center gap-2 cursor-pointer shrink-0"
         >
@@ -232,7 +253,7 @@ export function AdminCustomModulesTab() {
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="opacity-70 hover:opacity-100">✕</button>
+          <button type="button" onClick={() => setError(null)} className="opacity-70 hover:opacity-100">✕</button>
         </div>
       )}
 
@@ -242,7 +263,7 @@ export function AdminCustomModulesTab() {
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{success}</span>
           </div>
-          <button onClick={() => setSuccess(null)} className="opacity-70 hover:opacity-100">✕</button>
+          <button type="button" onClick={() => setSuccess(null)} className="opacity-70 hover:opacity-100">✕</button>
         </div>
       )}
 
@@ -259,7 +280,7 @@ export function AdminCustomModulesTab() {
           <p className="text-xs text-slate-500 max-w-md mx-auto">
             Hệ thống hỗ trợ Admin tạo không giới hạn các module lĩnh vực tùy biến theo mô hình dữ liệu động (Dynamic Schema).
           </p>
-          <button
+          <button type="button"
             onClick={handleOpenCreate}
             className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs transition-all inline-flex items-center gap-2 cursor-pointer"
           >
@@ -295,15 +316,15 @@ export function AdminCustomModulesTab() {
                 </div>
 
                 <div className="flex items-center gap-1">
-                  <button
+                  <button type="button"
                     onClick={() => handleOpenEdit(mod)}
                     className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors"
                     title="Chỉnh sửa cấu trúc"
                   >
                     <Edit3 className="w-4 h-4" />
                   </button>
-                  <button
-                    onClick={() => handleDelete(mod.id, mod.name)}
+                  <button type="button"
+                    onClick={() => setDeleteConfirmTarget({ id: mod.id, name: mod.name })}
                     className="p-2 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/50 text-rose-600 dark:text-rose-400 transition-colors"
                     title="Xóa module"
                   >
@@ -349,8 +370,22 @@ export function AdminCustomModulesTab() {
 
       {/* Create / Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
-          <div className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto">
+        <div 
+          onMouseDown={(e) => {
+            mouseDownTargetRef.current = e.target;
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) {
+              setIsModalOpen(false);
+            }
+          }}
+          className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200 cursor-default"
+        >
+          <div 
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 max-h-[92vh] overflow-y-auto"
+          >
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-950/60 text-blue-600 flex items-center justify-center font-bold">
@@ -363,7 +398,7 @@ export function AdminCustomModulesTab() {
                   <p className="text-xs text-slate-500">Cấu hình tên, đường dẫn và các trường thuộc tính</p>
                 </div>
               </div>
-              <button
+              <button type="button"
                 onClick={() => setIsModalOpen(false)}
                 className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
               >
@@ -550,6 +585,18 @@ export function AdminCustomModulesTab() {
           </div>
         </div>
       )}
+
+      <AdminConfirmModal
+        isOpen={!!deleteConfirmTarget}
+        title="Xóa Custom Module"
+        message={`Xác nhận xóa hoàn toàn module "${deleteConfirmTarget?.name}" cùng toàn bộ dữ liệu người dùng trong module này? Thao tác này không thể hoàn tác.`}
+        confirmText="Xác nhận xóa vĩnh viễn"
+        cancelText="Hủy bỏ"
+        variant="danger"
+        isLoading={isDeleting}
+        onConfirm={confirmDeleteModule}
+        onCancel={() => setDeleteConfirmTarget(null)}
+      />
     </div>
   );
 }

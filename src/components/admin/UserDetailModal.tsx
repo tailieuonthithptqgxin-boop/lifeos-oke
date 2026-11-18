@@ -1,6 +1,8 @@
-import React, { useEffect } from 'react';
-import { X, Edit, Zap, RotateCcw } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { X, Edit, Zap, RotateCcw, Gift, Award, Sparkles } from 'lucide-react';
 import { ManagedUser } from './types';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { UserXRayModal } from './UserXRayModal';
 
 interface UserDetailModalProps {
   userDetail: any | null;
@@ -27,6 +29,11 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
   isRevoking,
   formatCurrency
 }) => {
+  const [showXRay, setShowXRay] = useState(false);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useBodyScrollLock(!!userDetail);
+
   useEffect(() => {
     if (!userDetail) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -40,26 +47,36 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 z-[80] bg-black/60 flex items-center justify-center p-4 backdrop-blur-xs animate-in fade-in duration-100"
-      onClick={onClose}
+      className="fixed inset-0 z-[80] bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4 backdrop-blur-xs animate-in fade-in duration-100"
+      onMouseDown={(e) => { mouseDownTargetRef.current = e.target; }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) {
+          onClose();
+        }
+      }}
     >
       <div 
-        className="bg-white dark:bg-slate-900 rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
+        className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-2xl w-full max-h-[90dvh] flex flex-col border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden animate-bottom-sheet sm:animate-in sm:zoom-in-95 duration-150"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Mobile Grab Handle */}
+        <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto sm:hidden mt-2.5 -mb-2" />
+
         {/* Modal Header */}
-        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-3.5">
+        <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+          <div className="flex items-center gap-3">
             <img
               src={userDetail.user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(userDetail.user.name)}`}
-              alt=""
-              className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 object-cover"
+              alt={userDetail.user.name || 'Ảnh đại diện người dùng'}
+              loading="lazy"
+              decoding="async"
+              className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 object-cover shrink-0"
             />
-            <div>
-              <h3 className="font-black text-slate-900 dark:text-white text-base">
+            <div className="min-w-0">
+              <h3 className="font-black text-slate-900 dark:text-white text-base truncate">
                 {userDetail.user.name}
               </h3>
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-slate-400 truncate">
                 {userDetail.user.email} • ID: <span className="font-mono">{userDetail.user.id.slice(0, 8)}...</span>
               </div>
             </div>
@@ -68,7 +85,8 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+            className="w-10 h-10 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+            aria-label="Đóng"
           >
             <X className="w-5 h-5" />
           </button>
@@ -103,6 +121,51 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
               <span className="font-bold text-slate-900 dark:text-white mt-0.5 block">
                 {userDetail.user.status}
               </span>
+            </div>
+          </div>
+
+          {/* User X-Ray Analysis Trigger Banner */}
+          <button
+            type="button"
+            onClick={() => setShowXRay(true)}
+            className="w-full flex items-center justify-between p-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 text-white font-extrabold text-xs shadow-md shadow-indigo-600/20 hover:brightness-105 active:scale-98 transition cursor-pointer"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+                <Sparkles className="w-4 h-4 text-amber-300" />
+              </div>
+              <div className="text-left">
+                <span className="block leading-tight">Hồ Sơ X-Quang Phân Tích Hành Vi Người Dùng</span>
+                <span className="text-[10px] font-normal text-purple-200">
+                  Xem chi tiết chức năng đã dùng, thời lượng, tần suất và nguồn CTV giới thiệu
+                </span>
+              </div>
+            </div>
+            <span className="text-xs bg-white/20 px-2.5 py-1 rounded-xl">Khám phá ↗</span>
+          </button>
+
+          {/* Affiliate CTV Status Card */}
+          <div className="bg-purple-50/60 dark:bg-purple-950/30 p-4 rounded-2xl border border-purple-200/70 dark:border-purple-900/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-purple-700 dark:text-purple-300 block flex items-center gap-1.5">
+                <Award className="w-3.5 h-3.5 text-purple-600" />
+                <span>Chế độ Cộng Tác Viên (Affiliate)</span>
+              </span>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="font-extrabold text-xs text-slate-900 dark:text-white">
+                  {userDetail.user.isAffiliate ? '⭐ Đã kích hoạt quyền Cộng Tác Viên (CTV)' : 'Người dùng thông thường (Chưa kích hoạt)'}
+                </span>
+                {userDetail.user.isAffiliate && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-400 text-slate-900 uppercase">
+                    CTV Active
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                {userDetail.user.isAffiliate 
+                  ? 'Tài khoản này có link mời riêng, được hưởng 20% hoa hồng và mở khóa Cổng Quản Lý Đơn Hàng CTV.'
+                  : 'Có thể bật/tắt quyền CTV cho người dùng này ở danh sách người dùng.'}
+              </p>
             </div>
           </div>
 
@@ -248,6 +311,13 @@ export const UserDetailModal: React.FC<UserDetailModalProps> = ({
           </button>
         </div>
       </div>
+
+      {showXRay && (
+        <UserXRayModal
+          userId={userDetail.user.id}
+          onClose={() => setShowXRay(false)}
+        />
+      )}
     </div>
   );
 };

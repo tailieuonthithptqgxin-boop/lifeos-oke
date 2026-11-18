@@ -1,4 +1,6 @@
 export type AdminTab = 
+  | 'analytics'
+  | 'user_activity' 
   | 'requests' 
   | 'subscriptions'
   | 'plans' 
@@ -12,6 +14,8 @@ export type AdminTab =
   | 'referrals'
   | 'feedback'
   | 'announcements'
+  | 'communities'
+  | 'cron_manager'
   | 'live_test_lab';
 
 export interface PasswordResetRequestItem {
@@ -106,6 +110,7 @@ export interface SubscriptionRecord {
     role: string;
     plan: string;
     avatar?: string;
+  isAffiliate?: boolean;
   };
 }
 
@@ -117,6 +122,7 @@ export interface ManagedUser {
   plan: string;
   status: 'ACTIVE' | 'SUSPENDED' | 'DISABLED';
   avatar?: string;
+  isAffiliate?: boolean;
   createdAt: string;
 }
 
@@ -143,6 +149,7 @@ export interface PaymentRequest {
     role: string;
     plan: string;
     avatar?: string;
+  isAffiliate?: boolean;
   };
 }
 

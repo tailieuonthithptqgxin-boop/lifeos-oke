@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   ShieldCheck,
   CheckCircle2,
@@ -28,6 +28,8 @@ import { apiCall } from '../lib/apiClient';
 import { formatCurrency } from '../lib/utils';
 import { UserSubscriptionStatus } from '../lib/types';
 import { toast } from '../lib/toast';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
+import { soundEngine } from '../lib/soundEngine';
 
 export function SubscriptionManagementView() {
   const {
@@ -60,6 +62,13 @@ export function SubscriptionManagementView() {
   const [transferNote, setTransferNote] = useState('');
   const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
   const [copySuccess, setCopySuccess] = useState<string | null>(null);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  // Team Confirmation Modals
+  const [memberToRemove, setMemberToRemove] = useState<{ id: string; name: string } | null>(null);
+  const [confirmLeaveTeamModal, setConfirmLeaveTeamModal] = useState(false);
+
+  useBodyScrollLock(!!checkoutSession || !!memberToRemove || confirmLeaveTeamModal);
 
   // Fetch full subscription info
   const loadSubscription = async () => {
@@ -120,13 +129,15 @@ export function SubscriptionManagementView() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && checkoutSession) {
-        setCheckoutSession(null);
+      if (e.key === 'Escape') {
+        if (checkoutSession) setCheckoutSession(null);
+        if (memberToRemove && !isRemovingMember) setMemberToRemove(null);
+        if (confirmLeaveTeamModal && !isRemovingMember) setConfirmLeaveTeamModal(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [checkoutSession]);
+  }, [checkoutSession, memberToRemove, confirmLeaveTeamModal, isRemovingMember]);
 
   const handleCopy = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -239,23 +250,28 @@ export function SubscriptionManagementView() {
   };
 
   // Team: Remove member
-  const handleRemoveMember = async (memberUserId: string, memberName: string) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa thành viên "${memberName}" khỏi nhóm? Người dùng này sẽ lập tức mất quyền truy cập trả phí.`)) {
-      return;
-    }
+  const handleRemoveMember = (memberUserId: string, memberName: string) => {
+    setMemberToRemove({ id: memberUserId, name: memberName });
+  };
+
+  const executeRemoveMember = async () => {
+    if (!memberToRemove) return;
     try {
-      setIsRemovingMember(memberUserId);
-      const res = await apiCall(`/api/team/members/${memberUserId}`, 'DELETE');
+      setIsRemovingMember(memberToRemove.id);
+      const res = await apiCall(`/api/team/members/${memberToRemove.id}`, 'DELETE');
       if (res && res.success) {
         setStatusMessage({ text: res.message || 'Đã xóa thành viên khỏi nhóm', type: 'success' });
-        toast.info(`Đã xóa thành viên ${memberName} khỏi nhóm.`, 'Đội ngũ');
+        toast.info(`Đã xóa thành viên ${memberToRemove.name} khỏi nhóm.`, 'Đội ngũ');
+        soundEngine.playSuccess();
         await loadTeam();
       }
     } catch (err: any) {
       setStatusMessage({ text: err.message || 'Lỗi khi xóa thành viên', type: 'error' });
       toast.error(err.message || 'Lỗi khi xóa thành viên', 'Lỗi');
+      soundEngine.playPop();
     } finally {
       setIsRemovingMember(null);
+      setMemberToRemove(null);
     }
   };
 
@@ -272,6 +288,7 @@ export function SubscriptionManagementView() {
         const msg = res.message || 'Tham gia nhóm thành công! Toàn bộ tính năng LifeOS đã được mở khóa.';
         setStatusMessage({ text: msg, type: 'success' });
         toast.success(msg, 'Tham gia thành công 🎉');
+        soundEngine.playSuccess();
         setJoinCodeInput('');
         await loadTeam();
         await loadSubscription();
@@ -282,23 +299,26 @@ export function SubscriptionManagementView() {
     } catch (err: any) {
       setStatusMessage({ text: err.message || 'Lỗi khi tham gia nhóm', type: 'error' });
       toast.error(err.message || 'Lỗi khi tham gia nhóm', 'Lỗi');
+      soundEngine.playPop();
     } finally {
       setIsJoiningTeam(false);
     }
   };
 
   // Team: Leave current team
-  const handleLeaveTeam = async () => {
+  const handleLeaveTeam = () => {
+    setConfirmLeaveTeamModal(true);
+  };
+
+  const executeLeaveTeam = async () => {
     if (!currentUser?.id) return;
-    if (!window.confirm('Bạn có chắc chắn muốn rời khỏi nhóm này? Quyền sử dụng các tính năng trả phí của bạn sẽ kết thúc.')) {
-      return;
-    }
     try {
       setIsRemovingMember(currentUser.id);
       const res = await apiCall(`/api/team/members/${currentUser.id}`, 'DELETE');
       if (res && res.success) {
         setStatusMessage({ text: res.message || 'Đã rời khỏi nhóm thành công.', type: 'success' });
         toast.info('Đã rời khỏi nhóm.', 'Đội ngũ');
+        soundEngine.playSuccess();
         await loadTeam();
         await loadSubscription();
         await fetchSubscriptionStatus();
@@ -308,8 +328,10 @@ export function SubscriptionManagementView() {
     } catch (err: any) {
       setStatusMessage({ text: err.message || 'Lỗi khi rời khỏi nhóm', type: 'error' });
       toast.error(err.message || 'Lỗi khi rời khỏi nhóm', 'Lỗi');
+      soundEngine.playPop();
     } finally {
       setIsRemovingMember(null);
+      setConfirmLeaveTeamModal(false);
     }
   };
 
@@ -937,7 +959,11 @@ export function SubscriptionManagementView() {
                               <td className="py-3.5 px-4 flex items-center gap-3">
                                 <img
                                   src={m.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(m.name)}`}
-                                  alt={m.name}
+                                  alt={m.name || 'Ảnh đại diện thành viên nhóm'}
+                                  loading="lazy"
+                                  decoding="async"
+                                  width="32"
+                                  height="32"
                                   className="w-8 h-8 rounded-full bg-slate-200 dark:bg-slate-700 object-cover"
                                 />
                                 <span className="font-bold text-slate-900 dark:text-white">
@@ -1054,16 +1080,44 @@ export function SubscriptionManagementView() {
           </div>
         )}
 
+        {/* Support & Refund Guarantee Section */}
+        <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs text-slate-500">
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck className="w-5 h-5 text-emerald-500 shrink-0" />
+            <div>
+              <p className="font-semibold text-slate-800 dark:text-slate-200">
+                Cam kết bản quyền & Kích hoạt trực tuyến
+              </p>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Hỗ trợ kỹ thuật: <strong className="text-slate-700 dark:text-slate-300">adminteamdaniel@gmail.com</strong>. Chính sách hoàn tiền chỉ áp dụng cho sự cố kỹ thuật website phát sinh trong quá trình thanh toán hoặc cấp quyền dịch vụ.
+              </p>
+            </div>
+          </div>
+          <a
+            href="/refund-policy"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold text-[11px] whitespace-nowrap transition-colors shrink-0"
+          >
+            Chính sách hoàn tiền
+          </a>
+        </div>
+
       </div>
 
       {/* CHECKOUT MODAL: VIETQR TRANSFER & PAYMENT PROOF SUBMISSION */}
       {checkoutSession && (
         <div 
-          className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
-          onClick={() => setCheckoutSession(null)}
+          className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200 cursor-default"
+          onMouseDown={(e) => { mouseDownTargetRef.current = e.target; }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) {
+              setCheckoutSession(null);
+            }
+          }}
         >
           <div 
-            className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto"
+            className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 max-h-[90vh] overflow-y-auto animate-modal-enter"
             onClick={(e) => e.stopPropagation()}
           >
             
@@ -1090,7 +1144,11 @@ export function SubscriptionManagementView() {
               <div className="flex flex-col items-center justify-center p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
                 <img
                   src={checkoutSession.bankInfo?.qrUrl}
-                  alt="VietQR Code"
+                  alt="Mã VietQR thanh toán gói đăng ký tài khoản"
+                  loading="lazy"
+                  decoding="async"
+                  width="192"
+                  height="192"
                   className="w-48 h-48 rounded-xl object-contain bg-white p-2 shadow-xs"
                 />
                 <span className="text-[11px] text-slate-400 mt-2 font-medium">
@@ -1166,6 +1224,125 @@ export function SubscriptionManagementView() {
               </button>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CONFIRM REMOVE MEMBER */}
+      {memberToRemove && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-backdrop-fade cursor-default"
+          onMouseDown={(e) => { mouseDownTargetRef.current = e.target; }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget && !isRemovingMember) {
+              setMemberToRemove(null);
+            }
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-slate-900 rounded-3xl border border-rose-200 dark:border-rose-900/60 p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-4 animate-modal-enter"
+          >
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 flex items-center justify-center shrink-0 border border-rose-200 dark:border-rose-900/50">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Xóa thành viên khỏi nhóm?
+                </h3>
+                <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold mt-0.5">
+                  Thành viên "{memberToRemove.name}" sẽ lập tức mất quyền truy cập trả phí của nhóm.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                disabled={!!isRemovingMember}
+                onClick={() => setMemberToRemove(null)}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                disabled={!!isRemovingMember}
+                onClick={executeRemoveMember}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                {isRemovingMember ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Đang xóa...</span>
+                  </>
+                ) : (
+                  <span>Xác nhận xóa</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: CONFIRM LEAVE TEAM */}
+      {confirmLeaveTeamModal && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-backdrop-fade cursor-default"
+          onMouseDown={(e) => { mouseDownTargetRef.current = e.target; }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget && !isRemovingMember) {
+              setConfirmLeaveTeamModal(false);
+            }
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-white dark:bg-slate-900 rounded-3xl border border-rose-200 dark:border-rose-900/60 p-6 sm:p-7 max-w-md w-full shadow-2xl space-y-4 animate-modal-enter"
+          >
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 flex items-center justify-center shrink-0 border border-rose-200 dark:border-rose-900/50">
+                <UserMinus className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  Rời khỏi nhóm hiện tại?
+                </h3>
+                <p className="text-xs text-rose-600 dark:text-rose-400 font-semibold mt-0.5">
+                  Quyền sử dụng các tính năng trả phí của bạn sẽ kết thúc ngay khi rời nhóm.
+                </p>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                  Các dữ liệu cá nhân (công việc, tài chính) bạn đã tạo vẫn được giữ nguyên trong tài khoản của bạn.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+              <button
+                type="button"
+                disabled={!!isRemovingMember}
+                onClick={() => setConfirmLeaveTeamModal(false)}
+                className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                disabled={!!isRemovingMember}
+                onClick={executeLeaveTeam}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white text-xs font-bold shadow-sm transition-all cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                {isRemovingMember ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Đang xử lý...</span>
+                  </>
+                ) : (
+                  <span>Xác nhận rời nhóm</span>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

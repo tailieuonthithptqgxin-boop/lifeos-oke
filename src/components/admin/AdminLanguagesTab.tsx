@@ -3,6 +3,7 @@ import { Plus, RefreshCw, Trash2, Globe, X } from 'lucide-react';
 import { apiCall } from '../../lib/apiClient';
 import { useAppStore } from '../../lib/store';
 import { LanguageItem } from './types';
+import { AdminConfirmModal } from './AdminConfirmModal';
 
 interface AdminLanguagesTabProps {
   onShowMessage?: (msg: { text: string; type: 'success' | 'error' }) => void;
@@ -14,6 +15,7 @@ export function AdminLanguagesTab({ onShowMessage }: AdminLanguagesTabProps) {
   const [isLoadingLanguages, setIsLoadingLanguages] = useState(false);
   const [isSavingLanguages, setIsSavingLanguages] = useState(false);
   const [showAddLanguageModal, setShowAddLanguageModal] = useState(false);
+  const [deleteLangTarget, setDeleteLangTarget] = useState<{ code: string; name: string } | null>(null);
   const [newLanguage, setNewLanguage] = useState({ code: '', name: '', flag: '🌐' });
 
   const fetchLanguages = async () => {
@@ -31,7 +33,24 @@ export function AdminLanguagesTab({ onShowMessage }: AdminLanguagesTabProps) {
   };
 
   useEffect(() => {
-    fetchLanguages();
+    let isMounted = true;
+    const load = async () => {
+      try {
+        setIsLoadingLanguages(true);
+        const res = await apiCall('/api/admin/languages');
+        if (isMounted && res && res.success) {
+          setLanguages(res.languages || []);
+        }
+      } catch (err: any) {
+        if (isMounted) console.warn('Lỗi khi tải ngôn ngữ:', err);
+      } finally {
+        if (isMounted) setIsLoadingLanguages(false);
+      }
+    };
+    load();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleToggleLanguageStatus = async (code: string) => {
@@ -125,8 +144,13 @@ export function AdminLanguagesTab({ onShowMessage }: AdminLanguagesTabProps) {
     }
   };
 
-  const handleDeleteLanguage = async (code: string, name: string) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa ngôn ngữ "${name}" (${code}) khỏi hệ thống?`)) return;
+  const handleDeleteLanguage = (code: string, name: string) => {
+    setDeleteLangTarget({ code, name });
+  };
+
+  const executeDeleteLanguage = async () => {
+    if (!deleteLangTarget) return;
+    const { code, name } = deleteLangTarget;
 
     try {
       setIsSavingLanguages(true);
@@ -134,6 +158,7 @@ export function AdminLanguagesTab({ onShowMessage }: AdminLanguagesTabProps) {
       if (res && res.success) {
         setLanguages(res.languages || languages.filter(l => l.code !== code));
         onShowMessage?.({ text: `Đã xóa ngôn ngữ "${name}" thành công!`, type: 'success' });
+        setDeleteLangTarget(null);
         refreshLanguages?.();
       } else {
         throw new Error(res?.message || 'Không thể xóa ngôn ngữ');
@@ -378,6 +403,22 @@ export function AdminLanguagesTab({ onShowMessage }: AdminLanguagesTabProps) {
           </div>
         </div>
       )}
+
+      {/* Delete Language Confirmation Modal */}
+      <AdminConfirmModal
+        isOpen={!!deleteLangTarget}
+        title="Xóa ngôn ngữ hệ thống"
+        description={
+          <span>
+            Bạn có chắc chắn muốn xóa ngôn ngữ <strong>"{deleteLangTarget?.name}"</strong> ({deleteLangTarget?.code}) khỏi hệ thống? Thao tác này không thể hoàn tác.
+          </span>
+        }
+        confirmLabel="Xóa ngôn ngữ"
+        variant="danger"
+        isProcessing={isSavingLanguages}
+        onConfirm={executeDeleteLanguage}
+        onClose={() => setDeleteLangTarget(null)}
+      />
     </div>
   );
 }

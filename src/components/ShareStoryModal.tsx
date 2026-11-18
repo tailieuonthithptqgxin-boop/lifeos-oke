@@ -7,6 +7,7 @@ import { RetentionProfile, retentionEngine } from '../lib/retentionEngine';
 import { soundEngine } from '../lib/soundEngine';
 import { triggerConfetti } from '../lib/confetti';
 import { useAppStore } from '../lib/store';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 interface ShareStoryModalProps {
   isOpen: boolean;
@@ -31,8 +32,19 @@ export function ShareStoryModal({
   moodLabel = 'Deep Focus',
   bossDefeatedTitle
 }: ShareStoryModalProps) {
+  useBodyScrollLock(isOpen);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
   const { currentUser } = useAppStore();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   const [currentTheme, setCurrentTheme] = useState<StoryTheme>('cyber_emerald');
   const [copied, setCopied] = useState(false);
@@ -40,8 +52,8 @@ export function ShareStoryModal({
 
   const activeProfile = profile || retentionEngine.getProfile(currentUser?.id);
   const displayName = currentUser?.name || userName;
-  const userStreak = activeProfile?.streak ?? 0;
-  const userLevel = activeProfile?.level || 1;
+  const userStreak = currentUser?.streakDays ?? activeProfile?.streak ?? 0;
+  const userLevel = currentUser?.level ?? activeProfile?.level ?? 1;
   const userCp = Math.floor((userLevel * 35) + (userStreak * 20));
   const referralCode = (currentUser as any)?.referralCode || 'LIFEOS2026';
 
@@ -157,7 +169,7 @@ export function ShareStoryModal({
     // Level Badge
     ctx.fillStyle = primaryColor;
     ctx.font = 'bold 36px sans-serif';
-    ctx.fillText(`LV.${userLevel} HERO  ·  ${profile.levelTitle || 'INITIATOR'}`, 540, 660);
+    ctx.fillText(`LV.${userLevel} HERO  ·  ${activeProfile?.levelTitle || 'INITIATOR'}`, 540, 660);
 
     // Giant Hero Flame Streak Card
     ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
@@ -294,19 +306,21 @@ export function ShareStoryModal({
       canvas.toBlob(async (blob) => {
         if (!blob) return;
         const file = new File([blob], `lifeos_story_${userStreak}days.png`, { type: 'image/png' });
-        const shareText = `🔥 Giữ vững chuỗi ${userStreak} ngày kỷ luật trên LifeOS!\n⚡ Lv.${userLevel} | ${userCp} CP\nTham gia cùng mình: lifeos.vn (Mã mời: ${referralCode})\n#LifeOS #Productivity #GenZ`;
+        const shareUrl = `${window.location.origin}/?ref=${encodeURIComponent(referralCode)}`;
+        const shareText = `🔥 Giữ vững chuỗi ${userStreak} ngày kỷ luật trên LifeOS!\n⚡ Lv.${userLevel} | ${userCp} CP\nTham gia cùng mình: ${shareUrl}\n#LifeOS #Productivity #GenZ`;
         
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           await navigator.share({
             title: 'LifeOS Story Flex',
             text: shareText,
+            url: shareUrl,
             files: [file]
           });
         } else if (navigator.share) {
           await navigator.share({
             title: 'LifeOS Story Flex',
             text: shareText,
-            url: window.location.origin
+            url: shareUrl
           });
         } else {
           handleDownloadPng();
@@ -319,7 +333,8 @@ export function ShareStoryModal({
 
   const handleCopyCaption = () => {
     soundEngine.playPop();
-    const shareText = `🔥 Giữ vững chuỗi ${userStreak} ngày kỷ luật trên LifeOS!\n⚡ Cấp độ Lv.${userLevel} | ${userCp} Lực chiến CP\n🎯 Đã hoàn thành ${todayCompletedTasks} việc cốt lõi hôm nay.\n\nTham gia cùng mình tại: lifeos.vn (Mã mời: ${referralCode})\n#LifeOS #Productivity #Discipline #GenZ #LevelUp`;
+    const shareUrl = `${window.location.origin}/?ref=${encodeURIComponent(referralCode)}`;
+    const shareText = `🔥 Giữ vững chuỗi ${userStreak} ngày kỷ luật trên LifeOS!\n⚡ Cấp độ Lv.${userLevel} | ${userCp} Lực chiến CP\n🎯 Đã hoàn thành ${todayCompletedTasks} việc cốt lõi hôm nay.\n\nTham gia cùng mình tại: ${shareUrl}\n#LifeOS #Productivity #Discipline #GenZ #LevelUp`;
     navigator.clipboard.writeText(shareText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
@@ -328,26 +343,41 @@ export function ShareStoryModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 select-none overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-5 sm:p-6 space-y-4 shadow-2xl relative text-white my-auto">
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) {
+          onClose();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200 select-none overflow-y-auto cursor-default"
+    >
+      <div 
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-2xl relative text-white my-auto"
+      >
         
         {/* Header */}
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0">
               <Share2 className="w-4 h-4" />
             </span>
-            <div>
-              <h3 className="font-black text-sm text-white">Xuất Thẻ Story 9:16 (Instagram & Threads)</h3>
-              <p className="text-[11px] text-slate-400">Ảnh dọc 1080x1920 siêu nét flex chuỗi streak</p>
+            <div className="min-w-0">
+              <h3 className="font-black text-sm text-white truncate">Xuất Thẻ Story 9:16 (Instagram & Threads)</h3>
+              <p className="text-[11px] text-slate-400 truncate">Ảnh dọc 1080x1920 siêu nét flex chuỗi streak</p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+            className="w-10 h-10 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer shrink-0"
+            aria-label="Đóng"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -359,7 +389,7 @@ export function ShareStoryModal({
             { id: 'neon_violet', name: 'Neon Violet', color: 'bg-purple-500' },
             { id: 'minimal_dark', name: 'Minimal Dark', color: 'bg-slate-400' }
           ].map(t => (
-            <button
+            <button type="button"
               key={t.id}
               onClick={() => {
                 soundEngine.playPop();
@@ -391,7 +421,7 @@ export function ShareStoryModal({
             <button
               type="button"
               onClick={handleShareStoryDirect}
-              className="py-3 rounded-2xl bg-gradient-to-r from-purple-600 via-pink-600 to-rose-500 hover:from-purple-500 hover:to-pink-500 text-white font-black text-xs shadow-lg shadow-pink-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+              className="py-3 min-h-[44px] rounded-2xl bg-gradient-to-r from-purple-600 via-pink-600 to-rose-500 hover:from-purple-500 hover:to-pink-500 text-white font-black text-xs sm:text-sm shadow-lg shadow-pink-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
             >
               <Share2 className="w-4 h-4" />
               <span>Khoe Story Ngay</span>
@@ -401,7 +431,7 @@ export function ShareStoryModal({
               type="button"
               onClick={handleDownloadPng}
               disabled={isExporting}
-              className="py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
+              className="py-3 min-h-[44px] rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-xs sm:text-sm shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-98"
             >
               <Download className="w-4 h-4" />
               <span>{isExporting ? 'Đang xuất...' : 'Tải Ảnh PNG'}</span>
@@ -411,7 +441,7 @@ export function ShareStoryModal({
           <button
             type="button"
             onClick={handleCopyCaption}
-            className="w-full py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+            className="w-full py-2.5 min-h-[44px] rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
           >
             {copied ? (
               <>

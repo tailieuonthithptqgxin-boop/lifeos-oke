@@ -5,7 +5,8 @@ import {
   CompanionSettings, 
   MASCOT_PROFILES, 
   companionEngine,
-  CompanionFocusMode
+  CompanionFocusMode,
+  COMPANION_ACCESSORIES
 } from '../../lib/companionEngine';
 import { 
   companionEventBus, 
@@ -16,6 +17,7 @@ import {
   CompanionCharacterProfile 
 } from '../../lib/companion/characterRegistry';
 import { soundEngine } from '../../lib/soundEngine';
+import { formatLocalDateKey } from '../../lib/utils';
 import { CompanionSpeechBubble } from './CompanionSpeechBubble';
 import { CompanionSettingsModal } from './CompanionSettingsModal';
 import { InteractiveCompanionChatModal } from './InteractiveCompanionChatModal';
@@ -98,8 +100,8 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
       if (moodOverride) {
         setCurrentMood('idle');
       }
-    }, 6000);
-  }, [settings]);
+    }, currentView === 'focus' ? 3500 : 5000);
+  }, [settings, currentView]);
 
   // Subscribe to companionEventBus triggers from views (Focus, Vocab, etc.)
   useEffect(() => {
@@ -165,12 +167,16 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
   useEffect(() => {
     if (currentView === 'focus') {
       setCurrentMood('focus');
+      if (typeof window !== 'undefined' && window.innerWidth < 768) {
+        setIsCollapsed(true);
+        setShowBubble(false);
+      }
     } else {
       setCurrentMood('idle');
     }
 
     // Proactive Nudge check (once per session view entry, polite and helpful)
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = formatLocalDateKey(new Date());
     const pendingHighPriority = (tasks || []).filter(t => 
       t.dueDate && t.dueDate.startsWith(todayStr) && 
       (t.priority === 'Cao' || t.priority === 'Nghiêm trọng') && 
@@ -234,16 +240,18 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
 
   // Positioning classes:
   // On desktop: bottom-6, right-6 (or left-6)
-  // On mobile (< sm): bottom-20 left-3 so it docks cleanly above bottom nav
+  // On mobile (< sm): bottom-[calc(5rem+env(safe-area-inset-bottom))] left-3 or right-3 above bottom nav
   const isLeft = settings.position === 'bottom-left';
   const posClasses = isLeft
-    ? 'bottom-20 left-3 sm:bottom-6 sm:left-6 md:left-[17.5rem] items-start'
-    : 'bottom-20 left-3 sm:bottom-6 sm:right-6 items-start sm:items-end';
+    ? 'bottom-[calc(5rem+env(safe-area-inset-bottom))] left-3 sm:bottom-6 sm:left-6 md:left-[17.5rem] items-start'
+    : 'bottom-[calc(5rem+env(safe-area-inset-bottom))] right-3 sm:bottom-6 sm:right-6 items-end';
+
+  const equippedAccessory = COMPANION_ACCESSORIES.find(a => a.id === settings.equippedAccessoryId);
 
   return (
     <>
       <div 
-        className={`fixed z-[45] flex flex-col pointer-events-auto transition-all duration-300 ${posClasses} ${className}`}
+        className={`fixed z-40 flex flex-col pointer-events-none transition-all duration-300 ${posClasses} ${className}`}
         aria-label="AI Study Companion"
       >
         {/* Floating Speech Bubble */}
@@ -252,7 +260,7 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
             message={speechMessage}
             profile={profile}
             onDismiss={() => setShowBubble(false)}
-            className="mb-2 max-w-[calc(100vw-2.5rem)] sm:max-w-xs cursor-pointer"
+            className="mb-2 max-w-[260px] sm:max-w-xs cursor-pointer pointer-events-auto"
             onClick={() => setShowChatModal(true)}
           />
         )}
@@ -261,10 +269,17 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
         {isCollapsed ? (
           <div 
             onClick={() => setIsCollapsed(false)}
-            className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-2 rounded-full bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-800 shadow-md backdrop-blur-md hover:scale-105 active:scale-95 transition-all cursor-pointer group"
+            className="pointer-events-auto flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-2 rounded-full bg-white/95 dark:bg-slate-900/95 border border-slate-200/80 dark:border-slate-800 shadow-md backdrop-blur-md hover:scale-105 active:scale-95 transition-all cursor-pointer group"
             style={{ borderColor: `${profile.themeColor}55` }}
           >
-            <span className="text-sm sm:text-base animate-bounce">{profile.avatar}</span>
+            <span className="text-sm sm:text-base animate-bounce relative inline-block">
+              {profile.avatar}
+              {equippedAccessory && equippedAccessory.id !== 'none' && (
+                <span className="absolute -top-1.5 -right-2 text-[10px] select-none">
+                  {equippedAccessory.icon}
+                </span>
+              )}
+            </span>
             <span className="text-[11px] sm:text-xs font-black text-slate-700 dark:text-slate-200">
               {profile.name}
             </span>
@@ -272,7 +287,7 @@ export const GlobalCompanionOverlay: React.FC<GlobalCompanionOverlayProps> = ({
           </div>
         ) : (
           /* Full Living Mascot Character Widget */
-          <div className="relative group">
+          <div className={`relative group pointer-events-auto transform transition-transform ${isLeft ? 'origin-bottom-left' : 'origin-bottom-right'} scale-[0.84] sm:scale-100`}>
             <CompanionAvatar
               profile={profile}
               mood={currentMood}

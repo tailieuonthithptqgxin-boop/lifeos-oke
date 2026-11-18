@@ -13,29 +13,42 @@ export const translations: Record<string, TranslationDictionary> = {
     Today: 'Hôm nay',
     today: 'hôm nay',
     'Daily Rhythm': 'Nhịp sống hàng ngày',
-    Tasks: 'Công việc',
+    'Lịch & Công việc': 'Lịch & Công việc',
+    'Schedule & Tasks': 'Lịch & Công việc',
+    Tasks: 'Lịch & Công việc',
     Calendar: 'Lịch biểu',
-    Finance: 'Tài chính',
-    Focus: 'Tập trung',
+    Finance: 'Tài chính & Hũ Tiết Kiệm',
+    Focus: 'Phòng Tập Trung',
+    'Phòng tập trung': 'Phòng Tập Trung',
+    'Phòng Tập Trung': 'Phòng Tập Trung',
+    'Focus Room': 'Phòng Tập Trung',
     Journey: 'Hành trình',
     Projects: 'Dự án',
-    'Projects (P.A.R.A)': 'Dự án (P.A.R.A)',
+    'Projects (P.A.R.A)': 'Kho Dự Án & Second Brain',
     Study: 'Học tập',
-    'Study & Vocab': 'Học tập & Từ vựng',
+    'Study & Vocab': 'Học Tập & Từ Vựng (FSRS)',
+    'Phòng Học Online': 'Phòng Học Online',
+    'Phòng Học Trực Tuyến': 'Phòng Học Online',
+    'Phòng Học Trực Tuyến & Meet': 'Phòng Học Online',
+    'Phòng Học Live': 'Phòng Học Online',
+    'Lớp Học Online': 'Phòng Học Online',
+    'LifeOS Connect': 'Bảng Tin Cộng Đồng',
+    'Sảnh Học & Co-working': 'Sảnh Học & Co-working',
+    'Bảng Tin Cộng Đồng': 'Bảng Tin Cộng Đồng',
     Goals: 'Mục tiêu',
     Notes: 'Ghi chú',
-    'Journal & Notes': 'Sổ tay & Ghi chú',
-    Habits: 'Thói quen',
+    'Journal & Notes': 'Sổ tay & Ghi chú (Vault)',
+    Habits: 'Thói quen kỷ luật',
     Spaces: 'Không gian',
     'Custom Modules': 'Mô-đun tùy chỉnh',
     'System & Tools': 'Hệ sinh thái & Công cụ',
     'Ecosystem & Tools': 'Hệ sinh thái & Công cụ',
-    'Templates Marketplace': 'Thư viện mẫu',
-    Marketplace: 'Thư viện mẫu',
-    'Automation Rules': 'Quy tắc tự động',
-    Automation: 'Quy tắc tự động',
-    'Decision Engine': 'Bộ máy ra quyết định',
-    DecisionEngine: 'Bộ máy ra quyết định',
+    'Templates Marketplace': 'Thư viện mẫu (Templates)',
+    Marketplace: 'Thư viện mẫu (Templates)',
+    'Automation Rules': 'Quy tắc tự động hóa',
+    Automation: 'Quy tắc tự động hóa',
+    'Decision Engine': 'Bộ máy ra quyết định (Matrix)',
+    DecisionEngine: 'Bộ máy ra quyết định (Matrix)',
     'Plans & Team': 'Gói & Nhóm',
     'Referral 20%': 'Giới thiệu 20%',
     'Feedback & Support': 'Góp ý & Hỗ trợ',
@@ -143,12 +156,19 @@ export const translations: Record<string, TranslationDictionary> = {
   en: {
     // English Keys
     Dashboard: 'Dashboard',
-    Tasks: 'Tasks',
+    'Lịch & Công việc': 'Schedule & Tasks',
+    'Schedule & Tasks': 'Schedule & Tasks',
+    Tasks: 'Schedule & Tasks',
     Calendar: 'Calendar',
     Finance: 'Finance',
-    Focus: 'Focus',
+    Focus: 'Focus Room',
+    'Phòng tập trung': 'Focus Room',
+    'Focus Room': 'Focus Room',
     Projects: 'Projects',
     Study: 'Study',
+    'Bảng Tin Cộng Đồng': 'Community & Feed',
+    'Phòng Học Trực Tuyến & Meet': 'Online Study & Meet',
+    'Phòng Học & Lớp Online': 'Online Study & Meet',
     Goals: 'Goals',
     Notes: 'Notes',
     Habits: 'Habits',
@@ -1057,9 +1077,9 @@ const sortedPhrases = Object.keys(translations.en)
  * Translates explicit keys or direct Vietnamese strings into English when language === 'en'.
  * In Vietnamese mode, preserves Vietnamese strings and translates English keys.
  */
-export function t(key: string, language: LanguageCode = 'en'): string {
+export function t(key: string, language: LanguageCode = 'vi'): string {
   if (!key) return '';
-  const lang = (language || 'en').toLowerCase();
+  const lang = (language || 'vi').toLowerCase();
   
   if (lang === 'vi') {
     const viVal = translations.vi[key] || translations.vi[key.trim()];
@@ -1245,7 +1265,7 @@ export function t(key: string, language: LanguageCode = 'en'): string {
  * or with an explicit language code `useTranslation('en')`.
  */
 export function useTranslation(overrideLang?: LanguageCode) {
-  let activeLang: LanguageCode = overrideLang || 'en';
+  let activeLang: LanguageCode = overrideLang || 'vi';
   
   if (!overrideLang) {
     if (typeof window !== 'undefined') {

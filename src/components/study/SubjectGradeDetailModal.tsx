@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { X, Sparkles, Plus, Trash2, Calculator, Check } from 'lucide-react';
 import { 
   AcademicProfile, 
@@ -9,6 +9,8 @@ import {
   calculateSubjectAnalytics,
   getTotalWeight
 } from '../../lib/gradeEngine';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { soundEngine } from '../../lib/soundEngine';
 
 interface SubjectGradeDetailModalProps {
   subject: any;
@@ -39,6 +41,7 @@ export function SubjectGradeDetailModal({
   const [targetGrade, setTargetGrade] = useState<number>(record?.targetGrade || subject.targetGrade || 8.0);
   const [selectedSemesterId, setSelectedSemesterId] = useState<string>(record?.semesterId || profile.currentSemesterId);
   const [newScoreInput, setNewScoreInput] = useState<{ [compId: string]: string }>({});
+  const [scoreError, setScoreError] = useState<string | null>(null);
 
   const analytics = useMemo(() => {
     const currentRec: SubjectGradeRecord = {
@@ -52,13 +55,16 @@ export function SubjectGradeDetailModal({
   }, [subject.id, selectedSemesterId, credits, schema, targetGrade, profile]);
 
   const handleAddScore = (compId: string) => {
+    setScoreError(null);
     const valStr = newScoreInput[compId]?.trim();
     if (!valStr) {
-      return alert('Vui lòng nhập điểm số cần thêm!');
+      setScoreError('Vui lòng nhập điểm số cần thêm!');
+      return;
     }
     const val = parseFloat(valStr);
     if (isNaN(val) || val < 0 || val > profile.scaleMax) {
-      return alert(`Điểm phải nằm trong khoảng từ 0 đến ${profile.scaleMax}`);
+      setScoreError(`Điểm phải nằm trong khoảng từ 0 đến ${profile.scaleMax}`);
+      return;
     }
 
     setSchema(prev => ({
@@ -125,9 +131,65 @@ export function SubjectGradeDetailModal({
     onClose();
   };
 
+  useBodyScrollLock(true);
+  const initialSchemaStr = useRef(JSON.stringify(record?.schema ? record.schema : defaultSchema));
+  const initialCredits = useRef(record?.credits || 1);
+  const initialTarget = useRef(record?.targetGrade || subject.targetGrade || 8.0);
+  const initialSemester = useRef(record?.semesterId || profile.currentSemesterId);
+
+  const isFormDirty = 
+    JSON.stringify(schema) !== initialSchemaStr.current ||
+    Number(credits) !== Number(initialCredits.current) ||
+    Number(targetGrade) !== Number(initialTarget.current) ||
+    selectedSemesterId !== initialSemester.current;
+
+  const [isShaking, setIsShaking] = useState(false);
+  const triggerShake = () => {
+    soundEngine.playPop();
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 500);
+  };
+
+  const handleSafeDismiss = () => {
+    if (isFormDirty) {
+      triggerShake();
+      return;
+    }
+    onClose();
+  };
+
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (isFormDirty) triggerShake();
+        else onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, isFormDirty]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-3xl overflow-hidden my-8">
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (mouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+          handleSafeDismiss();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs overflow-y-auto cursor-default"
+    >
+      <div 
+        onMouseDown={(e) => e.stopPropagation()}
+        onClick={(e) => e.stopPropagation()}
+        className={`bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-3xl overflow-hidden my-8 transition-transform ${
+          isShaking ? 'animate-[shake_0.4s_ease-in-out]' : ''
+        }`}
+      >
         {/* Header */}
         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -147,7 +209,7 @@ export function SubjectGradeDetailModal({
 
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleSafeDismiss}
             className="p-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-lg cursor-pointer"
           >
             <X className="w-5 h-5" />
@@ -236,6 +298,15 @@ export function SubjectGradeDetailModal({
                 Tổng trọng số: {getTotalWeight(schema?.components || []).toFixed(0)}%
               </span>
             </div>
+
+            {scoreError && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold flex items-center justify-between animate-fade-in">
+                <span>{scoreError}</span>
+                <button type="button" onClick={() => setScoreError(null)} className="p-1 hover:text-rose-800 cursor-pointer">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
 
             <div className="space-y-3">
               {(schema?.components || []).map((comp) => {

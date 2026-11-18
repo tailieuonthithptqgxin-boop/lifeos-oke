@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../../lib/store';
 import { 
   Calculator, GraduationCap, Layers, Check, Sliders, RotateCcw, AlertTriangle, 
-  Target, Trash2, Plus, Settings2, Save, TrendingUp, CheckCircle2, Sparkles 
+  Target, Trash2, Plus, Settings2, Save, TrendingUp, CheckCircle2, Sparkles, X
 } from 'lucide-react';
 import { 
   EducationEnvironment, 
@@ -66,6 +66,13 @@ export function GradeForecastTab({
   };
 
   const [schema, setSchema] = useState<GradingSchema>(() => getInitialSchema(selectedSubId));
+  const [forecastToast, setForecastToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!forecastToast) return;
+    const t = setTimeout(() => setForecastToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [forecastToast]);
 
   // Sync schema and target when selected subject changes
   useEffect(() => {
@@ -158,12 +165,12 @@ export function GradeForecastTab({
   const handleAddScoreToComponent = (compId: string) => {
     const valStr = newScoreInput[compId]?.trim();
     if (!valStr) {
-      alert(isVi ? 'Vui lòng nhập điểm số cần thêm!' : 'Please enter a score to add!');
+      setForecastToast(isVi ? 'Vui lòng nhập điểm số cần thêm!' : 'Please enter a score to add!');
       return;
     }
     const val = parseFloat(valStr);
     if (isNaN(val) || val < 0 || val > schema.scaleMax) {
-      alert(isVi ? `Điểm số phải từ 0 đến ${schema.scaleMax}!` : `Score must be between 0 and ${schema.scaleMax}!`);
+      setForecastToast(isVi ? `Điểm số phải từ 0 đến ${schema.scaleMax}!` : `Score must be between 0 and ${schema.scaleMax}!`);
       return;
     }
 
@@ -683,11 +690,13 @@ export function GradeForecastTab({
                     <button
                       type="button"
                       onClick={() => {
-                        if (confirm(`Bạn có muốn lưu điểm ${forecastResult.requiredScore.toFixed(1)} vào bài thi "${forecastResult.targetComponent.name}" của môn "${sub?.name}" trong hồ sơ Điểm của tôi?`)) {
-                          onCommitScoreToProfile(sub?.id, forecastResult.requiredScore);
-                        }
+                        onCommitScoreToProfile(sub?.id, forecastResult.requiredScore);
+                        setForecastToast(isVi 
+                          ? `Đã lưu điểm ${forecastResult.requiredScore.toFixed(1)} vào bài thi "${forecastResult.targetComponent.name}" của môn "${sub?.name}"!`
+                          : `Committed score ${forecastResult.requiredScore.toFixed(1)} into profile!`
+                        );
                       }}
-                      className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
+                      className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-xs cursor-pointer active:scale-95"
                     >
                       <Save className="w-3.5 h-3.5" /> Lưu điểm {forecastResult.requiredScore.toFixed(1)} này vào hồ sơ thật
                     </button>
@@ -781,6 +790,20 @@ export function GradeForecastTab({
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {forecastToast && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2.5 px-4 py-3 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 rounded-2xl shadow-2xl border border-slate-700/50 backdrop-blur-md animate-slide-up text-xs font-semibold max-w-sm">
+          <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="flex-1">{forecastToast}</span>
+          <button
+            type="button"
+            onClick={() => setForecastToast(null)}
+            className="p-1 text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
     </div>

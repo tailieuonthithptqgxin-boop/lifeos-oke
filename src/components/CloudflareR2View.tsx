@@ -17,6 +17,8 @@ import {
   HardDrive
 } from 'lucide-react';
 import { apiCall } from '../lib/apiClient';
+import { toast } from '../lib/toast';
+import { AdminConfirmModal } from './admin/AdminConfirmModal';
 
 interface R2FileItem {
   key: string;
@@ -46,6 +48,7 @@ export function CloudflareR2View() {
   const [uploadMessage, setUploadMessage] = useState<{ type: 'success' | 'error'; text: string; url?: string } | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
+  const [deleteConfirmKey, setDeleteConfirmKey] = useState<string | null>(null);
 
   const fetchStatus = async () => {
     setIsLoadingStatus(true);
@@ -77,8 +80,36 @@ export function CloudflareR2View() {
   };
 
   useEffect(() => {
-    fetchStatus();
-    fetchFiles();
+    let isMounted = true;
+    const load = async () => {
+      setIsLoadingStatus(true);
+      setIsLoadingLoadingFiles(true);
+      try {
+        const [statusRes, filesRes] = await Promise.allSettled([
+          apiCall('/api/r2/status'),
+          apiCall('/api/r2/files')
+        ]);
+        if (!isMounted) return;
+        if (statusRes.status === 'fulfilled' && statusRes.value?.success) {
+          setStatus(statusRes.value.status);
+          setTestResult(statusRes.value.testResult);
+        }
+        if (filesRes.status === 'fulfilled' && filesRes.value?.success && Array.isArray(filesRes.value.files)) {
+          setFiles(filesRes.value.files);
+        }
+      } catch (err: any) {
+        if (isMounted) console.error('Failed to load R2 data:', err);
+      } finally {
+        if (isMounted) {
+          setIsLoadingStatus(false);
+          setIsLoadingLoadingFiles(false);
+        }
+      }
+    };
+    load();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,18 +165,21 @@ export function CloudflareR2View() {
     }
   };
 
-  const handleDeleteFile = async (key: string) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn xóa tập tin "${key}" khỏi R2 Bucket?`)) return;
+  const confirmDeleteFile = async () => {
+    if (!deleteConfirmKey) return;
+    const key = deleteConfirmKey;
     setDeletingKey(key);
     try {
       const res = await apiCall('/api/r2/file', 'DELETE', { key });
       if (res && res.success) {
         setFiles(prev => prev.filter(f => f.key !== key));
+        toast.success(`Đã xóa tập tin "${key}" thành công.`);
       }
     } catch (err: any) {
-      alert(err.message || 'Không thể xóa tập tin');
+      toast.error(err.message || 'Không thể xóa tập tin');
     } finally {
       setDeletingKey(null);
+      setDeleteConfirmKey(null);
     }
   };
 
@@ -438,7 +472,7 @@ R2_PUBLIC_URL="https://pub-xxx.r2.dev"`}
                     <td className="py-3 px-4 text-right">
                       <button
                         type="button"
-                        onClick={() => handleDeleteFile(file.key)}
+                        onClick={() => setDeleteConfirmKey(file.key)}
                         disabled={deletingKey === file.key}
                         className="px-2.5 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 font-semibold text-xs transition-colors cursor-pointer"
                       >
@@ -452,6 +486,18 @@ R2_PUBLIC_URL="https://pub-xxx.r2.dev"`}
           </div>
         )}
       </div>
+
+      <AdminConfirmModal
+        isOpen={!!deleteConfirmKey}
+        title="Xóa tập tin R2 Bucket"
+        message={`Bạn có chắc chắn muốn xóa tập tin "${deleteConfirmKey}" khỏi R2 Bucket không? Thao tác này sẽ xóa vĩnh viễn và không thể khôi phục.`}
+        confirmText="Xác nhận xóa"
+        cancelText="Hủy bỏ"
+        variant="danger"
+        isLoading={!!deletingKey}
+        onConfirm={confirmDeleteFile}
+        onCancel={() => setDeleteConfirmKey(null)}
+      />
     </div>
   );
 }

@@ -11,7 +11,7 @@
 
 import { quoteEngine, QuoteCategory, MOTIVATIONAL_QUOTES_POOL } from './companionQuotes';
 
-export type CompanionMascotId = 'lumi' | 'bunny' | 'cat' | 'bear' | 'fox' | 'panda' | 'kitsu' | 'nova';
+export type CompanionMascotId = 'lumi' | 'bunny' | 'cat' | 'bear' | 'fox' | 'panda' | 'kitsu' | 'nova' | 'capybara';
 
 export type CompanionMood = 
   | 'greeting' 
@@ -164,6 +164,19 @@ export const MASCOT_PROFILES: Record<CompanionMascotId, CompanionProfile> = {
     glowColor: 'rgba(139, 92, 246, 0.35)',
     quote: 'Mục tiêu ở phía trước, cùng vươn tới các vì sao nào!',
     unlockedLevel: 2
+  },
+  capybara: {
+    id: 'capybara',
+    name: 'Capy',
+    title: 'Capybara Chiến Thần Thư Thái',
+    description: 'Bé chuột lang nước siêu chill, bất biến giữa dòng đời vạn biến, cùng bạn ngồi học êm ái hàng giờ.',
+    avatar: '🍊',
+    themeColor: '#b45309',
+    glowColor: 'rgba(180, 83, 9, 0.35)',
+    quote: 'Chill thôi bạn ơi, việc gì khó có Capy cùng bạn gánh!',
+    unlockedLevel: 1,
+    badge: 'Chill Master & Bất Biến',
+    traits: ['Điềm tĩnh', 'Chill', 'Bền bỉ']
   }
 };
 
@@ -176,10 +189,10 @@ export const COMPANION_ACCESSORIES: CompanionAccessory[] = [
 ];
 
 export const DEFAULT_COMPANION_SETTINGS: CompanionSettings = {
-  enabled: true,
+  enabled: false,
   mascotId: 'lumi',
   frequency: 'moderate',
-  focusCompanionMode: 'normal',
+  focusCompanionMode: 'off',
   showSpeechBubble: true,
   soundEnabled: false, // Default off per user instruction: "Không tự động phát âm thanh nếu người dùng chưa bật"
   quietMode: false,

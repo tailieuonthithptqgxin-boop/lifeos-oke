@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../lib/store';
 import { 
-  BookOpen, GraduationCap, Target, Calculator, FileCheck, Activity, Award
+  BookOpen, GraduationCap, Target, Calculator, FileCheck, Activity, Award, X, Sparkles, RotateCcw, Users
 } from 'lucide-react';
 import {
   GradingSchema,
@@ -12,6 +12,9 @@ import {
   createDefaultAcademicProfile
 } from '../lib/gradeEngine';
 import { lazyWithRetry } from '../lib/lazyWithRetry';
+import { soundEngine } from '../lib/soundEngine';
+import { formatLocalDateKey } from '../lib/utils';
+import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 
 const VocabMasterView = lazyWithRetry(
   () => import('./vocab/VocabMasterView'),
@@ -31,7 +34,7 @@ import { ProfileSettingsModal } from './study/ProfileSettingsModal';
 import { SemesterModal } from './study/SemesterModal';
 import { GradeForecastTab } from './study/GradeForecastTab';
 
-type Tab = 'overview' | 'my-grades' | 'vocabulary' | 'subjects' | 'assignments' | 'exams' | 'forecast';
+type Tab = 'vocabulary' | 'overview' | 'my-grades' | 'subjects' | 'assignments' | 'exams' | 'forecast';
 
 export function StudyView() {
   const { 
@@ -53,7 +56,78 @@ export function StudyView() {
   } = useAppStore();
 
   const isVi = language === 'vi';
-  const [activeTab, setActiveTab] = useState<Tab>('vocabulary');
+
+  // Active Tab with F5 Reload Persistence
+  const [activeTab, setActiveTab] = useState<Tab>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_study_active_tab') as any;
+        if (saved && ['vocabulary', 'overview', 'my-grades', 'subjects', 'assignments', 'exams', 'forecast'].includes(saved)) {
+          return saved;
+        }
+      } catch {}
+    }
+    return 'vocabulary';
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_study_active_tab', activeTab);
+    } catch {}
+  }, [activeTab]);
+
+  // Non-intrusive floating toast state (replaces ugly window.alert)
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // 5-Second Undo Toast State
+  const [undoItem, setUndoItem] = useState<{ type: 'subject' | 'assignment' | 'exam'; data: any } | null>(null);
+  const undoTimerRef = useRef<any>(null);
+
+  const handleDeleteSubjectWithUndo = (sub: any) => {
+    soundEngine.playPop();
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoItem({ type: 'subject', data: sub });
+    deleteSubject(sub.id);
+    undoTimerRef.current = setTimeout(() => setUndoItem(null), 5000);
+  };
+
+  const handleDeleteAssignmentWithUndo = (a: any) => {
+    soundEngine.playPop();
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoItem({ type: 'assignment', data: a });
+    deleteStudyAssignment(a.id);
+    undoTimerRef.current = setTimeout(() => setUndoItem(null), 5000);
+  };
+
+  const handleDeleteExamWithUndo = (e: any) => {
+    soundEngine.playPop();
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    setUndoItem({ type: 'exam', data: e });
+    deleteStudyExam(e.id);
+    undoTimerRef.current = setTimeout(() => setUndoItem(null), 5000);
+  };
+
+  const handleRestoreStudyItem = () => {
+    if (!undoItem) return;
+    soundEngine.playSuccess();
+    if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    if (undoItem.type === 'subject') addSubject(undoItem.data);
+    else if (undoItem.type === 'assignment') addStudyAssignment(undoItem.data);
+    else if (undoItem.type === 'exam') addStudyExam(undoItem.data);
+    setUndoItem(null);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!toastMessage) return;
+    const timer = setTimeout(() => setToastMessage(null), 4500);
+    return () => clearTimeout(timer);
+  }, [toastMessage]);
 
   // Modal States
   const [showSubjectModal, setShowSubjectModal] = useState(false);
@@ -100,6 +174,24 @@ export function StudyView() {
   const [subjectForDetail, setSubjectForDetail] = useState<any>(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showSemesterModal, setShowSemesterModal] = useState(false);
+
+  const isAnyStudyModalOpen = !!(showSubjectModal || showAssignmentModal || showExamModal || subjectForDetail || showProfileModal || showSemesterModal);
+  useBodyScrollLock(isAnyStudyModalOpen);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (subjectForDetail) setSubjectForDetail(null);
+        else if (showSubjectModal) setShowSubjectModal(false);
+        else if (showAssignmentModal) setShowAssignmentModal(false);
+        else if (showExamModal) setShowExamModal(false);
+        else if (showProfileModal) setShowProfileModal(false);
+        else if (showSemesterModal) setShowSemesterModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [subjectForDetail, showSubjectModal, showAssignmentModal, showExamModal, showProfileModal, showSemesterModal]);
 
   // Synchronize profile subject records with store subjects
   useEffect(() => {
@@ -208,13 +300,13 @@ export function StudyView() {
 
         {/* Tab Navigation */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 w-full min-w-0 max-w-full">
-          <TabButton active={activeTab === 'vocabulary'} onClick={() => setActiveTab('vocabulary')} icon={<BookOpen className="w-4 h-4 text-emerald-500" />} label={isVi ? 'Từ vựng & Ngoại ngữ' : 'Vocabulary & Languages'} />
-          <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<Activity className="w-4 h-4" />} label={isVi ? 'Tổng quan GPA' : 'GPA Overview'} />
-          <TabButton active={activeTab === 'my-grades'} onClick={() => setActiveTab('my-grades')} icon={<Award className="w-4 h-4" />} label={isVi ? 'Bảng điểm' : 'Report Card'} count={subjects.length} />
-          <TabButton active={activeTab === 'subjects'} onClick={() => setActiveTab('subjects')} icon={<BookOpen className="w-4 h-4" />} label={isVi ? 'Môn học' : 'Subjects'} count={subjects.length} />
-          <TabButton active={activeTab === 'assignments'} onClick={() => setActiveTab('assignments')} icon={<FileCheck className="w-4 h-4" />} label={isVi ? 'Bài tập' : 'Assignments'} count={pendingAssignmentsCount} />
-          <TabButton active={activeTab === 'exams'} onClick={() => setActiveTab('exams')} icon={<Target className="w-4 h-4" />} label={isVi ? 'Lịch thi' : 'Exams'} count={upcomingExamsCount} />
-          <TabButton active={activeTab === 'forecast'} onClick={() => setActiveTab('forecast')} icon={<Calculator className="w-4 h-4" />} label={isVi ? 'Dự báo GPA' : 'GPA Forecast'} />
+          <TabButton active={activeTab === 'vocabulary'} onClick={() => { setActiveTab('vocabulary'); soundEngine.playPop(); }} icon={<BookOpen className="w-4 h-4 text-emerald-500" />} label={isVi ? 'Từ vựng & Ngoại ngữ' : 'Vocabulary & Languages'} />
+          <TabButton active={activeTab === 'overview'} onClick={() => { setActiveTab('overview'); soundEngine.playPop(); }} icon={<Activity className="w-4 h-4" />} label={isVi ? 'Tổng quan GPA' : 'GPA Overview'} />
+          <TabButton active={activeTab === 'my-grades'} onClick={() => { setActiveTab('my-grades'); soundEngine.playPop(); }} icon={<Award className="w-4 h-4" />} label={isVi ? 'Bảng điểm' : 'Report Card'} count={subjects.length} />
+          <TabButton active={activeTab === 'subjects'} onClick={() => { setActiveTab('subjects'); soundEngine.playPop(); }} icon={<BookOpen className="w-4 h-4" />} label={isVi ? 'Môn học' : 'Subjects'} count={subjects.length} />
+          <TabButton active={activeTab === 'assignments'} onClick={() => { setActiveTab('assignments'); soundEngine.playPop(); }} icon={<FileCheck className="w-4 h-4" />} label={isVi ? 'Bài tập' : 'Assignments'} count={pendingAssignmentsCount} />
+          <TabButton active={activeTab === 'exams'} onClick={() => { setActiveTab('exams'); soundEngine.playPop(); }} icon={<Target className="w-4 h-4" />} label={isVi ? 'Lịch thi' : 'Exams'} count={upcomingExamsCount} />
+          <TabButton active={activeTab === 'forecast'} onClick={() => { setActiveTab('forecast'); soundEngine.playPop(); }} icon={<Calculator className="w-4 h-4" />} label={isVi ? 'Dự báo GPA' : 'GPA Forecast'} />
         </div>
       </div>
 
@@ -223,9 +315,9 @@ export function StudyView() {
         <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 w-full min-w-0 max-w-full overflow-x-hidden">
           {activeTab === 'overview' && (
             <StudyOverviewTab 
-              onNewSubject={() => { setEditingSubject(null); setShowSubjectModal(true); }}
-              onNewAssignment={() => { setEditingAssignment(null); setShowAssignmentModal(true); }}
-              onNewExam={() => { setEditingExam(null); setShowExamModal(true); }}
+              onNewSubject={() => { soundEngine.playPop(); setEditingSubject(null); setShowSubjectModal(true); }}
+              onNewAssignment={() => { soundEngine.playPop(); setEditingAssignment(null); setShowAssignmentModal(true); }}
+              onNewExam={() => { soundEngine.playPop(); setEditingExam(null); setShowExamModal(true); }}
               onSwitchTab={setActiveTab}
             />
           )}
@@ -234,15 +326,17 @@ export function StudyView() {
             <MyGradesTab
               profile={profile}
               subjects={subjects}
-              onOpenSubjectDetail={(sub: any) => setSubjectForDetail(sub)}
+              onOpenSubjectDetail={(sub: any) => { soundEngine.playPop(); setSubjectForDetail(sub); }}
               onOpenForecastForSubject={(subId: string) => {
+                soundEngine.playPop();
                 setSelectedSubjectIdForForecast(subId);
                 setActiveTab('forecast');
               }}
-              onNewSubject={() => { setEditingSubject(null); setShowSubjectModal(true); }}
-              onOpenProfileSettings={() => setShowProfileModal(true)}
-              onOpenSemesterModal={() => setShowSemesterModal(true)}
+              onNewSubject={() => { soundEngine.playPop(); setEditingSubject(null); setShowSubjectModal(true); }}
+              onOpenProfileSettings={() => { soundEngine.playPop(); setShowProfileModal(true); }}
+              onOpenSemesterModal={() => { soundEngine.playPop(); setShowSemesterModal(true); }}
               onChangeCurrentSemester={(semId: string) => {
+                soundEngine.playPop();
                 saveProfile(prev => ({ ...prev, currentSemesterId: semId }));
               }}
             />
@@ -265,18 +359,19 @@ export function StudyView() {
 
           {activeTab === 'subjects' && (
             <StudySubjectsTab 
-              onNewSubject={() => { setEditingSubject(null); setShowSubjectModal(true); }}
-              onEditSubject={(sub: any) => { setEditingSubject(sub); setShowSubjectModal(true); }}
-              onDeleteSubject={(id: string) => deleteSubject(id)}
+              onNewSubject={() => { soundEngine.playPop(); setEditingSubject(null); setShowSubjectModal(true); }}
+              onEditSubject={(sub: any) => { soundEngine.playPop(); setEditingSubject(sub); setShowSubjectModal(true); }}
+              onDeleteSubject={handleDeleteSubjectWithUndo}
             />
           )}
 
           {activeTab === 'assignments' && (
             <StudyAssignmentsTab 
-              onNewAssignment={() => { setEditingAssignment(null); setShowAssignmentModal(true); }}
-              onEditAssignment={(a: any) => { setEditingAssignment(a); setShowAssignmentModal(true); }}
-              onDeleteAssignment={(id: string) => deleteStudyAssignment(id)}
+              onNewAssignment={() => { soundEngine.playPop(); setEditingAssignment(null); setShowAssignmentModal(true); }}
+              onEditAssignment={(a: any) => { soundEngine.playPop(); setEditingAssignment(a); setShowAssignmentModal(true); }}
+              onDeleteAssignment={handleDeleteAssignmentWithUndo}
               onToggleStatus={(a: any) => {
+                soundEngine.playPop();
                 const nextStatus = a.status === 'Completed' ? 'Chưa làm' : 'Completed';
                 updateStudyAssignment(a.id, { status: nextStatus });
               }}
@@ -285,13 +380,13 @@ export function StudyView() {
 
           {activeTab === 'exams' && (
             <StudyExamsTab 
-              onNewExam={() => { setEditingExam(null); setShowExamModal(true); }}
-              onEditExam={(e: any) => { setEditingExam(e); setShowExamModal(true); }}
-              onDeleteExam={(id: string) => deleteStudyExam(id)}
+              onNewExam={() => { soundEngine.playPop(); setEditingExam(null); setShowExamModal(true); }}
+              onEditExam={(e: any) => { soundEngine.playPop(); setEditingExam(e); setShowExamModal(true); }}
+              onDeleteExam={handleDeleteExamWithUndo}
               onCreateStudyTask={(exam: any) => {
                 const sub = subjects.find((s: any) => s.id === exam.subjectId);
                 const examDate = new Date(exam.date || exam.examDate);
-                const studyDate = new Date(examDate.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                const studyDate = formatLocalDateKey(new Date(examDate.getTime() - 2 * 24 * 60 * 60 * 1000));
                 addTask({
                   title: `[Ôn thi] ${exam.title} - ${sub?.name || 'Môn học'}`,
                   description: `Kỳ thi diễn ra ngày ${exam.date || exam.examDate}. Điểm mục tiêu: ${exam.targetScore || 8}/10. Trọng số: ${exam.weight || 30}%.`,
@@ -300,14 +395,18 @@ export function StudyView() {
                   dueDate: studyDate,
                   estimatedHours: 4
                 });
-                alert(`Đã tạo nhiệm vụ ôn thi cho "${exam.title}" trong mục Công việc (hạn chót: ${studyDate})!`);
+                soundEngine.playSuccess();
+                setToastMessage(isVi 
+                  ? `Đã tạo nhiệm vụ ôn thi cho "${exam.title}" trong mục Công việc (hạn chót: ${studyDate})!` 
+                  : `Created study task for "${exam.title}" in Tasks (due: ${studyDate})!`
+                );
               }}
             />
           )}
 
           {activeTab === 'forecast' && (
             <GradeForecastTab 
-              onNewSubject={() => { setEditingSubject(null); setShowSubjectModal(true); }}
+              onNewSubject={() => { soundEngine.playPop(); setEditingSubject(null); setShowSubjectModal(true); }}
               preselectedSubjectId={selectedSubjectIdForForecast}
               profile={profile}
               onCommitScoreToProfile={(subId: string, score: number) => {
@@ -318,7 +417,11 @@ export function StudyView() {
                   if (targetComp) {
                     targetComp.scores = [...(targetComp.scores || []), score];
                     updateSubjectGradeRecord(subId, { schema: nextSchema });
-                    alert(`🎉 Đã lưu điểm ${score} vào bài "${targetComp.name}" của môn "${subjects.find((s: any) => s.id === subId)?.name}" trong hồ sơ Điểm của tôi!`);
+                    soundEngine.playSuccess();
+                    setToastMessage(isVi 
+                      ? `🎉 Đã lưu điểm ${score} vào bài "${targetComp.name}" của môn "${subjects.find((s: any) => s.id === subId)?.name}" trong Bảng điểm!` 
+                      : `Saved score ${score} to "${targetComp.name}" in Report Card!`
+                    );
                   }
                 }
               }}
@@ -338,6 +441,7 @@ export function StudyView() {
             } else {
               addSubject(data);
             }
+            soundEngine.playSuccess();
             setShowSubjectModal(false);
             setEditingSubject(null);
           }}
@@ -356,6 +460,7 @@ export function StudyView() {
             } else {
               addStudyAssignment(data);
             }
+            soundEngine.playSuccess();
             setShowAssignmentModal(false);
             setEditingAssignment(null);
           }}
@@ -374,6 +479,7 @@ export function StudyView() {
             } else {
               addStudyExam(data);
             }
+            soundEngine.playSuccess();
             setShowExamModal(false);
             setEditingExam(null);
           }}
@@ -388,9 +494,11 @@ export function StudyView() {
           profile={profile}
           onClose={() => setSubjectForDetail(null)}
           onSaveRecord={(updates: Partial<SubjectGradeRecord>) => {
+            soundEngine.playSuccess();
             updateSubjectGradeRecord(subjectForDetail.id, updates);
           }}
           onOpenForecast={() => {
+            soundEngine.playPop();
             setSelectedSubjectIdForForecast(subjectForDetail.id);
             setSubjectForDetail(null);
             setActiveTab('forecast');
@@ -404,6 +512,7 @@ export function StudyView() {
           profile={profile}
           onClose={() => setShowProfileModal(false)}
           onSaveProfile={(updates: Partial<AcademicProfile>) => {
+            soundEngine.playSuccess();
             saveProfile(prev => ({ ...prev, ...updates }));
             setShowProfileModal(false);
           }}
@@ -415,6 +524,7 @@ export function StudyView() {
         <SemesterModal
           onClose={() => setShowSemesterModal(false)}
           onSaveSemester={(newSem: AcademicSemester) => {
+            soundEngine.playSuccess();
             saveProfile(prev => ({
               ...prev,
               semesters: [...(prev.semesters || []), newSem],
@@ -424,6 +534,52 @@ export function StudyView() {
           }}
         />
       )}
+
+      {/* Floating 5-Second Undo Toast */}
+      {undoItem && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-2xl shadow-2xl border border-slate-700/50 dark:border-slate-200 animate-slide-up text-xs font-semibold backdrop-blur-md">
+          <span>
+            {isVi 
+              ? `Đã xóa ${undoItem.type === 'subject' ? 'môn học' : undoItem.type === 'assignment' ? 'bài tập' : 'kỳ thi'} "${undoItem.data.title || undoItem.data.name}"`
+              : `Deleted ${undoItem.type}: "${undoItem.data.title || undoItem.data.name}"`}
+          </span>
+          <button
+            type="button"
+            onClick={handleRestoreStudyItem}
+            className="flex items-center gap-1 px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl text-xs font-bold transition-transform active:scale-95 cursor-pointer shadow-xs"
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>{isVi ? 'Hoàn tác (5s)' : 'Undo (5s)'}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setUndoItem(null)}
+            className="p-1 text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer"
+            title={isVi ? 'Đóng' : 'Close'}
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+
+      {/* Floating Toast Notification */}
+      {toastMessage && (
+        <div className={`fixed right-6 z-50 flex items-center gap-2.5 px-4 py-3 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 rounded-2xl shadow-2xl border border-slate-700/50 backdrop-blur-md animate-slide-up text-xs font-semibold max-w-sm ${
+          undoItem ? 'bottom-20' : 'bottom-6'
+        }`}>
+          <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="flex-1">{toastMessage}</span>
+          <button
+            type="button"
+            onClick={() => setToastMessage(null)}
+            className="p-1 text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
+
+export default StudyView;

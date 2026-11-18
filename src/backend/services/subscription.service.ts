@@ -247,6 +247,7 @@ export const subscriptionService = {
   /**
    * Check whether Global Free Trial Mode is activated across the whole system.
    * Persisted in PostgreSQL database (system_settings table).
+   * Defaults to true if not explicitly configured otherwise.
    */
   async isGlobalFreeMode(): Promise<boolean> {
     const prisma = getPrisma();
@@ -254,9 +255,12 @@ export const subscriptionService = {
       const setting = await prisma.systemSetting.findUnique({
         where: { key: 'global_free_mode' }
       });
-      return setting?.value === 'true';
+      if (setting && setting.value !== undefined) {
+        return setting.value === 'true';
+      }
+      return true;
     } catch {
-      return false;
+      return true;
     }
   },
 
@@ -414,17 +418,50 @@ export const subscriptionService = {
       orderBy: { createdAt: 'desc' }
     });
 
-    // Check if Global Free Mode is currently activated in system settings
+    // 1. Check Active 7-Day Free Trial Entitlement (for newly registered accounts)
+    if (user.trialEndsAt) {
+      const trialEndMs = new Date(user.trialEndsAt).getTime();
+      const nowMs = now.getTime();
+
+      if (trialEndMs > nowMs) {
+        // Active 7-Day Free Trial
+        const remainingDiff = trialEndMs - nowMs;
+        const remainingDays = Math.max(1, Math.ceil(remainingDiff / (1000 * 60 * 60 * 24)));
+        const remainingHours = Math.max(0, Math.ceil(remainingDiff / (1000 * 60 * 60)));
+
+        return {
+          hasAccess: true,
+          lifecycleStatus: 'ACTIVE',
+          planId: 'FREE_TRIAL_7D',
+          planType: 'PERSONAL',
+          planName: 'Dùng thử 7 Ngày Miễn Phí',
+          status: 'ACTIVE',
+          isTrial: true,
+          isTrialActive: true,
+          isTrialExpired: false,
+          trialStartedAt: user.trialStartedAt?.toISOString(),
+          trialEndsAt: user.trialEndsAt.toISOString(),
+          startDate: user.trialStartedAt?.toISOString() || now.toISOString(),
+          endDate: user.trialEndsAt.toISOString(),
+          remainingDays,
+          remainingHours,
+          role: user.role,
+          activePending: activePending || null
+        };
+      }
+    }
+
+    // 2. Check if Global Free Mode is currently activated in system settings (Default 100% Free for all)
     const isFreeMode = await this.isGlobalFreeMode();
     if (isFreeMode) {
       return {
         hasAccess: true,
         lifecycleStatus: 'ACTIVE',
-        planId: user.plan === 'FREE' ? 'FREE_TRIAL_GLOBAL' : user.plan,
-        planType: user.plan?.includes('TEAM') ? 'TEAM' : 'PERSONAL',
-        planName: user.plan === 'FREE' ? 'Dùng thử Toàn Hệ thống (Admin Open)' : (user.plan || 'Gói Cá Nhân'),
+        planId: 'FREE_FULL_ACCESS',
+        planType: 'PERSONAL',
+        planName: 'Trải nghiệm Miễn phí (Full Access)',
         status: 'ACTIVE',
-        remainingDays: 365,
+        remainingDays: 99999,
         isGlobalFreeMode: true,
         isTrial: false,
         isTrialActive: false,

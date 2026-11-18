@@ -15,6 +15,7 @@ import {
   speakWord,
   systemJapaneseWordToVocabWord 
 } from '../../lib/vocabEngine';
+import { formatLocalDateKey } from '../../lib/utils';
 
 interface JapaneseJlptTabProps {
   systemWords: SystemJapaneseJlptWord[];
@@ -87,7 +88,7 @@ export function JapaneseJlptTab({
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 30;
 
-  const today = new Date().toISOString().split('T')[0];
+  const today = formatLocalDateKey(new Date());
 
   // Filtered dataset
   const filteredWords = useMemo(() => {
@@ -525,7 +526,7 @@ export function JapaneseJlptTab({
             type="button"
             disabled={currentPage <= 1}
             onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-slate-300 flex items-center gap-1.5 transition-all cursor-pointer"
+            className="px-4 py-2 min-h-[44px] rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-slate-300 flex items-center gap-1.5 transition-all cursor-pointer touch-manipulation"
           >
             <ChevronLeft className="w-4 h-4" /> Trước
           </button>
@@ -538,7 +539,7 @@ export function JapaneseJlptTab({
             type="button"
             disabled={currentPage >= totalPages}
             onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-slate-300 flex items-center gap-1.5 transition-all cursor-pointer"
+            className="px-4 py-2 min-h-[44px] rounded-xl bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-slate-300 flex items-center gap-1.5 transition-all cursor-pointer touch-manipulation"
           >
             Tiếp <ChevronRight className="w-4 h-4" />
           </button>

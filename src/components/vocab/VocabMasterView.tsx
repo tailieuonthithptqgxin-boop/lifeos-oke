@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { companionContextEngine } from '../../lib/companion/companionContextEngine';
 import { 
   BarChart2, Calendar, Activity, BookOpen, Bookmark, Layers, 
-  Brain, ShieldCheck, Settings, Plus, Headphones, Music, Sparkles
+  Brain, ShieldCheck, Settings, Plus, Headphones, Music, Sparkles, RotateCcw, X
 } from 'lucide-react';
 import {
   LearningLanguage,
@@ -59,8 +59,12 @@ import { VocabSettingsTab } from './VocabSettingsTab';
 import { VocabDashboardTab } from './VocabDashboardTab';
 import { VocabStudyTab, StudyMode } from './VocabStudyTab';
 import { PersonalizedLessonBuilder } from './PersonalizedLessonBuilder';
+import { buildSmartShuffledSession, ShuffleMode } from '../../lib/smartShuffleEngine';
 import { UniversalSearchModal } from './UniversalSearchModal';
 import { useAppStore } from '../../lib/store';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { formatLocalDateKey } from '../../lib/utils';
+import { saveVocabSessionState, loadVocabSessionState, clearVocabSessionState } from '../../lib/learningAutoSave';
 
 interface VocabMasterViewProps {
   currentUser?: any;
@@ -85,9 +89,22 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
     });
   };
 
-  const [activeTab, setActiveTab] = useState<VocabTab>('today');
+  const [activeTab, setActiveTab] = useState<VocabTab>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_vocab_active_tab') as any;
+        if (saved && ['dashboard', 'today', 'focus', 'memory', 'oxford3000', 'chineseHsk', 'japaneseJlpt', 'personal', 'collections', 'study', 'audit', 'settings'].includes(saved)) {
+          return saved;
+        }
+      } catch {}
+    }
+    return 'today';
+  });
 
   useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_vocab_active_tab', activeTab);
+    } catch {}
     companionContextEngine.setLiveContext({ viewId: 'study', activeTab });
   }, [activeTab]);
 
@@ -105,6 +122,50 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
   const [detailWord, setDetailWord] = useState<VocabWord | null>(null);
   const [bookmarkingWordIds, setBookmarkingWordIds] = useState<string[]>([]);
   const [showBookmarkModal, setShowBookmarkModal] = useState(false);
+
+  // Non-intrusive floating toast state & Undo word state
+  const [vocabToast, setVocabToast] = useState<string | null>(null);
+  const [undoWord, setUndoWord] = useState<{ langId: string; word: VocabWord } | null>(null);
+  const undoWordTimeoutRef = React.useRef<any>(null);
+
+  useEffect(() => {
+    return () => {
+      if (undoWordTimeoutRef.current) clearTimeout(undoWordTimeoutRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!vocabToast) return;
+    const t = setTimeout(() => setVocabToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [vocabToast]);
+
+  const isAnyVocabModalOpen = !!(
+    showLanguageOnboarding ||
+    showWordModal ||
+    showNewCollectionModal ||
+    showImportModal ||
+    showUniversalSearchModal ||
+    showBookmarkModal ||
+    detailWord
+  );
+  useBodyScrollLock(isAnyVocabModalOpen);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (detailWord) setDetailWord(null);
+        else if (showBookmarkModal) setShowBookmarkModal(false);
+        else if (showUniversalSearchModal) setShowUniversalSearchModal(false);
+        else if (showWordModal) { setShowWordModal(false); setEditingWord(null); }
+        else if (showNewCollectionModal) setShowNewCollectionModal(false);
+        else if (showImportModal) setShowImportModal(false);
+        else if (showLanguageOnboarding) setShowLanguageOnboarding(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [detailWord, showBookmarkModal, showUniversalSearchModal, showWordModal, showNewCollectionModal, showImportModal, showLanguageOnboarding]);
 
   // Active Language Workspace
   const activeLang = useMemo(() => {
@@ -218,6 +279,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
   const [studySessionActive, setStudySessionActive] = useState(false);
   const [studySource, setStudySource] = useState<'3000' | 'personal' | 'all'>('3000');
   const [studyTargetQueue, setStudyTargetQueue] = useState<'due' | 'difficult' | 'new' | 'all'>('due');
+  const [shuffleMode, setShuffleMode] = useState<ShuffleMode>('smart_review');
   const [studyMode, setStudyMode] = useState<StudyMode>('flashcard');
   const [studyQueue, setStudyQueue] = useState<VocabWord[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
@@ -234,6 +296,46 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
   const [quizSelectedOption, setQuizSelectedOption] = useState<string | null>(null);
   const [spellingInput, setSpellingInput] = useState('');
   const [spellingChecked, setSpellingChecked] = useState(false);
+  const [completedBatchIndices, setCompletedBatchIndices] = useState<number[]>([]);
+  const [completedBatchesStats, setCompletedBatchesStats] = useState<Record<number, { accuracy: number; total: number }>>({});
+  const [currentActiveBatchIndex, setCurrentActiveBatchIndex] = useState<number>(0);
+
+  // ---------------------------------------------------------------------------
+  // AUTO-SAVE & INSTANT RECOVERY ENGINE: Zero data loss across F5 or reloads
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    const saved = loadVocabSessionState();
+    if (saved && saved.studySessionActive && Array.isArray(saved.studyQueue) && saved.studyQueue.length > 0) {
+      setStudySessionActive(true);
+      setStudyQueue(saved.studyQueue);
+      setCurrentCardIndex(saved.currentCardIndex || 0);
+      setStudyMode((saved.studyMode as StudyMode) || 'flashcard');
+      setIsAnswerRevealed(saved.isAnswerRevealed || false);
+      if (saved.sessionStats) setSessionStats(saved.sessionStats);
+      if (saved.spellingInput) setSpellingInput(saved.spellingInput);
+      if (saved.quizSelectedOption) setQuizSelectedOption(saved.quizSelectedOption);
+      console.log('✅ [AutoSave] Khôi phục thành công phiên học từ vựng dở dang tại thẻ #', (saved.currentCardIndex || 0) + 1);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (studySessionActive && studyQueue.length > 0 && !sessionCompleted) {
+      saveVocabSessionState({
+        studySessionActive: true,
+        studyQueue,
+        currentCardIndex,
+        studyMode,
+        isAnswerRevealed,
+        sessionStats,
+        spellingInput,
+        quizSelectedOption,
+        activeLangId: activeLang?.id,
+        savedAt: Date.now()
+      });
+    } else if (!studySessionActive || sessionCompleted) {
+      clearVocabSessionState();
+    }
+  }, [studySessionActive, studyQueue, currentCardIndex, studyMode, isAnswerRevealed, sessionStats, spellingInput, quizSelectedOption, sessionCompleted, activeLang?.id]);
 
   // Switch Language Workspace
   const handleSwitchLanguage = (langId: string) => {
@@ -283,7 +385,8 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
     mode: StudyMode = 'flashcard',
     source: '3000' | 'personal' | 'all' = '3000',
     targetQueue: 'due' | 'difficult' | 'new' | 'all' = 'due',
-    maxCards: number = 20
+    maxCards: number = 20,
+    customShuffleMode?: ShuffleMode
   ) => {
     const activeProgress = activeLang.id === 'zh' ? progressChinese : activeLang.id === 'ja' ? progressJapanese : progress3000;
     const unifiedQueues = buildUnifiedStudyQueues(langWords, activeProgress, source, selectedCollectionId, activeLang.id);
@@ -300,11 +403,34 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
     }
 
     if (pool.length === 0) {
-      alert('Chưa có từ vựng nào trong danh sách được chọn.');
+      setVocabToast('Chưa có từ vựng nào trong danh sách được chọn.');
       return;
     }
 
-    const shuffled = [...pool].sort(() => Math.random() - 0.5).slice(0, maxCards);
+    // If pool has fewer cards than requested maxCards, backfill from allWords so session length matches user choice
+    if (pool.length < maxCards && Array.isArray(unifiedQueues.allWords)) {
+      const poolIds = new Set(pool.map(w => w.id));
+      for (const w of unifiedQueues.allWords) {
+        if (!poolIds.has(w.id)) {
+          pool.push(w);
+          if (pool.length >= maxCards) break;
+        }
+      }
+    }
+
+    // Smart Random Shuffle with memory-urgency weighting and anti-repetition
+    const effectiveShuffleMode: ShuffleMode = customShuffleMode || (
+      targetQueue === 'new' ? 'new_words' :
+      targetQueue === 'difficult' ? 'mistakes' :
+      shuffleMode
+    );
+    setShuffleMode(effectiveShuffleMode);
+
+    const shuffled = buildSmartShuffledSession(pool, {
+      mode: effectiveShuffleMode,
+      maxCards,
+      todayIso: new Date().toISOString().split('T')[0]
+    });
 
     setStudyQueue(shuffled);
     setStudyMode(mode);
@@ -320,15 +446,31 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
     setStudySessionActive(true);
   };
 
-  const handleStartStudyExplicit = (wordsToStudy: VocabWord[], mode: StudyMode = 'flashcard', durationMinutes?: number) => {
+  const handleStartStudyExplicit = (
+    wordsToStudy: VocabWord[], 
+    mode: StudyMode = 'flashcard', 
+    durationMinutes?: number,
+    customShuffleMode?: ShuffleMode
+  ) => {
     if (!wordsToStudy || wordsToStudy.length === 0) {
-      alert(isVi ? 'Danh sách từ trống.' : 'Word list is empty.');
+      setVocabToast(isVi ? 'Danh sách từ trống.' : 'Word list is empty.');
       return;
     }
     if (durationMinutes !== undefined) {
       setStudyDurationMinutes(durationMinutes);
     }
-    setStudyQueue(wordsToStudy);
+    const effectiveShuffle = customShuffleMode || shuffleMode;
+    if (customShuffleMode) {
+      setShuffleMode(customShuffleMode);
+    }
+
+    // Always shuffle incoming word lists via Smart Random Engine (Never DB/Alphabetical order)
+    const shuffled = buildSmartShuffledSession(wordsToStudy, {
+      mode: effectiveShuffle,
+      todayIso: new Date().toISOString().split('T')[0]
+    });
+
+    setStudyQueue(shuffled);
     setStudyMode(mode);
     setCurrentCardIndex(0);
     setIsAnswerRevealed(false);
@@ -338,6 +480,24 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
     setSpellingChecked(false);
     setSessionStats({ reviewed: 0, passed: 0, again: 0 });
     setStudySessionActive(true);
+  };
+
+  const handleReshuffleSession = (newMode?: ShuffleMode) => {
+    if (!studyQueue || studyQueue.length === 0) return;
+    const modeToUse = newMode || shuffleMode;
+    if (newMode) setShuffleMode(newMode);
+
+    // Keep reviewed cards, re-shuffle remaining cards using requested mode with anti-repetition
+    const reviewed = studyQueue.slice(0, currentCardIndex);
+    const unreviewed = studyQueue.slice(currentCardIndex);
+
+    const freshShuffled = buildSmartShuffledSession(unreviewed, {
+      mode: modeToUse,
+      todayIso: new Date().toISOString().split('T')[0]
+    });
+
+    setStudyQueue([...reviewed, ...freshShuffled]);
+    setVocabToast(isVi ? `Đã xáo trộn lại ${freshShuffled.length} từ còn lại theo cơ chế ${modeToUse}!` : `Reshuffled remaining ${freshShuffled.length} words!`);
   };
 
   // Grade Card with SM-2 Spaced Repetition Algorithm
@@ -371,7 +531,13 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
       again: rating < 3 ? prev.again + 1 : prev.again
     }));
 
-    if (currentCardIndex + 1 < studyQueue.length) {
+    // QUY TẮC CỐT LÕI: "Sai phải học lại trong phiên"
+    // Nếu bấm Chưa thuộc hoặc làm sai trắc nghiệm/chính tả -> Hệ thống TỰ ĐỘNG đưa từ đó về CUỐI hàng đợi của phiên học!
+    if (rating < 3) {
+      setStudyQueue(prev => [...prev, currentWord]);
+    }
+
+    if (currentCardIndex + 1 < studyQueue.length || rating < 3) {
       setCurrentCardIndex(prev => prev + 1);
       setIsAnswerRevealed(false);
       setQuizSelectedOption(null);
@@ -379,6 +545,29 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
       setSpellingChecked(false);
     } else {
       setSessionCompleted(true);
+      setCompletedBatchIndices(prev => Array.from(new Set([...prev, currentActiveBatchIndex])));
+      const reviewed = sessionStats.reviewed + 1;
+      const passed = rating >= 3 ? sessionStats.passed + 1 : sessionStats.passed;
+      const accuracy = reviewed > 0 ? Math.round((passed / reviewed) * 100) : 100;
+      setCompletedBatchesStats(prev => ({
+        ...prev,
+        [currentActiveBatchIndex]: { accuracy, total: reviewed }
+      }));
+
+      // Cộng phút học vào User profile & Feature Analytics
+      const estimatedMinutes = Math.max(1, Math.round(reviewed * 0.5));
+      fetch('/api/admin/feature-analytics', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          feature: 'vocab_master',
+          action: 'complete_session',
+          mode: studyMode,
+          cardCount: reviewed,
+          accuracy,
+          minutes: estimatedMinutes
+        })
+      }).catch(() => {});
     }
   };
 
@@ -415,7 +604,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
   };
 
   const handleSaveWord = (wordData: Partial<VocabWord>) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatLocalDateKey(new Date());
 
     updateVocabData(prev => {
       const currentList = prev.words[activeLang.id] || [];
@@ -474,7 +663,10 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
   };
 
   const handleDeleteWord = (wordId: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa từ vựng này khỏi kho từ cá nhân?')) return;
+    const target = (langWords || []).find(w => w.id === wordId);
+    if (!target) return;
+    if (undoWordTimeoutRef.current) clearTimeout(undoWordTimeoutRef.current);
+    setUndoWord({ langId: activeLang.id, word: target });
 
     updateVocabData(prev => ({
       ...prev,
@@ -483,6 +675,24 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         [activeLang.id]: (prev.words[activeLang.id] || []).filter(w => w.id !== wordId)
       }
     }));
+
+    undoWordTimeoutRef.current = setTimeout(() => {
+      setUndoWord(null);
+    }, 5000);
+  };
+
+  const handleRestoreWord = () => {
+    if (!undoWord) return;
+    if (undoWordTimeoutRef.current) clearTimeout(undoWordTimeoutRef.current);
+    updateVocabData(prev => ({
+      ...prev,
+      words: {
+        ...prev.words,
+        [undoWord.langId]: [undoWord.word, ...(prev.words[undoWord.langId] || [])]
+      }
+    }));
+    setUndoWord(null);
+    setVocabToast('Đã khôi phục từ vựng!');
   };
 
   const handleToggleFavorite = (wordId: string) => {
@@ -523,8 +733,6 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
   };
 
   const handleDeleteCollection = (colId: string) => {
-    if (!confirm('Xóa bộ sưu tập này? Các từ thuộc bộ sưu tập sẽ được chuyển về nhóm Mặc định.')) return;
-
     updateVocabData(prev => {
       const remainingCols = (prev.collections[activeLang.id] || []).filter(c => c.id !== colId);
       const targetColId = remainingCols[0]?.id || 'default_col';
@@ -543,6 +751,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         }
       };
     });
+    setVocabToast('Đã xóa bộ sưu tập. Các từ vựng đã được gom về nhóm mặc định.');
   };
 
   const handleSaveBookmark3000 = (collectionId: string) => {
@@ -553,7 +762,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
       }
       return next;
     });
-    alert(`🎉 Đã lưu ${bookmarkingWordIds.length} từ vào bộ sưu tập cá nhân thành công!`);
+    setVocabToast(`🎉 Đã lưu ${bookmarkingWordIds.length} từ vào bộ sưu tập cá nhân thành công!`);
   };
 
   return (
@@ -861,6 +1070,9 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
             words={studyQueue}
             currentIndex={currentCardIndex}
             mode={studyMode}
+            shuffleMode={shuffleMode}
+            onShuffleModeChange={(mode) => setShuffleMode(mode)}
+            onReshuffleSession={handleReshuffleSession}
             isRevealed={isAnswerRevealed}
             isCompleted={sessionCompleted}
             stats={sessionStats}
@@ -876,7 +1088,10 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
             onSelectQuizOption={handleSelectQuizOption}
             onSpellingChange={setSpellingInput}
             onCheckSpelling={handleCheckSpelling}
-            onExitSession={() => setStudySessionActive(false)}
+            onExitSession={() => {
+              clearVocabSessionState();
+              setStudySessionActive(false);
+            }}
             onRestartSession={() => handleStartStudy(studyMode, studySource, studyTargetQueue)}
             onToggleFavorite={handleToggleFavorite}
             onToggleDifficult={(wordId) => updateVocabData(prev => toggleWordDifficult(prev, wordId))}
@@ -916,9 +1131,26 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         <TodayStudyTab
           activeLang={activeLang}
           allWords={allCombinedWords}
-          onStartStudyBatch={(words, mode) => handleStartStudyExplicit(words, mode)}
+          completedBatchIndices={completedBatchIndices}
+          completedBatchesStats={completedBatchesStats}
+          onStartStudyBatch={(words, mode, shuffle) => {
+            setCurrentActiveBatchIndex(0);
+            handleStartStudyExplicit(words, mode, undefined, shuffle);
+          }}
           onOpenWordDetail={(word) => setDetailWord(word)}
           onLookupWord={() => setShowUniversalSearchModal(true)}
+          onShareToCommunity={(stats) => {
+            fetch('/api/posts', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                content: `🏆 Tôi vừa nâng cấp Tháp Trí Nhớ trên Vocabulary Master! Đạt ${stats?.level5_mastered || 0} từ thành thạo (Tầng 5). Cùng học và nhận thưởng nhé!`,
+                category: 'achievement'
+              })
+            }).then(() => {
+              setVocabToast('Đã đăng thành tích lên Cộng đồng thành công!');
+            }).catch(() => {});
+          }}
         />
       )}
 
@@ -990,7 +1222,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
                 repetitionCount: 0,
                 easeFactor: 2.5,
                 intervalDays: 0,
-                nextReviewAt: new Date().toISOString().split('T')[0],
+                nextReviewAt: formatLocalDateKey(new Date()),
                 reviewLogs: [],
                 lapses: 0,
                 updatedAt: new Date().toISOString()
@@ -1131,22 +1363,22 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
               ...prev,
               languages: (prev.languages || []).map(l => l.id === activeLang?.id ? { ...l, ...updates } : l)
             }));
-            alert('Đã lưu cấu hình học tập cho ngôn ngữ này!');
+            setVocabToast('Đã lưu cấu hình học tập cho ngôn ngữ này!');
           }}
           onDeleteLanguage={() => {
             if ((vocabData?.languages || []).length <= 1) {
-              return alert('Bạn cần giữ ít nhất 1 ngôn ngữ trong hệ thống!');
+              setVocabToast('Bạn cần giữ ít nhất 1 ngôn ngữ trong hệ thống!');
+              return;
             }
-            if (confirm(`Bạn có chắc muốn xóa không gian học "${activeLang.name}" và toàn bộ từ vựng thuộc ngôn ngữ này?`)) {
-              updateVocabData(prev => {
-                const remaining = (prev.languages || []).filter(l => l.id !== activeLang?.id);
-                return {
-                  ...prev,
-                  activeLanguageId: remaining[0].id,
-                  languages: remaining
-                };
-              });
-            }
+            updateVocabData(prev => {
+              const remaining = (prev.languages || []).filter(l => l.id !== activeLang?.id);
+              return {
+                ...prev,
+                activeLanguageId: remaining[0].id,
+                languages: remaining
+              };
+            });
+            setVocabToast(`Đã xóa không gian học "${activeLang.name}".`);
           }}
         />
       )}
@@ -1188,7 +1420,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
           collections={langCollections}
           onClose={() => setShowImportModal(false)}
           onImport={(importedWords: any[]) => {
-            const today = new Date().toISOString().split('T')[0];
+            const today = formatLocalDateKey(new Date());
             const newWords: VocabWord[] = importedWords.map((w: any) => ({
               id: 'word_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
               languageId: activeLang.id,
@@ -1222,7 +1454,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
             }));
 
             setShowImportModal(false);
-            alert(`🎉 Đã nhập thành công ${newWords.length} từ vựng mới vào kho từ cá nhân!`);
+            setVocabToast(`🎉 Đã nhập thành công ${newWords.length} từ vựng mới vào kho từ cá nhân!`);
           }}
         />
       )}
@@ -1296,6 +1528,46 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
         onStartStudySingle={(word) => handleStartStudyExplicit([word], 'flashcard')}
         onOpenWordDetail={(word) => setDetailWord(word)}
       />
+
+      {/* Floating Undo & Notification Toasts */}
+      {undoWord && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl shadow-2xl border border-slate-700 animate-in slide-in-from-bottom-4 duration-200">
+          <span className="text-sm font-medium">
+            Đã xóa từ <strong>"{undoWord.word.term}"</strong>
+          </span>
+          <button
+            onClick={handleRestoreWord}
+            className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl transition shadow-sm cursor-pointer"
+          >
+            Hoàn tác (5s)
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              if (undoWordTimeoutRef.current) clearTimeout(undoWordTimeoutRef.current);
+              setUndoWord(null);
+            }}
+            className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
+            title="Đóng"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {vocabToast && !undoWord && (
+        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl shadow-2xl border border-slate-700 animate-in slide-in-from-bottom-4 duration-200">
+          <span className="text-sm font-medium">{vocabToast}</span>
+          <button
+            type="button"
+            onClick={() => setVocabToast(null)}
+            className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer ml-1"
+            title="Đóng thông báo"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
     </div>
   );

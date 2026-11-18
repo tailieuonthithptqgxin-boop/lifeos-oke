@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { 
   X, Calendar, Sparkles, CheckSquare, Clock, Wallet, 
   Flame, Trophy, ArrowRight, ArrowLeft, Check, Heart, 
@@ -21,6 +22,18 @@ export function SundayWeeklyResetModal({
   onClose,
   onOpenStoryShare
 }: SundayWeeklyResetModalProps) {
+  useBodyScrollLock(isOpen);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useEffect(() => {
+    if (!(isOpen)) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   const { 
     tasks = [], 
     focusSessions = [], 
@@ -52,7 +65,11 @@ export function SundayWeeklyResetModal({
     const totalFocusMinutes = recentFocus.reduce((sum, s) => sum + (s.duration || s.minutes || 0), 0);
 
     // Tasks completed in past 7 days
-    const completedTasks = tasks.filter(t => t.status === 'Đã xong' || t.status === 'Hoàn thành');
+    const completedTasks = tasks.filter(t => {
+      if (!t.status) return false;
+      const s = t.status.toLowerCase();
+      return s === 'đã xong' || s === 'hoàn thành' || s === 'hoan thanh' || s === 'completed' || s === 'done';
+    });
 
     // Total expenses in past 7 days
     const recentExpenses = transactions.filter(tx => {
@@ -75,9 +92,10 @@ export function SundayWeeklyResetModal({
 
   // Complete Sunday Reset
   const handleFinishReset = async () => {
+    if (isClaimed) return;
+    setIsClaimed(true);
     soundEngine.playSuccess();
     triggerConfetti();
-    setIsClaimed(true);
 
     // Auto-create next week's 3 big goals as priority tasks
     const goalsToAdd = [goal1.trim(), goal2.trim(), goal3.trim()].filter(Boolean);
@@ -115,8 +133,19 @@ export function SundayWeeklyResetModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-white flex flex-col my-auto">
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-200 cursor-default"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-white flex flex-col my-auto"
+      >
         {/* Ambient Top Glow */}
         <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-emerald-500/15 via-teal-500/5 to-transparent pointer-events-none" />
 
@@ -144,9 +173,10 @@ export function SundayWeeklyResetModal({
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center hover:bg-slate-700 transition-colors"
+            className="w-10 h-10 min-h-[44px] min-w-[44px] rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center hover:bg-slate-700 transition-colors shrink-0"
+            aria-label="Đóng"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -269,7 +299,7 @@ export function SundayWeeklyResetModal({
                     value={winReflection}
                     onChange={(e) => setWinReflection(e.target.value)}
                     placeholder="VD: Đã hoàn thành bài thuyết trình, dậy sớm 5/7 ngày..."
-                    className="w-full p-3 rounded-2xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500 resize-none"
+                    className="w-full p-3 rounded-2xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-base sm:text-sm focus:outline-none focus:border-emerald-500 resize-none min-h-[56px]"
                   />
                 </div>
 
@@ -282,7 +312,7 @@ export function SundayWeeklyResetModal({
                     value={letGoReflection}
                     onChange={(e) => setLetGoReflection(e.target.value)}
                     placeholder="VD: Bớt lướt TikTok sau 11h đêm, bớt overthinking..."
-                    className="w-full p-3 rounded-2xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500 resize-none"
+                    className="w-full p-3 rounded-2xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-base sm:text-sm focus:outline-none focus:border-emerald-500 resize-none min-h-[56px]"
                   />
                 </div>
               </div>
@@ -311,7 +341,7 @@ export function SundayWeeklyResetModal({
                     value={goal1}
                     onChange={(e) => setGoal1(e.target.value)}
                     placeholder="Mục tiêu cốt lõi số 1 (Quan trọng nhất)"
-                    className="flex-1 p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500"
+                    className="flex-1 p-2.5 min-h-[44px] rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-base sm:text-sm focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
@@ -324,7 +354,7 @@ export function SundayWeeklyResetModal({
                     value={goal2}
                     onChange={(e) => setGoal2(e.target.value)}
                     placeholder="Mục tiêu quan trọng số 2"
-                    className="flex-1 p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-teal-500"
+                    className="flex-1 p-2.5 min-h-[44px] rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-base sm:text-sm focus:outline-none focus:border-teal-500"
                   />
                 </div>
 
@@ -337,7 +367,7 @@ export function SundayWeeklyResetModal({
                     value={goal3}
                     onChange={(e) => setGoal3(e.target.value)}
                     placeholder="Mục tiêu hỗ trợ số 3"
-                    className="flex-1 p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-indigo-500"
+                    className="flex-1 p-2.5 min-h-[44px] rounded-xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-base sm:text-sm focus:outline-none focus:border-indigo-500"
                   />
                 </div>
               </div>

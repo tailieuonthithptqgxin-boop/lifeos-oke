@@ -41,7 +41,12 @@ export async function resolveHostToIPv4(hostname: string): Promise<string> {
 
 export interface GmailSmtpConfig {
   enabled: boolean;
-  serviceType: 'gmail' | 'smtp' | 'resend';
+  serviceType: 'gmail' | 'smtp' | 'resend' | 'webhook' | 'emailjs';
+  webhookUrl?: string; // Google Apps Script Webhook URL
+  emailjsServiceId?: string;
+  emailjsTemplateId?: string;
+  emailjsPublicKey?: string;
+  emailjsPrivateKey?: string;
   apiKey?: string;
   user: string;
   appPassword?: string;
@@ -80,6 +85,10 @@ export const DEFAULT_GMAIL_CONFIG: GmailSmtpConfig = {
   enabled: false,
   serviceType: 'gmail',
   apiKey: '',
+  webhookUrl: '',
+  emailjsServiceId: '',
+  emailjsTemplateId: '',
+  emailjsPublicKey: '',
   user: '',
   appPassword: '',
   fromName: 'Life OS Notification Assistant',

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Search, X, Volume2, Star, Lightbulb, Pin, Play, Plus, BookOpen,
   Check, Sparkles, Layers, ArrowRight
@@ -54,6 +54,7 @@ export const UniversalSearchModal: React.FC<UniversalSearchModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
   const [addedQueueWords, setAddedQueueWords] = useState<Set<string>>(new Set());
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
 
   const searchResults = useMemo(() => {
     if (!query.trim()) return [];
@@ -91,8 +92,13 @@ export const UniversalSearchModal: React.FC<UniversalSearchModalProps> = ({
 
   return (
     <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (mouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+          onClose();
+        }
       }}
       className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-150 cursor-default"
     >
@@ -102,7 +108,7 @@ export const UniversalSearchModal: React.FC<UniversalSearchModalProps> = ({
       >
         
         {/* Modal Header & Search Input */}
-        <div className="p-5 border-b border-slate-100 dark:border-slate-800 space-y-3">
+        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="p-2 rounded-xl bg-purple-100 dark:bg-purple-950/60 text-purple-600">
@@ -123,27 +129,29 @@ export const UniversalSearchModal: React.FC<UniversalSearchModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl"
+              aria-label={isVi ? 'Đóng' : 'Close'}
+              className="w-11 h-11 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={isVi ? 'Gõ từ tiếng Anh, Hán tự, Pinyin, Hiragana, Kanji hoặc nghĩa tiếng Việt...' : 'Type term, pinyin, furigana, or meaning...'}
-              className="w-full pl-10 pr-9 py-2.5 text-sm font-semibold rounded-2xl border border-purple-200 dark:border-purple-900/60 bg-purple-50/40 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full pl-10 pr-9 py-2.5 min-h-[44px] text-base sm:text-sm font-semibold rounded-2xl border border-purple-200 dark:border-purple-900/60 bg-purple-50/40 dark:bg-slate-800 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
             />
             {query && (
               <button
                 type="button"
                 onClick={() => setQuery('')}
-                className="absolute right-3 top-3 text-slate-400 hover:text-slate-600"
+                aria-label={isVi ? 'Xóa tìm kiếm' : 'Clear search'}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 min-h-[36px] min-w-[36px] flex items-center justify-center text-slate-400 hover:text-slate-600 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -222,7 +230,7 @@ export const UniversalSearchModal: React.FC<UniversalSearchModalProps> = ({
                     <button
                       type="button"
                       onClick={(e) => handleSpeech(e, word)}
-                      className="p-2 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-800 transition cursor-pointer"
+                      className="p-2 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 bg-slate-50 dark:bg-slate-800 transition cursor-pointer"
                       title={isVi ? 'Phát âm' : 'Pronounce'}
                     >
                       <Volume2 className="w-4 h-4" />
@@ -231,7 +239,7 @@ export const UniversalSearchModal: React.FC<UniversalSearchModalProps> = ({
                     <button
                       type="button"
                       onClick={() => onUpdateUserData(prev => toggleUniversalFavorite(prev, word.id))}
-                      className={`p-2 rounded-xl bg-slate-50 dark:bg-slate-800 transition cursor-pointer ${
+                      className={`p-2 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-xl bg-slate-50 dark:bg-slate-800 transition cursor-pointer ${
                         word.isFavorite ? 'text-amber-500 fill-amber-500' : 'text-slate-400 hover:text-amber-500'
                       }`}
                       title={isVi ? 'Yêu thích ⭐' : 'Favorite ⭐'}
@@ -242,7 +250,7 @@ export const UniversalSearchModal: React.FC<UniversalSearchModalProps> = ({
                     <button
                       type="button"
                       onClick={() => handleAddToQueue(word.id)}
-                      className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                      className={`px-2.5 py-1.5 min-h-[40px] rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
                         inQueue
                           ? 'bg-emerald-600 text-white'
                           : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'
@@ -257,7 +265,7 @@ export const UniversalSearchModal: React.FC<UniversalSearchModalProps> = ({
                       <button
                         type="button"
                         onClick={() => setSelectedWordForCol(word)}
-                        className="px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition cursor-pointer flex items-center gap-1"
+                        className="px-2.5 py-1.5 min-h-[40px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition cursor-pointer flex items-center gap-1"
                         title={isVi ? 'Thêm vào bộ sưu tập' : 'Add to set'}
                       >
                         <Layers className="w-3.5 h-3.5" />
@@ -271,7 +279,7 @@ export const UniversalSearchModal: React.FC<UniversalSearchModalProps> = ({
                         onClose();
                         onStartStudySingle(word);
                       }}
-                      className="px-3 py-1.5 bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1"
+                      className="px-3 py-1.5 min-h-[40px] bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700 text-white font-bold text-xs rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1"
                     >
                       <Play className="w-3.5 h-3.5 fill-current" />
                       <span>{isVi ? 'Học ngay' : 'Learn'}</span>

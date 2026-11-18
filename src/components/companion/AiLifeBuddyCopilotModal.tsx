@@ -1,7 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   X, Send, Sparkles, Zap, Split, Wallet, 
-  Check, ArrowRight, Bot, Clock, Heart, Plus
+  AlertTriangle, RefreshCw, Cloud
 } from 'lucide-react';
 import { useAppStore } from '../../lib/store';
 import { soundEngine } from '../../lib/soundEngine';
@@ -11,6 +11,8 @@ import { LiveMascotCharacter } from './LiveMascotCharacter';
 import { companionEngine, MASCOT_PROFILES } from '../../lib/companionEngine';
 import { companionBrain, CompanionUIContext } from '../../lib/companion/companionBrain';
 import { getCharacterProfile } from '../../lib/companion/characterRegistry';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { callGeminiWithResilience, FRIENDLY_503_MESSAGE } from '../../lib/geminiClient';
 
 interface AiLifeBuddyCopilotModalProps {
   isOpen: boolean;
@@ -24,12 +26,13 @@ interface MessageItem {
   text: string;
   time: string;
   actionType?: 'trifecta' | 'breakdown' | 'finance';
+  modelBadge?: string;
+  traceId?: string;
 }
 
 export function AiLifeBuddyCopilotModal({
   isOpen,
   onClose,
-  onStartZenFocus
 }: AiLifeBuddyCopilotModalProps) {
   const { 
     tasks = [], 
@@ -44,7 +47,57 @@ export function AiLifeBuddyCopilotModal({
   const mascotId = mascotSettings.mascotId || 'lumi';
   const mascotInfo = MASCOT_PROFILES[mascotId] || MASCOT_PROFILES.lumi;
 
+  useBodyScrollLock(isOpen);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [isShaking, setIsShaking] = useState(false);
+
   const [inputQuery, setInputQuery] = useState('');
+  const [useCloudGemini, setUseCloudGemini] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [aiErrorBanner, setAiErrorBanner] = useState<{
+    message: string;
+    traceId?: string;
+    httpStatus?: number;
+    retryCount?: number;
+    category?: string;
+  } | null>(null);
+
+  const triggerShake = () => {
+    setIsShaking(true);
+    soundEngine.playPop();
+    setTimeout(() => setIsShaking(false), 450);
+  };
+
+  const handleSafeDismiss = () => {
+    if (inputQuery.trim()) {
+      triggerShake();
+      return;
+    }
+    onClose();
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (inputQuery.trim()) {
+          triggerShake();
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, inputQuery, onClose]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => inputRef.current?.focus(), 80);
+    }
+  }, [isOpen]);
+
   const [messages, setMessages] = useState<MessageItem[]>([
     {
       id: 'welcome',
@@ -165,15 +218,79 @@ export function AiLifeBuddyCopilotModal({
     ]);
   };
 
-  // Chat message submit
-  const handleSendQuery = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputQuery.trim()) return;
+  // Chat message submit with full HTTP 503 resilience & zero input loss
+  const handleSendQuery = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!inputQuery.trim() || isSending) return;
 
     soundEngine.playPop();
     const userText = inputQuery.trim();
-    setInputQuery('');
+    setAiErrorBanner(null);
 
+    if (useCloudGemini) {
+      setIsSending(true);
+      try {
+        const result = await callGeminiWithResilience({
+          prompt: userText,
+          systemInstruction: `Bạn là ${mascotInfo.name}, trợ lý học tập và quản lý cuộc sống thông minh trên hệ điều hành LifeOS. Hãy trả lời ngắn gọn, thực tế, truyền cảm hứng bằng tiếng Việt.`,
+          history: messages.slice(-6).map(m => ({
+            role: m.sender === 'ai' ? 'model' : 'user',
+            text: m.text,
+          })),
+        });
+
+        if (!result.success) {
+          // Requirement 6: Do NOT lose user input when an error occurs!
+          setInputQuery(result.preservedInput || userText);
+          // Requirement 5: Friendly message ("Máy chủ AI hiện đang quá tải. Vui lòng thử lại sau ít phút.")
+          // and DO NOT return fake AI content to mask the error.
+          setAiErrorBanner({
+            message: result.userFriendlyMessage || FRIENDLY_503_MESSAGE,
+            traceId: result.traceId,
+            httpStatus: result.httpStatus,
+            retryCount: result.retryCount,
+            category: result.errorCategory,
+          });
+          setIsSending(false);
+          return;
+        }
+
+        // Only clear input after confirmed success
+        setInputQuery('');
+        const nowTime = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+        setMessages(prev => [
+          ...prev,
+          {
+            id: String(Date.now()),
+            sender: 'user',
+            text: userText,
+            time: nowTime,
+          },
+          {
+            id: String(Date.now() + 1),
+            sender: 'ai',
+            text: result.text || '',
+            time: nowTime,
+            modelBadge: result.fallbackUsed ? `${result.model} (Dự phòng)` : result.model,
+            traceId: result.traceId,
+          },
+        ]);
+        soundEngine.playSuccess();
+      } catch (err: any) {
+        // Restore user input on unexpected exception
+        setInputQuery(userText);
+        setAiErrorBanner({
+          message: FRIENDLY_503_MESSAGE,
+          httpStatus: err?.status || 503,
+        });
+      } finally {
+        setIsSending(false);
+      }
+      return;
+    }
+
+    // Local App-Aware Companion Brain Mode
+    setInputQuery('');
     const newMsg: MessageItem = {
       id: String(Date.now()),
       sender: 'user',
@@ -212,12 +329,32 @@ export function AiLifeBuddyCopilotModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
-      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-white flex flex-col h-[600px] max-h-[85vh]">
+    <div 
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (mouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+          handleSafeDismiss();
+        }
+      }}
+      className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150 cursor-default"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className={`relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden text-white flex flex-col h-[600px] max-h-[92dvh] sm:max-h-[85vh] animate-modal-enter transition-transform ${
+          isShaking ? 'animate-[shake_0.4s_ease-in-out]' : ''
+        }`}
+      >
+        {/* Mobile Drag Indicator */}
+        <div className="w-12 h-1.5 bg-slate-700 rounded-full mx-auto my-2 sm:hidden shrink-0" />
+
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 z-10">
+        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/90 z-10 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center relative shadow-inner">
+            <div className="w-10 h-10 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center relative shadow-inner shrink-0">
               <LiveMascotCharacter mood="celebrate" mascotId={mascotId} size="compact" />
               <div className="absolute -bottom-1 -right-1 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-slate-900" />
             </div>
@@ -228,19 +365,39 @@ export function AiLifeBuddyCopilotModal({
                   AI Buddy
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 truncate max-w-[240px]">
+              <p className="text-[11px] text-slate-400 truncate max-w-[200px]">
                 Trợ lý cuộc sống thông minh & thực tế của bạn
               </p>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center hover:bg-slate-700 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => {
+                setUseCloudGemini(prev => !prev);
+                setAiErrorBanner(null);
+              }}
+              title={useCloudGemini ? 'Đang bật Gemini Cloud API (Tự động Retry & Fallback)' : 'Chuyển sang Gemini Cloud API'}
+              className={`px-2.5 py-1.5 min-h-[36px] rounded-xl text-[10px] font-bold border flex items-center gap-1 transition-all cursor-pointer ${
+                useCloudGemini
+                  ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40'
+                  : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
+              }`}
+            >
+              <Cloud className="w-3.5 h-3.5" />
+              <span>{useCloudGemini ? 'Gemini Cloud' : 'Local Brain'}</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSafeDismiss}
+              className="w-9 h-9 min-h-[44px] min-w-[44px] rounded-xl bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center hover:bg-slate-700 transition-colors cursor-pointer"
+              aria-label="Đóng"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Quick Action Superpowers Cluster */}
@@ -289,25 +446,78 @@ export function AiLifeBuddyCopilotModal({
               >
                 {m.text}
               </div>
-              <span className="text-[9px] text-slate-500 px-1 font-mono">{m.time}</span>
+              <div className="flex items-center gap-2 px-1">
+                <span className="text-[9px] text-slate-500 font-mono">{m.time}</span>
+                {m.modelBadge && (
+                  <span className="text-[9px] text-indigo-400 font-mono">• {m.modelBadge}</span>
+                )}
+              </div>
             </div>
           ))}
+
+          {isSending && (
+            <div className="flex items-center gap-2 text-xs text-slate-400 px-2 py-1 animate-pulse">
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+              <span>Đang kết nối Gemini AI (tự động retry & điều phối tải)...</span>
+            </div>
+          )}
+
+          {aiErrorBanner && (
+            <div
+              role="alert"
+              className="rounded-2xl bg-amber-500/10 border border-amber-500/30 p-3 text-xs text-amber-200 space-y-2 animate-in fade-in duration-150"
+            >
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <div className="flex-1 space-y-1">
+                  <p className="font-bold text-amber-300">{aiErrorBanner.message}</p>
+                  <p className="text-[10px] text-slate-400">
+                    Nội dung bạn vừa nhập vẫn được giữ nguyên bên dưới.
+                    {aiErrorBanner.traceId ? ` (TraceID: ${aiErrorBanner.traceId} · Retry: ${aiErrorBanner.retryCount ?? 0})` : ''}
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleSendQuery()}
+                  disabled={isSending}
+                  className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-200 font-bold text-[11px] flex items-center gap-1.5 cursor-pointer"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>Thử gửi lại</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUseCloudGemini(false);
+                    setAiErrorBanner(null);
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-semibold text-[11px] cursor-pointer"
+                >
+                  Dùng Local Brain ngay
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Input Bar */}
         <form onSubmit={handleSendQuery} className="p-3 border-t border-slate-800 bg-slate-900 flex items-center gap-2">
           <input
+            ref={inputRef}
             type="text"
+            autoFocus
             value={inputQuery}
             onChange={(e) => setInputQuery(e.target.value)}
             placeholder="Hỏi AI hoặc gõ việc bạn đang bế tắc..."
-            className="flex-1 px-3.5 py-2.5 rounded-2xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-emerald-500"
+            className="flex-1 px-3.5 py-2.5 min-h-[44px] rounded-2xl bg-slate-800 border border-slate-700 text-white placeholder-slate-500 text-base sm:text-xs focus:outline-none focus:border-emerald-500"
           />
           <button
             type="submit"
-            disabled={!inputQuery.trim()}
-            className={`p-2.5 rounded-2xl transition-all cursor-pointer ${
-              inputQuery.trim()
+            disabled={!inputQuery.trim() || isSending}
+            className={`p-2.5 min-h-[44px] min-w-[44px] rounded-2xl flex items-center justify-center transition-all cursor-pointer ${
+              inputQuery.trim() && !isSending
                 ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400 shadow-md'
                 : 'bg-slate-800 text-slate-600 cursor-not-allowed'
             }`}

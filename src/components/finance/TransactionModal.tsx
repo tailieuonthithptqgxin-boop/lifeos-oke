@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAppStore } from '../../lib/store';
-import { formatCurrency } from '../../lib/utils';
-import { X, Loader2, AlertCircle } from 'lucide-react';
+import { formatCurrency, formatLocalDateKey } from '../../lib/utils';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { soundEngine } from '../../lib/soundEngine';
+import { X, Loader2, AlertCircle, Edit3 } from 'lucide-react';
+import { CategoryGridPicker } from './CategoryGridPicker';
 
 interface TransactionModalProps {
   onClose: () => void;
@@ -15,19 +18,68 @@ export function TransactionModal({ onClose, onSave, accounts = [], initialData }
   const isVi = language === 'vi';
   const safeAccounts = Array.isArray(accounts) ? accounts : [];
 
+  useBodyScrollLock(true);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+  const [isShaking, setIsShaking] = useState(false);
+
+  const initialAmount = initialData?.amount !== undefined ? initialData.amount : '';
+  const initialCategory = initialData?.category || '';
+  const initialNote = initialData?.note || '';
+
   const [formData, setFormData] = useState<any>(() => ({
     type: initialData?.type || 'Chi tiêu',
-    amount: initialData?.amount !== undefined ? initialData.amount : '',
-    category: initialData?.category || '',
+    amount: initialAmount,
+    category: initialCategory,
     accountId: initialData?.accountId || (safeAccounts.length > 0 ? safeAccounts[0].id : ''),
     toAccountId: initialData?.toAccountId || '',
-    date: initialData?.date ? initialData.date.slice(0, 10) : new Date().toISOString().split('T')[0],
-    note: initialData?.note || '',
+    date: initialData?.date ? initialData.date.slice(0, 10) : formatLocalDateKey(new Date()),
+    note: initialNote,
     projectId: initialData?.projectId || ''
   }));
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isManualInput, setIsManualInput] = useState(false);
+
+  const isFormDirty = Boolean(
+    formData.amount !== initialAmount ||
+    formData.category !== initialCategory ||
+    formData.note !== initialNote
+  );
+
+  const triggerShake = () => {
+    setIsShaking(true);
+    soundEngine.playPop();
+    setTimeout(() => setIsShaking(false), 500);
+  };
+
+  const handleSafeDismiss = () => {
+    if (isSubmitting) return;
+    if (isFormDirty) {
+      triggerShake();
+      return;
+    }
+    onClose();
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !isSubmitting) {
+        if (isFormDirty) {
+          triggerShake();
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isFormDirty, isSubmitting, onClose]);
+
+  const addAmountQuick = (increment: number) => {
+    const curr = Number(formData.amount) || 0;
+    setFormData((prev: any) => ({ ...prev, amount: curr + increment }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,7 +124,7 @@ export function TransactionModal({ onClose, onSave, accounts = [], initialData }
       category: (formData.category || '').trim() || (isVi ? 'Chung' : 'General'),
       accountId: formData.accountId,
       toAccountId: formData.type === 'Chuyển tiền' ? (formData.toAccountId || null) : null,
-      date: formData.date || new Date().toISOString().split('T')[0],
+      date: formData.date || formatLocalDateKey(new Date()),
       note: finalNote || null
     };
 
@@ -81,17 +133,31 @@ export function TransactionModal({ onClose, onSave, accounts = [], initialData }
       await Promise.resolve(onSave(cleanPayload));
     } catch (err: any) {
       setErrorMessage(err?.message || (isVi ? 'Có lỗi xảy ra khi lưu giao dịch' : 'Failed to save transaction'));
+    } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-backdrop-fade"
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (mouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+          handleSafeDismiss();
+        }
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-sm overflow-y-auto animate-backdrop-fade cursor-default"
       role="dialog"
       aria-modal="true"
     >
-      <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-slate-200/80 dark:border-slate-800 animate-modal-enter my-auto">
+      <div 
+        onClick={(e) => e.stopPropagation()}
+        className={`bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-slate-200/80 dark:border-slate-800 animate-modal-enter my-auto transition-transform ${
+          isShaking ? 'animate-[shake_0.4s_ease-in-out]' : ''
+        }`}
+      >
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/40 flex justify-between items-center shrink-0">
           <div>
@@ -104,7 +170,7 @@ export function TransactionModal({ onClose, onSave, accounts = [], initialData }
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleSafeDismiss}
             disabled={isSubmitting}
             className="w-10 h-10 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             aria-label="Close"
@@ -132,7 +198,10 @@ export function TransactionModal({ onClose, onSave, accounts = [], initialData }
               <button 
                 type="button"
                 key={item.id}
-                onClick={() => setFormData((prev: any) => ({ ...prev, type: item.id }))}
+                onClick={() => {
+                  soundEngine.playPop();
+                  setFormData((prev: any) => ({ ...prev, type: item.id, category: '' }));
+                }}
                 className={`flex-1 min-h-[40px] py-2 text-xs sm:text-sm font-semibold rounded-xl transition-all cursor-pointer ${
                   formData.type === item.id 
                     ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm font-bold' 
@@ -144,35 +213,106 @@ export function TransactionModal({ onClose, onSave, accounts = [], initialData }
             ))}
           </div>
 
-          {/* Amount Input */}
+          {/* Amount Input & Quick Increment Pills */}
           <div>
-            <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              {isVi ? 'Số tiền (VNĐ)' : 'Amount'} <span className="text-rose-500">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">
+                {isVi ? 'Số tiền (VNĐ)' : 'Amount'} <span className="text-rose-500">*</span>
+              </label>
+              {Number(formData.amount) > 0 && (
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono">
+                  {formatCurrency(Number(formData.amount))}
+                </span>
+              )}
+            </div>
             <input 
               type="number" 
               step="any"
               min="0"
               required
+              autoFocus
               value={formData.amount} 
               onChange={e => setFormData((prev: any) => ({ ...prev, amount: e.target.value }))} 
-              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-lg font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-lg font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono" 
               placeholder="0" 
             />
+            {/* Quick Pills */}
+            <div className="flex items-center gap-1.5 flex-wrap mt-2">
+              {[
+                { label: '+20K', val: 20000 },
+                { label: '+50K', val: 50000 },
+                { label: '+100K', val: 100000 },
+                { label: '+200K', val: 200000 },
+                { label: '+500K', val: 500000 },
+                { label: '+1M', val: 1000000 }
+              ].map(pill => (
+                <button
+                  type="button"
+                  key={pill.label}
+                  onClick={() => addAmountQuick(pill.val)}
+                  className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors cursor-pointer"
+                >
+                  {pill.label}
+                </button>
+              ))}
+            </div>
           </div>
 
-          {/* Category Input */}
-          <div>
-            <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-              {isVi ? 'Danh mục' : 'Category'}
-            </label>
-            <input 
-              type="text" 
-              value={formData.category} 
-              onChange={e => setFormData((prev: any) => ({ ...prev, category: e.target.value }))} 
-              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" 
-              placeholder={isVi ? 'Ví dụ: Ăn uống, Tiền lương, Mua sắm...' : 'e.g. Dining, Salary, Groceries...'} 
-            />
+          {/* Interactive Category Grid Picker */}
+          <div className="space-y-2">
+            {!isManualInput ? (
+              <>
+                <CategoryGridPicker
+                  type={formData.type}
+                  selectedCategory={formData.category}
+                  onSelectCategory={(catName) => setFormData((prev: any) => ({ ...prev, category: catName }))}
+                />
+                <div className="text-right">
+                  <button
+                    type="button"
+                    onClick={() => setIsManualInput(true)}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-500 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer"
+                  >
+                    <Edit3 className="w-3 h-3" />
+                    <span>{isVi ? 'Hoặc tự nhập tên khác...' : 'Or enter custom name...'}</span>
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300">
+                    {isVi ? 'Tự nhập danh mục' : 'Custom Category'}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsManualInput(false)}
+                    className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
+                  >
+                    {isVi ? '← Chọn từ danh sách có sẵn' : '← Pick from list'}
+                  </button>
+                </div>
+                <div className="relative">
+                  <input 
+                    type="text" 
+                    value={formData.category} 
+                    onChange={e => setFormData((prev: any) => ({ ...prev, category: e.target.value }))} 
+                    className="w-full px-3.5 py-2.5 pr-8 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+                    placeholder={isVi ? 'Ví dụ: Ăn uống, Tiền lương, Mua sắm...' : 'e.g. Dining, Salary, Groceries...'} 
+                  />
+                  {formData.category && (
+                    <button
+                      type="button"
+                      onClick={() => setFormData((prev: any) => ({ ...prev, category: '' }))}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                      title="Xóa danh mục"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Primary Account Selection */}
@@ -254,20 +394,32 @@ export function TransactionModal({ onClose, onSave, accounts = [], initialData }
             <label className="block text-xs sm:text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
               {isVi ? 'Ghi chú' : 'Note'}
             </label>
-            <input 
-              type="text" 
-              value={formData.note} 
-              onChange={e => setFormData((prev: any) => ({ ...prev, note: e.target.value }))} 
-              className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" 
-              placeholder={isVi ? 'Ví dụ: Ăn trưa cùng nhóm, Tiền thưởng...' : 'e.g. Lunch with team'}
-            />
+            <div className="relative">
+              <input 
+                type="text" 
+                value={formData.note} 
+                onChange={e => setFormData((prev: any) => ({ ...prev, note: e.target.value }))} 
+                className="w-full px-3.5 py-2.5 pr-8 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500" 
+                placeholder={isVi ? 'Ví dụ: Ăn trưa cùng nhóm, Tiền thưởng...' : 'e.g. Lunch with team'}
+              />
+              {formData.note && (
+                <button
+                  type="button"
+                  onClick={() => setFormData((prev: any) => ({ ...prev, note: '' }))}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  title="Xóa ghi chú"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* Action Buttons */}
           <div className="pt-2 flex items-center justify-end gap-2.5">
             <button 
               type="button" 
-              onClick={onClose} 
+              onClick={handleSafeDismiss} 
               disabled={isSubmitting}
               className="px-4 py-2.5 min-h-[44px] text-slate-600 dark:text-slate-400 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors cursor-pointer text-xs sm:text-sm disabled:opacity-50"
             >

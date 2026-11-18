@@ -49,7 +49,72 @@ export function PaymentQrSection({ paymentQr, onQrUpdated }: PaymentQrSectionPro
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const validateAndProcessFile = (file: File) => {
+  const [compressedInfo, setCompressedInfo] = useState<{ size: number; mime: string } | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
+
+  // Client-side HTML5 Canvas Auto-downscaling (max 400x400px) & Compression under 50KB to protect Free tier
+  const compressImageOnClient = async (file: File): Promise<{ dataUrl: string; size: number; mime: string }> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('Không thể đọc tập tin ảnh'));
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onerror = () => reject(new Error('Tập tin ảnh không hợp lệ hoặc bị hỏng'));
+        img.onload = () => {
+          const maxDim = 400;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Trình duyệt không hỗ trợ Canvas 2D'));
+            return;
+          }
+
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+
+          let mime = 'image/webp';
+          let quality = 0.82;
+          let dataUrl = canvas.toDataURL(mime, quality);
+
+          // Fallback if browser doesn't support WebP export
+          if (!dataUrl.startsWith('data:image/webp')) {
+            mime = 'image/jpeg';
+            dataUrl = canvas.toDataURL(mime, quality);
+          }
+
+          let estBytes = Math.round((dataUrl.length * 3) / 4);
+          // If still over 50KB, compress further to 0.6
+          if (estBytes > 50 * 1024) {
+            quality = 0.6;
+            dataUrl = canvas.toDataURL(mime, quality);
+            estBytes = Math.round((dataUrl.length * 3) / 4);
+          }
+
+          resolve({ dataUrl, size: estBytes, mime });
+        };
+        img.src = e.target?.result as string;
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const validateAndProcessFile = async (file: File) => {
     setFeedback(null);
     const validExtensions = ['.png', '.jpg', '.jpeg', '.webp'];
     const lowerName = file.name.toLowerCase();
@@ -65,22 +130,26 @@ export function PaymentQrSection({ paymentQr, onQrUpdated }: PaymentQrSectionPro
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
+    try {
+      setIsCompressing(true);
+      setSelectedFile(file);
+      const compressed = await compressImageOnClient(file);
+      setPreviewUrl(compressed.dataUrl);
+      setCompressedInfo({ size: compressed.size, mime: compressed.mime });
+      setFeedback({
+        type: 'success',
+        message: isVi
+          ? `Đã tối ưu ảnh chuẩn siêu nhẹ (${Math.round(compressed.size / 1024)} KB, ${compressed.mime.split('/')[1].toUpperCase()})!`
+          : `Optimized lightweight QR image (${Math.round(compressed.size / 1024)} KB)!`
+      });
+    } catch (err: any) {
       setFeedback({
         type: 'error',
-        message: isVi 
-          ? 'Kích thước tập tin vượt quá 5MB. Vui lòng nén ảnh hoặc chọn ảnh nhỏ hơn.' 
-          : 'File size exceeds 5MB limit. Please choose a smaller image.'
+        message: err?.message || 'Không thể xử lý ảnh.'
       });
-      return;
+    } finally {
+      setIsCompressing(false);
     }
-
-    setSelectedFile(file);
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setPreviewUrl(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -122,7 +191,8 @@ export function PaymentQrSection({ paymentQr, onQrUpdated }: PaymentQrSectionPro
       const res = await apiCall('/api/referrals/payment-qr', 'POST', {
         base64Data: previewUrl,
         fileName: selectedFile.name,
-        mimeType: selectedFile.type || 'image/png',
+        mimeType: compressedInfo?.mime || 'image/webp',
+        fileSize: compressedInfo?.size || 0,
         bankName,
         bankAccount: bankAccount.trim(),
         accountHolder: accountHolder.trim().toUpperCase()
@@ -207,7 +277,7 @@ export function PaymentQrSection({ paymentQr, onQrUpdated }: PaymentQrSectionPro
             {feedback.type === 'success' ? <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" /> : <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />}
             <span>{feedback.message}</span>
           </div>
-          <button onClick={() => setFeedback(null)} className="p-1 hover:opacity-70 cursor-pointer">
+          <button type="button" onClick={() => setFeedback(null)} className="p-1 hover:opacity-70 cursor-pointer">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -263,7 +333,7 @@ export function PaymentQrSection({ paymentQr, onQrUpdated }: PaymentQrSectionPro
               <div>
                 <p className="font-bold">{isVi ? 'Yêu cầu cập nhật từ Admin:' : 'Admin update request:'}</p>
                 <p className="mt-0.5 font-medium">{paymentQr.rejectionReason}</p>
-                <button
+                <button type="button"
                   onClick={() => setIsReplacing(true)}
                   className="mt-2.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition cursor-pointer"
                 >
@@ -343,7 +413,7 @@ export function PaymentQrSection({ paymentQr, onQrUpdated }: PaymentQrSectionPro
 
               {/* Action Buttons */}
               <div className="flex flex-wrap items-center gap-2.5 pt-1">
-                <button
+                <button type="button"
                   onClick={() => {
                     setIsReplacing(true);
                     setPreviewUrl(null);
@@ -355,7 +425,7 @@ export function PaymentQrSection({ paymentQr, onQrUpdated }: PaymentQrSectionPro
                   <span>{isVi ? 'Thay Đổi QR Mới' : 'Replace QR'}</span>
                 </button>
 
-                <button
+                <button type="button"
                   onClick={() => setShowDeleteConfirm(true)}
                   className="px-3.5 py-2 rounded-xl border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer"
                 >
@@ -389,7 +459,7 @@ export function PaymentQrSection({ paymentQr, onQrUpdated }: PaymentQrSectionPro
             </div>
 
             {paymentQr && (
-              <button
+              <button type="button"
                 onClick={() => {
                   setIsReplacing(false);
                   setPreviewUrl(null);
@@ -567,13 +637,13 @@ export function PaymentQrSection({ paymentQr, onQrUpdated }: PaymentQrSectionPro
                 : 'Are you sure you want to remove this QR? Admin will not be able to scan for payouts until a new QR is uploaded.'}
             </p>
             <div className="flex items-center justify-end gap-2.5 pt-2">
-              <button
+              <button type="button"
                 onClick={() => setShowDeleteConfirm(false)}
                 className="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-100 cursor-pointer"
               >
                 {isVi ? 'Hủy' : 'Cancel'}
               </button>
-              <button
+              <button type="button"
                 onClick={handleDelete}
                 disabled={deleting}
                 className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black shadow-md cursor-pointer disabled:opacity-50"
@@ -595,7 +665,7 @@ export function PaymentQrSection({ paymentQr, onQrUpdated }: PaymentQrSectionPro
             onClick={(e) => e.stopPropagation()}
             className="relative bg-white dark:bg-slate-900 rounded-3xl p-6 max-w-lg w-full shadow-2xl flex flex-col items-center space-y-4 animate-in zoom-in-95 cursor-default"
           >
-            <button 
+            <button type="button" 
               onClick={() => setShowZoomModal(false)}
               className="absolute top-4 right-4 p-2 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white cursor-pointer"
             >

@@ -1,4 +1,5 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { 
   CompanionSettings, 
   MASCOT_PROFILES, 
@@ -11,6 +12,7 @@ import {
   X, Sparkles, Volume2, VolumeX, Eye, EyeOff, 
   Award, Sliders, Check, Moon, BellOff, MessageSquare
 } from 'lucide-react';
+import { LiveMascotCharacter } from './LiveMascotCharacter';
 
 interface CompanionSettingsModalProps {
   settings: CompanionSettings;
@@ -25,10 +27,36 @@ export const CompanionSettingsModal: React.FC<CompanionSettingsModalProps> = ({
   onClose,
   userId
 }) => {
+  useBodyScrollLock(true);
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  useEffect(() => {
+    if (!(true)) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [true, onClose]);
+
   const retentionProfile = retentionEngine.getProfile(userId);
   const userLevel = retentionProfile.level || 1;
 
-  const mascots = Object.values(MASCOT_PROFILES);
+  // Local state for 0ms tactile responsiveness
+  const [localSettings, setLocalSettings] = useState<CompanionSettings>(settings);
+  const [isSaved, setIsSaved] = useState(false);
+
+  useEffect(() => {
+    setLocalSettings(settings);
+  }, [settings]);
+
+  const handleUpdate = (updated: Partial<CompanionSettings>) => {
+    setLocalSettings(prev => {
+      const next = { ...prev, ...updated };
+      return next;
+    });
+    onSave(updated);
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -38,16 +66,30 @@ export const CompanionSettingsModal: React.FC<CompanionSettingsModalProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [onClose]);
 
+  const activeMascot = MASCOT_PROFILES[localSettings.mascotId] || MASCOT_PROFILES.lumi;
+  const activeAccessory = COMPANION_ACCESSORIES.find(a => a.id === (localSettings.equippedAccessoryId || 'none'));
+
+  const handleFinish = () => {
+    onSave(localSettings);
+    setIsSaved(true);
+    setTimeout(() => {
+      onClose();
+    }, 250);
+  };
+
   return (
     <div 
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
       }}
-      className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150 cursor-default"
+      onClick={(e) => {
+        if (e.target === e.currentTarget && mouseDownTargetRef.current === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150 cursor-default"
     >
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-800 shadow-2xl p-6 sm:p-7 space-y-6 animate-in zoom-in-95 duration-150"
+        className="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full max-h-[92vh] overflow-y-auto border border-slate-200 dark:border-slate-800 shadow-2xl p-5 sm:p-7 space-y-5 animate-in zoom-in-95 duration-150"
       >
         
         {/* Header */}
@@ -57,11 +99,11 @@ export const CompanionSettingsModal: React.FC<CompanionSettingsModalProps> = ({
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-black text-lg text-slate-900 dark:text-white">
-                Cài Đặt Bạn Đồng Hành (AI Study Companion)
+              <h3 className="font-black text-base sm:text-lg text-slate-900 dark:text-white">
+                Cài Đặt Bạn Đồng Hành (AI Companion)
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Tùy chỉnh nhân vật Bé Sao Nhỏ Lumi, tần suất nhắc nhở và chế độ tập trung
+                Tùy biến nhân vật, trang bị phụ kiện và chế độ nhắc nhở
               </p>
             </div>
           </div>
@@ -76,101 +118,64 @@ export const CompanionSettingsModal: React.FC<CompanionSettingsModalProps> = ({
         </div>
 
         {/* Master Switch */}
-        <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60">
+        <div 
+          onClick={() => handleUpdate({ enabled: !localSettings.enabled })}
+          className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 cursor-pointer hover:bg-slate-100/80 dark:hover:bg-slate-800 transition-colors"
+        >
           <div>
             <span className="font-bold text-sm text-slate-900 dark:text-white block">
               Bật nhân vật đồng hành
             </span>
             <span className="text-xs text-slate-500 dark:text-slate-400">
-              Hiển thị nhân vật sống động liên tục trong Focus Mode, học từ vựng và toàn bộ hệ thống.
+              Hiển thị nhân vật sống động trong Focus Mode, học từ vựng và toàn hệ thống.
             </span>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={settings.enabled}
-              onChange={e => onSave({ enabled: e.target.checked })}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-hidden rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-slate-600 peer-checked:bg-amber-500"></div>
-          </label>
+          <div className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${localSettings.enabled ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-700'}`}>
+            <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${localSettings.enabled ? 'left-5' : 'left-0.5'}`} />
+          </div>
         </div>
 
-        {settings.enabled && (
-          <div className="space-y-6 text-xs">
-            {/* Focus Mode Behavior (Normal, Quiet, Minimal, Off) */}
-            <div className="space-y-2.5">
-              <label className="font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
-                Chế độ tương tác trong Focus Mode:
-              </label>
-              <div className="grid grid-cols-2 gap-2.5">
-                {[
-                  {
-                    id: 'normal',
-                    title: 'Tiêu chuẩn (Normal)',
-                    desc: 'Động viên khoảng 2–3 phút/lần với câu truyền cảm hứng',
-                    icon: <Sparkles className="w-4 h-4 text-amber-500" />
-                  },
-                  {
-                    id: 'quiet',
-                    title: 'Yên tĩnh (Quiet)',
-                    desc: 'Động viên thưa hơn (6-8p), không âm thanh, giữ tĩnh tâm',
-                    icon: <Moon className="w-4 h-4 text-indigo-500" />
-                  },
-                  {
-                    id: 'minimal',
-                    title: 'Tối giản (Minimal)',
-                    desc: 'Chỉ cử động nền nhẹ, chỉ phản ứng khi có sự kiện quan trọng',
-                    icon: <Eye className="w-4 h-4 text-emerald-500" />
-                  },
-                  {
-                    id: 'off',
-                    title: 'Tạm ẩn (Off)',
-                    desc: 'Ẩn hoàn toàn bạn đồng hành trong phiên làm việc',
-                    icon: <EyeOff className="w-4 h-4 text-rose-500" />
-                  }
-                ].map(item => {
-                  const isSelected = (settings.focusCompanionMode || 'normal') === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => onSave({ 
-                        focusCompanionMode: item.id as CompanionFocusMode,
-                        quietMode: item.id === 'quiet'
-                      })}
-                      className={`p-3 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
-                        isSelected
-                          ? 'border-amber-500 bg-amber-50/60 dark:bg-amber-950/40 shadow-xs'
-                          : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white">
-                          {item.icon}
-                          <span>{item.title}</span>
-                        </div>
-                        {isSelected && (
-                          <div className="w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center">
-                            <Check className="w-2.5 h-2.5 stroke-[3]" />
-                          </div>
-                        )}
-                      </div>
-                      <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-snug">
-                        {item.desc}
-                      </p>
-                    </button>
-                  );
-                })}
+        {localSettings.enabled && (
+          <div className="space-y-5 text-xs">
+            
+            {/* Real-time Mascot Live Preview Card */}
+            <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-50/80 via-orange-50/60 to-emerald-50/60 dark:from-slate-800/80 dark:via-slate-800/60 dark:to-slate-800/80 border border-amber-200/60 dark:border-slate-700/60 flex items-center gap-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 shrink-0 relative flex items-center justify-center bg-white/90 dark:bg-slate-900/90 rounded-2xl shadow-sm border border-slate-200/60 dark:border-slate-800">
+                <LiveMascotCharacter
+                  mood="idle"
+                  mascotId={localSettings.mascotId}
+                  equippedAccessoryId={localSettings.equippedAccessoryId}
+                  size="compact"
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-black text-sm sm:text-base text-slate-900 dark:text-white truncate">
+                    {activeMascot.name}
+                  </span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 font-bold border border-amber-500/20">
+                    {activeMascot.title}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-1">
+                  {activeMascot.description}
+                </p>
+                <div className="mt-1.5 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                  <span>Trang bị:</span>
+                  <span className="inline-flex items-center gap-1 bg-white/80 dark:bg-slate-900/80 px-2 py-0.5 rounded-lg border border-emerald-500/30">
+                    <span>{activeAccessory?.icon || '✨'}</span>
+                    <span>{activeAccessory?.name || 'Mặc định'}</span>
+                  </span>
+                </div>
               </div>
             </div>
 
             {/* Mascot Selection */}
-            <div className="space-y-2.5">
-              <label className="font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+            <div className="space-y-2">
+              <label className="font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block text-[11px]">
                 Chọn nhân vật đồng hành yêu thích:
               </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {[
                   MASCOT_PROFILES.lumi,
                   MASCOT_PROFILES.bunny,
@@ -179,21 +184,21 @@ export const CompanionSettingsModal: React.FC<CompanionSettingsModalProps> = ({
                   MASCOT_PROFILES.fox,
                   MASCOT_PROFILES.panda
                 ].map(m => {
-                  const isSelected = settings.mascotId === m.id;
+                  const isSelected = localSettings.mascotId === m.id;
 
                   return (
                     <button
                       key={m.id}
                       type="button"
-                      onClick={() => onSave({ mascotId: m.id as CompanionMascotId })}
-                      className={`p-3 rounded-2xl border text-left transition-all relative flex flex-col justify-between gap-1.5 cursor-pointer ${
+                      onClick={() => handleUpdate({ mascotId: m.id as CompanionMascotId })}
+                      className={`p-2.5 rounded-2xl border text-left transition-all relative flex flex-col justify-between gap-1.5 cursor-pointer select-none ${
                         isSelected 
-                          ? 'border-amber-500 bg-amber-50/60 dark:bg-amber-950/40 shadow-sm ring-2 ring-amber-500/20'
+                          ? 'border-amber-500 bg-amber-50/70 dark:bg-amber-950/40 shadow-sm ring-2 ring-amber-500/30'
                           : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 bg-white dark:bg-slate-800/40'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-2xl sm:text-3xl">{m.avatar}</span>
+                        <span className="text-2xl">{m.avatar}</span>
                         {isSelected && (
                           <div className="w-4 h-4 rounded-full bg-amber-500 text-white flex items-center justify-center">
                             <Check className="w-2.5 h-2.5 stroke-[3]" />
@@ -202,19 +207,12 @@ export const CompanionSettingsModal: React.FC<CompanionSettingsModalProps> = ({
                       </div>
 
                       <div>
-                        <div className="flex items-center gap-1">
-                          <span className="font-black text-slate-900 dark:text-white block text-xs sm:text-sm">
-                            {m.name}
-                          </span>
-                        </div>
+                        <span className="font-black text-slate-900 dark:text-white block text-xs">
+                          {m.name}
+                        </span>
                         <span className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1 block">
                           {m.title}
                         </span>
-                        {m.badge && (
-                          <span className="mt-1 inline-block px-1.5 py-0.2 rounded-md bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-[9px] font-medium truncate max-w-full">
-                            {m.badge}
-                          </span>
-                        )}
                       </div>
                     </button>
                   );
@@ -223,9 +221,9 @@ export const CompanionSettingsModal: React.FC<CompanionSettingsModalProps> = ({
             </div>
 
             {/* Equipped Accessory (Level Unlockable) */}
-            <div className="space-y-2.5">
+            <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+                <label className="font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block text-[11px]">
                   Phụ kiện trang trí (Mở khóa theo Level):
                 </label>
                 <span className="text-[11px] text-amber-600 dark:text-amber-400 font-bold">
@@ -236,23 +234,23 @@ export const CompanionSettingsModal: React.FC<CompanionSettingsModalProps> = ({
               <div className="flex flex-wrap gap-2">
                 {COMPANION_ACCESSORIES.map(acc => {
                   const isLocked = userLevel < acc.requiredLevel;
-                  const isEquipped = (settings.equippedAccessoryId || 'none') === acc.id;
+                  const isEquipped = (localSettings.equippedAccessoryId || 'none') === acc.id;
 
                   return (
                     <button
                       key={acc.id}
                       type="button"
                       disabled={isLocked}
-                      onClick={() => onSave({ equippedAccessoryId: acc.id })}
-                      className={`px-3 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      onClick={() => handleUpdate({ equippedAccessoryId: acc.id })}
+                      className={`px-3 py-2 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-all select-none ${
                         isEquipped
-                          ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
+                          ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 ring-2 ring-amber-500/30'
                           : isLocked
                           ? 'border-slate-200 dark:border-slate-800 opacity-40 cursor-not-allowed bg-slate-100 dark:bg-slate-800'
-                          : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
+                          : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer'
                       }`}
                     >
-                      <span>{acc.icon}</span>
+                      <span className="text-base">{acc.icon}</span>
                       <span>{acc.name}</span>
                       {isLocked && <span className="text-[9px] text-slate-400">(Lv.{acc.requiredLevel})</span>}
                     </button>
@@ -261,66 +259,136 @@ export const CompanionSettingsModal: React.FC<CompanionSettingsModalProps> = ({
               </div>
             </div>
 
-            {/* Toggles: Speech Bubble & Sound */}
-            <div className="space-y-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40">
+            {/* Focus Mode Behavior (Normal, Quiet, Minimal, Off) */}
+            <div className="space-y-2">
+              <label className="font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block text-[11px]">
+                Chế độ tương tác trong Focus Mode:
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  {
+                    id: 'normal',
+                    title: 'Tiêu chuẩn',
+                    desc: 'Cổ vũ 2–3 phút/lần',
+                    icon: <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                  },
+                  {
+                    id: 'quiet',
+                    title: 'Yên tĩnh',
+                    desc: 'Thưa hơn, không âm thanh',
+                    icon: <Moon className="w-3.5 h-3.5 text-indigo-500" />
+                  },
+                  {
+                    id: 'minimal',
+                    title: 'Tối giản',
+                    desc: 'Chỉ cử động nền nhẹ',
+                    icon: <Eye className="w-3.5 h-3.5 text-emerald-500" />
+                  },
+                  {
+                    id: 'off',
+                    title: 'Tạm ẩn',
+                    desc: 'Ẩn hoàn toàn trong phiên',
+                    icon: <EyeOff className="w-3.5 h-3.5 text-rose-500" />
+                  }
+                ].map(item => {
+                  const isSelected = (localSettings.focusCompanionMode || 'normal') === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleUpdate({ 
+                        focusCompanionMode: item.id as CompanionFocusMode,
+                        quietMode: item.id === 'quiet'
+                      })}
+                      className={`p-2.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 select-none ${
+                        isSelected
+                          ? 'border-amber-500 bg-amber-50/70 dark:bg-amber-950/40 shadow-xs ring-2 ring-amber-500/20'
+                          : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 font-bold text-slate-900 dark:text-white text-xs">
+                          {item.icon}
+                          <span>{item.title}</span>
+                        </div>
+                        {isSelected && (
+                          <div className="w-3.5 h-3.5 rounded-full bg-amber-500 text-white flex items-center justify-center">
+                            <Check className="w-2 h-2 stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">
+                        {item.desc}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Toggles: Speech Bubble & Sound (Entire Row Clickable) */}
+            <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div 
+                onClick={() => handleUpdate({ showSpeechBubble: !localSettings.showSpeechBubble })}
+                className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-800 cursor-pointer hover:bg-slate-100/80 dark:hover:bg-slate-800/70 transition-colors select-none"
+              >
                 <div>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200 block">
+                  <span className="font-semibold text-slate-800 dark:text-slate-200 block text-xs">
                     Bong bóng lời thoại động lực
                   </span>
                   <span className="text-[11px] text-slate-400">
                     Hiển thị các câu cổ vũ ngắn gọn, sâu sắc sau mỗi chu kỳ 2–3 phút.
                   </span>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={settings.showSpeechBubble}
-                  onChange={e => onSave({ showSpeechBubble: e.target.checked })}
-                  className="rounded text-amber-500 focus:ring-amber-400 w-4 h-4 cursor-pointer"
-                />
+                <div className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ml-3 ${localSettings.showSpeechBubble ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-700'}`}>
+                  <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${localSettings.showSpeechBubble ? 'left-5' : 'left-0.5'}`} />
+                </div>
               </div>
 
-              <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40">
+              <div 
+                onClick={() => handleUpdate({ soundEnabled: !localSettings.soundEnabled })}
+                className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/50 dark:border-slate-800 cursor-pointer hover:bg-slate-100/80 dark:hover:bg-slate-800/70 transition-colors select-none"
+              >
                 <div>
-                  <span className="font-semibold text-slate-800 dark:text-slate-200 block">
+                  <span className="font-semibold text-slate-800 dark:text-slate-200 block text-xs">
                     Âm thanh động viên
                   </span>
                   <span className="text-[11px] text-slate-400">
                     Mặc định tắt để tránh gây phân tâm. Bật nếu muốn nghe hiệu ứng pop nhẹ khi có lời nhắn.
                   </span>
                 </div>
-                <input
-                  type="checkbox"
-                  checked={settings.soundEnabled}
-                  onChange={e => onSave({ soundEnabled: e.target.checked })}
-                  className="rounded text-amber-500 focus:ring-amber-400 w-4 h-4 cursor-pointer"
-                />
+                <div className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ml-3 ${localSettings.soundEnabled ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-700'}`}>
+                  <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${localSettings.soundEnabled ? 'left-5' : 'left-0.5'}`} />
+                </div>
               </div>
             </div>
 
             {/* Position Choice */}
             <div className="space-y-2">
-              <label className="font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block">
+              <label className="font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider block text-[11px]">
                 Vị trí hiển thị trên màn hình:
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { id: 'bottom-right', label: 'Góc Dưới Phải (Mặc định)' },
                   { id: 'bottom-left', label: 'Góc Dưới Trái' }
-                ].map(pos => (
-                  <button
-                    key={pos.id}
-                    type="button"
-                    onClick={() => onSave({ position: pos.id as any })}
-                    className={`py-2 px-3 rounded-xl border text-center transition-all cursor-pointer font-semibold ${
-                      settings.position === pos.id
-                        ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400'
-                        : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
-                    }`}
-                  >
-                    {pos.label}
-                  </button>
-                ))}
+                ].map(pos => {
+                  const isSelected = localSettings.position === pos.id;
+                  return (
+                    <button
+                      key={pos.id}
+                      type="button"
+                      onClick={() => handleUpdate({ position: pos.id as any })}
+                      className={`py-2 px-3 rounded-xl border text-center transition-all cursor-pointer font-semibold text-xs select-none ${
+                        isSelected
+                          ? 'border-amber-500 bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 ring-2 ring-amber-500/20'
+                          : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                      }`}
+                    >
+                      {pos.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -329,14 +397,20 @@ export const CompanionSettingsModal: React.FC<CompanionSettingsModalProps> = ({
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex justify-end">
           <button
             type="button"
-            onClick={onClose}
-            className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs transition-colors cursor-pointer shadow-md shadow-amber-500/20"
+            onClick={handleFinish}
+            className={`px-6 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer shadow-md flex items-center gap-1.5 ${
+              isSaved 
+                ? 'bg-emerald-600 text-white shadow-emerald-500/20'
+                : 'bg-amber-500 hover:bg-amber-600 text-white shadow-amber-500/20 active:scale-95'
+            }`}
           >
-            Hoàn tất & Đóng
+            {isSaved ? <Check className="w-4 h-4 stroke-[3]" /> : null}
+            <span>{isSaved ? 'Đã lưu cài đặt!' : 'Hoàn tất & Đóng'}</span>
           </button>
         </div>
       </div>
     </div>
   );
 };
+
 export default CompanionSettingsModal;

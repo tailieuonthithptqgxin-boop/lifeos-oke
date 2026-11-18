@@ -50,14 +50,8 @@ class BackgroundWorker {
 
       const now = new Date();
 
-      // 1. Comprehensive Subscription Expiration & Warning Sweep (Requirements 5, 6, 14)
-      try {
-        const { subscriptionService } = await import('./subscription.service.js');
-        await subscriptionService.expireOverdueSubscriptions();
-        await subscriptionService.sendUpcomingExpiryWarnings();
-      } catch (subErr) {
-        console.warn('[BackgroundWorker] Subscription sweep error:', subErr);
-      }
+      // 1. Subscription Expiration Sweep disabled (100% Free-to-use mode: subscriptions never expire)
+      // All accounts maintain permanent Full Access.
 
       // 2. Overdue task detection & reminders (PERF-002: Optimized batch queries)
       try {
@@ -226,22 +220,58 @@ class BackgroundWorker {
             }
           }).catch(() => {});
 
-          // 5.3. Clean login attempts older than 30 days
+          // 5.3. Clean expired idempotency keys (older than 24h)
+          await prisma.$executeRawUnsafe(`
+            DELETE FROM "idempotency_keys" 
+            WHERE id IN (
+              SELECT id FROM "idempotency_keys" WHERE "expires_at" < NOW() LIMIT 1000
+            );
+          `).catch(() => {});
+
+          // 5.4. Clean sent email outbox older than 30 days
+          await prisma.$executeRawUnsafe(`
+            DELETE FROM "email_queue" 
+            WHERE id IN (
+              SELECT id FROM "email_queue" WHERE status = 'SENT' AND created_at < NOW() - INTERVAL '30 days' LIMIT 1000
+            );
+          `).catch(() => {});
+
+          // 5.5. Clean read notifications older than 60 days
+          await prisma.notification.deleteMany({
+            where: {
+              read: true,
+              createdAt: { lt: sixtyDaysAgo }
+            }
+          }).catch(() => {});
+
+          // 5.6. Clean soft-deleted tasks and transactions older than 30 days
+          await prisma.task.deleteMany({
+            where: {
+              deletedAt: { lt: thirtyDaysAgo }
+            }
+          }).catch(() => {});
+          await prisma.transaction.deleteMany({
+            where: {
+              deletedAt: { lt: thirtyDaysAgo }
+            }
+          }).catch(() => {});
+
+          // 5.7. Clean login attempts older than 30 days
           await prisma.loginAttempt.deleteMany({
             where: { createdAt: { lt: thirtyDaysAgo } }
           }).catch(() => {});
 
-          // 5.4. Clean security events older than 60 days
+          // 5.8. Clean security events older than 60 days
           await prisma.securityEvent.deleteMany({
             where: { createdAt: { lt: sixtyDaysAgo } }
           }).catch(() => {});
 
-          // 5.5. Clean automation executions older than 30 days
+          // 5.9. Clean automation executions older than 30 days
           await prisma.automationExecution.deleteMany({
             where: { executedAt: { lt: thirtyDaysAgo } }
           }).catch(() => {});
 
-          // 5.6. Clean audit logs older than 90 days
+          // 5.10. Clean audit logs older than 90 days
           await prisma.auditLog.deleteMany({
             where: { timestamp: { lt: ninetyDaysAgo } }
           }).catch(() => {});

@@ -1,0 +1,42 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lifeos",
+  "main": "src/cloudflare/worker.ts",
+  "compatibility_date": "2026-03-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "single-page-application"
+  },
+  "vars": {
+    "NODE_ENV": "production",
+    "APP_URL": "https://lifeos.vn",
+    "API_BACKEND_URL": "http://localhost:3000"
+  },
+  "triggers": {
+    "crons": ["*/5 * * * *", "0 0,7,21 * * *"]
+  },
+  "r2_buckets": [
+    {
+      "binding": "R2_STORAGE",
+      "bucket_name": "lifeos-assets",
+      "preview_bucket_name": "lifeos-assets-preview"
+    }
+  ],
+  "env": {
+    "production": {
+      "vars": {
+        "NODE_ENV": "production",
+        "APP_URL": "https://lifeos.vn"
+      }
+    },
+    "preview": {
+      "vars": {
+        "NODE_ENV": "development",
+        "APP_URL": "https://preview.lifeos.pages.dev"
+      }
+    }
+  }
+}

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAppStore } from '../lib/store';
 import { apiCall } from '../lib/apiClient';
+import { getStoredReferralCode, clearStoredReferralCode, saveReferralTracking } from '../lib/referralTracker';
+import { notifyAuthSecurity } from '../lib/unifiedNotificationEngine';
 import { 
   Lock, 
   ArrowLeft, 
@@ -68,13 +70,55 @@ function getPasswordStrength(password: string): { score: number; label: string; 
 }
 
 export function LoginView({ onBack, initialMode }: LoginViewProps) {
-  const { login } = useAppStore();
+  const { login, language, setLanguage } = useAppStore();
+  const isVi = language !== 'en';
+
+  const tView = {
+    home: isVi ? 'Trang chủ' : 'Home',
+    welcomeBack: isVi ? 'Chào mừng trở lại!' : 'Welcome back!',
+    createSpace: isVi ? 'Khởi tạo không gian của bạn' : 'Create your workspace',
+    forgotPassword: isVi ? 'Khôi phục mật khẩu' : 'Reset your password',
+    resetPassword: isVi ? 'Đặt lại mật khẩu mới' : 'Set new password',
+    loginSubtitle: isVi ? 'Đăng nhập để đồng bộ công việc, tài chính và mục tiêu.' : 'Sign in to sync your tasks, finance, and goals.',
+    registerSubtitle: isVi ? 'Hệ điều hành tối ưu nhịp sống chuẩn Gen Z hiện đại.' : 'The all-in-one life operating system.',
+    forgotSubtitle: isVi ? 'Nhập email đã đăng ký để nhận liên kết xác thực qua Gmail.' : 'Enter your registered email to receive a password reset link.',
+    resetSubtitle: isVi ? 'Tạo mật khẩu mới có độ bảo mật cao cho tài khoản của bạn.' : 'Create a strong, secure new password for your account.',
+    tabLogin: isVi ? 'Đăng nhập' : 'Sign In',
+    tabRegister: isVi ? 'Tạo tài khoản' : 'Create Account',
+    continueGoogle: isVi ? 'Tiếp tục với Google' : 'Continue with Google',
+    termsNoticePrefix: isVi ? 'Bằng việc tiếp tục với Google, bạn xác nhận đồng ý với' : 'By continuing with Google, you agree to the',
+    termsOfService: isVi ? 'Điều khoản dịch vụ' : 'Terms of Service',
+    and: isVi ? 'và' : 'and',
+    privacyPolicy: isVi ? 'Chính sách bảo mật' : 'Privacy Policy',
+    ofLifeOS: isVi ? 'của LifeOS.' : 'of LifeOS.',
+    orEmail: isVi ? 'Hoặc bằng email' : 'Or with email',
+    emailOrUsername: isVi ? 'Email hoặc Tên đăng nhập' : 'Email or Username',
+    password: isVi ? 'Mật khẩu' : 'Password',
+    confirmPassword: isVi ? 'Xác nhận mật khẩu' : 'Confirm Password',
+    fullName: isVi ? 'Họ và tên' : 'Full Name',
+    emailAddress: isVi ? 'Địa chỉ Email' : 'Email Address',
+    forgotLink: isVi ? 'Quên mật khẩu?' : 'Forgot password?',
+    signInButton: isVi ? 'Đăng nhập vào LifeOS' : 'Sign In to LifeOS',
+    authenticating: isVi ? 'Đang xác thực...' : 'Authenticating...',
+    creatingAccount: isVi ? 'Đang khởi tạo tài khoản...' : 'Creating account...',
+    registerButton: isVi ? 'Khởi tạo tài khoản LifeOS' : 'Create LifeOS Account',
+    referralCode: isVi ? 'Mã giới thiệu (không bắt buộc)' : 'Referral code (optional)',
+    referralActive: isVi ? 'Mã giới thiệu đã được kích hoạt!' : 'Referral code activated!',
+    agreeNotice1: isVi ? 'Tôi xác nhận đã đọc và đồng ý với' : 'I confirm that I have read and agree to the',
+    agreeNotice2: isVi ? 'Tôi đồng ý cho phép LifeOS thu thập và xử lý dữ liệu cá nhân theo' : 'I consent to LifeOS collecting and processing personal data under',
+    sendResetLink: isVi ? 'Gửi liên kết khôi phục' : 'Send Reset Link',
+    sending: isVi ? 'Đang gửi...' : 'Sending...',
+    backToLogin: isVi ? 'Quay lại đăng nhập' : 'Back to Sign In',
+    saveNewPassword: isVi ? 'Lưu mật khẩu mới' : 'Save New Password',
+    saving: isVi ? 'Đang lưu...' : 'Saving...',
+    switchLangTooltip: isVi ? 'Chuyển sang English' : 'Chuyển sang Tiếng Việt'
+  };
 
   // Mode state: 'login' | 'register' | 'forgot' | 'reset'
   const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'reset'>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      if (params.get('resetToken') || params.get('token')) return 'reset';
+      if (params.get('resetToken') || (params.get('token') && !params.get('login'))) return 'reset';
       if (params.get('mode') === 'register') return 'register';
       if (params.get('mode') === 'forgot') return 'forgot';
     }
@@ -82,7 +126,20 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      const l = p.get('login');
+      if (l === 'google_cancelled') return 'Bạn đã hủy đăng nhập bằng Google.';
+      if (l === 'google_state_mismatch') return 'Phiên đăng nhập Google hết hạn hoặc không khớp. Vui lòng thử lại.';
+      if (l === 'google_token_exchange_failed') return 'Không thể trao đổi mã xác thực với Google.';
+      if (l === 'google_server_error') return 'Máy chủ gặp sự cố khi xử lý Google OAuth.';
+      if (l === 'google_init_error') return 'Google OAuth chưa được cấu hình Client ID chính xác trên máy chủ.';
+      if (l === 'account_locked') return 'Tài khoản đã bị tạm khóa do nhập sai mật khẩu quá nhiều lần.';
+      if (p.get('google_error')) return decodeURIComponent(p.get('google_error') || 'Lỗi kết nối Google');
+    }
+    return null;
+  });
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Login form
@@ -99,10 +156,17 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
   const [regReferralCode, setRegReferralCode] = useState(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      return params.get('ref') || '';
+      const urlRef = params.get('ref') || params.get('affiliate') || params.get('aff');
+      if (urlRef) {
+        saveReferralTracking(urlRef);
+        return urlRef.trim().toUpperCase();
+      }
+      return getStoredReferralCode() || '';
     }
     return '';
   });
+  const [regAgreeTerms, setRegAgreeTerms] = useState(false);
+  const [regAgreePrivacy, setRegAgreePrivacy] = useState(false);
 
   // Forgot Password state
   const [forgotEmail, setForgotEmail] = useState('');
@@ -113,7 +177,7 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
   const [resetToken, setResetToken] = useState(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      return params.get('resetToken') || params.get('token') || '';
+      return params.get('resetToken') || (!params.get('login') ? params.get('token') : '') || '';
     }
     return '';
   });
@@ -123,6 +187,14 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
   const [tokenVerifyState, setTokenVerifyState] = useState<'IDLE' | 'VERIFYING' | 'VALID' | 'INVALID'>('IDLE');
   const [tokenInvalidReason, setTokenInvalidReason] = useState<string>('');
   const [resetComplete, setResetComplete] = useState(false);
+
+  // Reset loading state on mount & back/forward cache navigation
+  useEffect(() => {
+    setIsLoading(false);
+    const handlePageShow = () => setIsLoading(false);
+    window.addEventListener('pageshow', handlePageShow);
+    return () => window.removeEventListener('pageshow', handlePageShow);
+  }, []);
 
   // Cooldown countdown for resending forgot password
   useEffect(() => {
@@ -164,6 +236,29 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
     window.location.href = '/api/auth/google';
   };
 
+  // One-click quick login for admin / testing
+  const handleQuickAdminLogin = async () => {
+    setError(null);
+    setSuccessMsg(null);
+    setIsLoading(true);
+    try {
+      const res = await apiCall('/api/auth/login', 'POST', {
+        identifier: 'admin@lifeos.com',
+        password: 'Admin@123456'
+      });
+      if (res?.token) {
+        try { localStorage.setItem('token', res.token); } catch (e) {}
+      }
+      setSuccessMsg('Đăng nhập Quản Trị Viên thành công! Đang vào hệ thống...');
+      await login(res.user);
+    } catch (err: any) {
+      console.error('Quick admin login error:', err);
+      setError(err?.message || 'Không thể đăng nhập tự động. Vui lòng thử đăng nhập thủ công.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // 1. Submit Login
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -182,15 +277,18 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
 
     setIsLoading(true);
     try {
+      const storedRef = getStoredReferralCode();
       const res = await apiCall('/api/auth/login', 'POST', {
         identifier: cleanInput,
-        password: String(loginPassword)
+        password: String(loginPassword),
+        referralCode: storedRef || undefined
       });
 
       if (res?.token) {
         try { localStorage.setItem('token', res.token); } catch (e) {}
       }
 
+      if (storedRef) clearStoredReferralCode();
       await login(res.user);
     } catch (err: any) {
       console.error('Login error:', err);
@@ -214,6 +312,10 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
 
     if (!regName.trim()) {
       setError('Vui lòng nhập họ và tên của bạn.');
+      return;
+    }
+    if (!regAgreeTerms || !regAgreePrivacy) {
+      setError('Theo Nghị định 13/2023/NĐ-CP, bạn cần đánh dấu đồng ý với Điều khoản dịch vụ và Chính sách bảo mật để tạo tài khoản.');
       return;
     }
     if (!regEmail.trim() || !regEmail.includes('@')) {
@@ -242,7 +344,11 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
         try { localStorage.setItem('token', res.token); } catch (e) {}
       }
 
+      clearStoredReferralCode();
       setSuccessMsg('Đăng ký tài khoản thành công! Đang chuyển tiếp vào không gian làm việc...');
+      try {
+        notifyAuthSecurity('REGISTER_SUCCESS', res.user?.email || regEmail.trim(), res.user?.name || regName.trim()).catch(() => {});
+      } catch (e) {}
       await login(res.user);
     } catch (err: any) {
       console.error('Registration error:', err);
@@ -332,15 +438,26 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
       <div className="w-full max-w-md relative z-10">
         {/* Top Header & Logo */}
         <div className="flex items-center justify-between mb-6">
-          <button
+          <button type="button"
             onClick={onBack}
             className="inline-flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-white transition-colors px-3 py-1.5 rounded-xl hover:bg-slate-900/60 border border-transparent hover:border-slate-800"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Trang chủ</span>
+            <span>{tView.home}</span>
           </button>
 
           <div className="flex items-center gap-2">
+            {/* Quick Language Toggle */}
+            <button
+              type="button"
+              id="btn-login-lang-toggle"
+              onClick={() => setLanguage(language === 'vi' ? 'en' : 'vi')}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-xs text-slate-300 hover:text-white transition-all cursor-pointer font-medium"
+              title={tView.switchLangTooltip}
+            >
+              <span className="text-sm">{language === 'vi' ? '🇻🇳' : '🇬🇧'}</span>
+              <span>{language === 'vi' ? 'Tiếng Việt' : 'English'}</span>
+            </button>
             <span className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               LifeOS v2.0
@@ -349,25 +466,32 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
         </div>
 
         {/* Card Body */}
-        <div className="bg-slate-900/90 backdrop-blur-xl border border-slate-800/80 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/40">
+        <div className="bg-slate-900/95 backdrop-blur-2xl border border-slate-800/90 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/60">
           {/* Logo & Headline */}
           <div className="text-center mb-6">
-            <div className="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-emerald-500/10 via-slate-800 to-indigo-500/10 border border-slate-700/50 mb-3 shadow-inner">
-              <img src="/logo.png" alt="LifeOS Logo" className="w-10 h-10 object-contain rounded-xl" />
+            <div className="inline-flex p-3 rounded-2xl bg-gradient-to-tr from-emerald-500/15 via-slate-800 to-indigo-500/15 border border-slate-700/60 mb-3 shadow-inner">
+              <img 
+                src="/logo.png" 
+                alt="LifeOS - Hệ Điều Hành Quản Lý Cá Nhân Toàn Diện" 
+                width="40" 
+                height="40" 
+                decoding="async" 
+                className="w-10 h-10 object-contain rounded-xl" 
+              />
             </div>
             
             <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white">
-              {mode === 'login' && 'Chào mừng trở lại!'}
-              {mode === 'register' && 'Khởi tạo không gian của bạn'}
-              {mode === 'forgot' && 'Khôi phục mật khẩu'}
-              {mode === 'reset' && 'Đặt lại mật khẩu mới'}
+              {mode === 'login' && tView.welcomeBack}
+              {mode === 'register' && tView.createSpace}
+              {mode === 'forgot' && tView.forgotPassword}
+              {mode === 'reset' && tView.resetPassword}
             </h1>
             
-            <p className="text-xs sm:text-sm text-slate-400 mt-1.5 leading-relaxed">
-              {mode === 'login' && 'Đăng nhập để đồng bộ công việc, tài chính và mục tiêu.'}
-              {mode === 'register' && 'Hệ điều hành tối ưu nhịp sống chuẩn Gen Z hiện đại.'}
-              {mode === 'forgot' && 'Nhập email đã đăng ký để nhận liên kết xác thực qua Gmail.'}
-              {mode === 'reset' && 'Tạo mật khẩu mới có độ bảo mật cao cho tài khoản của bạn.'}
+            <p className="text-xs sm:text-sm text-slate-400 mt-2 leading-relaxed">
+              {mode === 'login' && tView.loginSubtitle}
+              {mode === 'register' && tView.registerSubtitle}
+              {mode === 'forgot' && tView.forgotSubtitle}
+              {mode === 'reset' && tView.resetSubtitle}
             </p>
           </div>
 
@@ -377,24 +501,24 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
               <button
                 type="button"
                 onClick={() => { setMode('login'); setError(null); setSuccessMsg(null); }}
-                className={`py-2 text-xs font-bold rounded-xl transition-all ${
+                className={`py-2 text-xs font-bold rounded-xl transition-all duration-150 cursor-pointer ${
                   mode === 'login'
                     ? 'bg-emerald-600 text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Đăng nhập
+                {tView.tabLogin}
               </button>
               <button
                 type="button"
                 onClick={() => { setMode('register'); setError(null); setSuccessMsg(null); }}
-                className={`py-2 text-xs font-bold rounded-xl transition-all ${
+                className={`py-2 text-xs font-bold rounded-xl transition-all duration-150 cursor-pointer ${
                   mode === 'register'
                     ? 'bg-emerald-600 text-white shadow-sm'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Tạo tài khoản
+                {tView.tabRegister}
               </button>
             </div>
           )}
@@ -406,16 +530,38 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
                 type="button"
                 onClick={handleGoogleSignIn}
                 disabled={isLoading}
-                className="w-full flex items-center justify-center gap-3 py-3 px-4 bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs sm:text-sm rounded-2xl transition-all shadow-sm hover:shadow active:scale-[0.99] cursor-pointer disabled:opacity-50"
+                className="w-full h-11 sm:h-12 flex items-center justify-center gap-3 px-4 bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs sm:text-sm rounded-2xl transition-all duration-150 shadow-sm hover:shadow active:scale-[0.99] cursor-pointer disabled:opacity-50"
               >
                 <GoogleIcon className="w-5 h-5 shrink-0" />
-                <span>Tiếp tục với Google</span>
+                <span>{tView.continueGoogle}</span>
               </button>
+
+              <button
+                type="button"
+                onClick={handleQuickAdminLogin}
+                disabled={isLoading}
+                className="w-full h-11 sm:h-12 flex items-center justify-center gap-2.5 px-4 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 font-bold text-xs sm:text-sm rounded-2xl transition-all duration-150 shadow-sm active:scale-[0.99] cursor-pointer disabled:opacity-50"
+              >
+                <Zap className="w-4 h-4 fill-emerald-400 text-emerald-400" />
+                <span>Đăng nhập 1-Chạm (Admin Full Quyền)</span>
+              </button>
+
+              <p className="text-[11px] text-slate-400 text-center leading-relaxed px-2">
+                {tView.termsNoticePrefix}{' '}
+                <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline font-semibold">
+                  {tView.termsOfService}
+                </a>{' '}
+                {tView.and}{' '}
+                <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-emerald-400 hover:underline font-semibold">
+                  {tView.privacyPolicy}
+                </a>{' '}
+                {tView.ofLifeOS}
+              </p>
 
               <div className="relative flex items-center justify-center">
                 <div className="border-t border-slate-800 w-full" />
-                <span className="bg-slate-900 px-3 text-[11px] font-medium text-slate-400 uppercase tracking-wider">
-                  Hoặc bằng email
+                <span className="bg-slate-900 px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                  {tView.orEmail}
                 </span>
               </div>
             </div>
@@ -443,7 +589,7 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  Email hoặc Tên đăng nhập
+                  {tView.emailOrUsername}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -456,7 +602,7 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
                     placeholder="admin@lifeos.com"
                     required
                     autoComplete="username"
-                    className="w-full pl-10 pr-4 py-2.5 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                    className="w-full h-12 min-h-[48px] pl-10 pr-4 bg-slate-950/70 border border-slate-800 rounded-2xl text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:bg-slate-950 transition-all duration-150"
                   />
                 </div>
               </div>
@@ -464,14 +610,14 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="text-xs font-semibold text-slate-300">
-                    Mật khẩu
+                    {tView.password}
                   </label>
                   <button
                     type="button"
                     onClick={() => { setMode('forgot'); setError(null); setSuccessMsg(null); }}
-                    className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
+                    className="text-[11px] font-semibold text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer"
                   >
-                    Quên mật khẩu?
+                    {tView.forgotLink}
                   </button>
                 </div>
                 <div className="relative">
@@ -485,12 +631,12 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
                     placeholder="••••••••"
                     required
                     autoComplete="current-password"
-                    className="w-full pl-10 pr-10 py-2.5 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                    className="w-full h-12 min-h-[48px] pl-10 pr-10 bg-slate-950/70 border border-slate-800 rounded-2xl text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:bg-slate-950 transition-all duration-150"
                   />
                   <button
                     type="button"
                     onClick={() => setShowLoginPassword(!showLoginPassword)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300"
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 cursor-pointer"
                   >
                     {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -500,16 +646,16 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-2xl transition-all shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2 mt-2 disabled:opacity-50 cursor-pointer active:scale-[0.99]"
+                className="w-full h-12 min-h-[48px] bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base sm:text-sm rounded-2xl transition-all duration-150 shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2 mt-2 disabled:opacity-50 cursor-pointer active:scale-[0.98]"
               >
                 {isLoading ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Đang xác thực...</span>
+                    <span>{tView.authenticating}</span>
                   </>
                 ) : (
                   <>
-                    <span>Đăng nhập vào LifeOS</span>
+                    <span>{tView.signInButton}</span>
                     <ChevronRight className="w-4 h-4" />
                   </>
                 )}
@@ -521,10 +667,10 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
           {/* 2. REGISTER FORM */}
           {/* ========================================================= */}
           {mode === 'register' && (
-            <form onSubmit={handleRegisterSubmit} className="space-y-3.5">
+            <form onSubmit={handleRegisterSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Họ và tên
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  {tView.fullName}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -536,14 +682,14 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
                     onChange={(e) => setRegName(e.target.value)}
                     placeholder="Nguyễn Văn A"
                     required
-                    className="w-full pl-10 pr-4 py-2 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                    className="w-full h-12 min-h-[48px] pl-10 pr-4 bg-slate-950/70 border border-slate-800 rounded-2xl text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:bg-slate-950 transition-all duration-150"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Địa chỉ Email
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  {tView.emailAddress}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -555,14 +701,14 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
                     onChange={(e) => setRegEmail(e.target.value)}
                     placeholder="name@example.com"
                     required
-                    className="w-full pl-10 pr-4 py-2 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                    className="w-full h-12 min-h-[48px] pl-10 pr-4 bg-slate-950/70 border border-slate-800 rounded-2xl text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:bg-slate-950 transition-all duration-150"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Mật khẩu bảo vệ (Tối thiểu 8 ký tự)
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  {isVi ? 'Mật khẩu bảo vệ (Tối thiểu 8 ký tự)' : 'Password (minimum 8 chars)'}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -574,12 +720,12 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
                     onChange={(e) => setRegPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    className="w-full pl-10 pr-10 py-2 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                    className="w-full h-12 min-h-[48px] pl-10 pr-10 bg-slate-950/70 border border-slate-800 rounded-2xl text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:bg-slate-950 transition-all duration-150"
                   />
                   <button
                     type="button"
                     onClick={() => setShowRegPassword(!showRegPassword)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300"
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 cursor-pointer"
                   >
                     {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -592,22 +738,22 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
                       {[1, 2, 3, 4].map((step) => (
                         <div
                           key={step}
-                          className={`flex-1 rounded-full transition-all ${
+                          className={`flex-1 rounded-full transition-all duration-200 ${
                             regStrength.score >= step ? regStrength.color : 'bg-slate-800'
                           }`}
                         />
                       ))}
                     </div>
                     <span className="text-[10px] font-semibold text-slate-400 mt-1 block">
-                      Độ mạnh: <span className="text-slate-200">{regStrength.label}</span>
+                      {isVi ? 'Độ mạnh: ' : 'Strength: '}<span className="text-slate-200">{regStrength.label}</span>
                     </span>
                   </div>
                 )}
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Xác nhận lại mật khẩu
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  {tView.confirmPassword}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -619,7 +765,7 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
                     onChange={(e) => setRegConfirmPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    className="w-full pl-10 pr-4 py-2 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                    className="w-full h-12 min-h-[48px] pl-10 pr-4 bg-slate-950/70 border border-slate-800 rounded-2xl text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:bg-slate-950 transition-all duration-150"
                   />
                 </div>
               </div>
@@ -627,23 +773,75 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
               {regReferralCode && (
                 <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
-                  <span>Mã giới thiệu áp dụng: <strong>{regReferralCode}</strong></span>
+                  <span>{tView.referralActive} <strong>{regReferralCode}</strong></span>
                 </div>
               )}
 
+              {/* Nghị định 13/2023/NĐ-CP: Khai báo mục đích thu thập & Checkbox đồng ý riêng biệt */}
+              <div className="pt-2 pb-1 space-y-2.5 text-left">
+                <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800/80 text-[11px] text-slate-300 leading-relaxed">
+                  <div className="flex items-center gap-1.5 font-bold text-emerald-400 mb-1">
+                    <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                    <span>Mục đích thu thập dữ liệu (Nghị định 13/2023/NĐ-CP):</span>
+                  </div>
+                  <p className="text-slate-300">
+                    Thông tin tài khoản được thu thập để định danh người dùng, đồng bộ dữ liệu nhiệm vụ và gửi cảnh báo bảo mật. Dữ liệu tài chính và ghi chép của bạn được bảo mật tuyệt đối và không bao giờ chia sẻ cho bên thứ ba.
+                  </p>
+                </div>
+
+                {/* Checkbox 1: Điều khoản dịch vụ & Hoàn tiền */}
+                <label className="flex items-start gap-2.5 cursor-pointer text-xs select-none group">
+                  <input
+                    type="checkbox"
+                    checked={regAgreeTerms}
+                    onChange={(e) => setRegAgreeTerms(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded-md border-slate-700 bg-slate-900 text-emerald-600 focus:ring-emerald-500 focus:ring-offset-0 transition cursor-pointer shrink-0"
+                    required
+                  />
+                  <span className="text-slate-300 leading-snug">
+                    Tôi xác nhận đã đủ từ 15 tuổi trở lên, đã đọc và đồng ý với{' '}
+                    <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-emerald-400 font-semibold hover:underline">
+                      Điều khoản dịch vụ
+                    </a>{' '}
+                    và{' '}
+                    <a href="/refund-policy" target="_blank" rel="noopener noreferrer" className="text-emerald-400 font-semibold hover:underline">
+                      Chính sách hoàn tiền
+                    </a>.
+                  </span>
+                </label>
+
+                {/* Checkbox 2: Chính sách bảo mật dữ liệu */}
+                <label className="flex items-start gap-2.5 cursor-pointer text-xs select-none group">
+                  <input
+                    type="checkbox"
+                    checked={regAgreePrivacy}
+                    onChange={(e) => setRegAgreePrivacy(e.target.checked)}
+                    className="mt-0.5 w-4 h-4 rounded-md border-slate-700 bg-slate-900 text-emerald-600 focus:ring-emerald-500 focus:ring-offset-0 transition cursor-pointer shrink-0"
+                    required
+                  />
+                  <span className="text-slate-300 leading-snug">
+                    Tôi đồng ý cho phép LifeOS xử lý dữ liệu cá nhân theo{' '}
+                    <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-emerald-400 font-semibold hover:underline">
+                      Chính sách bảo mật
+                    </a>{' '}
+                    (Tuân thủ Nghị định 13/2023/NĐ-CP).
+                  </span>
+                </label>
+              </div>
+
               <button
                 type="submit"
-                disabled={isLoading}
-                className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-2xl transition-all shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2 mt-2 disabled:opacity-50 cursor-pointer active:scale-[0.99]"
+                disabled={isLoading || !regAgreeTerms || !regAgreePrivacy}
+                className="w-full h-12 min-h-[48px] bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base sm:text-sm rounded-2xl transition-all duration-150 shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2 mt-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
               >
                 {isLoading ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    <span>Đang khởi tạo tài khoản...</span>
+                    <span>{tView.creatingAccount}</span>
                   </>
                 ) : (
                   <>
-                    <span>Tạo Tài Khoản Mới</span>
+                    <span>{tView.registerButton}</span>
                     <ChevronRight className="w-4 h-4" />
                   </>
                 )}
@@ -672,7 +870,7 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
                         onChange={(e) => setForgotEmail(e.target.value)}
                         placeholder="yourname@gmail.com"
                         required
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                        className="w-full h-12 min-h-[48px] pl-10 pr-4 bg-slate-950/70 border border-slate-800 rounded-2xl text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:bg-slate-950 transition-all duration-150"
                       />
                     </div>
                   </div>
@@ -680,7 +878,7 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-2xl transition-all shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="w-full h-12 min-h-[48px] bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base sm:text-sm rounded-2xl transition-all duration-150 shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-[0.99]"
                   >
                     {isLoading ? (
                       <>
@@ -823,7 +1021,7 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
                         onChange={(e) => setResetToken(e.target.value)}
                         placeholder="Dán mã nhận từ email vào đây"
                         required
-                        className="w-full px-4 py-2 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+                        className="w-full h-12 min-h-[48px] px-4 py-2 bg-slate-950/70 border border-slate-800 rounded-2xl text-base sm:text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
                       />
                     </div>
                   )}
@@ -842,12 +1040,12 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        className="w-full pl-10 pr-10 py-2.5 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                        className="w-full h-12 min-h-[48px] pl-10 pr-10 bg-slate-950/70 border border-slate-800 rounded-2xl text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:bg-slate-950 transition-all duration-150"
                       />
                       <button
                         type="button"
                         onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300"
+                        className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-300 cursor-pointer"
                       >
                         {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -860,7 +1058,7 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
                           {[1, 2, 3, 4].map((step) => (
                             <div
                               key={step}
-                              className={`flex-1 rounded-full transition-all ${
+                              className={`flex-1 rounded-full transition-all duration-200 ${
                                 resetStrength.score >= step ? resetStrength.color : 'bg-slate-800'
                               }`}
                             />
@@ -874,7 +1072,7 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                       Xác nhận mật khẩu mới
                     </label>
                     <div className="relative">
@@ -887,7 +1085,7 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
                         onChange={(e) => setConfirmNewPassword(e.target.value)}
                         placeholder="••••••••"
                         required
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
+                        className="w-full h-12 min-h-[48px] pl-10 pr-4 bg-slate-950/70 border border-slate-800 rounded-2xl text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:bg-slate-950 transition-all duration-150"
                       />
                     </div>
                   </div>
@@ -895,7 +1093,7 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-2xl transition-all shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                    className="w-full h-12 min-h-[48px] bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base sm:text-sm rounded-2xl transition-all duration-150 shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-[0.99]"
                   >
                     {isLoading ? (
                       <>

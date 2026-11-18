@@ -5,7 +5,10 @@ let prismaClient: PrismaClient | null = null;
 export function getPrisma(): PrismaClient {
   if (!prismaClient) {
     if (!process.env.DATABASE_URL) {
-      process.env.DATABASE_URL = "postgresql://lifeos_user:secure_password_123@localhost:5432/lifeos_db?schema=public";
+      process.env.DATABASE_URL = "postgresql://lifeos_user:secure_password_123@localhost:5432/lifeos_db?schema=public&connection_limit=25&pool_timeout=10";
+    } else if (!process.env.DATABASE_URL.includes('connection_limit')) {
+      const sep = process.env.DATABASE_URL.includes('?') ? '&' : '?';
+      process.env.DATABASE_URL = `${process.env.DATABASE_URL}${sep}connection_limit=25&pool_timeout=10`;
     }
     prismaClient = new PrismaClient({
       log: process.env.NODE_ENV === 'development' ? ['warn'] : []
@@ -72,7 +75,13 @@ export async function ensureSchemaExtensions(prisma: PrismaClient): Promise<void
     'ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "trial_started_at" TIMESTAMP(3)',
     'ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "trial_ends_at" TIMESTAMP(3)',
     'ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "trial_used" BOOLEAN NOT NULL DEFAULT false',
+    'ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "total_study_minutes" INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "weekly_study_minutes" INTEGER NOT NULL DEFAULT 0',
+    'ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "last_study_date" TIMESTAMP(3)',
+    'ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "champion_count" INTEGER NOT NULL DEFAULT 0',
     'CREATE INDEX IF NOT EXISTS "idx_users_trial_ends_at" ON "users"("trial_ends_at")',
+    'CREATE INDEX IF NOT EXISTS "idx_users_weekly_study_minutes" ON "users"("weekly_study_minutes" DESC)',
+    'CREATE INDEX IF NOT EXISTS "idx_users_total_study_minutes" ON "users"("total_study_minutes" DESC)',
     `CREATE TABLE IF NOT EXISTS "idempotency_keys" (
       "id" TEXT PRIMARY KEY,
       "key" TEXT NOT NULL UNIQUE,
@@ -93,7 +102,38 @@ export async function ensureSchemaExtensions(prisma: PrismaClient): Promise<void
     'CREATE INDEX IF NOT EXISTS "idx_finance_user_deleted" ON "finance_accounts"("userId", "deleted_at")',
     'CREATE INDEX IF NOT EXISTS "idx_habits_user_deleted" ON "habits"("userId", "deleted_at")',
     'CREATE INDEX IF NOT EXISTS "idx_goals_user_deleted" ON "goals"("userId", "deleted_at")',
-    'CREATE INDEX IF NOT EXISTS "idx_notes_user_deleted" ON "notes"("userId", "deleted_at")'
+    'CREATE INDEX IF NOT EXISTS "idx_notes_user_deleted" ON "notes"("userId", "deleted_at")',
+    `CREATE TABLE IF NOT EXISTS "posts" (
+      "id" TEXT PRIMARY KEY,
+      "userId" TEXT NOT NULL,
+      "content" TEXT NOT NULL,
+      "images" TEXT[] NOT NULL DEFAULT ARRAY[]::TEXT[],
+      "likes" INTEGER NOT NULL DEFAULT 0,
+      "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+    'CREATE INDEX IF NOT EXISTS "idx_posts_user_id" ON "posts"("user_id")',
+    'CREATE INDEX IF NOT EXISTS "idx_posts_created_at" ON "posts"("created_at" DESC)',
+    `CREATE TABLE IF NOT EXISTS "user_pets" (
+      "id" TEXT PRIMARY KEY,
+      "user_id" TEXT NOT NULL UNIQUE,
+      "name" TEXT NOT NULL DEFAULT 'Bé Capy',
+      "type" TEXT NOT NULL DEFAULT 'CAPYBARA',
+      "level" INTEGER NOT NULL DEFAULT 1,
+      "exp" INTEGER NOT NULL DEFAULT 0,
+      "hunger" INTEGER NOT NULL DEFAULT 85,
+      "happiness" INTEGER NOT NULL DEFAULT 90,
+      "mood" TEXT NOT NULL DEFAULT 'HAPPY',
+      "food_count" INTEGER NOT NULL DEFAULT 5,
+      "equipped_skin" TEXT NOT NULL DEFAULT 'default',
+      "unlocked_skins" TEXT NOT NULL DEFAULT '["default"]',
+      "total_study_minutes" INTEGER NOT NULL DEFAULT 0,
+      "last_fed_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "last_petted_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      "updated_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+    )`,
+    'CREATE INDEX IF NOT EXISTS "idx_user_pets_user_id" ON "user_pets"("user_id")'
   ];
 
   for (const sql of statements) {
@@ -351,6 +391,9 @@ function formatIncomingData(collectionName: string, data: any) {
 
     if (payload.dueDate === '') payload.dueDate = null;
     if (payload.startDate === '') payload.startDate = null;
+    if (payload.timeSlot && !payload.startDate) {
+      payload.startDate = payload.timeSlot;
+    }
 
     // Normalize status to standard Vietnamese names
     if (payload.status) {
@@ -748,6 +791,14 @@ function formatOutgoingData(collectionName: string, item: any) {
     } else if (p === 'Low' || p === 'low') {
       record.priority = 'Thấp';
     }
+
+    if (record.startDate && !record.timeSlot) {
+      if (/^\d{2}:\d{2}$/.test(record.startDate)) {
+        record.timeSlot = record.startDate;
+      } else if (record.startDate.includes('T')) {
+        record.timeSlot = record.startDate.split('T')[1].slice(0, 5);
+      }
+    }
   } else if (collectionName === 'notes') {
     try { record.tags = JSON.parse(record.tags || '[]'); } catch (e) { record.tags = []; }
   } else if (collectionName === 'automationRules' || collectionName === 'decisionRules') {
@@ -781,6 +832,27 @@ function formatOutgoingData(collectionName: string, item: any) {
   return record;
 }
 
+export function isDbConnectionError(e: any): boolean {
+  if (!e) return false;
+  const msg = String(e.message || e);
+  const code = e.code || '';
+  return (
+    code.startsWith('P1') ||
+    code === '53000' ||
+    code === '53300' ||
+    msg.includes("Can't reach database server") ||
+    msg.includes('exceeded the quota') ||
+    msg.includes('P1001') ||
+    msg.includes('P1002') ||
+    msg.includes('P1003') ||
+    msg.includes('connection limit') ||
+    msg.includes('pool timeout') ||
+    msg.includes('ECONNREFUSED') ||
+    msg.includes('ETIMEDOUT') ||
+    e.name === 'PrismaClientInitializationError'
+  );
+}
+
 export const dbService = {
   // ==========================================
   // USERS & IDENTITY
@@ -788,10 +860,23 @@ export const dbService = {
   async findUserByEmail(email: string) {
     const prisma = getPrisma();
     try {
-      return await prisma.user.findUnique({
+      const user = await prisma.user.findUnique({
         where: { email: email.toLowerCase().trim() }
       });
+      if (user) {
+        try {
+          const raw: any[] = await prisma.$queryRawUnsafe(`SELECT is_affiliate FROM "users" WHERE id = $1 LIMIT 1`, user.id);
+          if (raw && raw.length > 0) {
+            (user as any).isAffiliate = Boolean(raw[0].is_affiliate);
+            (user as any).is_affiliate = Boolean(raw[0].is_affiliate);
+          }
+        } catch (_) {}
+      }
+      return user;
     } catch (e: any) {
+      if (isDbConnectionError(e)) {
+        throw e;
+      }
       console.warn('findUserByEmail warning:', e.message);
       return null;
     }
@@ -801,20 +886,33 @@ export const dbService = {
     const prisma = getPrisma();
     const clean = identifier.toLowerCase().trim();
     try {
-      const userByEmail = await prisma.user.findUnique({
+      let user = await prisma.user.findUnique({
         where: { email: clean }
       });
-      if (userByEmail) return userByEmail;
-
-      return await prisma.user.findFirst({
-        where: {
-          OR: [
-            { username: clean },
-            { email: { contains: clean, mode: 'insensitive' } }
-          ]
-        }
-      });
+      if (!user) {
+        user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { username: clean },
+              { email: { contains: clean, mode: 'insensitive' } }
+            ]
+          }
+        });
+      }
+      if (user) {
+        try {
+          const raw: any[] = await prisma.$queryRawUnsafe(`SELECT is_affiliate FROM "users" WHERE id = $1 LIMIT 1`, user.id);
+          if (raw && raw.length > 0) {
+            (user as any).isAffiliate = Boolean(raw[0].is_affiliate);
+            (user as any).is_affiliate = Boolean(raw[0].is_affiliate);
+          }
+        } catch (_) {}
+      }
+      return user;
     } catch (e: any) {
+      if (isDbConnectionError(e)) {
+        throw e;
+      }
       console.warn('findUserByEmailOrUsername warning:', e.message);
       return null;
     }
@@ -823,10 +921,23 @@ export const dbService = {
   async findUserById(id: string) {
     const prisma = getPrisma();
     try {
-      return await prisma.user.findUnique({
+      const user = await prisma.user.findUnique({
         where: { id }
       });
+      if (user) {
+        try {
+          const raw: any[] = await prisma.$queryRawUnsafe(`SELECT is_affiliate FROM "users" WHERE id = $1 LIMIT 1`, user.id);
+          if (raw && raw.length > 0) {
+            (user as any).isAffiliate = Boolean(raw[0].is_affiliate);
+            (user as any).is_affiliate = Boolean(raw[0].is_affiliate);
+          }
+        } catch (_) {}
+      }
+      return user;
     } catch (e: any) {
+      if (isDbConnectionError(e)) {
+        throw e;
+      }
       console.warn('findUserById warning:', e.message);
       return null;
     }
@@ -892,7 +1003,18 @@ export const dbService = {
         { email: { contains: filters.search, mode: 'insensitive' } }
       ];
     }
-    if (filters.role && filters.role !== 'All') where.role = filters.role;
+    if (filters.role && filters.role !== 'All') {
+      if (filters.role === 'AFFILIATE') {
+        try {
+          const affRows: any[] = await prisma.$queryRawUnsafe(`SELECT id FROM "users" WHERE "is_affiliate" = true`);
+          where.id = { in: affRows.map(r => r.id) };
+        } catch (_) {
+          where.id = { in: [] };
+        }
+      } else {
+        where.role = filters.role;
+      }
+    }
     if (filters.plan && filters.plan !== 'All') where.plan = filters.plan;
     if (filters.status && filters.status !== 'All') where.status = filters.status;
 
@@ -923,8 +1045,29 @@ export const dbService = {
       prisma.user.count({ where })
     ]);
 
+    const userIds = data.map(u => u.id);
+    let affiliateMap = new Map<string, boolean>();
+    if (userIds.length > 0) {
+      try {
+        const affRows: any[] = await prisma.$queryRawUnsafe(
+          `SELECT id, is_affiliate FROM "users" WHERE id = ANY($1::text[])`,
+          userIds
+        );
+        for (const r of affRows) {
+          affiliateMap.set(r.id, Boolean(r.is_affiliate));
+        }
+      } catch (e) {
+        console.warn('Error reading is_affiliate for users:', e);
+      }
+    }
+
+    const enrichedData = data.map(u => ({
+      ...u,
+      isAffiliate: Boolean(affiliateMap.get(u.id))
+    }));
+
     return {
-      data,
+      data: enrichedData,
       total,
       page,
       limit,
@@ -942,8 +1085,10 @@ export const dbService = {
   // ==========================================
   async createSession(userId: string, token: string, expiresAt: Date) {
     const prisma = getPrisma();
-    return await prisma.session.create({
-      data: { userId, token, expiresAt }
+    return await prisma.session.upsert({
+      where: { token },
+      update: { expiresAt },
+      create: { userId, token, expiresAt }
     });
   },
 
@@ -1079,6 +1224,10 @@ export const dbService = {
     // Bound high-frequency notification/inbox collections to 100 latest items
     const isHighVolume = collectionName === 'notifications' || collectionName === 'inbox';
     const isSoftDeletable = ['tasks', 'financeAccounts', 'transactions', 'habits', 'goals', 'notes'].includes(collectionName);
+    const includesMap: Record<string, any> = {
+      goals: { milestones: true, actions: true },
+      projects: { milestones: true }
+    };
 
     const items = await delegate.findMany({
       where: {
@@ -1086,6 +1235,7 @@ export const dbService = {
         ...(isSoftDeletable ? { deletedAt: null } : {})
       },
       orderBy: { createdAt: 'desc' },
+      ...(includesMap[collectionName] ? { include: includesMap[collectionName] } : {}),
       ...(isHighVolume ? { take: 100 } : {})
     });
     return items.map((item: any) => formatOutgoingData(collectionName, item));
@@ -1182,6 +1332,29 @@ export const dbService = {
       }
       const created = await this.executeFinanceTransaction(userId, payload);
       return formatOutgoingData(collectionName, created);
+    }
+
+    if (collectionName === 'goals') {
+      const rawMilestones = Array.isArray(rawData.milestones) ? rawData.milestones : [];
+      sanitizePayloadForModel(collectionName, payload);
+      const createdGoal = await delegate.create({ data: payload });
+      if (rawMilestones.length > 0) {
+        const prisma = getPrisma();
+        await prisma.goalMilestone.createMany({
+          data: rawMilestones.map((m: any) => ({
+            goalId: createdGoal.id,
+            title: m.title || 'Cột mốc',
+            deadline: m.deadline || null,
+            completed: Boolean(m.completed),
+            progress: Number(m.progress) || 0
+          }))
+        }).catch((err: any) => console.warn('[addItemToUserCollection:goals] milestone create error:', err));
+      }
+      const fullGoal = await delegate.findUnique({
+        where: { id: createdGoal.id },
+        include: { milestones: true, actions: true }
+      });
+      return formatOutgoingData(collectionName, fullGoal || createdGoal);
     }
 
     sanitizePayloadForModel(collectionName, payload);
@@ -1307,6 +1480,36 @@ export const dbService = {
         });
       });
       return formatOutgoingData(collectionName, updatedTx);
+    }
+
+    if (collectionName === 'goals') {
+      const rawMilestones = rawUpdates.milestones;
+      const updated = await delegate.update({
+        where: { id },
+        data: payload
+      });
+      if (Array.isArray(rawMilestones)) {
+        const prisma = getPrisma();
+        await prisma.$transaction(async (tx: any) => {
+          await tx.goalMilestone.deleteMany({ where: { goalId: id } });
+          if (rawMilestones.length > 0) {
+            await tx.goalMilestone.createMany({
+              data: rawMilestones.map((m: any) => ({
+                goalId: id,
+                title: m.title || 'Cột mốc',
+                deadline: m.deadline || null,
+                completed: Boolean(m.completed),
+                progress: Number(m.progress) || 0
+              }))
+            });
+          }
+        }).catch((err: any) => console.warn('[updateUserCollectionItem:goals] milestone sync error:', err));
+      }
+      const fullGoal = await delegate.findUnique({
+        where: { id },
+        include: { milestones: true, actions: true }
+      });
+      return formatOutgoingData(collectionName, fullGoal || updated);
     }
 
     const updated = await delegate.update({

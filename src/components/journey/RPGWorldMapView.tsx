@@ -16,7 +16,21 @@ export function RPGWorldMapView({
   onGoToTrain
 }: RPGWorldMapViewProps) {
   const [chaptersData, setChaptersData] = useState<any[]>([]);
-  const [selectedChapterIdx, setSelectedChapterIdx] = useState<number>(1);
+  const [selectedChapterIdx, setSelectedChapterIdx] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('lifeos_rpg_world_chapter_idx');
+        if (saved && !isNaN(Number(saved))) return Number(saved);
+      } catch {}
+    }
+    return 1;
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_rpg_world_chapter_idx', String(selectedChapterIdx));
+    } catch {}
+  }, [selectedChapterIdx]);
   const [isLoading, setIsLoading] = useState(true);
   const [totalMonsters, setTotalMonsters] = useState(16);
   const [defeatedCount, setDefeatedCount] = useState(0);

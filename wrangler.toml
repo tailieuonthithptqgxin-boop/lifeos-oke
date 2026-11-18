@@ -1,0 +1,17 @@
+name = "lifeos"
+main = "src/cloudflare/worker.ts"
+compatibility_date = "2026-03-01"
+compatibility_flags = ["nodejs_compat"]
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+
+[triggers]
+crons = ["*/5 * * * *", "0 0,7,21 * * *"]
+
+[vars]
+NODE_ENV = "production"
+APP_URL = "https://lifeos.vn"
+API_BACKEND_URL = "http://localhost:3000"

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BookOpen, X } from 'lucide-react';
 import { LearningLanguage, VocabCollection, VocabWord } from '../../lib/vocabEngine';
+import { soundEngine } from '../../lib/soundEngine';
 
 interface WordModalProps {
   activeLang: LearningLanguage;
@@ -27,19 +28,34 @@ export const WordModal: React.FC<WordModalProps> = ({
   const [mnemonic, setMnemonic] = useState(editingWord?.mnemonic || '');
   const [notes, setNotes] = useState(editingWord?.notes || '');
   const [collectionId, setCollectionId] = useState(editingWord?.collectionId || collections[0]?.id || '');
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [isShaking, setIsShaking] = useState(false);
+
+  const isFormDirty = !!(term.trim() || meaning.trim()) && !editingWord;
+
+  const triggerShake = () => {
+    soundEngine.playPop();
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 500);
+  };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        if (isFormDirty) triggerShake();
+        else onClose();
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  }, [onClose, isFormDirty]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMsg(null);
     if (!term.trim() || !meaning.trim()) {
-      return alert('Vui lòng nhập Từ vựng và Định nghĩa nghĩa chính!');
+      setErrorMsg('Vui lòng nhập Từ vựng và Định nghĩa nghĩa chính!');
+      return;
     }
 
     onSave({
@@ -56,13 +72,32 @@ export const WordModal: React.FC<WordModalProps> = ({
     });
   };
 
+  const mouseDownTargetRef = useRef<EventTarget | null>(null);
+
+  const handleSafeClose = () => {
+    if (isFormDirty) {
+      triggerShake();
+      return;
+    }
+    onClose();
+  };
+
   return (
     <div 
-      className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs overflow-y-auto"
-      onClick={onClose}
+      className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-950/60 backdrop-blur-xs overflow-y-auto cursor-default"
+      onMouseDown={(e) => {
+        mouseDownTargetRef.current = e.target;
+      }}
+      onClick={(e) => {
+        if (mouseDownTargetRef.current === e.currentTarget && e.target === e.currentTarget) {
+          handleSafeClose();
+        }
+      }}
     >
       <div 
-        className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-lg overflow-hidden my-6 animate-in fade-in zoom-in-95 duration-150"
+        className={`bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-lg overflow-hidden my-6 transition-transform ${
+          isShaking ? 'animate-[shake_0.4s_ease-in-out]' : ''
+        }`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
@@ -70,12 +105,20 @@ export const WordModal: React.FC<WordModalProps> = ({
             <BookOpen className="w-5 h-5 text-blue-600" />
             {editingWord ? 'Chỉnh sửa từ vựng cá nhân' : `Thêm từ vựng mới (${activeLang.name})`}
           </h3>
-          <button type="button" onClick={onClose} className="p-1 text-slate-400 hover:text-slate-600 rounded">
+          <button type="button" onClick={handleSafeClose} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4 text-xs max-h-[75vh] overflow-y-auto">
+          {errorMsg && (
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 font-semibold flex items-center justify-between animate-fade-in">
+              <span>{errorMsg}</span>
+              <button type="button" onClick={() => setErrorMsg(null)} className="p-1 hover:text-rose-800">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
