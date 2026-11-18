@@ -35,7 +35,7 @@
     "@tailwindcss/vite": "^4.1.14",
     "@types/gsap": "^1.20.2",
     "@types/pg": "^8.23.1",
-    "@types/three": "^0.187.0",
+    "@types/three": "^0.186.1",
     "@types/uuid": "^10.0.0",
     "@vitejs/plugin-react": "^5.0.4",
     "bcryptjs": "^3.0.3",
@@ -60,11 +60,14 @@
     "react-is": "^19.3.1",
     "recharts": "^3.10.1",
     "tailwind-merge": "^3.6.0",
-    "three": "^0.187.0",
+    "three": "^0.186.1",
     "tsx": "^4.21.0",
     "uuid": "^14.0.2",
     "vite": "^6.2.3",
     "zod": "^4.6.5"
+  },
+  "overrides": {
+    "three": "^0.186.1"
   },
   "devDependencies": {
     "@playwright/test": "^1.64.1",
