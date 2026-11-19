@@ -1031,6 +1031,106 @@ async function handleEdgeStandaloneApi(request: Request): Promise<Response> {
     );
   }
 
+  // Study Space & Virtual Study Rooms on Cloudflare Edge
+  if (pathname.startsWith('/api/study-space/')) {
+    if (pathname.includes('/stream')) {
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('event: ping\ndata: {"time":"' + new Date().toISOString() + '"}\n\n'));
+        }
+      });
+      return new Response(stream, {
+        status: 200,
+        headers: {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache, no-transform',
+          'Connection': 'keep-alive',
+          'Access-Control-Allow-Origin': '*',
+        },
+      });
+    }
+    if (pathname === '/api/study-space/lobby') {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          rooms: [],
+          activeCount: 0,
+          totalMinutes: 0,
+          topUsers: [],
+        }),
+        { status: 200, headers: jsonHeaders }
+      );
+    }
+    if (pathname === '/api/study-space/rooms' && method === 'GET') {
+      return new Response(JSON.stringify({ success: true, rooms: [] }), { status: 200, headers: jsonHeaders });
+    }
+    if (method === 'POST') {
+      const body: any = await request.json().catch(() => ({}));
+      return new Response(
+        JSON.stringify({
+          success: true,
+          room: {
+            id: body?.id || `room_${crypto.randomUUID().slice(0, 8)}`,
+            name: body?.name || 'Phòng học của tôi',
+            topic: body?.topic || 'Tự học',
+            participantsCount: 1,
+            activeParticipants: [],
+            waitingParticipants: [],
+            ...body,
+          },
+          message: 'Thao tác phòng học thành công!',
+        }),
+        { status: 200, headers: jsonHeaders }
+      );
+    }
+    return new Response(JSON.stringify({ success: true, rooms: [] }), { status: 200, headers: jsonHeaders });
+  }
+
+  // Online Classroom & Google Meet on Cloudflare Edge
+  if (pathname.startsWith('/api/classroom/')) {
+    if (pathname === '/api/classroom/google/status') {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          configuredOnServer: false,
+          connected: false,
+          googleEmail: null,
+          status: 'DISCONNECTED',
+          lastError: null,
+          redirectUri: '',
+          scopes: [],
+        }),
+        { status: 200, headers: jsonHeaders }
+      );
+    }
+    if (pathname === '/api/classroom/classes') {
+      return new Response(JSON.stringify({ success: true, classes: [] }), { status: 200, headers: jsonHeaders });
+    }
+    if (method === 'POST') {
+      const body: any = await request.json().catch(() => ({}));
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Lớp học đã được tạo thành công!',
+          class: {
+            id: `class_${crypto.randomUUID().slice(0, 8)}`,
+            title: body?.title || 'Lớp học mới',
+            startAt: body?.startAt || new Date().toISOString(),
+            durationMinutes: body?.durationMinutes || 60,
+            status: 'SCHEDULED',
+            meetMode: body?.meetMode || 'MANUAL_LINK',
+            meetUrl: body?.meetUrl || null,
+            isHost: true,
+            participants: [],
+            ...body,
+          },
+        }),
+        { status: 201, headers: jsonHeaders }
+      );
+    }
+    return new Response(JSON.stringify({ success: true, classes: [] }), { status: 200, headers: jsonHeaders });
+  }
+
   if (method === 'GET') {
     if (pathname.startsWith('/api/data/')) {
       return new Response(JSON.stringify([]), { status: 200, headers: jsonHeaders });

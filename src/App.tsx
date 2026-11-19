@@ -544,8 +544,8 @@ function AppContent() {
       case 'focus': return <FocusView />;
       case 'projects': return <ProjectsView />;
       case 'study': return <StudyView />;
-      case 'study-space':
-      case 'classroom':
+      case 'study-space': return <StudySpaceView initialTab="rooms" />;
+      case 'classroom': return <OnlineClassroomView />;
       case 'connect':
       case 'feed':
         return <LifeOsConnectView />;

@@ -79,8 +79,8 @@ export function OnlineClassroomView({ embedded = false }: OnlineClassroomViewPro
           setFormData(prev => ({ ...prev, meetMode: 'MANUAL_LINK' }));
         }
       }
-      if (classesRes.status === 'fulfilled' && classesRes.value.success) {
-        setClasses(classesRes.value.classes);
+      if (classesRes.status === 'fulfilled' && classesRes.value && classesRes.value.success) {
+        setClasses(Array.isArray(classesRes.value.classes) ? classesRes.value.classes : []);
       } else if (classesRes.status === 'rejected') {
         setLoadError(classesRes.reason?.message || 'Không thể kết nối đến danh sách lớp học');
       }
@@ -97,8 +97,8 @@ export function OnlineClassroomView({ embedded = false }: OnlineClassroomViewPro
       setLoading(true);
       setLoadError(null);
       const res = await classroomApi.listClasses(scope);
-      if (res.success) {
-        setClasses(res.classes);
+      if (res && res.success) {
+        setClasses(Array.isArray(res.classes) ? res.classes : []);
       }
     } catch (err: any) {
       setLoadError(err.message || 'Lỗi tải danh sách lớp học');

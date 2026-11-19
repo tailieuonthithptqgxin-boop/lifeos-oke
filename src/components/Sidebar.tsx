@@ -31,6 +31,7 @@ import {
   Share2,
   Globe,
   Video,
+  GraduationCap,
   Gift
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
@@ -64,6 +65,8 @@ const SPACES_ITEMS: NavItem[] = [
   { id: 'habits', label: 'Thói quen kỷ luật', icon: Target },
   { id: 'finance', label: 'Tài chính & Hũ Tiết Kiệm', icon: DollarSign },
   { id: 'study', label: 'Học Tập & Từ Vựng (FSRS)', icon: BookOpen },
+  { id: 'study-space', label: 'Phòng Học Ảo (Study Space)', icon: Video },
+  { id: 'classroom', label: 'Lớp Học Online & Meet', icon: GraduationCap },
   { id: 'connect', label: 'Bảng Tin Cộng Đồng', icon: Globe },
   { id: 'notes', label: 'Sổ tay & Ghi chú (Vault)', icon: FileText },
   { id: 'goals', label: 'Mục tiêu', icon: Target },
@@ -150,7 +153,7 @@ export function Sidebar() {
   const userRole = (currentUser?.role || '').toUpperCase();
   const isAdmin = userRole === 'ADMIN' || userRole === 'SUPERADMIN';
 
-  const isVisible = (id: string) => id === 'dashboard' || id === 'connect' || id === 'admin' || visibleModules.includes(id);
+  const isVisible = (id: string) => id === 'dashboard' || id === 'connect' || id === 'admin' || id === 'study-space' || id === 'classroom' || visibleModules.includes(id);
 
   const availableDailyItems = DAILY_RHYTHM_ITEMS.filter(item => isVisible(item.id));
   const availableSpacesItems = SPACES_ITEMS.filter(item => isVisible(item.id));
@@ -158,7 +161,7 @@ export function Sidebar() {
 
   const renderNavButton = (item: NavItem) => {
     const Icon = item.icon;
-    const isActive = currentView === item.id || (item.id === 'connect' && (currentView === 'feed' || currentView === 'study-space' || currentView === 'classroom'));
+    const isActive = currentView === item.id || (item.id === 'connect' && currentView === 'feed');
 
     return (
       <button

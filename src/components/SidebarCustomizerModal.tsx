@@ -14,6 +14,8 @@ export const NAV_MODULE_METADATA = [
   { id: 'habits' as ViewState, labelVi: 'Thói quen', labelEn: 'Habits', iconEmoji: '🔥', descVi: 'Theo dõi chuỗi streak kỉ luật mỗi ngày', descEn: 'Track daily discipline habit streaks', group: 'space' },
   { id: 'finance' as ViewState, labelVi: 'Tài chính', labelEn: 'Finance', iconEmoji: '💳', descVi: 'Thu chi, Safe-to-Spend & quy tắc 50/30/20', descEn: 'Cash flow, Safe-to-Spend & 50/30/20 rule', group: 'space' },
   { id: 'study' as ViewState, labelVi: 'Học tập & Từ vựng', labelEn: 'Study & Vocab', iconEmoji: '📚', descVi: 'Flashcards Spaced Repetition (JLPT, IELTS, HSK)', descEn: 'Spaced Repetition flashcards (JLPT, IELTS, HSK)', group: 'space' },
+  { id: 'study-space' as ViewState, labelVi: 'Phòng học ảo', labelEn: 'Study Space', iconEmoji: '🎥', descVi: 'Không gian tự học ảo, phòng học nhóm, check-in & chia sẻ mục tiêu', descEn: 'Virtual study rooms, group study, check-in & live goals', group: 'space' },
+  { id: 'classroom' as ViewState, labelVi: 'Lớp học Online', labelEn: 'Online Classroom', iconEmoji: '🎓', descVi: 'Lớp học trực tuyến tích hợp Google Meet, đếm ngược & tài liệu bài học', descEn: 'Online classes integrated with Google Meet, study timers & prep tasks', group: 'space' },
   { id: 'connect' as ViewState, labelVi: 'Bảng Tin Cộng Đồng', labelEn: 'Community & Feed', iconEmoji: '🌐', descVi: 'Mạng xã hội học tập, Bảng tin cộng đồng, Chat đa kênh & Phòng học trực tuyến Live Meet', descEn: 'Social learning network, community feed, multi-channel chat & Live Meet study rooms', group: 'space' },
   { id: 'notes' as ViewState, labelVi: 'Sổ tay & Ghi chú', labelEn: 'Journal & Notes', iconEmoji: '📝', descVi: 'Second Brain, ghi chép nhanh & ý tưởng', descEn: 'Second Brain, quick notes & ideation', group: 'space' },
   { id: 'goals' as ViewState, labelVi: 'Mục tiêu', labelEn: 'Goals', iconEmoji: '🎯', descVi: 'Mục tiêu năm, quý & OKRs', descEn: 'Annual, quarterly goals & OKRs', group: 'space' },
@@ -67,10 +69,12 @@ export function getVisibleNavModules(): string[] {
     if (!raw) return NAV_MODULE_METADATA.map(m => m.id);
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed) && parsed.length > 0) {
-      const legacyMap: Record<string, string> = { 'study-space': 'connect', 'feed': 'connect', 'classroom': 'connect' };
+      const legacyMap: Record<string, string> = { 'feed': 'connect' };
       const normalized = Array.from(new Set(parsed.map((id: string) => legacyMap[id] || id)));
       const filtered = normalized.filter((id: string) => validIds.has(id));
       if (!filtered.includes('connect')) filtered.push('connect');
+      if (!filtered.includes('study-space')) filtered.push('study-space');
+      if (!filtered.includes('classroom')) filtered.push('classroom');
       if (filtered.length !== parsed.length) {
         localStorage.setItem('lifeos_visible_modules', JSON.stringify(filtered.length > 0 ? filtered : NAV_MODULE_METADATA.map(m => m.id)));
       }
