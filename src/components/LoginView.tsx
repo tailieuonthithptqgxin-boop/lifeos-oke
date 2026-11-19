@@ -128,19 +128,35 @@ export function LoginView({ onBack, initialMode, initialError }: LoginViewProps)
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(() => {
+    if (initialError) return initialError;
     if (typeof window !== 'undefined') {
       const p = new URLSearchParams(window.location.search);
       const l = p.get('login');
-      if (l === 'google_cancelled') return 'Bạn đã hủy đăng nhập bằng Google.';
-      if (l === 'google_state_mismatch') return 'Phiên đăng nhập Google hết hạn hoặc không khớp. Vui lòng thử lại.';
-      if (l === 'google_token_exchange_failed') return 'Không thể trao đổi mã xác thực với Google.';
-      if (l === 'google_server_error') return 'Máy chủ gặp sự cố khi xử lý Google OAuth.';
-      if (l === 'google_init_error') return 'Google OAuth chưa được cấu hình Client ID chính xác trên máy chủ.';
-      if (l === 'account_locked') return 'Tài khoản đã bị tạm khóa do nhập sai mật khẩu quá nhiều lần.';
+      const reason = p.get('reason');
+      const errMap: Record<string, string> = {
+        google_cancelled: 'Bạn đã hủy đăng nhập bằng Google.',
+        google_state_mismatch: 'Phiên đăng nhập Google hết hạn hoặc không khớp cookie/domain. Vui lòng thử lại.',
+        google_token_exchange_failed: 'Không thể trao đổi mã xác thực với Google (sai Client Secret hoặc Redirect URI).',
+        google_server_error: 'Máy chủ gặp sự cố khi xử lý Google OAuth.',
+        google_init_error: 'Google OAuth chưa được cấu hình Client ID chính xác trên máy chủ.',
+        google_not_configured: 'Đăng nhập Google chưa được cấu hình trên máy chủ (thiếu biến môi trường).',
+        google_profile_fetch_failed: 'Không thể lấy thông tin hồ sơ từ tài khoản Google.',
+        google_email_unverified: 'Tài khoản Google của bạn chưa được xác minh email.',
+        account_locked: 'Tài khoản đã bị tạm khóa do nhập sai mật khẩu quá nhiều lần.',
+      };
+      if (l && errMap[l]) {
+        return reason ? `${errMap[l]} (${reason})` : errMap[l];
+      }
       if (p.get('google_error')) return decodeURIComponent(p.get('google_error') || 'Lỗi kết nối Google');
     }
     return null;
   });
+
+  useEffect(() => {
+    if (initialError) {
+      setError(initialError);
+    }
+  }, [initialError]);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Login form
@@ -578,6 +594,22 @@ export function LoginView({ onBack, initialMode, initialError }: LoginViewProps)
             </div>
           )}
 
+          {/* Alert Messages (Top of Form) */}
+          {error && (
+            <div className="mb-5 p-3.5 rounded-2xl bg-rose-500/15 border-2 border-rose-500/40 text-rose-200 flex items-start gap-3 text-xs leading-relaxed animate-in fade-in slide-in-from-top-1 duration-200 shadow-md">
+              <AlertCircle className="w-5 h-5 shrink-0 text-rose-400 mt-0.5" />
+              <div className="flex-1 font-medium">{error}</div>
+              <button
+                type="button"
+                onClick={() => setError(null)}
+                className="text-rose-400 hover:text-rose-200 font-bold p-1 cursor-pointer"
+                title="Đóng thông báo"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
           {/* Google OAuth Button (Visible on Login & Register) */}
           {(mode === 'login' || mode === 'register') && (
             <div className="space-y-4 mb-6">
@@ -622,11 +654,11 @@ export function LoginView({ onBack, initialMode, initialError }: LoginViewProps)
             </div>
           )}
 
-          {/* Alert Messages */}
-          {error && (
-            <div className="mb-5 p-3.5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 flex items-start gap-3 text-xs leading-relaxed animate-in fade-in slide-in-from-top-1 duration-200">
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
-              <div className="flex-1 font-medium">{error}</div>
+          {/* Success message */}
+          {successMsg && (
+            <div className="mb-5 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 flex items-start gap-3 text-xs leading-relaxed animate-in fade-in slide-in-from-top-1 duration-200">
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
+              <div className="flex-1 font-medium">{successMsg}</div>
             </div>
           )}
 

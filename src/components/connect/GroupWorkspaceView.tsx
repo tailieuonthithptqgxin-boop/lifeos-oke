@@ -382,8 +382,8 @@ function GroupFeedTab({
     try {
       setLoading(true);
       const res = await connectApi.listPosts({ communityId });
-      if (res.success) {
-        setPosts(res.posts);
+      if (res && res.success) {
+        setPosts(Array.isArray(res.posts) ? res.posts : []);
       }
     } catch (err: any) {
       toast.show(err.message || 'Lỗi tải bài viết nhóm', 'error');
@@ -1039,7 +1039,7 @@ function GroupChatTab({
     try {
       setLoading(true);
       const res = await connectApi.listChannels(communityId);
-      if (res.success && res.channels.length > 0) {
+      if (res && res.success && Array.isArray(res.channels) && res.channels.length > 0) {
         setChannels(res.channels);
         if (!activeChannelId) {
           // Default to general or first channel
@@ -1063,8 +1063,8 @@ function GroupChatTab({
     if (!activeChannelId) return;
     try {
       const res = await connectApi.listChannelMessages(communityId, activeChannelId);
-      if (res.success) {
-        setMessages(res.messages);
+      if (res && res.success) {
+        setMessages(Array.isArray(res.messages) ? res.messages : []);
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }
     } catch (err: any) {
@@ -1380,8 +1380,8 @@ function GroupMeetTab({
     try {
       setLoading(true);
       const res = await connectApi.listMeets(communityId);
-      if (res.success) {
-        setMeets(res.meets);
+      if (res && res.success) {
+        setMeets(Array.isArray(res.meets) ? res.meets : []);
       }
     } catch (err: any) {
       toast.show(err.message || 'Lỗi tải danh sách Meet', 'error');
@@ -1557,8 +1557,8 @@ function GroupMeetTab({
   // 1. IN ACTIVE MEET ROOM VIEW
   if (activeRoomCode && meetData) {
     const isHost = meetData.hostId === currentUserId;
-    const activeList = (meetData.activeParticipants as any[]) || [];
-    const waitingList = (meetData.waitingParticipants as any[]) || [];
+    const activeList = Array.isArray(meetData.activeParticipants) ? (meetData.activeParticipants as any[]) : [];
+    const waitingList = Array.isArray(meetData.waitingParticipants) ? (meetData.waitingParticipants as any[]) : [];
 
     // LOBBY / WAITING ROOM
     if (isWaiting) {
@@ -2020,9 +2020,9 @@ function GroupAdminTab({ community, onRefresh }: { community: any; onRefresh: ()
         connectApi.listPendingPosts(community.id),
         connectApi.listAllMembers(community.id)
       ]);
-      if (membersRes.success) setPendingMembers(membersRes.pending);
-      if (postsRes.success) setPendingPosts(postsRes.posts);
-      if (allRes.success) setAllMembers(allRes.members);
+      if (membersRes && membersRes.success) setPendingMembers(Array.isArray(membersRes.pending) ? membersRes.pending : []);
+      if (postsRes && postsRes.success) setPendingPosts(Array.isArray(postsRes.posts) ? postsRes.posts : []);
+      if (allRes && allRes.success) setAllMembers(Array.isArray(allRes.members) ? allRes.members : []);
     } catch (err: any) {
       toast.show(err.message || 'Lỗi tải dữ liệu quản trị', 'error');
     } finally {

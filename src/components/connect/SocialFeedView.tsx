@@ -71,7 +71,7 @@ export function SocialFeedView({ currentUserId, onOpenProfile, communityId }: So
   // Load user communities for destination selector
   useEffect(() => {
     connectApi.listCommunities().then(res => {
-      if (res.success) {
+      if (res && res.success && Array.isArray(res.communities)) {
         setCommunities(res.communities.filter(c => c.isMember || c.ownerId === currentUserId));
       }
     }).catch(() => {});

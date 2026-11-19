@@ -391,34 +391,33 @@ function AppContent() {
 
   // 3. Guests / Unauthenticated Users
   if (!isAuthenticated) {
+    let unauthenticatedContent: React.ReactNode = null;
+
     if (publicView === 'island3d' || publicView === 'cozy3d') {
-      return (
+      unauthenticatedContent = (
         <div key={language} className="w-screen h-screen overflow-hidden">
           <React.Suspense fallback={<PageSkeleton />}>
             <CyberCozyIslandSpace onExit={() => setPublicView('home')} />
           </React.Suspense>
         </div>
       );
-    }
-    if (publicView === 'universe3d' || publicView === 'spatial3d') {
-      return (
+    } else if (publicView === 'universe3d' || publicView === 'spatial3d') {
+      unauthenticatedContent = (
         <div key={language} className="w-screen h-screen overflow-hidden">
           <React.Suspense fallback={<PageSkeleton />}>
             <Spatial3DUniverseView onExit={() => setPublicView('home')} />
           </React.Suspense>
         </div>
       );
-    }
-    if (publicView === 'login') {
-      return (
+    } else if (publicView === 'login') {
+      unauthenticatedContent = (
         <div className="w-full h-full">
           <LoginView onBack={() => { setOauthError(null); setPublicView('home'); }} initialMode={authInitialMode} initialError={oauthError} />
           <CookieConsentBanner />
         </div>
       );
-    }
-    if (publicView === 'privacy') {
-      return (
+    } else if (publicView === 'privacy') {
+      unauthenticatedContent = (
         <div className="w-full h-full">
           <React.Suspense fallback={<PageSkeleton />}>
             <PrivacyPolicyView onNavigate={(p) => p === 'home' ? setPublicView('home') : setPublicView(p)} />
@@ -426,9 +425,8 @@ function AppContent() {
           <CookieConsentBanner />
         </div>
       );
-    }
-    if (publicView === 'terms') {
-      return (
+    } else if (publicView === 'terms') {
+      unauthenticatedContent = (
         <div className="w-full h-full">
           <React.Suspense fallback={<PageSkeleton />}>
             <TermsOfServiceView onNavigate={(p) => p === 'home' ? setPublicView('home') : setPublicView(p)} />
@@ -436,9 +434,8 @@ function AppContent() {
           <CookieConsentBanner />
         </div>
       );
-    }
-    if (publicView === 'cookies') {
-      return (
+    } else if (publicView === 'cookies') {
+      unauthenticatedContent = (
         <div className="w-full h-full">
           <React.Suspense fallback={<PageSkeleton />}>
             <CookiePolicyView onNavigate={(p) => p === 'home' ? setPublicView('home') : setPublicView(p)} />
@@ -446,9 +443,8 @@ function AppContent() {
           <CookieConsentBanner />
         </div>
       );
-    }
-    if (publicView === 'refund') {
-      return (
+    } else if (publicView === 'refund') {
+      unauthenticatedContent = (
         <div className="w-full h-full">
           <React.Suspense fallback={<PageSkeleton />}>
             <RefundPolicyView onNavigate={(p) => p === 'home' ? setPublicView('home') : setPublicView(p)} />
@@ -456,18 +452,27 @@ function AppContent() {
           <CookieConsentBanner />
         </div>
       );
+    } else {
+      unauthenticatedContent = (
+        <div className="w-full h-full">
+          <PublicLandingView 
+            onLoginClick={(mode = 'login') => {
+              setAuthInitialMode(mode);
+              setPublicView('login');
+            }}
+            onNavigateLegal={(page) => setPublicView(page)}
+            initialError={oauthError}
+          />
+          <PwaPromptBanner />
+          <CookieConsentBanner />
+        </div>
+      );
     }
+
     return (
-      <div className="w-full h-full">
-        <PublicLandingView 
-          onLoginClick={(mode = 'login') => {
-            setAuthInitialMode(mode);
-            setPublicView('login');
-          }}
-          onNavigateLegal={(page) => setPublicView(page)}
-        />
-        <PwaPromptBanner />
-        <CookieConsentBanner />
+      <div className="relative w-full h-full min-h-screen">
+        <ToastContainer />
+        {unauthenticatedContent}
       </div>
     );
   }

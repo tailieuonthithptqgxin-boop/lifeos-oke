@@ -44,6 +44,7 @@ import { toast } from '../lib/toast';
 interface PublicLandingViewProps {
   onLoginClick?: (initialMode?: 'login' | 'register') => void;
   onNavigateLegal?: (page: 'privacy' | 'terms' | 'cookies' | 'refund') => void;
+  initialError?: string | null;
 }
 
 // Google Official 4-Color Vector Icon
@@ -70,7 +71,7 @@ function GoogleIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
-export function PublicLandingView({ onLoginClick, onNavigateLegal }: PublicLandingViewProps) {
+export function PublicLandingView({ onLoginClick, onNavigateLegal, initialError }: PublicLandingViewProps) {
   const { login, language, setLanguage } = useAppStore();
   const isVi = language !== 'en';
 
@@ -79,7 +80,7 @@ export function PublicLandingView({ onLoginClick, onNavigateLegal }: PublicLandi
 
   // Smart Auth Modal State
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>('register');
+  const [authMode, setAuthMode] = useState<'login' | 'register' | 'forgot'>('login');
 
   // Form Fields
   const [name, setName] = useState('');
@@ -89,8 +90,43 @@ export function PublicLandingView({ onLoginClick, onNavigateLegal }: PublicLandi
   const [inputRefCode, setInputRefCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(() => {
+    if (initialError) return initialError;
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      const l = p.get('login');
+      const reason = p.get('reason');
+      const errMap: Record<string, string> = {
+        google_cancelled: 'Bạn đã hủy đăng nhập bằng Google.',
+        google_state_mismatch: 'Phiên đăng nhập Google hết hạn hoặc không khớp cookie/domain. Vui lòng thử lại.',
+        google_token_exchange_failed: 'Không thể trao đổi mã xác thực với Google (sai Client Secret hoặc Redirect URI).',
+        google_server_error: 'Máy chủ gặp sự cố khi xử lý Google OAuth.',
+        google_init_error: 'Google OAuth chưa được cấu hình Client ID chính xác trên máy chủ.',
+        google_not_configured: 'Đăng nhập Google chưa được cấu hình trên máy chủ (thiếu biến môi trường).',
+        google_profile_fetch_failed: 'Không thể lấy thông tin hồ sơ từ tài khoản Google.',
+        google_email_unverified: 'Tài khoản Google của bạn chưa được xác minh email.',
+        account_locked: 'Tài khoản đã bị tạm khóa do nhập sai mật khẩu quá nhiều lần.',
+      };
+      if (l && errMap[l]) {
+        return reason ? `${errMap[l]} (${reason})` : errMap[l];
+      }
+    }
+    return null;
+  });
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialError) {
+      setAuthError(initialError);
+      setIsAuthModalOpen(true);
+    }
+  }, [initialError]);
+
+  useEffect(() => {
+    if (authError) {
+      setIsAuthModalOpen(true);
+    }
+  }, [authError]);
 
   // Interactive Micro-Demo States
   const [pomodoroSeconds, setPomodoroSeconds] = useState(25 * 60);
