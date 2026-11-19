@@ -51,7 +51,7 @@ describe('Cloudflare Edge Pre-Flight Suite', () => {
       const raw = fs.readFileSync(configPath, 'utf8');
       const config = JSON.parse(raw);
 
-      assert.equal(config.name, 'lifeos', 'Project name is lifeos');
+      assert.equal(config.name, 'lifeos-oke', 'Project name matches Cloudflare Worker lifeos-oke');
       assert.equal(config.assets.directory, './dist', 'Assets directory points to ./dist');
       assert.equal(config.assets.not_found_handling, 'single-page-application', 'SPA fallback is enabled');
       assert.ok(Array.isArray(config.triggers.crons), 'Triggers crons must be an array');
