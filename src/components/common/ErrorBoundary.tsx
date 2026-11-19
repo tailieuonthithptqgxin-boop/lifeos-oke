@@ -44,6 +44,9 @@ export class ErrorBoundary extends (React.Component as any) {
   }
 
   handleRetry = () => {
+    try {
+      localStorage.setItem('lifeos_current_view', 'dashboard');
+    } catch {}
     if (this.props.onReset) {
       this.props.onReset();
     }
@@ -51,11 +54,17 @@ export class ErrorBoundary extends (React.Component as any) {
   };
 
   handleReload = () => {
-    window.location.reload();
+    try {
+      localStorage.setItem('lifeos_current_view', 'dashboard');
+    } catch {}
+    window.location.href = '/?tab=dashboard';
   };
 
   handleGoHome = () => {
-    window.location.href = '/';
+    try {
+      localStorage.setItem('lifeos_current_view', 'dashboard');
+    } catch {}
+    window.location.href = '/?tab=dashboard';
   };
 
   render() {

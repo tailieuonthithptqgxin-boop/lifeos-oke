@@ -436,9 +436,14 @@ export function registerPwaServiceWorker(): void {
       });
   });
 
-  // Listen for controllerchange gracefully
+  // Listen for controllerchange gracefully and auto-refresh once to load the newest version
+  let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     console.log('⚡ [PWA] Service Worker controller updated. Fresh version ready.');
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
+    }
   });
 }
 

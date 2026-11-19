@@ -241,7 +241,7 @@ export function UserProfileModal({ userId, onClose, onOpenChat }: UserProfileMod
           )}
 
           {/* Learning Languages */}
-          {profile?.learningLanguages && profile.learningLanguages.length > 0 && (
+          {Array.isArray(profile?.learningLanguages) && profile.learningLanguages.length > 0 && (
             <div className="space-y-1.5">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                 <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
@@ -258,7 +258,7 @@ export function UserProfileModal({ userId, onClose, onOpenChat }: UserProfileMod
           )}
 
           {/* Interests */}
-          {profile?.interests && profile.interests.length > 0 && (
+          {Array.isArray(profile?.interests) && profile.interests.length > 0 && (
             <div className="space-y-1.5">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-amber-500" />
@@ -275,7 +275,7 @@ export function UserProfileModal({ userId, onClose, onOpenChat }: UserProfileMod
           )}
 
           {/* Learning Goals */}
-          {profile?.learningGoals && profile.learningGoals.length > 0 && (
+          {Array.isArray(profile?.learningGoals) && profile.learningGoals.length > 0 && (
             <div className="space-y-1.5">
               <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
                 <Target className="w-3.5 h-3.5 text-emerald-500" />

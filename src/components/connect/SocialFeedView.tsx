@@ -618,7 +618,7 @@ export function SocialFeedView({ currentUserId, onOpenProfile, communityId }: So
       <div className="space-y-4">
         {loading ? (
           <p className="text-center py-8 text-xs text-slate-400">Đang tải bài viết...</p>
-        ) : posts.length === 0 ? (
+        ) : !Array.isArray(posts) || posts.length === 0 ? (
           <div className="text-center py-12 bg-white/50 dark:bg-slate-900/50 rounded-3xl border border-slate-200 dark:border-slate-800">
             <Globe className="w-8 h-8 text-slate-300 dark:text-slate-700 mx-auto mb-2" />
             <p className="text-xs font-bold text-slate-500">Chưa có bài viết nào</p>
@@ -765,7 +765,7 @@ export function SocialFeedView({ currentUserId, onOpenProfile, communityId }: So
                 )}
 
                 {/* Poll Section */}
-                {post.poll && post.poll.options && (
+                {post.poll && Array.isArray(post.poll.options) && (
                   <div className="p-4 rounded-2xl bg-purple-500/5 border border-purple-500/20 space-y-3">
                     <div className="font-bold text-xs text-purple-700 dark:text-purple-300 flex items-center gap-2">
                       <BarChart2 className="w-4 h-4" />
@@ -774,7 +774,8 @@ export function SocialFeedView({ currentUserId, onOpenProfile, communityId }: So
                     <div className="space-y-2">
                       {post.poll.options.map((opt: any, idx: number) => {
                         const total = post.poll.totalVotes || 0;
-                        const pct = total > 0 ? Math.round((opt.votes / total) * 100) : 0;
+                        const optVotesCount = typeof opt.votes === 'number' ? opt.votes : Array.isArray(opt.votes) ? opt.votes.length : 0;
+                        const pct = total > 0 ? Math.round((optVotesCount / total) * 100) : 0;
                         const isVoted = post.poll.userVotedOptionId === opt.id;
 
                         return (
@@ -798,7 +799,7 @@ export function SocialFeedView({ currentUserId, onOpenProfile, communityId }: So
                                 <span>{opt.text}</span>
                               </span>
                               <span className="font-mono text-[11px] font-bold text-purple-600 dark:text-purple-400">
-                                {pct}% ({opt.votes})
+                                {pct}% ({optVotesCount})
                               </span>
                             </div>
                           </button>
@@ -832,7 +833,7 @@ export function SocialFeedView({ currentUserId, onOpenProfile, communityId }: So
                 )}
 
                 {/* Attached Images */}
-                {post.images && post.images.length > 0 && (
+                {Array.isArray(post.images) && post.images.length > 0 && (
                   <div className={`grid ${post.images.length === 1 ? 'grid-cols-1' : 'grid-cols-2'} gap-2 rounded-2xl overflow-hidden`}>
                     {post.images.map((img, idx) => (
                       <div
@@ -858,7 +859,7 @@ export function SocialFeedView({ currentUserId, onOpenProfile, communityId }: So
                 )}
 
                 {/* Tags */}
-                {post.tags && post.tags.length > 0 && (
+                {Array.isArray(post.tags) && post.tags.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {post.tags.map((tg, idx) => (
                       <span key={idx} className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-lg">
@@ -946,7 +947,7 @@ export function SocialFeedView({ currentUserId, onOpenProfile, communityId }: So
                     {/* Comments List */}
                     {loadingComments[post.id] ? (
                       <p className="text-xs text-slate-400 text-center py-2">Đang tải bình luận...</p>
-                    ) : comments.length === 0 ? (
+                    ) : !Array.isArray(comments) || comments.length === 0 ? (
                       <p className="text-xs text-slate-400 text-center py-2">Chưa có bình luận nào. Hãy bắt đầu cuộc trò chuyện!</p>
                     ) : (
                       <div className="space-y-2 pt-1">
