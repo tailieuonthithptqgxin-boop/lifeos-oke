@@ -28,6 +28,7 @@ import {
 interface LoginViewProps {
   onBack: () => void;
   initialMode?: 'login' | 'register' | 'forgot' | 'reset';
+  initialError?: string | null;
 }
 
 // Google Official 4-Color Vector Icon
@@ -69,7 +70,7 @@ function getPasswordStrength(password: string): { score: number; label: string; 
   return { score: 4, label: 'Rất an toàn', color: 'bg-emerald-500' };
 }
 
-export function LoginView({ onBack, initialMode }: LoginViewProps) {
+export function LoginView({ onBack, initialMode, initialError }: LoginViewProps) {
   const { login, language, setLanguage } = useAppStore();
   const isVi = language !== 'en';
 
@@ -229,11 +230,49 @@ export function LoginView({ onBack, initialMode }: LoginViewProps) {
     }
   };
 
-  // Google Sign-In redirect
-  const handleGoogleSignIn = () => {
+  // Sync external OAuth callback errors into inline banner so errors are never hidden
+  useEffect(() => {
+    if (initialError) {
+      setError(initialError);
+    }
+  }, [initialError]);
+
+  // Google Sign-In with pre-flight config check so it never silently bounces to /
+  const handleGoogleSignIn = async (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    setError(null);
+    setSuccessMsg(null);
     setIsLoading(true);
-    // Redirect browser to backend Google OAuth initiation route
-    window.location.href = '/api/auth/google';
+    try {
+      const cfg = await apiCall<{
+        enabled?: boolean;
+        hasClientId?: boolean;
+        hasClientSecret?: boolean;
+        redirectUri?: string;
+        mode?: string;
+      }>('/api/auth/google/config', 'GET', undefined, { timeoutMs: 4500, maxRetries: 0 });
+
+      if (!cfg?.enabled) {
+        const missing = [
+          cfg?.hasClientId === false ? 'GOOGLE_CLIENT_ID' : '',
+          cfg?.hasClientSecret === false ? 'GOOGLE_CLIENT_SECRET' : '',
+        ].filter(Boolean).join(', ') || 'GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET';
+        const hintUri = cfg?.redirectUri || `${window.location.origin}/api/auth/google/callback`;
+        const msg = `Đăng nhập Google chưa sẵn sàng: thiếu biến môi trường ${missing} trên máy chủ (${cfg?.mode || 'server'}). Sau khi thêm biến, đảm bảo Authorized redirect URI trên Google Cloud Console có: ${hintUri}`;
+        console.error('[Google OAuth Pre-flight] Disabled:', cfg);
+        setError(msg);
+        setIsLoading(false);
+        return;
+      }
+
+      window.location.assign('/api/auth/google');
+    } catch (err: any) {
+      console.error('[Google OAuth Pre-flight] Failed to verify /api/auth/google/config:', err);
+      setError(
+        `Không thể kết nối tới cổng xác thực Google (/api/auth/google/config): ${err?.message || 'Lỗi máy chủ'}. Vui lòng kiểm tra cấu hình Cloudflare Worker / Backend.`
+      );
+      setIsLoading(false);
+    }
   };
 
   // One-click quick login for admin / testing

@@ -255,6 +255,31 @@ function AppContent() {
     return 'login';
   });
 
+  const [oauthError, setOauthError] = useState<string | null>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const loginStatus = params.get('login');
+      const reason = params.get('reason');
+      if (loginStatus && loginStatus !== 'google_success') {
+        const errMap: Record<string, string> = {
+          google_not_configured: 'Đăng nhập Google chưa được cấu hình trên máy chủ (thiếu GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET).',
+          google_init_error: 'Không thể khởi tạo phiên đăng nhập Google.',
+          google_cancelled: 'Bạn đã hủy quá trình đăng nhập Google.',
+          google_state_mismatch: 'Phiên đăng nhập Google đã hết hạn hoặc không khớp cookie/domain. Vui lòng thử lại.',
+          google_missing_code: 'Google không trả về mã xác thực (authorization code).',
+          google_email_unverified: 'Tài khoản Google của bạn chưa được xác minh email.',
+          google_token_exchange_failed: 'Không thể đổi mã xác thực với Google (kiểm tra Authorized redirect URI trên Google Cloud Console).',
+          google_profile_fetch_failed: 'Không thể lấy thông tin hồ sơ từ tài khoản Google.',
+          google_server_error: 'Có lỗi máy chủ xảy ra khi xác thực với Google. Vui lòng thử lại.',
+          account_locked: 'Tài khoản của bạn đã bị khóa hoặc tạm ngưng.'
+        };
+        const base = errMap[loginStatus] || `Đăng nhập Google thất bại (${loginStatus}).`;
+        return reason ? `${base} Chi tiết: ${reason}` : base;
+      }
+    }
+    return null;
+  });
+
   const [deviceMode, setDeviceMode] = useState<DeviceMode>('desktop');
   const [deviceOrientation, setDeviceOrientation] = useState<'portrait' | 'landscape'>('portrait');
 
@@ -274,39 +299,59 @@ function AppContent() {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       const loginStatus = params.get('login');
+      const reason = params.get('reason');
       const token = params.get('token');
       if (token && token.length > 20) {
         try { localStorage.setItem('token', token); } catch (e) {}
       }
       if (loginStatus === 'google_success') {
         setIsGoogleProcessing(true);
+        setOauthError(null);
         // Immediately fetch user profile and transition UI state to authenticated
-        apiCall('/api/auth/me').then(res => {
+        apiCall('/api/auth/me', 'GET', undefined, 10000).then(async (res) => {
           if (res && (res.user || res.id)) {
             const u = res.user || res;
-            login(u);
+            await login(u, token || res.token || undefined);
             toast.success('Đăng nhập Google thành công! Chào mừng bạn quay trở lại.');
           } else {
-            toast.error('Không thể xác thực phiên làm việc Google.');
+            const msg = 'Không thể xác thực phiên làm việc Google từ /api/auth/me.';
+            console.error('[Google OAuth] /api/auth/me returned empty user:', res);
+            setOauthError(msg);
+            setPublicView('login');
+            await logout();
+            toast.error(msg);
           }
-        }).catch(err => {
-          console.error('Google OAuth post-login error:', err);
-          toast.error('Có lỗi xảy ra khi xác thực với Google.');
+        }).catch(async (err) => {
+          const detail = err?.message || `HTTP ${err?.status || 'UNKNOWN'}`;
+          const msg = `Xác thực phiên Google thất bại sau khi chuyển hướng: ${detail}`;
+          console.error('[Google OAuth] Post-login /api/auth/me error:', err);
+          setOauthError(msg);
+          setPublicView('login');
+          await logout();
+          toast.error(msg);
         }).finally(() => {
           setIsGoogleProcessing(false);
           window.history.replaceState({}, document.title, window.location.pathname);
         });
-      } else if (loginStatus && loginStatus.startsWith('google_')) {
+      } else if (loginStatus && (loginStatus.startsWith('google_') || loginStatus === 'account_locked')) {
         const errMap: Record<string, string> = {
+          google_not_configured: 'Đăng nhập Google chưa được cấu hình trên máy chủ (thiếu GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET).',
+          google_init_error: 'Không thể khởi tạo phiên đăng nhập Google.',
           google_cancelled: 'Bạn đã hủy quá trình đăng nhập Google.',
-          google_state_mismatch: 'Phiên đăng nhập Google đã hết hạn hoặc không khớp. Vui lòng thử lại.',
+          google_state_mismatch: 'Phiên đăng nhập Google đã hết hạn hoặc không khớp cookie/domain. Vui lòng thử lại.',
+          google_missing_code: 'Google không trả về mã xác thực (authorization code).',
           google_email_unverified: 'Tài khoản Google của bạn chưa được xác minh email.',
-          google_token_exchange_failed: 'Không thể kết nối với máy chủ Google để xác thực mã truy cập.',
+          google_token_exchange_failed: 'Không thể đổi mã xác thực với Google (kiểm tra Authorized redirect URI trên Google Cloud Console).',
           google_profile_fetch_failed: 'Không thể lấy thông tin hồ sơ từ tài khoản Google.',
-          google_server_error: 'Có lỗi xảy ra khi xác thực với Google. Vui lòng thử lại.',
+          google_server_error: 'Có lỗi máy chủ xảy ra khi xác thực với Google. Vui lòng thử lại.',
           account_locked: 'Tài khoản của bạn đã bị khóa hoặc tạm ngưng.'
         };
-        toast.error(errMap[loginStatus] || 'Đăng nhập Google thất bại. Vui lòng thử lại.');
+        const base = errMap[loginStatus] || `Đăng nhập Google thất bại (${loginStatus}).`;
+        const fullMsg = reason ? `${base} Chi tiết: ${reason}` : base;
+        console.error('[Google OAuth] Callback returned error:', { loginStatus, reason });
+        setOauthError(fullMsg);
+        setPublicView('login');
+        toast.error(fullMsg);
         window.history.replaceState({}, document.title, window.location.pathname);
       }
 
@@ -367,7 +412,7 @@ function AppContent() {
     if (publicView === 'login') {
       return (
         <div className="w-full h-full">
-          <LoginView onBack={() => setPublicView('home')} initialMode={authInitialMode} />
+          <LoginView onBack={() => { setOauthError(null); setPublicView('home'); }} initialMode={authInitialMode} initialError={oauthError} />
           <CookieConsentBanner />
         </div>
       );

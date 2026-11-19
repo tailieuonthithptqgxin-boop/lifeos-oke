@@ -378,7 +378,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     };
 
-    initApp();
+    // Prevent double-/api/auth/me race condition while Google OAuth callback is actively hydrating in App.tsx
+    if (!isGoogleLogin) {
+      initApp();
+    }
     loadLanguages();
 
     const handleSessionExpired = () => {

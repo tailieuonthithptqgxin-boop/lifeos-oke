@@ -320,9 +320,43 @@ export function PublicLandingView({ onLoginClick, onNavigateLegal }: PublicLandi
     }
   };
 
-  // Google OAuth redirect
-  const handleGoogleAuth = () => {
-    window.location.href = '/api/auth/google';
+  // Google OAuth redirect with pre-flight verification (never silently bounces back to /)
+  const handleGoogleAuth = async (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    setAuthError(null);
+    setAuthSuccess(null);
+    setIsSubmitting(true);
+    try {
+      const cfg = await apiCall<{
+        enabled?: boolean;
+        hasClientId?: boolean;
+        hasClientSecret?: boolean;
+        redirectUri?: string;
+        mode?: string;
+      }>('/api/auth/google/config', 'GET', undefined, { timeoutMs: 4500, maxRetries: 0 });
+
+      if (!cfg?.enabled) {
+        const missing = [
+          cfg?.hasClientId === false ? 'GOOGLE_CLIENT_ID' : '',
+          cfg?.hasClientSecret === false ? 'GOOGLE_CLIENT_SECRET' : '',
+        ].filter(Boolean).join(', ') || 'GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET';
+        const hintUri = cfg?.redirectUri || `${window.location.origin}/api/auth/google/callback`;
+        console.error('[Google OAuth Pre-flight] Disabled:', cfg);
+        setAuthError(
+          `Đăng nhập Google chưa được bật: thiếu ${missing} trên máy chủ (${cfg?.mode || 'server'}). Redirect URI cần khai báo trên Google Cloud Console: ${hintUri}`
+        );
+        setIsSubmitting(false);
+        return;
+      }
+
+      window.location.assign('/api/auth/google');
+    } catch (err: any) {
+      console.error('[Google OAuth Pre-flight] Config check failed:', err);
+      setAuthError(
+        `Không thể kết nối cổng xác thực Google (/api/auth/google/config): ${err?.message || 'Lỗi kết nối'}.`
+      );
+      setIsSubmitting(false);
+    }
   };
 
   return (

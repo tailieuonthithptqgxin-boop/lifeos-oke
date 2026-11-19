@@ -23,13 +23,23 @@ import { authRateLimiter, passwordResetRateLimiter } from '../security/rateLimit
 
 export const authRouter = Router();
 
+// Resilient origin & HTTPS detector behind reverse proxies (Cloudflare / Nginx / Vite)
+function getRequestOriginInfo(req: Request): { host: string; proto: 'http' | 'https'; origin: string; isHttps: boolean } {
+  const rawHost = String(req.get('x-forwarded-host') || req.get('host') || 'localhost:3000').split(',')[0].trim();
+  const rawProto = String(req.headers['x-forwarded-proto'] || (req.secure ? 'https' : 'http')).split(',')[0].trim().toLowerCase();
+  const proto: 'http' | 'https' = rawProto === 'https' ? 'https' : 'http';
+  const origin = `${proto}://${rawHost}`.replace(/\/$/, '');
+  return { host: rawHost, proto, origin, isHttps: proto === 'https' };
+}
+
 // Cookie configuration helper
+// Use SameSite=Lax (same-origin app + OAuth top-level redirects) so modern Chrome/Safari never drop the session cookie
 function setSessionCookie(req: Request, res: Response, token: string) {
-  const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  const { isHttps } = getRequestOriginInfo(req);
   res.cookie('token', token, {
     httpOnly: true,
     secure: isHttps,
-    sameSite: isHttps ? 'none' : 'lax',
+    sameSite: 'lax',
     path: '/',
     maxAge: 14 * 24 * 60 * 60 * 1000 // 14 days
   });
@@ -1110,20 +1120,54 @@ authRouter.post('/reset-password', passwordResetRateLimiter, validateBody(ResetP
 // 11. Google OAuth 2.0 / OpenID Connect Endpoints
 // --------------------------------------------------------------------------
 
+function resolveGoogleRedirectUri(req: Request): { host: string; origin: string; isHttps: boolean; redirectUri: string } {
+  const { host, origin: dynamicOrigin, isHttps } = getRequestOriginInfo(req);
+  const configuredCallback = (process.env.GOOGLE_CALLBACK_URL || '').trim();
+  let redirectUri = `${dynamicOrigin}/api/auth/google/callback`;
+  if (configuredCallback) {
+    if (configuredCallback.startsWith('/')) {
+      redirectUri = `${dynamicOrigin}${configuredCallback}`;
+    } else {
+      const isRequestLocal = host.includes('localhost') || host.includes('127.0.0.1');
+      const isCallbackLocal = configuredCallback.includes('localhost') || configuredCallback.includes('127.0.0.1');
+      if (isRequestLocal || !isCallbackLocal) {
+        // Avoid localhost vs 127.0.0.1 mismatch when testing locally
+        if (isRequestLocal && isCallbackLocal) {
+          redirectUri = `${dynamicOrigin}/api/auth/google/callback`;
+        } else {
+          redirectUri = configuredCallback;
+        }
+      }
+    }
+  }
+  return { host, origin: dynamicOrigin, isHttps, redirectUri };
+}
+
+function redirectOAuthError(res: Response, code: string, reason?: string) {
+  const qs = new URLSearchParams({ login: code });
+  if (reason) qs.set('reason', reason.slice(0, 300));
+  res.redirect(`/?${qs.toString()}`);
+}
+
 // 11A. Check if Google OAuth is configured
 authRouter.get('/google/config', (req: Request, res: Response) => {
   const clientId = (process.env.GOOGLE_CLIENT_ID || '').trim();
+  const clientSecret = (process.env.GOOGLE_CLIENT_SECRET || '').trim();
+  const { origin, redirectUri } = resolveGoogleRedirectUri(req);
   res.json({
-    enabled: Boolean(clientId && clientId.length > 5),
-    clientId: clientId || null
+    enabled: Boolean(clientId && clientId.length > 5 && clientSecret && clientSecret.length > 5),
+    hasClientId: Boolean(clientId && clientId.length > 5),
+    hasClientSecret: Boolean(clientSecret && clientSecret.length > 5),
+    clientId: clientId || null,
+    origin,
+    redirectUri,
+    mode: 'express-backend'
   });
 });
 
 // Cryptographic state helpers for resilient OAuth flow
 function createSignedOAuthState(req: Request, redirectUri: string): string {
-  const host = req.get('x-forwarded-host') || req.get('host') || 'localhost:3000';
-  const proto = (req.headers['x-forwarded-proto'] as string) || (req.secure ? 'https' : 'http');
-  const origin = `${proto}://${host}`.replace(/\/$/, '');
+  const { origin } = getRequestOriginInfo(req);
   const nonce = crypto.randomBytes(16).toString('hex');
   const payload = JSON.stringify({ nonce, origin, redirectUri, ts: Date.now() });
   const b64 = Buffer.from(payload).toString('base64url');
@@ -1151,7 +1195,7 @@ function verifySignedOAuthState(rawState: string, storedCookieState?: string): {
     const [b64, sig] = rawState.split('.');
     if (!b64 || !sig) return { valid: false };
     const expectedSig = crypto.createHmac('sha256', getJwtSecret()).update(b64).digest('base64url');
-    if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expectedSig))) {
+    if (sig.length !== expectedSig.length || !crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expectedSig))) {
       return { valid: false };
     }
     const payload = JSON.parse(Buffer.from(b64, 'base64url').toString('utf8'));
@@ -1169,56 +1213,20 @@ function verifySignedOAuthState(rawState: string, storedCookieState?: string): {
 authRouter.get('/google', (req: Request, res: Response) => {
   try {
     const clientId = (process.env.GOOGLE_CLIENT_ID || '').trim();
-    if (!clientId) {
-      res.status(400).send(`
-        <!DOCTYPE html>
-        <html>
-        <head><meta charset="utf-8"><title>Google OAuth Chưa Cấu Hình</title></head>
-        <body style="font-family:system-ui,sans-serif;padding:40px;background:#0f172a;color:#f8fafc;text-align:center;">
-          <div style="max-width:500px;margin:auto;background:#1e293b;padding:32px;border-radius:16px;border:1px solid #334155;">
-            <h2 style="color:#f43f5e;">⚠️ Google OAuth Chưa Được Bật</h2>
-            <p style="color:#94a3b8;font-size:14px;line-height:1.6;">
-              Hệ thống chưa tìm thấy biến <code>GOOGLE_CLIENT_ID</code> trong file <code>.env</code>.
-            </p>
-            <p style="color:#cbd5e1;font-size:13px;">
-              Quản trị viên vui lòng cấu hình <code>GOOGLE_CLIENT_ID</code> và <code>GOOGLE_CLIENT_SECRET</code> trong file <code>.env</code> trên máy chủ VPS.
-            </p>
-            <a href="/" style="display:inline-block;margin-top:20px;padding:10px 24px;background:#10b981;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;">
-              Quay về Trang Chủ
-            </a>
-          </div>
-        </body>
-        </html>
-      `);
+    const clientSecret = (process.env.GOOGLE_CLIENT_SECRET || '').trim();
+    if (!clientId || !clientSecret) {
+      const missing = [!clientId ? 'GOOGLE_CLIENT_ID' : '', !clientSecret ? 'GOOGLE_CLIENT_SECRET' : ''].filter(Boolean).join(', ');
+      console.error(`[Google OAuth] Missing env variables: ${missing}`);
+      redirectOAuthError(res, 'google_not_configured', `Thiếu biến môi trường ${missing} trên máy chủ.`);
       return;
     }
 
-    const host = req.get('x-forwarded-host') || req.get('host') || 'localhost:3000';
-    const proto = (req.headers['x-forwarded-proto'] as string) || (req.secure ? 'https' : 'http');
-    const dynamicOrigin = `${proto}://${host}`.replace(/\/$/, '');
-    
-    // Resilient Redirect URI resolution:
-    // If request comes from a live public domain (e.g. quanlicanhan.online), never let a legacy localhost
-    // GOOGLE_CALLBACK_URL env override it!
-    const configuredCallback = (process.env.GOOGLE_CALLBACK_URL || '').trim();
-    let redirectUri = `${dynamicOrigin}/api/auth/google/callback`;
-    if (configuredCallback) {
-      if (configuredCallback.startsWith('/')) {
-        redirectUri = `${dynamicOrigin}${configuredCallback}`;
-      } else {
-        const isRequestLocal = host.includes('localhost') || host.includes('127.0.0.1');
-        const isCallbackLocal = configuredCallback.includes('localhost') || configuredCallback.includes('127.0.0.1');
-        if (isRequestLocal || !isCallbackLocal) {
-          redirectUri = configuredCallback;
-        }
-      }
-    }
+    const { host, origin: dynamicOrigin, isHttps, redirectUri } = resolveGoogleRedirectUri(req);
 
     console.log(`[Google OAuth] Initiating Sign-In flow: host=${host}, origin=${dynamicOrigin}, redirectUri=${redirectUri}`);
 
     // Secure CSRF state token with cryptographic signature
     const state = createSignedOAuthState(req, redirectUri);
-    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
 
     res.cookie('google_oauth_state', state, {
       httpOnly: true,
@@ -1239,15 +1247,15 @@ authRouter.get('/google', (req: Request, res: Response) => {
 
     res.redirect(googleAuthUrl.toString());
   } catch (error: any) {
-    console.error('Google OAuth init error:', error);
-    res.redirect('/?login=google_init_error');
+    console.error('[Google OAuth] Init error:', error);
+    redirectOAuthError(res, 'google_init_error', error?.message || 'Lỗi khởi tạo liên kết đăng nhập Google.');
   }
 });
 
 // 11C. Handle Google OAuth Callback
 const handleGoogleCallback = async (req: Request, res: Response) => {
   try {
-    const { code, state, error: googleError } = req.query;
+    const { code, state, error: googleError, error_description: googleErrorDesc } = req.query;
     const clientIp = (req.headers['x-forwarded-for'] as string) || req.socket.remoteAddress || '';
     const storedState = req.cookies?.google_oauth_state;
 
@@ -1255,20 +1263,18 @@ const handleGoogleCallback = async (req: Request, res: Response) => {
     res.clearCookie('google_oauth_state', { path: '/' });
 
     if (googleError) {
-      console.warn('[Google OAuth] Google returned error:', googleError);
+      console.warn('[Google OAuth] Google returned error:', googleError, googleErrorDesc || '');
       if (typeof state === 'string' && state.startsWith('cls_')) {
         res.redirect(`/?view=classroom&google_error=${encodeURIComponent(String(googleError))}`);
         return;
       }
-      res.redirect('/?login=google_cancelled');
+      redirectOAuthError(res, 'google_cancelled', String(googleErrorDesc || googleError));
       return;
     }
 
     // Check if callback originated from Classroom / Google Meet connect flow
     if (typeof state === 'string' && state.startsWith('cls_')) {
-      const host = req.get('x-forwarded-host') || req.get('host') || 'localhost:3000';
-      const proto = (req.headers['x-forwarded-proto'] as string) || (req.secure ? 'https' : 'http');
-      const dynamicOrigin = `${proto}://${host}`.replace(/\/$/, '');
+      const { origin: dynamicOrigin } = getRequestOriginInfo(req);
       const redirectUri = classroomService.getClassroomRedirectUri(dynamicOrigin);
 
       try {
@@ -1283,37 +1289,23 @@ const handleGoogleCallback = async (req: Request, res: Response) => {
     const stateCheck = verifySignedOAuthState(String(state || ''), storedState);
     if (!stateCheck.valid) {
       console.warn('[Google OAuth] State verification failed (signature or timeout mismatch)');
-      res.redirect('/?login=google_state_mismatch');
+      redirectOAuthError(res, 'google_state_mismatch', 'Phiên xác thực Google đã hết hạn hoặc bị sai lệch domain/cookie. Vui lòng thử lại.');
       return;
     }
 
     if (!code || typeof code !== 'string') {
-      res.redirect('/?login=google_missing_code');
+      redirectOAuthError(res, 'google_missing_code', 'Google không trả về mã xác thực (authorization code).');
       return;
     }
 
     const clientId = (process.env.GOOGLE_CLIENT_ID || '').trim();
     const clientSecret = (process.env.GOOGLE_CLIENT_SECRET || '').trim();
-    const host = req.get('x-forwarded-host') || req.get('host') || 'localhost:3000';
-    const proto = (req.headers['x-forwarded-proto'] as string) || (req.secure ? 'https' : 'http');
-    const dynamicOrigin = `${proto}://${host}`.replace(/\/$/, '');
-    
-    let redirectUri = stateCheck.redirectUri;
-    if (!redirectUri) {
-      const configuredCallback = (process.env.GOOGLE_CALLBACK_URL || '').trim();
-      redirectUri = `${dynamicOrigin}/api/auth/google/callback`;
-      if (configuredCallback) {
-        if (configuredCallback.startsWith('/')) {
-          redirectUri = `${dynamicOrigin}${configuredCallback}`;
-        } else {
-          const isRequestLocal = host.includes('localhost') || host.includes('127.0.0.1');
-          const isCallbackLocal = configuredCallback.includes('localhost') || configuredCallback.includes('127.0.0.1');
-          if (isRequestLocal || !isCallbackLocal) {
-            redirectUri = configuredCallback;
-          }
-        }
-      }
+    if (!clientId || !clientSecret) {
+      redirectOAuthError(res, 'google_not_configured', 'Thiếu GOOGLE_CLIENT_ID hoặc GOOGLE_CLIENT_SECRET trên máy chủ.');
+      return;
     }
+    const { origin: dynamicOrigin, redirectUri: fallbackRedirectUri } = resolveGoogleRedirectUri(req);
+    const redirectUri = stateCheck.redirectUri || fallbackRedirectUri;
 
     // Exchange authorization code for tokens
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
@@ -1328,11 +1320,13 @@ const handleGoogleCallback = async (req: Request, res: Response) => {
       })
     });
 
-    const tokenData: any = await tokenResponse.json();
+    const tokenData: any = await tokenResponse.json().catch(() => null);
 
-    if (!tokenResponse.ok || !tokenData.access_token) {
-      console.error('[Google OAuth] Token exchange failed:', tokenData);
-      res.redirect('/?login=google_token_exchange_failed');
+    if (!tokenResponse.ok || !tokenData?.access_token) {
+      const errCode = tokenData?.error || `HTTP_${tokenResponse.status}`;
+      const errDesc = tokenData?.error_description || 'Không thể trao đổi mã xác thực với Google.';
+      console.error('[Google OAuth] Token exchange failed:', { errCode, errDesc, redirectUri });
+      redirectOAuthError(res, 'google_token_exchange_failed', `${errCode}: ${errDesc} (redirect_uri=${redirectUri})`);
       return;
     }
 
@@ -1341,11 +1335,11 @@ const handleGoogleCallback = async (req: Request, res: Response) => {
       headers: { Authorization: `Bearer ${tokenData.access_token}` }
     });
 
-    const profile: any = await userinfoResponse.json();
+    const profile: any = await userinfoResponse.json().catch(() => null);
 
     if (!userinfoResponse.ok || !profile?.email) {
       console.error('[Google OAuth] Failed to fetch userinfo:', profile);
-      res.redirect('/?login=google_profile_fetch_failed');
+      redirectOAuthError(res, 'google_profile_fetch_failed', 'Không thể lấy thông tin email/hồ sơ từ Google.');
       return;
     }
 
@@ -1467,8 +1461,8 @@ const handleGoogleCallback = async (req: Request, res: Response) => {
     const targetOrigin = stateCheck.origin || dynamicOrigin;
     res.redirect(`${targetOrigin}/?login=google_success&token=${encodeURIComponent(token)}`);
   } catch (error: any) {
-    console.error('Google OAuth callback error:', error);
-    res.redirect('/?login=google_server_error');
+    console.error('[Google OAuth] Callback error:', error);
+    redirectOAuthError(res, 'google_server_error', error?.message || 'Lỗi máy chủ khi hoàn tất phiên Google OAuth.');
   }
 };
 
