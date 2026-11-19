@@ -73,7 +73,7 @@ interface AppState {
 
 // Generate context generic action types
 interface AppContextType extends AppState {
-  login: (user: User) => void;
+  login: (user: User, token?: string) => Promise<void> | void;
   logout: () => void;
   completeOnboarding: (selections?: any) => Promise<void>;
   resetOnboarding: () => Promise<void>;
@@ -587,9 +587,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const login = async (user: User) => {
+  const login = async (user: User, token?: string) => {
     const unifiedUser = normalizeUserStats(user);
     try {
+      if (token && token.length > 10) {
+        localStorage.setItem('token', token);
+      }
       localStorage.setItem('lifeos_swr_user', JSON.stringify(unifiedUser));
       localStorage.setItem('lifeos_user', JSON.stringify(unifiedUser));
     } catch (e) {}

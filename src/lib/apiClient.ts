@@ -209,12 +209,14 @@ export async function apiCall<T = any>(
       } catch {}
     }
     if (csrfToken && method !== 'GET') {
-      headers['X-CSRF-Token'] = csrfToken;
+      const safeCsrf = csrfToken.replace(/[^\x20-\x7E]/g, '').trim();
+      if (safeCsrf) headers['X-CSRF-Token'] = safeCsrf;
     }
 
-    // Bearer fallback if token exists in localStorage
+    // Bearer fallback if token exists in localStorage (sanitize to ASCII to prevent fetch header TypeError)
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      const safeToken = token.replace(/[^\x20-\x7E]/g, '').trim();
+      if (safeToken) headers['Authorization'] = `Bearer ${safeToken}`;
     }
 
     const effectiveTimeout = (endpoint.includes('/data-batch') || endpoint.includes('/clear-workspace') || endpoint.includes('/ai'))
@@ -279,12 +281,23 @@ export async function apiCall<T = any>(
           (timeoutErr as any).preservedPayload = data;
           throw timeoutErr;
         }
-        if (typeof navigator !== 'undefined' && (!navigator.onLine || (fetchErr instanceof TypeError && (fetchErr.message.includes('fetch') || fetchErr.message.includes('Network'))))) {
-          const netErr = new Error('Không thể kết nối đến máy chủ. Kết nối mạng bị gián đoạn, dữ liệu của bạn được bảo toàn.');
+        const rawErrMsg = String(fetchErr?.message || '');
+        const isTrueNetworkError =
+          (typeof navigator !== 'undefined' && !navigator.onLine) ||
+          (fetchErr instanceof TypeError &&
+            (/failed to fetch|load failed|networkerror|network request failed/i.test(rawErrMsg)));
+
+        if (isTrueNetworkError) {
+          console.error(`[ApiClient] Network error on ${method} ${endpoint}:`, rawErrMsg);
+          const netErr = new Error(
+            `Không thể kết nối đến máy chủ (${endpoint}). Vui lòng kiểm tra kết nối mạng hoặc thử tải lại trang (Ctrl+F5).`
+          );
           (netErr as any).isNetworkError = true;
+          (netErr as any).rawError = rawErrMsg;
           (netErr as any).preservedPayload = data;
           throw netErr;
         }
+        console.error(`[ApiClient] Fetch error on ${method} ${endpoint}:`, fetchErr);
         (fetchErr as any).preservedPayload = data;
         throw fetchErr;
       } finally {
