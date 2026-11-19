@@ -95,10 +95,31 @@ export function clearInputDraft(formKey: string): void {
 
 export async function apiCall<T = any>(
   endpoint: string,
-  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'GET',
-  data?: any,
+  methodOrInit: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | { method?: string; body?: any; headers?: Record<string, string> } = 'GET',
+  dataArg?: any,
   timeoutOrOptions: number | ApiCallOptions = 20000
 ): Promise<T> {
+  let method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'GET';
+  let data: any = dataArg;
+
+  if (typeof methodOrInit === 'object' && methodOrInit !== null) {
+    const rawMethod = String(methodOrInit.method || 'GET').toUpperCase();
+    method = (['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].includes(rawMethod) ? rawMethod : 'GET') as any;
+    if (data === undefined && methodOrInit.body !== undefined) {
+      if (typeof methodOrInit.body === 'string') {
+        try {
+          data = JSON.parse(methodOrInit.body);
+        } catch {
+          data = methodOrInit.body;
+        }
+      } else {
+        data = methodOrInit.body;
+      }
+    }
+  } else if (typeof methodOrInit === 'string') {
+    method = methodOrInit.toUpperCase() as any;
+  }
+
   const timeoutMs = typeof timeoutOrOptions === 'number' ? timeoutOrOptions : (timeoutOrOptions?.timeoutMs ?? 20000);
   const isSilent = typeof timeoutOrOptions === 'object' && Boolean(timeoutOrOptions?.silent);
   const cacheTtl = typeof timeoutOrOptions === 'object' && timeoutOrOptions?.cacheTtlMs !== undefined

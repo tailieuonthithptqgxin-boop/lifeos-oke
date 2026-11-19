@@ -59,4 +59,55 @@ describe('Cloudflare Edge Google OAuth & Session Suite', () => {
     const body: any = await res.json();
     assert.equal(body.error?.code, 'NO_TOKEN');
   });
+
+  it('creates quick trial account on POST /api/auth/register and validates token on /api/auth/me', async () => {
+    const registerReq = new Request('https://lifeos-oke.example.workers.dev/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: 'Khách Trải Nghiệm #TEST',
+        email: 'guest_test1@lifeos.vn',
+        password: 'DemoPass@test2026',
+      }),
+    });
+    const regRes = await worker.fetch(registerReq, { API_BACKEND_URL: 'http://localhost:3000' }, mockCtx);
+    assert.equal(regRes.status, 201);
+    const regBody: any = await regRes.json();
+    assert.equal(regBody.success, true);
+    assert.equal(regBody.user.email, 'guest_test1@lifeos.vn');
+    assert.ok(regBody.token && regBody.token.split('.').length === 3);
+
+    const meReq = new Request('https://lifeos-oke.example.workers.dev/api/auth/me', {
+      headers: { Authorization: `Bearer ${regBody.token}` },
+    });
+    const meRes = await worker.fetch(meReq, { API_BACKEND_URL: 'http://localhost:3000' }, mockCtx);
+    assert.equal(meRes.status, 200);
+    const meBody: any = await meRes.json();
+    assert.equal(meBody.success, true);
+    assert.equal(meBody.user.email, 'guest_test1@lifeos.vn');
+  });
+
+  it('supports 1-tap Admin login and /api/data-batch on Cloudflare Free Tier without VPS', async () => {
+    const loginReq = new Request('https://lifeos-oke.example.workers.dev/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ identifier: 'admin@lifeos.com', password: 'Admin@123456' }),
+    });
+    const loginRes = await worker.fetch(loginReq, { API_BACKEND_URL: 'http://localhost:3000' }, mockCtx);
+    assert.equal(loginRes.status, 200);
+    const loginBody: any = await loginRes.json();
+    assert.equal(loginBody.success, true);
+    assert.equal(loginBody.user.role, 'SUPERADMIN');
+
+    const batchReq = new Request('https://lifeos-oke.example.workers.dev/api/data-batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ collections: ['tasks', 'habits', 'transactions'] }),
+    });
+    const batchRes = await worker.fetch(batchReq, { API_BACKEND_URL: 'http://localhost:3000' }, mockCtx);
+    assert.equal(batchRes.status, 200);
+    const batchBody: any = await batchRes.json();
+    assert.equal(batchBody.success, true);
+    assert.deepEqual(batchBody.data.tasks, []);
+  });
 });

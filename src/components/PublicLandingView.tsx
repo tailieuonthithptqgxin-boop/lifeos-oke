@@ -187,19 +187,20 @@ export function PublicLandingView({ onLoginClick, onNavigateLegal }: PublicLandi
           message?: string;
           user: any;
           token?: string;
-        }>('/api/auth/login', {
-          method: 'POST',
-          body: JSON.stringify({
-            emailOrUsername: emailOrUsername.trim(),
-            password
-          })
+        }>('/api/auth/login', 'POST', {
+          identifier: emailOrUsername.trim(),
+          emailOrUsername: emailOrUsername.trim(),
+          password
         });
 
         if (res.success && res.user) {
+          if (res.token) {
+            try { localStorage.setItem('token', res.token); } catch {}
+          }
           toast.show(`Chào mừng bạn trở lại, ${res.user.name || 'bạn'}!`, 'success', 'Đăng nhập thành công');
-          notifyAuthSecurity('LOGIN_SUCCESS', { email: res.user.email });
+          notifyAuthSecurity('LOGIN_SUCCESS', res.user.email || emailOrUsername.trim(), res.user.name).catch(() => {});
           analyticsTracker.trackFeatureView('auth_login_success');
-          login(res.user, res.token);
+          await login(res.user, res.token);
           setIsAuthModalOpen(false);
         } else {
           setAuthError(res.message || 'Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại!');
@@ -218,8 +219,8 @@ export function PublicLandingView({ onLoginClick, onNavigateLegal }: PublicLandi
         setAuthError('Vui lòng nhập địa chỉ email hợp lệ.');
         return;
       }
-      if (!password || password.length < 6) {
-        setAuthError('Mật khẩu phải có độ dài tối thiểu 6 ký tự.');
+      if (!password || password.length < 8) {
+        setAuthError('Mật khẩu phải có độ dài tối thiểu 8 ký tự.');
         return;
       }
       if (password !== confirmPassword) {
@@ -234,21 +235,21 @@ export function PublicLandingView({ onLoginClick, onNavigateLegal }: PublicLandi
           message?: string;
           user: any;
           token?: string;
-        }>('/api/auth/register', {
-          method: 'POST',
-          body: JSON.stringify({
-            name: name.trim(),
-            email: emailOrUsername.trim().toLowerCase(),
-            password,
-            referralCode: inputRefCode.trim().toUpperCase() || undefined
-          })
+        }>('/api/auth/register', 'POST', {
+          name: name.trim(),
+          email: emailOrUsername.trim().toLowerCase(),
+          password,
+          referralCode: inputRefCode.trim().toUpperCase() || undefined
         });
 
         if (res.success && res.user) {
-          toast.show('Chúc mừng bạn đã tạo tài khoản thành công! Tặng bạn 7 ngày trải nghiệm toàn bộ tính năng.', 'success', 'Đăng ký thành công');
-          notifyAuthSecurity('REGISTER_SUCCESS', { email: res.user.email });
+          if (res.token) {
+            try { localStorage.setItem('token', res.token); } catch {}
+          }
+          toast.show('Chúc mừng bạn đã tạo tài khoản thành công! Không gian LifeOS của bạn đã sẵn sàng.', 'success', 'Đăng ký thành công');
+          notifyAuthSecurity('REGISTER_SUCCESS', res.user.email || emailOrUsername.trim(), res.user.name).catch(() => {});
           analyticsTracker.trackFeatureView('auth_register_success');
-          login(res.user, res.token);
+          await login(res.user, res.token);
           setIsAuthModalOpen(false);
         } else {
           setAuthError(res.message || 'Không thể tạo tài khoản. Vui lòng thử lại!');
@@ -265,9 +266,8 @@ export function PublicLandingView({ onLoginClick, onNavigateLegal }: PublicLandi
       }
       setIsSubmitting(true);
       try {
-        const res = await apiCall<{ success: boolean; message?: string }>('/api/auth/forgot-password', {
-          method: 'POST',
-          body: JSON.stringify({ email: emailOrUsername.trim().toLowerCase() })
+        const res = await apiCall<{ success: boolean; message?: string }>('/api/auth/forgot-password', 'POST', {
+          email: emailOrUsername.trim().toLowerCase()
         });
         if (res.success) {
           setAuthSuccess(res.message || 'Đã gửi liên kết khôi phục mật khẩu về hòm thư Gmail của bạn. Vui lòng kiểm tra hộp thư đến!');
@@ -296,25 +296,25 @@ export function PublicLandingView({ onLoginClick, onNavigateLegal }: PublicLandi
         message?: string;
         user: any;
         token?: string;
-      }>('/api/auth/register', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: `Khách Trải Nghiệm #${demoRand.toUpperCase()}`,
-          email: demoEmail,
-          password: demoPassword,
-          referralCode: inputRefCode.trim().toUpperCase() || undefined
-        })
+      }>('/api/auth/register', 'POST', {
+        name: `Khách Trải Nghiệm #${demoRand.toUpperCase()}`,
+        email: demoEmail,
+        password: demoPassword,
+        referralCode: inputRefCode.trim().toUpperCase() || undefined
       });
 
       if (res.success && res.user) {
+        if (res.token) {
+          try { localStorage.setItem('token', res.token); } catch {}
+        }
         toast.show('Đang đưa bạn vào không gian trải nghiệm trực tiếp...', 'success', 'Dùng thử 1 chạm');
-        login(res.user, res.token);
+        await login(res.user, res.token);
         setIsAuthModalOpen(false);
       } else {
-        setAuthError('Không thể tạo tài khoản trải nghiệm nhanh. Vui lòng thử lại!');
+        setAuthError(res.message || 'Không thể tạo tài khoản trải nghiệm nhanh. Vui lòng thử lại!');
       }
     } catch (err: any) {
-      setAuthError('Lỗi kết nối máy chủ khi tạo tài khoản trải nghiệm. Vui lòng thử lại!');
+      setAuthError(err?.message || 'Lỗi kết nối máy chủ khi tạo tài khoản trải nghiệm. Vui lòng thử lại!');
     } finally {
       setIsSubmitting(false);
     }
