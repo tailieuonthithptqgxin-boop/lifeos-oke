@@ -39,6 +39,7 @@ export default defineConfig(() => {
       },
     },
     build: {
+      emptyOutDir: true,
       target: 'esnext',
       cssTarget: 'esnext',
       chunkSizeWarningLimit: 4000,

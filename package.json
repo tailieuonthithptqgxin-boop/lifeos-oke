@@ -9,7 +9,7 @@
     "prisma:push": "prisma db push",
     "prisma:migrate": "prisma migrate deploy",
     "build:server": "esbuild src/backend/serverMain.ts --bundle --platform=node --format=esm --packages=external --target=esnext --outfile=dist/server.mjs",
-    "build": "prisma generate && node --max-old-space-size=2048 ./node_modules/vite/bin/vite.js build && node -e \"import('fs').then(fs=>fs.rmSync('dist/_redirects',{force:true}))\" && npm run build:server",
+    "build": "prisma generate && node scripts/clean_build.mjs && node --max-old-space-size=2048 ./node_modules/vite/bin/vite.js build && node scripts/clean_build.mjs && npm run build:server",
     "cloudflare:types": "npx wrangler types",
     "cloudflare:dry-run": "npx wrangler deploy --dry-run",
     "cloudflare:deploy": "npx wrangler deploy --env=production",

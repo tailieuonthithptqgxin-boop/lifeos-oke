@@ -49,8 +49,8 @@ export function CommunitiesView({ currentUserId, onSelectCommunityFeed }: Commun
         search: search.trim() || undefined,
         category: selectedCategory !== 'Tất cả' ? selectedCategory : undefined
       });
-      if (res.success) {
-        setCommunities(res.communities);
+      if (res && res.success) {
+        setCommunities(Array.isArray(res.communities) ? res.communities : []);
       }
     } catch (err: any) {
       toast.show(err.message || 'Lỗi tải danh sách cộng đồng', 'error');

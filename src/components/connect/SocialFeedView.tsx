@@ -85,13 +85,14 @@ export function SocialFeedView({ currentUserId, onOpenProfile, communityId }: So
         authorId: filter === 'mine' ? currentUserId : undefined,
         cursor
       });
-      if (res.success) {
+      if (res && res.success) {
+        const postList = Array.isArray(res.posts) ? res.posts : [];
         if (cursor) {
-          setPosts(prev => [...prev, ...res.posts]);
+          setPosts(prev => [...(prev || []), ...postList]);
         } else {
-          setPosts(res.posts);
+          setPosts(postList);
         }
-        setNextCursor(res.nextCursor);
+        setNextCursor(res.nextCursor || null);
       }
     } catch (err: any) {
       toast.show(err.message || 'Không thể tải bảng tin', 'error');

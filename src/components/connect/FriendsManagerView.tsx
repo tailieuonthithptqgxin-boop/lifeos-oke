@@ -27,16 +27,16 @@ export function FriendsManagerView({ currentUserId, onOpenProfile, onOpenChat }:
       setLoading(true);
       if (activeTab === 'friends') {
         const res = await connectApi.listFriends(search.trim() || undefined);
-        if (res.success) setFriends(res.friends);
+        if (res && res.success) setFriends(Array.isArray(res.friends) ? res.friends : []);
       } else if (activeTab === 'received' || activeTab === 'sent') {
         const res = await connectApi.listPendingRequests();
-        if (res.success) {
-          setReceivedRequests(res.requests.received);
-          setSentRequests(res.requests.sent);
+        if (res && res.success) {
+          setReceivedRequests(Array.isArray(res.requests?.received) ? res.requests.received : []);
+          setSentRequests(Array.isArray(res.requests?.sent) ? res.requests.sent : []);
         }
       } else if (activeTab === 'blocked') {
         const res = await connectApi.getBlockedUsers();
-        if (res.success) setBlockedUsers(res.blockedUsers);
+        if (res && res.success) setBlockedUsers(Array.isArray(res.blockedUsers) ? res.blockedUsers : []);
       }
     } catch (err: any) {
       toast.show(err.message || 'Lỗi tải danh sách bạn bè', 'error');

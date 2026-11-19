@@ -49,13 +49,14 @@ export function DirectMessagesView({
     try {
       setLoadingConv(true);
       const res = await connectApi.listConversations();
-      if (res.success) {
-        setConversations(res.conversations);
+      if (res && res.success) {
+        const convList = Array.isArray(res.conversations) ? res.conversations : [];
+        setConversations(convList);
 
         // Luồng 5 [Phòng học ảo & Cộng đồng]: Phát thông báo khi có tin nhắn mới từ bạn bè
-        const totalUnread = (res.conversations || []).reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+        const totalUnread = convList.reduce((acc, c) => acc + (c?.unreadCount || 0), 0);
         if (prevUnreadRef.current !== -1 && totalUnread > prevUnreadRef.current) {
-          const freshConv = res.conversations.find(c => (c.unreadCount || 0) > 0);
+          const freshConv = convList.find(c => (c?.unreadCount || 0) > 0);
           if (freshConv) {
             notifyStudyCommunity(
               'NEW_MESSAGE',

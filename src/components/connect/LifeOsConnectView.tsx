@@ -38,14 +38,20 @@ export function LifeOsConnectView() {
         connectApi.listConversations()
       ]);
 
-      if (profileRes.status === 'fulfilled' && profileRes.value.success) {
-        setMyProfile(profileRes.value.profile);
+      if (profileRes.status === 'fulfilled' && profileRes.value?.success) {
+        setMyProfile(profileRes.value.profile || null);
       }
-      if (requestsRes.status === 'fulfilled' && requestsRes.value.success) {
-        setPendingRequestsCount(requestsRes.value.requests.received.length);
+      if (requestsRes.status === 'fulfilled' && requestsRes.value?.success) {
+        const received = Array.isArray(requestsRes.value?.requests?.received)
+          ? requestsRes.value.requests.received
+          : [];
+        setPendingRequestsCount(received.length);
       }
-      if (convsRes.status === 'fulfilled' && convsRes.value.success) {
-        const totalUnread = convsRes.value.conversations.reduce((sum, c) => sum + (c.unreadCount || 0), 0);
+      if (convsRes.status === 'fulfilled' && convsRes.value?.success) {
+        const convList = Array.isArray(convsRes.value?.conversations)
+          ? convsRes.value.conversations
+          : [];
+        const totalUnread = convList.reduce((sum, c) => sum + (c?.unreadCount || 0), 0);
         setUnreadMessagesCount(totalUnread);
       }
     } catch {

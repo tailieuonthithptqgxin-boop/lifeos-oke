@@ -32,8 +32,8 @@ export function ExplorePeopleView({ currentUserId, onOpenProfile, onOpenChat }: 
         interest: selectedInterest !== 'Tất cả' ? selectedInterest : undefined,
         limit: 40
       });
-      if (res.success) {
-        setUsers(res.users);
+      if (res && res.success) {
+        setUsers(Array.isArray(res.users) ? res.users : []);
       }
     } catch (err: any) {
       toast.show(err.message || 'Lỗi tìm kiếm bạn bè', 'error');

@@ -906,6 +906,131 @@ async function handleEdgeStandaloneApi(request: Request): Promise<Response> {
     });
   }
 
+  // Connect / Social Hub Endpoints on Cloudflare Edge
+  if (pathname.startsWith('/api/connect/')) {
+    if (pathname === '/api/connect/profile/me' && method === 'GET') {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          profile: {
+            id: 'edge_current_user',
+            name: 'Thành viên LifeOS',
+            username: 'lifeos_user',
+            avatar: null,
+            coverImage: null,
+            bio: 'Đang trải nghiệm LifeOS trên Cloudflare Edge',
+            location: 'Việt Nam',
+            interests: ['Học tập', 'Năng suất', 'Công nghệ'],
+            learningLanguages: ['Tiếng Anh', 'Tiếng Nhật'],
+            learningGoals: ['JLPT N2', 'IELTS 7.5'],
+            totalStudyMinutes: 120,
+            weeklyStudyMinutes: 60,
+            championCount: 1,
+            friendsCount: 0,
+            postsCount: 0,
+            friendshipStatus: 'SELF',
+            canMessage: false,
+          },
+        }),
+        { status: 200, headers: jsonHeaders }
+      );
+    }
+    if (pathname.startsWith('/api/connect/profile/') && method === 'GET') {
+      const targetId = pathname.replace('/api/connect/profile/', '');
+      return new Response(
+        JSON.stringify({
+          success: true,
+          profile: {
+            id: targetId,
+            name: 'Người bạn LifeOS',
+            username: `user_${targetId.slice(0, 6)}`,
+            avatar: null,
+            coverImage: null,
+            bio: 'Thành viên cộng đồng LifeOS',
+            location: 'Việt Nam',
+            interests: ['Ngoại ngữ', 'Kỷ luật bản thân'],
+            learningLanguages: ['Tiếng Anh'],
+            learningGoals: ['Tự học mỗi ngày'],
+            totalStudyMinutes: 60,
+            weeklyStudyMinutes: 30,
+            championCount: 0,
+            friendsCount: 0,
+            postsCount: 0,
+            friendshipStatus: 'NONE',
+            canMessage: true,
+          },
+        }),
+        { status: 200, headers: jsonHeaders }
+      );
+    }
+    if (pathname === '/api/connect/friends/requests') {
+      return new Response(
+        JSON.stringify({ success: true, requests: { received: [], sent: [] } }),
+        { status: 200, headers: jsonHeaders }
+      );
+    }
+    if (pathname === '/api/connect/friends/blocked') {
+      return new Response(
+        JSON.stringify({ success: true, blockedUsers: [] }),
+        { status: 200, headers: jsonHeaders }
+      );
+    }
+    if (pathname === '/api/connect/friends') {
+      return new Response(
+        JSON.stringify({ success: true, friends: [] }),
+        { status: 200, headers: jsonHeaders }
+      );
+    }
+    if (pathname === '/api/connect/messages/conversations') {
+      return new Response(
+        JSON.stringify({ success: true, conversations: [] }),
+        { status: 200, headers: jsonHeaders }
+      );
+    }
+    if (pathname.startsWith('/api/connect/messages/')) {
+      return new Response(
+        JSON.stringify({ success: true, messages: [] }),
+        { status: 200, headers: jsonHeaders }
+      );
+    }
+    if (pathname === '/api/connect/posts') {
+      return new Response(
+        JSON.stringify({ success: true, posts: [], nextCursor: null }),
+        { status: 200, headers: jsonHeaders }
+      );
+    }
+    if (pathname === '/api/connect/explore') {
+      return new Response(
+        JSON.stringify({ success: true, users: [] }),
+        { status: 200, headers: jsonHeaders }
+      );
+    }
+    if (pathname === '/api/connect/communities') {
+      return new Response(
+        JSON.stringify({ success: true, communities: [] }),
+        { status: 200, headers: jsonHeaders }
+      );
+    }
+    return new Response(
+      JSON.stringify({
+        success: true,
+        requests: { received: [], sent: [] },
+        conversations: [],
+        posts: [],
+        friends: [],
+        users: [],
+        communities: [],
+        channels: [],
+        messages: [],
+        meets: [],
+        members: [],
+        blockedUsers: [],
+        nextCursor: null,
+      }),
+      { status: 200, headers: jsonHeaders }
+    );
+  }
+
   if (method === 'GET') {
     if (pathname.startsWith('/api/data/')) {
       return new Response(JSON.stringify([]), { status: 200, headers: jsonHeaders });
