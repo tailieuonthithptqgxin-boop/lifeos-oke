@@ -265,6 +265,7 @@ export function LoginView({ onBack, initialMode, initialError }: LoginViewProps)
         hasClientId?: boolean;
         hasClientSecret?: boolean;
         redirectUri?: string;
+        authUrl?: string;
         mode?: string;
       }>('/api/auth/google/config', 'GET', undefined, { timeoutMs: 4500, maxRetries: 0 });
 
@@ -278,6 +279,11 @@ export function LoginView({ onBack, initialMode, initialError }: LoginViewProps)
         console.error('[Google OAuth Pre-flight] Disabled:', cfg);
         setError(msg);
         setIsLoading(false);
+        return;
+      }
+
+      if (cfg?.authUrl) {
+        window.location.href = cfg.authUrl;
         return;
       }
 

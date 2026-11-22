@@ -201,6 +201,52 @@ async function handleEdgeAuthRoute(request: Request, env: Env): Promise<Response
   // 1. GET /api/auth/google/config
   if (pathname === '/api/auth/google/config' && request.method === 'GET') {
     const redirectUri = resolveEdgeRedirectUri(origin, env);
+    let authUrl: string | null = null;
+    let cookieFlags = '';
+
+    if (clientId && clientSecret) {
+      const nonceBytes = new Uint8Array(16);
+      crypto.getRandomValues(nonceBytes);
+      const nonce = base64UrlEncode(nonceBytes);
+      const statePayloadB64 = base64UrlEncode(
+        JSON.stringify({
+          nonce,
+          origin,
+          redirectUri,
+          ts: Date.now(),
+        })
+      );
+      const stateSig = await hmacSha256Base64Url(statePayloadB64, secret);
+      const state = `${statePayloadB64}.${stateSig}`;
+
+      const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+      googleAuthUrl.searchParams.set('client_id', clientId);
+      googleAuthUrl.searchParams.set('redirect_uri', redirectUri);
+      googleAuthUrl.searchParams.set('response_type', 'code');
+      googleAuthUrl.searchParams.set('scope', 'openid email profile');
+      googleAuthUrl.searchParams.set('state', state);
+      googleAuthUrl.searchParams.set('access_type', 'offline');
+      googleAuthUrl.searchParams.set('prompt', 'select_account');
+      authUrl = googleAuthUrl.toString();
+
+      cookieFlags = [
+        `google_oauth_state=${encodeURIComponent(state)}`,
+        'HttpOnly',
+        'SameSite=Lax',
+        'Path=/',
+        'Max-Age=900',
+        ...(isHttps ? ['Secure'] : []),
+      ].join('; ');
+    }
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Cache-Control': 'no-store',
+    };
+    if (cookieFlags) {
+      headers['Set-Cookie'] = cookieFlags;
+    }
+
     return new Response(
       JSON.stringify({
         enabled: Boolean(clientId && clientSecret),
@@ -209,9 +255,10 @@ async function handleEdgeAuthRoute(request: Request, env: Env): Promise<Response
         clientId: clientId || null,
         origin,
         redirectUri,
+        authUrl,
         mode: 'cloudflare-edge',
       }),
-      { status: 200, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } }
+      { status: 200, headers }
     );
   }
 
@@ -262,6 +309,25 @@ async function handleEdgeAuthRoute(request: Request, env: Env): Promise<Response
       'Max-Age=900',
       ...(isHttps ? ['Secure'] : []),
     ].join('; ');
+
+    const acceptHeader = request.headers.get('Accept') || '';
+    if (acceptHeader.includes('application/json')) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          authUrl: googleAuthUrl.toString(),
+          url: googleAuthUrl.toString(),
+        }),
+        {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+            'Set-Cookie': cookieFlags,
+            'Cache-Control': 'no-store',
+          },
+        }
+      );
+    }
 
     console.info(`[Edge Google OAuth] Redirecting to Google: origin=${origin}, redirectUri=${redirectUri}`);
 

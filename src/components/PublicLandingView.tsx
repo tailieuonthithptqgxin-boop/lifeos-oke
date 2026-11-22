@@ -388,6 +388,7 @@ export function PublicLandingView({ onLoginClick, onNavigateLegal, initialError 
         hasClientId?: boolean;
         hasClientSecret?: boolean;
         redirectUri?: string;
+        authUrl?: string;
         mode?: string;
       }>('/api/auth/google/config', 'GET', undefined, { timeoutMs: 4500, maxRetries: 0 });
 
@@ -402,6 +403,11 @@ export function PublicLandingView({ onLoginClick, onNavigateLegal, initialError 
           `Đăng nhập Google chưa được bật: thiếu ${missing} trên máy chủ (${cfg?.mode || 'server'}). Redirect URI cần khai báo trên Google Cloud Console: ${hintUri}`
         );
         setIsSubmitting(false);
+        return;
+      }
+
+      if (cfg?.authUrl) {
+        window.location.href = cfg.authUrl;
         return;
       }
 
