@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   GraduationCap,
   Lock,
@@ -834,9 +835,9 @@ export function StudyRoomView({
     onLeaveRoom();
   };
 
-  return (
+  const roomContent = (
     <div
-      className={`fixed inset-0 z-[999] w-screen h-screen overflow-hidden flex flex-col select-none font-sans transition-colors duration-300 ${
+      className={`fixed inset-0 z-[99999] w-screen h-screen overflow-hidden flex flex-col select-none font-sans transition-colors duration-300 ${
         isLight ? 'bg-[#F8FAFC] text-slate-900' : 'bg-[#090b10] text-slate-100'
       }`}
     >
@@ -2151,4 +2152,9 @@ export function StudyRoomView({
       )}
     </div>
   );
+
+  if (typeof document !== 'undefined') {
+    return createPortal(roomContent, document.body);
+  }
+  return roomContent;
 }
