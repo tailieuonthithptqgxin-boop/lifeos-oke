@@ -39,8 +39,10 @@ export function initStudyRoomSocket(httpServer: HTTPServer): SocketIOServer {
       avatar?: string;
       studyGoal?: string;
       streakDays?: number;
+      hostId?: string;
+      isHost?: boolean;
     }) => {
-      const { roomId, userId, name, avatar, studyGoal, streakDays } = data;
+      const { roomId, userId, name, avatar, studyGoal, streakDays, hostId, isHost } = data;
       if (!roomId || !userId) {
         socket.emit('room:error', { message: 'Missing roomId or userId' });
         return;
@@ -48,8 +50,15 @@ export function initStudyRoomSocket(httpServer: HTTPServer): SocketIOServer {
 
       socket.join(roomId);
 
+      if (hostId) {
+        const r = highScaleRoomManager.getOrCreateRoom(roomId, { hostId });
+        if (r.hostId === 'system' && !r.isSystemRoom) {
+          r.hostId = hostId;
+        }
+      }
+
       // Add to high-scale in-memory room manager
-      const { isNewUser, compact, activeCount } = highScaleRoomManager.addParticipant(
+      const joinResult = highScaleRoomManager.addParticipant(
         roomId,
         socket.id,
         {
@@ -58,8 +67,19 @@ export function initStudyRoomSocket(httpServer: HTTPServer): SocketIOServer {
           avatar,
           studyGoal,
           streakDays,
+          isHost: Boolean(isHost),
         }
       );
+
+      if (joinResult.isBanned) {
+        socket.emit('room:kicked', {
+          reason: 'Bạn đã bị chủ phòng mời ra khỏi phòng học này và không thể tham gia lại.',
+        });
+        socket.leave(roomId);
+        return;
+      }
+
+      const { isNewUser, compact, activeCount } = joinResult;
 
       // Send initial snapshot only to the joiner
       const snapshot = highScaleRoomManager.getRoomSnapshot(roomId, userId);
@@ -163,6 +183,69 @@ export function initStudyRoomSocket(httpServer: HTTPServer): SocketIOServer {
         ...updatedTimer,
         serverTimeNow: Date.now(),
       });
+    });
+
+    // ----------------------------------------------------
+    // 5.1 EVENT: room:kick_user (Host Privilege)
+    // ----------------------------------------------------
+    socket.on('room:kick_user', (data: {
+      roomId: string;
+      hostId: string;
+      targetUserId: string;
+      reason?: string;
+    }) => {
+      const { roomId, hostId, targetUserId, reason } = data;
+      if (!roomId || !targetUserId) return;
+
+      const kickRes = highScaleRoomManager.kickParticipant(roomId, hostId, targetUserId, reason);
+      if (kickRes.success) {
+        // 1. Emit direct kick message to target socket
+        if (kickRes.targetSocketId) {
+          io.to(kickRes.targetSocketId).emit('room:kicked', {
+            roomId,
+            reason: reason || 'Bạn đã bị chủ phòng mời ra khỏi phòng học.',
+          });
+          // Remove target socket from room channel
+          const targetSocket = io.sockets.sockets.get(kickRes.targetSocketId);
+          if (targetSocket) {
+            targetSocket.leave(roomId);
+          }
+        }
+
+        // 2. Broadcast user_kicked to all remaining members
+        io.to(roomId).emit('room:user_kicked', {
+          userId: targetUserId,
+          userName: kickRes.targetName,
+          activeCount: kickRes.activeCount,
+        });
+      } else {
+        socket.emit('room:error', { message: kickRes.message || 'Không thể kích thành viên.' });
+      }
+    });
+
+    // ----------------------------------------------------
+    // 5.2 EVENT: room:update_settings (Host Privilege)
+    // ----------------------------------------------------
+    socket.on('room:update_settings', (data: {
+      roomId: string;
+      hostId: string;
+      settings: {
+        name?: string;
+        topic?: string;
+        focusDuration?: number;
+        breakDuration?: number;
+      };
+    }) => {
+      const { roomId, hostId, settings } = data;
+      if (!roomId || !settings) return;
+
+      const updateRes = highScaleRoomManager.updateRoomSettings(roomId, hostId, settings);
+      if (updateRes.success && updateRes.room) {
+        // Broadcast new room settings to all participants
+        io.to(roomId).emit('room:settings_updated', updateRes.room);
+      } else {
+        socket.emit('room:error', { message: updateRes.message || 'Không thể cập nhật cài đặt phòng.' });
+      }
     });
 
     // ----------------------------------------------------

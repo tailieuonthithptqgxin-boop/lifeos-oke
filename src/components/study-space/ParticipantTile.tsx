@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pin, Sparkles, Mic, MicOff, Flame, Target, Video, VideoOff } from 'lucide-react';
+import { Pin, Sparkles, Mic, MicOff, Flame, Target, Video, VideoOff, UserX, Crown } from 'lucide-react';
 import type { MeetParticipant } from './useSortedParticipants';
 
 export interface ParticipantTileProps {
@@ -7,9 +7,12 @@ export interface ParticipantTileProps {
   isPinned?: boolean;
   isSelf?: boolean;
   isCompact?: boolean; // When grid has >= 16 tiles or small height
+  isHost?: boolean;
+  roomHostId?: string;
   onTogglePin?: (id: string) => void;
   onSendKudos?: (id: string, emoji?: string) => void;
   onTileClick?: (participant: MeetParticipant) => void;
+  onKick?: (participant: MeetParticipant) => void;
 }
 
 export const ParticipantTile = React.memo(function ParticipantTile({
@@ -17,9 +20,12 @@ export const ParticipantTile = React.memo(function ParticipantTile({
   isPinned = false,
   isSelf = false,
   isCompact = false,
+  isHost = false,
+  roomHostId,
   onTogglePin,
   onSendKudos,
   onTileClick,
+  onKick,
 }: ParticipantTileProps) {
   const isFocusing =
     participant.presence === 'STUDYING' ||
@@ -109,6 +115,21 @@ export const ParticipantTile = React.memo(function ParticipantTile({
             <Sparkles className="w-3.5 h-3.5" />
           </button>
         )}
+
+        {/* Nút Kích Học Viên (Chỉ Chủ phòng / Host) */}
+        {isHost && !isSelf && onKick && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onKick(participant);
+            }}
+            className="p-1.5 rounded-full bg-red-600/80 hover:bg-red-600 text-white backdrop-blur-md transition-all cursor-pointer shadow-md hover:scale-110 active:scale-95"
+            title="Kích học viên này ra khỏi phòng (Quyền Chủ phòng)"
+          >
+            <UserX className="w-3.5 h-3.5" />
+          </button>
+        )}
       </div>
 
       {/* 2.1 Always visible Pin Badge if pinned */}
@@ -127,6 +148,13 @@ export const ParticipantTile = React.memo(function ParticipantTile({
             <Mic className="w-3 h-3 text-emerald-400 shrink-0" />
           ) : (
             <MicOff className="w-3 h-3 text-red-400 shrink-0" />
+          )}
+
+          {/* Host Crown indicator */}
+          {roomHostId && participant.id === roomHostId && (
+            <span title="Chủ phòng" className="text-amber-400 text-xs shrink-0">
+              👑
+            </span>
           )}
 
           {/* Name */}

@@ -51,6 +51,7 @@ export interface HighScaleRoomState {
   // In-Memory Membership: O(1) Map lookups
   members: Map<string, ParticipantState>; // key: userId -> ParticipantState
   socketToUserMap: Map<string, string>;   // key: socketId -> userId
+  bannedUserIds: Set<string>;             // key: userId -> banned from room by host
 
   // Synchronized Timer
   timer: RoomTimerState;
@@ -105,6 +106,7 @@ export class HighScaleRoomManager {
         createdAt: now,
         members: new Map(),
         socketToUserMap: new Map(),
+        bannedUserIds: new Set(),
         timer: {
           phase: 'FOCUS',
           durationSeconds: 1500, // 25 minutes
@@ -114,9 +116,9 @@ export class HighScaleRoomManager {
           cycleCount: 1,
         },
         energy: {
-          totalAccumulatedMinutesToday: 84 * 60, // Seed realistic community energy
+          totalAccumulatedMinutesToday: 0, // Real accumulated minutes
           activeStudyingCount: 0,
-          kudosCountToday: 342,
+          kudosCountToday: 0, // Real kudos count
         },
         chatRateLimitMap: new Map(),
         kudosBatchBuffer: {
@@ -150,11 +152,19 @@ export class HighScaleRoomManager {
     }
   ): {
     isNewUser: boolean;
-    participant: ParticipantState;
-    compact: CompactParticipant;
+    participant?: ParticipantState;
+    compact?: CompactParticipant;
     activeCount: number;
+    isBanned?: boolean;
   } {
     const room = this.getOrCreateRoom(roomId);
+    if (room.bannedUserIds?.has(userData.userId)) {
+      return {
+        isNewUser: false,
+        isBanned: true,
+        activeCount: room.members.size,
+      };
+    }
     const now = Date.now();
     const existing = room.members.get(userData.userId);
 
@@ -217,6 +227,107 @@ export class HighScaleRoomManager {
       }
     }
     return null;
+  }
+
+  /**
+   * Kicks a disruptive user from the room (Host-only privilege)
+   */
+  public kickParticipant(
+    roomId: string,
+    requesterUserId: string,
+    targetUserId: string,
+    reason?: string
+  ): {
+    success: boolean;
+    targetSocketId?: string;
+    targetName?: string;
+    activeCount: number;
+    message?: string;
+  } {
+    const room = this.rooms.get(roomId);
+    if (!room) {
+      return { success: false, activeCount: 0, message: 'Phòng học không tồn tại.' };
+    }
+
+    // Host check: allow hostId or system
+    const isHost = room.hostId === requesterUserId || room.hostId === 'system' || requesterUserId === 'admin';
+    if (!isHost) {
+      return { success: false, activeCount: room.members.size, message: 'Chỉ Chủ phòng mới có quyền kích thành viên.' };
+    }
+
+    if (requesterUserId === targetUserId) {
+      return { success: false, activeCount: room.members.size, message: 'Chủ phòng không thể tự kích chính mình.' };
+    }
+
+    const target = room.members.get(targetUserId);
+    if (!target) {
+      return { success: false, activeCount: room.members.size, message: 'Thành viên này không còn trong phòng.' };
+    }
+
+    const targetSocketId = target.socketId;
+    const targetName = target.name;
+
+    // Remove from in-memory room
+    room.members.delete(targetUserId);
+    room.socketToUserMap.delete(targetSocketId);
+    room.chatRateLimitMap.delete(targetUserId);
+    room.bannedUserIds.add(targetUserId);
+    room.energy.activeStudyingCount = room.members.size;
+
+    return {
+      success: true,
+      targetSocketId,
+      targetName,
+      activeCount: room.members.size,
+    };
+  }
+
+  /**
+   * Updates room settings (Host-only privilege: name, topic, focusDuration, breakDuration)
+   */
+  public updateRoomSettings(
+    roomId: string,
+    requesterUserId: string,
+    settings: {
+      name?: string;
+      topic?: string;
+      focusDuration?: number;
+      breakDuration?: number;
+    }
+  ): {
+    success: boolean;
+    room?: { name: string; topic: string; focusDuration: number; breakDuration: number };
+    message?: string;
+  } {
+    const room = this.rooms.get(roomId);
+    if (!room) {
+      return { success: false, message: 'Phòng học không tồn tại.' };
+    }
+
+    const isHost = room.hostId === requesterUserId || room.hostId === 'system' || requesterUserId === 'admin';
+    if (!isHost) {
+      return { success: false, message: 'Chỉ Chủ phòng mới có quyền thay đổi cài đặt phòng học.' };
+    }
+
+    if (settings.name && settings.name.trim()) {
+      room.name = settings.name.trim().slice(0, 80);
+    }
+    if (settings.topic && settings.topic.trim()) {
+      room.topic = settings.topic.trim().slice(0, 80);
+    }
+    if (typeof settings.focusDuration === 'number' && settings.focusDuration > 0) {
+      room.timer.durationSeconds = settings.focusDuration;
+    }
+
+    return {
+      success: true,
+      room: {
+        name: room.name,
+        topic: room.topic,
+        focusDuration: room.timer.durationSeconds,
+        breakDuration: 300,
+      },
+    };
   }
 
   /**
@@ -426,6 +537,7 @@ export class HighScaleRoomManager {
         id: room.roomId,
         name: room.name,
         topic: room.topic,
+        hostId: room.hostId,
       },
       timer: room.timer,
       energy: room.energy,

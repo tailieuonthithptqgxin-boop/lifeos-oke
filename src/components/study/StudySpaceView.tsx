@@ -151,7 +151,7 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
   };
 
   const totalOnline = rooms.reduce((sum, r) => sum + (r.participantCount || 0), 0);
-  const streakDays = currentUser?.streakDays || 14;
+  const streakDays = currentUser?.streakDays ?? 0;
 
   const roomEventSourceRef = useRef<EventSource | null>(null);
   const lobbyEventSourceRef = useRef<EventSource | null>(null);

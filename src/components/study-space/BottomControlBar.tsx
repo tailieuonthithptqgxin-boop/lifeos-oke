@@ -14,7 +14,8 @@ import {
   Minimize2,
   Play,
   Pause,
-  RotateCcw
+  RotateCcw,
+  Settings
 } from 'lucide-react';
 
 export interface BottomControlBarProps {
@@ -31,12 +32,14 @@ export interface BottomControlBarProps {
   activeDrawerTab: 'members' | 'chat';
   isLight?: boolean;
   isFullscreen?: boolean;
+  isHost?: boolean;
   onTogglePlayPomodoro?: () => void;
   onResetPomodoro?: () => void;
   onEditGoalClick?: () => void;
   onOpenAmbientMusic?: () => void;
   onSendKudosClick?: () => void;
   onOpenLayoutSettings?: () => void;
+  onOpenRoomSettings?: () => void;
   onLeaveRoomClick?: () => void;
   onToggleDrawer?: (tab: 'members' | 'chat') => void;
   onToggleTheme?: () => void;
@@ -53,12 +56,14 @@ export const BottomControlBar = React.memo(function BottomControlBar({
   activeDrawerTab,
   isLight = false,
   isFullscreen = false,
+  isHost = false,
   onTogglePlayPomodoro,
   onResetPomodoro,
   onEditGoalClick,
   onOpenAmbientMusic,
   onSendKudosClick,
   onOpenLayoutSettings,
+  onOpenRoomSettings,
   onLeaveRoomClick,
   onToggleDrawer,
   onToggleTheme,
@@ -205,6 +210,22 @@ export const BottomControlBar = React.memo(function BottomControlBar({
           <Sliders className="w-4 h-4" />
           <span className="hidden sm:inline">Bố cục</span>
         </button>
+
+        {/* Nút 4.1: Cài đặt phòng học (Chỉ dành cho Chủ phòng / Host) */}
+        {isHost && (
+          <button
+            type="button"
+            onClick={onOpenRoomSettings}
+            className={`p-3 rounded-full border transition-all cursor-pointer shadow-xs active:scale-95 ${
+              isLight
+                ? 'bg-purple-100 hover:bg-purple-200 border-purple-300 text-purple-700'
+                : 'bg-[#3c4043] hover:bg-purple-600 hover:text-white border-white/5 text-purple-300'
+            }`}
+            title="Cài đặt phòng học (Quyền Chủ phòng)"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+        )}
 
         {/* Nút 5: Rời phòng học (Màu đỏ tròn chuẩn Google Meet) */}
         <button

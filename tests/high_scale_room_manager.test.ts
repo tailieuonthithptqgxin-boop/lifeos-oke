@@ -95,4 +95,90 @@ test('HighScaleRoomManager: In-Memory scaling & Delta updates for 150+ users', a
     const room = manager.getRoom(roomId);
     assert.equal(room?.members.size, 149);
   });
+
+  await t.test('8. Host Permissions: Kick Member and enforce Ban list', () => {
+    // Create dedicated private room with specific host
+    const hostRoomId = `host-test-room-${Date.now()}`;
+    manager.getOrCreateRoom(hostRoomId, {
+      name: 'Phòng của Host Minh',
+      topic: 'Lập trình TypeScript',
+      hostId: 'host_user_1',
+      isSystemRoom: false,
+    });
+
+    manager.addParticipant(hostRoomId, 'socket_host', {
+      userId: 'host_user_1',
+      name: 'Minh (Chủ phòng)',
+      avatar: '',
+      isHost: true,
+    });
+
+    manager.addParticipant(hostRoomId, 'socket_troll', {
+      userId: 'troll_user_99',
+      name: 'Kẻ Phá Bĩnh',
+      avatar: '',
+      isHost: false,
+    });
+
+    manager.addParticipant(hostRoomId, 'socket_regular', {
+      userId: 'regular_user_2',
+      name: 'Học Sinh Chăm Chỉ',
+      avatar: '',
+      isHost: false,
+    });
+
+    // Non-host regular_user_2 attempts to kick troll_user_99 -> REJECTED
+    const forbiddenKick = manager.kickParticipant(hostRoomId, 'regular_user_2', 'troll_user_99', 'Spam');
+    assert.equal(forbiddenKick.success, false);
+    assert.match(forbiddenKick.message || '', /Chỉ Chủ phòng/);
+
+    // Host host_user_1 kicks troll_user_99 -> SUCCESS
+    const hostKick = manager.kickParticipant(hostRoomId, 'host_user_1', 'troll_user_99', 'Phá phòng');
+    assert.equal(hostKick.success, true);
+    assert.equal(hostKick.targetName, 'Kẻ Phá Bĩnh');
+    assert.equal(hostKick.targetSocketId, 'socket_troll');
+
+    // Verify troll_user_99 is banned and cannot rejoin
+    const bannedRejoin = manager.addParticipant(hostRoomId, 'socket_troll_new', {
+      userId: 'troll_user_99',
+      name: 'Kẻ Phá Bĩnh Lại Vào',
+      avatar: '',
+      isHost: false,
+    });
+    assert.equal(bannedRejoin.isBanned, true);
+    assert.equal(bannedRejoin.isNewUser, false);
+  });
+
+  await t.test('9. Host Permissions: Update Room Settings & Duration', () => {
+    const hostRoomId = `settings-test-room-${Date.now()}`;
+    manager.getOrCreateRoom(hostRoomId, {
+      name: 'Phòng Toán Học 12',
+      topic: 'Giải tích & Tích phân',
+      hostId: 'host_user_1',
+      isSystemRoom: false,
+    });
+
+    // Non-host cannot update settings
+    const forbiddenUpdate = manager.updateRoomSettings(hostRoomId, 'user_impostor', {
+      name: 'Hacked Room',
+    });
+    assert.equal(forbiddenUpdate.success, false);
+    assert.match(forbiddenUpdate.message || '', /Chỉ Chủ phòng/);
+
+    // Host updates settings
+    const hostUpdate = manager.updateRoomSettings(hostRoomId, 'host_user_1', {
+      name: 'Phòng Ôn Thi Chuyên Sâu 2026',
+      topic: 'Toán & Lý Siêu Tốc',
+      focusDuration: 50 * 60,
+    });
+    assert.equal(hostUpdate.success, true);
+    assert.equal(hostUpdate.room?.name, 'Phòng Ôn Thi Chuyên Sâu 2026');
+    assert.equal(hostUpdate.room?.topic, 'Toán & Lý Siêu Tốc');
+    assert.equal(hostUpdate.room?.focusDuration, 50 * 60);
+
+    const room = manager.getRoom(hostRoomId);
+    assert.equal(room?.name, 'Phòng Ôn Thi Chuyên Sâu 2026');
+    assert.equal(room?.topic, 'Toán & Lý Siêu Tốc');
+    assert.equal(room?.timer.durationSeconds, 50 * 60);
+  });
 });

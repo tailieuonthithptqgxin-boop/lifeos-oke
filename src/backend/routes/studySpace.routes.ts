@@ -112,14 +112,22 @@ studySpaceRouter.post('/rooms', requireAuth, (req: AuthRequest, res: Response) =
   try {
     const { name, topic, connectionType, externalUrl } = req.body;
     const user = (req as any).user;
-    const room = studySpaceService.createRoom({
-      name: (name || '').trim() || 'Phòng học mới',
-      topic: (topic || '').trim() || 'Tập trung sâu',
-      hostId: req.userId!,
-      hostName: user?.name || 'Thành viên',
-      connectionType: connectionType === 'external' ? 'external' : 'jitsi',
-      externalUrl: externalUrl || null
-    });
+    const hostId = req.userId || user?.id || 'guest';
+    const hostName = user?.name || 'Chủ phòng';
+    const room = studySpaceService.createRoom(
+      {
+        name: (name || '').trim() || 'Phòng học mới',
+        topic: (topic || '').trim() || 'Tập trung sâu',
+        hostId,
+        hostName,
+        connectionType: connectionType === 'external' ? 'external' : 'jitsi',
+        externalUrl: externalUrl || null
+      },
+      {
+        id: hostId,
+        name: hostName
+      }
+    );
     res.json({ success: true, room });
   } catch (err: any) {
     res.status(400).json({ success: false, message: err?.message || 'Không thể tạo phòng học' });

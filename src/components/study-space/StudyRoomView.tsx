@@ -41,7 +41,9 @@ import {
   ChevronLeft,
   Settings,
   Users,
-  Search
+  Search,
+  Crown,
+  UserX
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import { StudyTimerDisplay } from './StudyTimerDisplay';
@@ -56,6 +58,7 @@ import { ParticipantTile } from './ParticipantTile';
 import { OverflowTile } from './OverflowTile';
 import { LayoutSettingsModal, LayoutSettings, loadSavedLayoutSettings } from './LayoutSettingsModal';
 import { BottomControlBar } from './BottomControlBar';
+import { RoomSettingsModal, RoomSettingsData } from './RoomSettingsModal';
 import { useAppStore } from '../../lib/store';
 import { apiCall } from '../../lib/apiClient';
 import { toast } from '../../lib/toast';
@@ -189,17 +192,38 @@ export function StudyRoomView({
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
   }, []);
 
-  // Gamification State (Saved in user profile & localStorage)
+  // Gamification State (Real Zero-Start Data from currentUser)
   const [userXP, setUserXP] = useState<number>(() => {
     try {
       const saved = localStorage.getItem('lifeos_study_user_xp');
-      return saved ? parseInt(saved, 10) : (currentUser?.xp || 850);
+      return saved ? parseInt(saved, 10) : (currentUser?.xp || 0);
     } catch {
-      return 850;
+      return currentUser?.xp || 0;
     }
   });
 
-  const userStreak = currentUser?.streakDays || 14;
+  const userStreak = currentUser?.streakDays ?? 0;
+  const userLevel = currentUser?.level ?? (Math.floor(userXP / 100) + 1);
+  const xpInLevel = userXP % 100;
+
+  const levelTitle = useMemo(() => {
+    if (userLevel === 1) return 'Lv.01 Tân Binh';
+    if (userLevel === 2) return 'Lv.02 Tập Sự';
+    if (userLevel < 6) return `Lv.0${userLevel} Người Kiên Trì`;
+    if (userLevel < 10) return `Lv.0${userLevel} Chiến Thần`;
+    return `Lv.${userLevel} Học Bá`;
+  }, [userLevel]);
+
+  // Host & Room Settings State
+  const isHost = Boolean(
+    (room.hostId && (room.hostId === myId || room.hostId === currentUser?.id)) ||
+    currentUser?.role === 'Admin' ||
+    currentUser?.role === 'SuperAdmin' ||
+    room.isSystemRoom === false
+  );
+  const [localRoomName, setLocalRoomName] = useState(room.name || 'Phòng Học Chung');
+  const [localRoomTopic, setLocalRoomTopic] = useState(room.topic || 'Tập trung sâu');
+  const [isRoomSettingsOpen, setIsRoomSettingsOpen] = useState(false);
 
   const [selectedFrame, setSelectedFrame] = useState<string>(() => {
     try {
@@ -249,7 +273,7 @@ export function StudyRoomView({
   const [isLayoutModalOpen, setIsLayoutModalOpen] = useState(false);
   const [spotlightUserId, setSpotlightUserId] = useState<string | null>(null);
   const stageContainerRef = useRef<HTMLDivElement>(null);
-  const friendIds = useMemo(() => ['peer_1', 'peer_2', 'peer_5', 'peer_8', 'peer_12'], []);
+  const friendIds = useMemo<string[]>(() => [], []);
   const [chatInput, setChatInput] = useState('');
   const [localMessages, setLocalMessages] = useState<Array<{ id: string; author: string; text: string; time: string; isSystem?: boolean }>>([]);
 
@@ -300,9 +324,9 @@ export function StudyRoomView({
   const [isPomodoroRunning, setIsPomodoroRunning] = useState(false);
   const [pomodoroPhase, setPomodoroPhase] = useState<'FOCUS' | 'BREAK'>('FOCUS');
 
-  // High-Scale Virtual Hall State (100-500+ Co-Studying Peers)
+  // High-Scale Virtual Hall State (Real Co-Studying Peers - Zero Fake Bots)
   const initialPeers = useMemo<CompactParticipant[]>(() => {
-    const list: CompactParticipant[] = [
+    return [
       {
         id: myId,
         name: myName,
@@ -312,21 +336,10 @@ export function StudyRoomView({
         streak: userStreak,
       },
     ];
-    for (let i = 1; i <= 120; i++) {
-      list.push({
-        id: `peer_${i}`,
-        name: `Học Viên ${i < 10 ? '0' + i : i}`,
-        avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=StudyPeer_${i}`,
-        goal: i % 3 === 0 ? 'Luyện đề THPT Quốc Gia' : i % 3 === 1 ? 'Học từ vựng IELTS Band 7.5' : 'Làm bài tập giải tích',
-        presence: i % 8 === 0 ? 'BREAK' : 'STUDYING',
-        streak: (i % 14) + 1,
-      });
-    }
-    return list;
   }, [myId, myName, currentUserAvatar, userTask, userStreak]);
 
   const [viewMode, setViewMode] = useState<'hall' | 'desk'>('hall');
-  const [pinnedFriends, setPinnedFriends] = useState<CompactParticipant[]>(() => initialPeers.slice(1, 7));
+  const [pinnedFriends, setPinnedFriends] = useState<CompactParticipant[]>(() => []);
   const [highScaleMembers, setHighScaleMembers] = useState<CompactParticipant[]>(() => initialPeers);
 
   // Google Meet Auto-Sorting Hook (5 Priority Tiers)
@@ -381,15 +394,71 @@ export function StudyRoomView({
         emoji,
       });
     }
+    setCollectiveEnergy((prev) => ({
+      ...prev,
+      kudosCount: prev.kudosCount + 1,
+    }));
     toast.success(`Bạn đã tiếp lửa ${emoji} cho cả phòng!`);
   }, [room.id, myId]);
+
+  // Real Collective Energy: 100% Real Activity
   const [collectiveEnergy, setCollectiveEnergy] = useState({
-    activeCount: Math.max(121, room.participantCount || 121),
-    totalAccumulatedMinutes: 84 * 60,
-    kudosCount: 342,
+    activeCount: Math.max(1, room.participantCount || 1),
+    totalAccumulatedMinutes: 0,
+    kudosCount: 0,
   });
   const [realtimeChatMessages, setRealtimeChatMessages] = useState<ChatMessageItem[]>([]);
   const socketRef = useRef<Socket | null>(null);
+
+  // Host Action: Kick User from Room
+  const handleKickUser = useCallback((targetUser: MeetParticipant) => {
+    if (!isHost || targetUser.id === myId) return;
+
+    const confirmed = window.confirm(
+      `⚠️ BẠN CÓ CHẮC CHẮN MUỐN MỜI HỌC VIÊN NÀY RA KHỎI PHÒNG?\n\n- Học viên: "${targetUser.name}"\n- Quyền hạn: Chủ phòng (${myName})\n\nSau khi kích, học viên sẽ bị ngắt kết nối ngay lập tức và không thể vào lại phòng này.`
+    );
+    if (!confirmed) return;
+
+    if (socketRef.current) {
+      socketRef.current.emit('room:kick_user', {
+        roomId: room.id,
+        hostId: myId,
+        targetUserId: targetUser.id,
+        reason: 'Chủ phòng đã mời bạn rời khỏi phòng học do vi phạm quy định.',
+      });
+    }
+
+    setHighScaleMembers((prev) => prev.filter((m) => m.id !== targetUser.id));
+    setPinnedFriends((prev) => prev.filter((m) => m.id !== targetUser.id));
+    setCollectiveEnergy((prev) => ({
+      ...prev,
+      activeCount: Math.max(1, prev.activeCount - 1),
+    }));
+    toast.success(`Đã mời "${targetUser.name}" ra khỏi phòng học.`);
+  }, [isHost, myId, myName, room.id]);
+
+  // Host Action: Save Room Settings
+  const handleSaveRoomSettings = useCallback((newSettings: RoomSettingsData) => {
+    setLocalRoomName(newSettings.name);
+    setLocalRoomTopic(newSettings.topic);
+    setPomodoroDuration(newSettings.focusDuration);
+
+    if (socketRef.current) {
+      socketRef.current.emit('room:update_settings', {
+        roomId: room.id,
+        hostId: myId,
+        settings: newSettings,
+      });
+    }
+
+    apiCall(`/api/study-space/rooms/${room.id}/pomodoro`, 'POST', {
+      duration: newSettings.focusDuration,
+      phase: pomodoroPhase,
+      isRunning: isPomodoroRunning,
+    }).catch(() => {});
+
+    toast.success('Đã lưu thiết lập phòng học thành công! ⚡');
+  }, [room.id, myId, pomodoroPhase, isPomodoroRunning]);
 
   // Trigger floating batch kudos
   const triggerFloatingBatchKudos = (breakdown: Record<string, number> = {}) => {
@@ -411,20 +480,8 @@ export function StudyRoomView({
     }
   };
 
-  // High-Scale Realtime Socket.io Connection Loop
+  // High-Scale Realtime Socket.io Connection Loop (Real Users Only)
   useEffect(() => {
-    const seedMembers: CompactParticipant[] = [];
-    for (let i = 1; i <= 120; i++) {
-      seedMembers.push({
-        id: `peer_${i}`,
-        name: `Học Viên ${i < 10 ? '0' + i : i}`,
-        avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=StudyPeer_${i}`,
-        goal: i % 3 === 0 ? 'Luyện đề THPT Quốc Gia' : i % 3 === 1 ? 'Học từ vựng IELTS Band 7.5' : 'Làm bài tập giải tích',
-        presence: i % 8 === 0 ? 'BREAK' : 'STUDYING',
-        streak: (i % 14) + 1,
-      });
-    }
-
     let socket: Socket | null = null;
     try {
       socket = io({
@@ -440,27 +497,35 @@ export function StudyRoomView({
         avatar: currentUserAvatar,
         studyGoal: userTask,
         streakDays: userStreak,
+        hostId: room.hostId,
+        isHost,
       });
 
       socket.on('room:snapshot', (snapshot: any) => {
         const remoteMembers = snapshot.members || [];
-        const mergedMembers = [
-          ...remoteMembers,
-          ...seedMembers.filter((s) => !remoteMembers.some((r: any) => r.id === s.id)),
-        ];
-        setHighScaleMembers(mergedMembers);
+        const hasSelf = remoteMembers.some((r: any) => r.id === myId);
+        const selfMember: CompactParticipant = {
+          id: myId,
+          name: myName,
+          avatar: currentUserAvatar,
+          goal: userTask,
+          presence: 'STUDYING',
+          streak: userStreak,
+        };
+        const allRealMembers = hasSelf ? remoteMembers : [selfMember, ...remoteMembers];
+        setHighScaleMembers(allRealMembers);
 
         if (snapshot.pinnedFriends && snapshot.pinnedFriends.length > 0) {
           setPinnedFriends(snapshot.pinnedFriends);
         } else {
-          setPinnedFriends(mergedMembers.filter((m) => m.id !== myId).slice(0, 6));
+          setPinnedFriends(allRealMembers.filter((m) => m.id !== myId).slice(0, 6));
         }
 
         if (snapshot.energy) {
           setCollectiveEnergy({
-            activeCount: Math.max(snapshot.energy.activeStudyingCount, mergedMembers.length),
-            totalAccumulatedMinutes: snapshot.energy.totalAccumulatedMinutesToday || 84 * 60,
-            kudosCount: snapshot.energy.kudosCountToday || 342,
+            activeCount: snapshot.energy.activeStudyingCount || allRealMembers.length,
+            totalAccumulatedMinutes: snapshot.energy.totalAccumulatedMinutesToday || 0,
+            kudosCount: snapshot.energy.kudosCountToday || 0,
           });
         }
 
@@ -468,6 +533,11 @@ export function StudyRoomView({
           setPomodoroPhase(snapshot.timer.phase);
           setPomodoroDuration(snapshot.timer.durationSeconds);
           setIsPomodoroRunning(snapshot.timer.isRunning);
+        }
+
+        if (snapshot.room) {
+          if (snapshot.room.name) setLocalRoomName(snapshot.room.name);
+          if (snapshot.room.topic) setLocalRoomTopic(snapshot.room.topic);
         }
       });
 
@@ -483,6 +553,29 @@ export function StudyRoomView({
         setHighScaleMembers((prev) => prev.filter((m) => m.id !== userId));
         setPinnedFriends((prev) => prev.filter((m) => m.id !== userId));
         setCollectiveEnergy((prev) => ({ ...prev, activeCount }));
+      });
+
+      socket.on('room:kicked', (data: { reason?: string }) => {
+        toast.error(data.reason || 'Bạn đã bị chủ phòng mời ra khỏi phòng học.');
+        alert(data.reason || 'Bạn đã bị chủ phòng mời ra khỏi phòng học.');
+        onLeaveRoom();
+      });
+
+      socket.on('room:user_kicked', (data: { userId: string; userName?: string; activeCount: number }) => {
+        setHighScaleMembers((prev) => prev.filter((m) => m.id !== data.userId));
+        setPinnedFriends((prev) => prev.filter((m) => m.id !== data.userId));
+        setCollectiveEnergy((prev) => ({
+          ...prev,
+          activeCount: data.activeCount || Math.max(1, prev.activeCount - 1),
+        }));
+        toast.info(`${data.userName || 'Một thành viên'} đã bị chủ phòng mời ra khỏi phòng.`);
+      });
+
+      socket.on('room:settings_updated', (data: any) => {
+        if (data.name) setLocalRoomName(data.name);
+        if (data.topic) setLocalRoomTopic(data.topic);
+        if (data.focusDuration) setPomodoroDuration(data.focusDuration);
+        toast.info('Chủ phòng vừa cập nhật thiết lập phòng học.');
       });
 
       socket.on('room:goal_updated', ({ userId, goal }: any) => {
@@ -522,8 +615,8 @@ export function StudyRoomView({
       });
     } catch (err) {
       console.warn('Socket connection fallback to local:', err);
-      setPinnedFriends(seedMembers.slice(0, 6));
-      setHighScaleMembers(seedMembers);
+      setPinnedFriends([]);
+      setHighScaleMembers(initialPeers);
     }
 
     return () => {
@@ -1126,7 +1219,7 @@ export function StudyRoomView({
           <div className="flex items-center gap-2 min-w-0">
             <GraduationCap className="w-4 h-4 text-emerald-400 shrink-0" />
             <h2 className="text-sm font-bold truncate max-w-[160px] sm:max-w-xs md:max-w-md">
-              {room.name || 'Phòng Học Chung'}
+              {localRoomName}
             </h2>
           </div>
 
@@ -1144,6 +1237,21 @@ export function StudyRoomView({
             <span className="max-w-[80px] truncate">{room.id.replace('room-', '').slice(0, 8)}</span>
             <Copy className="w-3 h-3 text-slate-400" />
           </button>
+
+          {/* Chủ phòng Badge */}
+          {isHost && (
+            <div
+              className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-black border ${
+                isLight
+                  ? 'bg-amber-100 border-amber-300 text-amber-800 shadow-xs'
+                  : 'bg-amber-950/60 border-amber-500/50 text-amber-300 shadow-xs'
+              }`}
+              title="Bạn là Chủ phòng: có quyền quản trị, đổi thiết lập và kích thành viên vi phạm"
+            >
+              <Crown className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+              <span>Chủ phòng</span>
+            </div>
+          )}
         </div>
 
         {/* KHỐI GIỮA: STREAK & LEVEL XP TINH TẾ (TỐI GIẢN, KHÔNG RƯỜM RÀ) */}
@@ -1162,8 +1270,8 @@ export function StudyRoomView({
               ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
               : 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400'
           }`}>
-            <span>Lv.08 Học Bá</span>
-            <span className="text-[10px] text-slate-400 font-mono font-normal">({userXP}/1000 XP)</span>
+            <span>{levelTitle}</span>
+            <span className="text-[10px] text-slate-400 font-mono font-normal">({xpInLevel}/100 XP)</span>
           </div>
         </div>
 
@@ -1282,8 +1390,11 @@ export function StudyRoomView({
                       isSelf={isTargetSelf}
                       isPinned={true}
                       isCompact={false}
+                      isHost={isHost}
+                      roomHostId={room.hostId}
                       onTogglePin={(id) => togglePin(id)}
                       onSendKudos={(id, emoji) => sendTileFire(spotlightTarget.name, id)}
+                      onKick={handleKickUser}
                     />
                     <button
                       type="button"
@@ -1317,8 +1428,11 @@ export function StudyRoomView({
                         isSelf={spotlightTarget.id === myId}
                         isPinned={isPinned(spotlightTarget.id)}
                         isCompact={false}
+                        isHost={isHost}
+                        roomHostId={room.hostId}
                         onTogglePin={(id) => togglePin(id)}
                         onSendKudos={(id, emoji) => sendTileFire(spotlightTarget.name, id)}
+                        onKick={handleKickUser}
                       />
                     </div>
                   );
@@ -1341,9 +1455,12 @@ export function StudyRoomView({
                         isSelf={p.id === myId}
                         isPinned={isPinned(p.id)}
                         isCompact={true}
+                        isHost={isHost}
+                        roomHostId={room.hostId}
                         onTogglePin={(id) => togglePin(id)}
                         onSendKudos={(id, emoji) => sendTileFire(p.name, id)}
                         onTileClick={() => setSpotlightUserId(p.id)}
+                        onKick={handleKickUser}
                       />
                     </div>
                   ))}
@@ -1366,11 +1483,14 @@ export function StudyRoomView({
                     isSelf={participant.id === myId}
                     isPinned={isPinned(participant.id)}
                     isCompact={isMeetCompact || layoutSettings.maxTiles >= 30}
+                    isHost={isHost}
+                    roomHostId={room.hostId}
                     onTogglePin={(id) => togglePin(id)}
                     onSendKudos={(id, emoji) => sendTileFire(participant.name, id)}
                     onTileClick={(p) => {
                       setSpotlightUserId(p.id);
                     }}
+                    onKick={handleKickUser}
                   />
                 ))}
 
@@ -1525,6 +1645,16 @@ export function StudyRoomView({
                             >
                               <Pin className="w-3.5 h-3.5" />
                             </button>
+                            {isHost && !isSelf && (
+                              <button
+                                type="button"
+                                onClick={() => handleKickUser(p)}
+                                className="p-1 rounded-lg text-xs transition cursor-pointer text-red-400 hover:text-white hover:bg-red-500/30"
+                                title="Kích học viên này ra khỏi phòng (Quyền Chủ phòng)"
+                              >
+                                <UserX className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         </div>
                       );
@@ -1632,8 +1762,8 @@ export function StudyRoomView({
       {/* ========================================================= */}
       {!zenMode && (
         <BottomControlBar
-          roomName={room.name || 'Phòng Học Chung'}
-          onlineCount={collectiveEnergy.activeCount}
+          roomName={localRoomName || room.name || 'Phòng Học Chung'}
+          onlineCount={highScaleMembers.length || collectiveEnergy.activeCount || 1}
           userGoal={userTask}
           pomodoro={{
             phase: pomodoroPhase,
@@ -1645,6 +1775,8 @@ export function StudyRoomView({
           activeDrawerTab={activeDrawerTab === 'chat' ? 'chat' : 'members'}
           isLight={isLight}
           isFullscreen={isFullscreen}
+          isHost={isHost}
+          onOpenRoomSettings={() => setIsRoomSettingsOpen(true)}
           onTogglePlayPomodoro={togglePomoTimer}
           onResetPomodoro={resetPomoTimer}
           onEditGoalClick={editUserTask}
@@ -1800,6 +1932,23 @@ export function StudyRoomView({
         currentSettings={layoutSettings}
         onSaveSettings={(settings) => setLayoutSettings(settings)}
       />
+
+      {/* MODAL: HOST ROOM SETTINGS */}
+      {isHost && (
+        <RoomSettingsModal
+          isOpen={isRoomSettingsOpen}
+          onClose={() => setIsRoomSettingsOpen(false)}
+          currentSettings={{
+            name: localRoomName,
+            topic: localRoomTopic,
+            focusDuration: pomodoroDuration,
+            breakDuration: 5 * 60,
+            chatMode: 'break_only',
+          }}
+          onSave={handleSaveRoomSettings}
+          isLight={isLight}
+        />
+      )}
       {/* 5. MODAL 1: FRAME SHOP & AVATAR CUSTOMIZER                */}
       {/* ========================================================= */}
       {showFrameShopModal && (

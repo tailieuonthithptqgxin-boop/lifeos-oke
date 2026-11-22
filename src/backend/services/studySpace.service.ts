@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import { getPrisma } from '../db.js';
+import { HighScaleRoomManager } from '../realtime/RoomManager.js';
 
 export type PresenceState = 'IN_MEET' | 'STUDYING' | 'AWAY';
 export type RoomActivityStatus = 'ACTIVE' | 'IDLE';
@@ -430,7 +431,9 @@ class RoomPresenceService {
     topic: string;
     connectionType: 'jitsi' | 'external';
     externalUrl?: string;
-  }, user: { id: string; name: string }) {
+    hostId?: string;
+    hostName?: string;
+  }, user?: { id: string; name: string }) {
     const id = `room_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const cleanName = params.name.trim() || 'Phòng Học Tập';
     const cleanTopic = params.topic.trim() || 'Chung';
@@ -439,12 +442,15 @@ class RoomPresenceService {
       ? `lifeos-study-${id.replace(/[^a-zA-Z0-9]/g, '')}`
       : undefined;
 
+    const hostId = user?.id || params.hostId || 'guest';
+    const hostName = user?.name || params.hostName || 'Chủ phòng';
+
     const newRoom: StudyRoom = {
       id,
       name: cleanName,
       topic: cleanTopic,
-      hostId: user.id,
-      hostName: user.name,
+      hostId,
+      hostName,
       connectionType: connType,
       externalUrl: connType === 'external' ? params.externalUrl?.trim() : undefined,
       jitsiRoomName: jitsiName,
@@ -464,7 +470,7 @@ class RoomPresenceService {
           userId: 'system',
           userName: 'LifeOS',
           userAvatar: 'https://ui-avatars.com/api/?name=LifeOS&background=10B981&color=fff',
-          text: `Phòng học "${cleanName}" vừa được tạo bởi ${user.name}. Chúc mọi người học tập hiệu quả!`,
+          text: `Phòng học "${cleanName}" vừa được tạo bởi ${hostName}. Chúc mọi người học tập hiệu quả!`,
           createdAt: new Date().toISOString()
         }
       ],
@@ -473,6 +479,17 @@ class RoomPresenceService {
 
     this.rooms.set(id, newRoom);
     this.broadcastLobbyUpdate();
+
+    // Register with HighScaleRoomManager
+    try {
+      HighScaleRoomManager.getInstance().getOrCreateRoom(id, {
+        name: cleanName,
+        topic: cleanTopic,
+        hostId,
+        isSystemRoom: false,
+      });
+    } catch {}
+
     return this.getRoomSummary(newRoom);
   }
 
