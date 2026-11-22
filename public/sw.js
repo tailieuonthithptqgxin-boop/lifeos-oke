@@ -8,7 +8,7 @@
  * 4. Cache Versioning & Self-Cleanup: Tự động dọn dẹp các cache cũ khi triển khai bản mới.
  */
 
-const CACHE_VERSION = 'quan-li-ca-nhan-v2.0.5-rooms-oauth-final';
+const CACHE_VERSION = 'quan-li-ca-nhan-v2.0.6-stable-nolooop';
 const STATIC_CACHE_NAME = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE_NAME = `runtime-${CACHE_VERSION}`;
 
