@@ -1,37 +1,53 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Clock,
-  Volume2,
-  VolumeX,
-  Target,
-  Coffee,
-  MessageSquare,
-  Share2,
-  CheckCircle2,
-  Flame,
-  Award,
-  Users,
-  LogOut,
-  Send,
-  X,
-  Sparkles,
-  ChevronDown,
-  Smile,
-  Shield,
-  Zap,
+  GraduationCap,
+  Lock,
+  Copy,
+  LayoutGrid,
+  Maximize2,
+  EyeOff,
+  Eye,
   Play,
   Pause,
+  RotateCcw,
+  Zap,
+  Flame,
+  Award,
+  Sparkles,
+  Pin,
+  PinOff,
+  Mic,
+  MicOff,
+  Video,
+  VideoOff,
+  Monitor,
+  Headphones,
+  Smile,
+  PhoneOff,
+  MessageSquare,
+  CheckSquare,
+  Square,
+  Trophy,
+  Plus,
+  Trash2,
+  Send,
+  Volume2,
+  VolumeX,
+  Sliders,
+  X,
   ExternalLink,
-  ChevronRight
+  Share2,
+  Coffee,
+  Check,
+  CheckCircle2,
+  Wand2,
+  UserPlus
 } from 'lucide-react';
 import { useAppStore } from '../../lib/store';
 import { apiCall } from '../../lib/apiClient';
 import { toast } from '../../lib/toast';
 import { triggerConfetti } from '../../lib/confetti';
-import { soundEngine } from '../../lib/soundEngine';
-import { ambientSoundMixer, AmbientTrackId } from '../../lib/ambientSoundMixer';
 import { recordUserActivity } from '../../lib/globalUserSync';
-import { notifyStudyCommunity } from '../../lib/unifiedNotificationEngine';
 
 export interface RoomDetail {
   id: string;
@@ -48,7 +64,7 @@ export interface RoomDetail {
   inMeetCount: number;
   recentAvatars: string[];
   recentMessageCount: number;
-  pomodoro: {
+  pomodoro?: {
     phase: 'FOCUS' | 'BREAK';
     duration: number; // seconds
     startedAt: number | null;
@@ -67,6 +83,8 @@ export interface RoomDetail {
     isSimulated?: boolean;
     badge?: string;
     streakDays?: number;
+    level?: number;
+    vibe?: string;
   }>;
   messages: Array<{
     id: string;
@@ -79,12 +97,10 @@ export interface RoomDetail {
   }>;
 }
 
-interface FloatingCheer {
+interface FloatingEmoji {
   id: string;
   emoji: string;
-  text: string;
-  senderName: string;
-  x: number; // percentage across screen
+  x: number; // percentage
 }
 
 interface StudyRoomViewProps {
@@ -105,914 +121,2061 @@ export function StudyRoomView({
   room,
   onLeaveRoom,
   onUpdateGoal,
+  currentUserId,
+  currentUserName,
+  currentUserAvatar,
+  onSendMessage,
+  onSyncPomodoro,
   language = 'vi'
 }: StudyRoomViewProps) {
   const { currentUser } = useAppStore();
 
-  // Local state
-  const [currentGoal, setCurrentGoal] = useState<string>(() => {
-    const me = room.members?.find((m) => m.userId === currentUser?.id);
-    return me?.studyGoal || 'Đang tập trung học tập...';
-  });
-  const [isGoalCompleted, setIsGoalCompleted] = useState<boolean>(() => {
-    const me = room.members?.find((m) => m.userId === currentUser?.id);
-    return Boolean(me?.studyGoalCompleted);
+  const myId = currentUserId || currentUser?.id || 'guest';
+  const myName = currentUserName || currentUser?.name || 'Bạn';
+
+  // State: Gamification
+  const [userXP, setUserXP] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('lifeos_study_user_xp');
+      return saved ? parseInt(saved, 10) : 850;
+    } catch {
+      return 850;
+    }
   });
 
-  // Focus time counter (seconds spent in session)
-  const [sessionSeconds, setSessionSeconds] = useState<number>(0);
-  const [joinedTimestamp, setJoinedTimestamp] = useState<number>(() => {
+  const [userStreak] = useState<number>(() => {
+    return currentUser?.streakDays || 14;
+  });
+
+  const [selectedFrame, setSelectedFrame] = useState<string>(() => {
+    try {
+      return localStorage.getItem('lifeos_study_user_frame') || 'frame-emerald';
+    } catch {
+      return 'frame-emerald';
+    }
+  });
+
+  // State: Avatar Filters
+  const avatarFilters = [
+    { name: '🧑‍💻 Filter: Lofi Coder', seed: 'GenZStudentHero' },
+    { name: '🐱 Filter: Mèo Béo Cày Đêm', seed: 'FatCatCoder' },
+    { name: '🎧 Filter: Anime Vibe', seed: 'AnimeGenZ' },
+    { name: '✨ Filter: Minimalist Desk', seed: 'MinimalDesk' }
+  ];
+  const [avatarFilterIndex, setAvatarFilterIndex] = useState(0);
+
+  // State: Vibe
+  const [userVibe, setUserVibe] = useState<string>('🔥 Đang Focus');
+
+  // State: User Task & Timer
+  const [userTask, setUserTask] = useState<string>(() => {
+    const me = room.members?.find((m) => m.userId === myId);
+    return me?.studyGoal || 'Giải đề IELTS Reading Cam 18';
+  });
+  const [taskTimerSeconds, setTaskTimerSeconds] = useState<number>(() => {
     try {
       const saved = localStorage.getItem('lifeos_active_study_desk_v2');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed?.roomId === room.id && parsed?.joinedAt) {
-          return parsed.joinedAt;
+          return Math.floor((Date.now() - parsed.joinedAt) / 1000);
         }
       }
     } catch {}
-    return Date.now();
+    return 5050;
   });
 
-  // Active Ambient Sound Tracks
-  const [activeSound, setActiveSound] = useState<AmbientTrackId | null>('rain');
-  const [ambientVolume, setAmbientVolume] = useState<number>(0.5);
-  const [isMuted, setIsMuted] = useState<boolean>(false);
+  // State: Rule of 3 Tasks
+  const [tasks, setTasks] = useState<Array<{ id: number; text: string; completed: boolean }>>(() => {
+    try {
+      const saved = localStorage.getItem('lifeos_study_rule_of_3');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [
+      { id: 1, text: 'Giải đề IELTS Reading Cam 18', completed: false },
+      { id: 2, text: 'Xem xong Video React Hooks', completed: true }
+    ];
+  });
+  const [newTaskInput, setNewTaskInput] = useState('');
 
-  // Modals & Bottom Drawers
-  const [showGoalModal, setShowGoalModal] = useState(false);
-  const [goalInput, setGoalInput] = useState(currentGoal);
-  const [showCheerSheet, setShowCheerSheet] = useState(false);
-  const [showChatDrawer, setShowChatDrawer] = useState(false);
-  const [chatMessageInput, setChatMessageInput] = useState('');
-  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  // State: Media & Dock controls
+  const [isMicOn, setIsMicOn] = useState(false);
+  const [isWebcamOn, setIsWebcamOn] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [tileLayout, setTileLayout] = useState<'grid' | 'spotlight'>('grid');
+  const [pinnedTileKey, setPinnedTileKey] = useState<string>('user');
+  const [zenMode, setZenMode] = useState(false);
 
-  // Floating cheers animations array
-  const [floatingCheers, setFloatingCheers] = useState<FloatingCheer[]>([]);
+  // State: Right Drawer
+  const [isDrawerOpen, setIsDrawerOpen] = useState(true);
+  const [activeDrawerTab, setActiveDrawerTab] = useState<'chat' | 'tasks' | 'rank'>('chat');
+  const [chatInput, setChatInput] = useState('');
+  const [localMessages, setLocalMessages] = useState<Array<{ id: string; author: string; text: string; time: string; isSystem?: boolean }>>([]);
 
-  // Visible desks limit (for 60fps mobile pagination)
-  const [visibleDeskLimit, setVisibleDeskLimit] = useState(24);
+  // State: Modals & Popovers
+  const [isSoundPopoverOpen, setIsSoundPopoverOpen] = useState(false);
+  const [showFrameShopModal, setShowFrameShopModal] = useState(false);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
 
-  // Pomodoro countdown timer calculation
-  const [pomodoroLeftSeconds, setPomodoroLeftSeconds] = useState<number>(1500);
+  // State: Realtime clock
+  const [clockDisplay, setClockDisplay] = useState('');
+
+  // State: Floating Emojis & Bursts
+  const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
+  const [tileBursts, setTileBursts] = useState<Record<string, string>>({});
+
+  // Refs for Web Media & Audio Context
+  const webcamVideoRef = useRef<HTMLVideoElement>(null);
+  const screenShareVideoRef = useRef<HTMLVideoElement>(null);
+  const webcamStreamRef = useRef<MediaStream | null>(null);
+  const screenStreamRef = useRef<MediaStream | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const chatMessagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Sound Synth references
+  const synthNodes = useRef<{
+    rain: { node: AudioNode | null; gain: GainNode | null; active: boolean };
+    keyboard: { timer: any | null; gain: GainNode | null; active: boolean };
+    cafe: { node: AudioNode | null; gain: GainNode | null; active: boolean };
+    lofi: { timer: any | null; gain: GainNode | null; active: boolean };
+  }>({
+    rain: { node: null, gain: null, active: false },
+    keyboard: { timer: null, gain: null, active: false },
+    cafe: { node: null, gain: null, active: false },
+    lofi: { timer: null, gain: null, active: false }
+  });
+
+  const [synthStates, setSynthStates] = useState({
+    rain: { active: false, vol: 0.5 },
+    keyboard: { active: false, vol: 0.4 },
+    cafe: { active: false, vol: 0.5 },
+    lofi: { active: false, vol: 0.3 }
+  });
+
+  // Pomodoro Synchronized State
+  const [pomodoroLeft, setPomodoroLeft] = useState(25 * 60);
+  const [pomodoroDuration, setPomodoroDuration] = useState(25 * 60);
+  const [isPomodoroRunning, setIsPomodoroRunning] = useState(false);
   const [pomodoroPhase, setPomodoroPhase] = useState<'FOCUS' | 'BREAK'>('FOCUS');
 
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const audioInitializedRef = useRef(false);
-
   // -------------------------------------------------------------
-  // 1. Pomodoro Synchronization (Sync with Server Timestamps)
-  // -------------------------------------------------------------
-  useEffect(() => {
-    const updatePomo = () => {
-      const p = room.pomodoro;
-      if (!p) {
-        setPomodoroLeftSeconds(1500);
-        setPomodoroPhase('FOCUS');
-        return;
-      }
-
-      setPomodoroPhase(p.phase || 'FOCUS');
-
-      if (p.isRunning && p.startedAt) {
-        const elapsedSec = Math.floor((Date.now() - p.startedAt) / 1000);
-        const remaining = Math.max(0, p.duration - elapsedSec);
-        setPomodoroLeftSeconds(remaining);
-      } else {
-        setPomodoroLeftSeconds(p.duration || 1500);
-      }
-    };
-
-    updatePomo();
-    const timer = setInterval(updatePomo, 1000);
-    return () => clearInterval(timer);
-  }, [room.pomodoro]);
-
-  // -------------------------------------------------------------
-  // 2. Personal Focus Stopwatch & localStorage Persistence (F5 Resilience)
+  // 1. Clock & Task Stopwatch
   // -------------------------------------------------------------
   useEffect(() => {
     const updateTime = () => {
-      const elapsed = Math.floor((Date.now() - joinedTimestamp) / 1000);
-      setSessionSeconds(elapsed);
-
-      // Persist state for F5 reload resilience
-      try {
-        localStorage.setItem(
-          'lifeos_active_study_desk_v2',
-          JSON.stringify({
-            roomId: room.id,
-            roomName: room.name,
-            goal: currentGoal,
-            joinedAt: joinedTimestamp,
-            lastPing: Date.now()
-          })
-        );
-      } catch {}
+      const now = new Date();
+      setClockDisplay(now.toLocaleTimeString());
+      setTaskTimerSeconds((prev) => prev + 1);
     };
-
     updateTime();
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
-  }, [joinedTimestamp, room.id, room.name, currentGoal]);
+  }, []);
+
+  // Save tasks and XP to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('lifeos_study_rule_of_3', JSON.stringify(tasks));
+      localStorage.setItem('lifeos_study_user_xp', userXP.toString());
+      localStorage.setItem('lifeos_study_user_frame', selectedFrame);
+    } catch {}
+  }, [tasks, userXP, selectedFrame]);
 
   // -------------------------------------------------------------
-  // 3. Heartbeat Ping (60s Batching - Zero Server Overload)
+  // 2. Pomodoro Sync
   // -------------------------------------------------------------
   useEffect(() => {
-    const pingServer = async () => {
+    if (room.pomodoro) {
+      const p = room.pomodoro;
+      setPomodoroPhase(p.phase || 'FOCUS');
+      setPomodoroDuration(p.duration || 1500);
+      setIsPomodoroRunning(p.isRunning);
+
+      if (p.isRunning && p.startedAt) {
+        const elapsed = Math.floor((Date.now() - p.startedAt) / 1000);
+        setPomodoroLeft(Math.max(0, p.duration - elapsed));
+      } else {
+        setPomodoroLeft(p.duration || 1500);
+      }
+    }
+  }, [room.pomodoro]);
+
+  // Local Pomodoro Tick
+  useEffect(() => {
+    if (!isPomodoroRunning) return;
+
+    const timer = setInterval(() => {
+      setPomodoroLeft((prev) => {
+        if (prev <= 1) {
+          handlePomodoroComplete();
+          return pomodoroDuration;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isPomodoroRunning, pomodoroDuration]);
+
+  const handlePomodoroComplete = () => {
+    setIsPomodoroRunning(false);
+    playCompletionChime();
+    triggerConfetti();
+    addXP(100);
+    appendLocalChat('Hệ thống 🤖', '🎉 Bạn vừa hoàn thành 1 phiên Pomodoro cùng cả phòng! (+100 XP)', true);
+    toast.success('Xong Pomodoro! 🎉 +100 XP tích lũy vào tài khoản.');
+  };
+
+  const togglePomoTimer = () => {
+    initAudioContext();
+    const nextState = !isPomodoroRunning;
+    setIsPomodoroRunning(nextState);
+    if (onSyncPomodoro) {
+      onSyncPomodoro(nextState ? 'start' : 'pause');
+    }
+  };
+
+  const resetPomoTimer = () => {
+    setIsPomodoroRunning(false);
+    setPomodoroLeft(pomodoroDuration);
+    if (onSyncPomodoro) {
+      onSyncPomodoro('reset');
+    }
+  };
+
+  const setTimerPreset = (mins: number) => {
+    setIsPomodoroRunning(false);
+    const secs = Math.round(mins * 60);
+    setPomodoroDuration(secs);
+    setPomodoroLeft(secs);
+    toast.info(`Đã đổi thời gian Pomodoro: ${mins < 1 ? Math.round(mins * 60) + ' giây' : mins + ' phút'}`);
+  };
+
+  // -------------------------------------------------------------
+  // 3. Web Audio API Synthesizers
+  // -------------------------------------------------------------
+  const initAudioContext = () => {
+    if (!audioCtxRef.current) {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (AudioCtx) {
+        audioCtxRef.current = new AudioCtx();
+      }
+    }
+    if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
+  };
+
+  const toggleSoundSynth = (type: 'rain' | 'keyboard' | 'cafe' | 'lofi') => {
+    initAudioContext();
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+
+    const s = synthNodes.current[type];
+    const currentActive = synthStates[type].active;
+    const vol = synthStates[type].vol;
+
+    if (currentActive) {
+      // Stop synth
+      stopSoundSynth(type);
+      setSynthStates((prev) => ({
+        ...prev,
+        [type]: { ...prev[type], active: false }
+      }));
+    } else {
+      // Start synth
+      startSoundSynth(type, vol);
+      setSynthStates((prev) => ({
+        ...prev,
+        [type]: { ...prev[type], active: true }
+      }));
+    }
+  };
+
+  const updateSoundVol = (type: 'rain' | 'keyboard' | 'cafe' | 'lofi', val: number) => {
+    setSynthStates((prev) => ({
+      ...prev,
+      [type]: { ...prev[type], vol: val }
+    }));
+    const s = synthNodes.current[type];
+    const ctx = audioCtxRef.current;
+    if (s.gain && ctx) {
+      s.gain.gain.setValueAtTime(val, ctx.currentTime);
+    }
+  };
+
+  const startSoundSynth = (type: 'rain' | 'keyboard' | 'cafe' | 'lofi', vol: number) => {
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+
+    if (type === 'rain') {
+      const bufferSize = 2 * ctx.sampleRate;
+      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+
+      const whiteNoise = ctx.createBufferSource();
+      whiteNoise.buffer = noiseBuffer;
+      whiteNoise.loop = true;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(800, ctx.currentTime);
+
+      const gainNode = ctx.createGain();
+      gainNode.gain.setValueAtTime(vol, ctx.currentTime);
+
+      whiteNoise.connect(filter);
+      filter.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      whiteNoise.start();
+
+      synthNodes.current.rain.node = whiteNoise;
+      synthNodes.current.rain.gain = gainNode;
+      synthNodes.current.rain.active = true;
+    } else if (type === 'keyboard') {
+      const gainNode = ctx.createGain();
+      gainNode.gain.setValueAtTime(vol, ctx.currentTime);
+      gainNode.connect(ctx.destination);
+      synthNodes.current.keyboard.gain = gainNode;
+      synthNodes.current.keyboard.active = true;
+
+      synthNodes.current.keyboard.timer = setInterval(() => {
+        if (!synthNodes.current.keyboard.active || !audioCtxRef.current) return;
+        const c = audioCtxRef.current;
+        const osc = c.createOscillator();
+        const clickGain = c.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(1100 + Math.random() * 500, c.currentTime);
+        clickGain.gain.setValueAtTime(0.04 * vol, c.currentTime);
+        clickGain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.03);
+
+        osc.connect(clickGain);
+        clickGain.connect(gainNode);
+        osc.start();
+        osc.stop(c.currentTime + 0.04);
+      }, 350);
+    } else if (type === 'cafe') {
+      const bufferSize = 2 * ctx.sampleRate;
+      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      let lastOut = 0.0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        output[i] = (lastOut + 0.02 * white) / 1.02;
+        lastOut = output[i];
+      }
+      const brownNoise = ctx.createBufferSource();
+      brownNoise.buffer = noiseBuffer;
+      brownNoise.loop = true;
+
+      const gainNode = ctx.createGain();
+      gainNode.gain.setValueAtTime(vol, ctx.currentTime);
+
+      brownNoise.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      brownNoise.start();
+
+      synthNodes.current.cafe.node = brownNoise;
+      synthNodes.current.cafe.gain = gainNode;
+      synthNodes.current.cafe.active = true;
+    } else if (type === 'lofi') {
+      const gainNode = ctx.createGain();
+      gainNode.gain.setValueAtTime(vol, ctx.currentTime);
+      gainNode.connect(ctx.destination);
+      synthNodes.current.lofi.gain = gainNode;
+      synthNodes.current.lofi.active = true;
+
+      const notes = [261.63, 329.63, 392.0, 493.88];
+      let idx = 0;
+
+      synthNodes.current.lofi.timer = setInterval(() => {
+        if (!synthNodes.current.lofi.active || !audioCtxRef.current) return;
+        const c = audioCtxRef.current;
+        const osc = c.createOscillator();
+        const chordGain = c.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(notes[idx % notes.length], c.currentTime);
+        chordGain.gain.setValueAtTime(0.07 * vol, c.currentTime);
+        chordGain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 1.2);
+
+        osc.connect(chordGain);
+        chordGain.connect(gainNode);
+        osc.start();
+        osc.stop(c.currentTime + 1.3);
+        idx++;
+      }, 1400);
+    }
+  };
+
+  const stopSoundSynth = (type: 'rain' | 'keyboard' | 'cafe' | 'lofi') => {
+    const s = synthNodes.current[type];
+    s.active = false;
+    if (s.node) {
       try {
-        await apiCall(`/api/study-space/rooms/${room.id}/ping`, 'POST');
-      } catch {
-        // silent fail on network jitter
+        (s.node as any).stop();
+      } catch {}
+      s.node = null;
+    }
+    if (s.timer) {
+      clearInterval(s.timer);
+      s.timer = null;
+    }
+  };
+
+  const playCompletionChime = () => {
+    initAudioContext();
+    const ctx = audioCtxRef.current;
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.2);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.8);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.8);
+  };
+
+  // Cleanup media & audio on unmount
+  useEffect(() => {
+    return () => {
+      ['rain', 'keyboard', 'cafe', 'lofi'].forEach((k) => stopSoundSynth(k as any));
+      if (webcamStreamRef.current) {
+        webcamStreamRef.current.getTracks().forEach((t) => t.stop());
+      }
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach((t) => t.stop());
+      }
+      if (audioCtxRef.current) {
+        try {
+          audioCtxRef.current.close();
+        } catch {}
       }
     };
+  }, []);
 
-    const pingInterval = setInterval(pingServer, 60000);
-    return () => clearInterval(pingInterval);
-  }, [room.id]);
-
-  const handleLeaveRoom = () => {
-    if (sessionSeconds >= 60) {
+  // -------------------------------------------------------------
+  // 4. Webcam & Screen Share Controls
+  // -------------------------------------------------------------
+  const toggleDockCam = async () => {
+    if (!isWebcamOn) {
       try {
-        recordUserActivity('study', Math.round(sessionSeconds / 60));
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        webcamStreamRef.current = stream;
+        if (webcamVideoRef.current) {
+          webcamVideoRef.current.srcObject = stream;
+        }
+        setIsWebcamOn(true);
+        toast.success('Đã bật Webcam trực tiếp!');
+      } catch {
+        toast.info('Không thể bật camera thực tế. Đang hiển thị Avatar Gen Z.');
+      }
+    } else {
+      if (webcamStreamRef.current) {
+        webcamStreamRef.current.getTracks().forEach((t) => t.stop());
+        webcamStreamRef.current = null;
+      }
+      if (webcamVideoRef.current) {
+        webcamVideoRef.current.srcObject = null;
+      }
+      setIsWebcamOn(false);
+      toast.info('Đã tắt Webcam.');
+    }
+  };
+
+  const toggleDockMic = () => {
+    setIsMicOn((prev) => {
+      const next = !prev;
+      toast.info(next ? 'Đã bật Micro' : 'Đã tắt Micro');
+      return next;
+    });
+  };
+
+  const toggleScreenShare = async () => {
+    if (!isScreenSharing) {
+      try {
+        const stream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        screenStreamRef.current = stream;
+        if (screenShareVideoRef.current) {
+          screenShareVideoRef.current.srcObject = stream;
+        }
+        setIsScreenSharing(true);
+        setTileLayout('spotlight');
+        setPinnedTileKey('user');
+        toast.success('Đã chia sẻ màn hình & chuyển sang chế độ Ghim Spotlight!');
+
+        stream.getVideoTracks()[0].onended = () => {
+          stopScreenShare();
+        };
+      } catch {
+        toast.info('Không thể chọn màn hình hoặc đã hủy.');
+      }
+    } else {
+      stopScreenShare();
+    }
+  };
+
+  const stopScreenShare = () => {
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach((t) => t.stop());
+      screenStreamRef.current = null;
+    }
+    if (screenShareVideoRef.current) {
+      screenShareVideoRef.current.srcObject = null;
+    }
+    setIsScreenSharing(false);
+    setTileLayout('grid');
+    toast.info('Đã dừng chia sẻ màn hình.');
+  };
+
+  const cycleAvatarFilter = () => {
+    setAvatarFilterIndex((prev) => {
+      const next = (prev + 1) % avatarFilters.length;
+      toast.info(`Đã đổi filter: ${avatarFilters[next].name}`);
+      return next;
+    });
+  };
+
+  // -------------------------------------------------------------
+  // 5. Floating Reactions & Tile Fire Cheering
+  // -------------------------------------------------------------
+  const shootFloatingEmoji = (emoji: string) => {
+    const newEmoji: FloatingEmoji = {
+      id: Math.random().toString(),
+      emoji,
+      x: 15 + Math.random() * 70
+    };
+    setFloatingEmojis((prev) => [...prev, newEmoji]);
+    setTimeout(() => {
+      setFloatingEmojis((prev) => prev.filter((e) => e.id !== newEmoji.id));
+    }, 3000);
+  };
+
+  const sendTileFire = async (targetName: string, tileKey: string) => {
+    shootFloatingEmoji('🔥');
+    toast.success(`Bạn vừa truyền lửa 🔥 cho ${targetName}!`);
+    appendLocalChat('Hệ thống 🤖', `Bạn vừa truyền lửa 🔥 cho ${targetName}!`, true);
+
+    setTileBursts((prev) => ({ ...prev, [tileKey]: '🔥' }));
+    setTimeout(() => {
+      setTileBursts((prev) => {
+        const copy = { ...prev };
+        delete copy[tileKey];
+        return copy;
+      });
+    }, 1500);
+
+    try {
+      await apiCall(`/api/study-space/rooms/${room.id}/cheer`, 'POST', {
+        cheerType: 'fire',
+        cheerText: `Tiếp lửa trực tiếp cho ${targetName} 🔥`
+      });
+    } catch {}
+  };
+
+  const handleRaiseHand = () => {
+    shootFloatingEmoji('✋');
+    toast.info('Bạn đã giơ tay phát biểu!');
+    appendLocalChat('Hệ thống 🤖', `${myName} vừa giơ tay phát biểu ✋`, true);
+  };
+
+  // -------------------------------------------------------------
+  // 6. User Tasks (Rule of 3)
+  // -------------------------------------------------------------
+  const editUserTask = () => {
+    const updated = window.prompt('Cập nhật mục tiêu học tập đang hiển thị trên Video:', userTask);
+    if (updated && updated.trim()) {
+      const clean = updated.trim();
+      setUserTask(clean);
+      onUpdateGoal(clean);
+      toast.success('Đã cập nhật mục tiêu hiển thị trên video tile!');
+    }
+  };
+
+  const addRuleOfThreeTask = () => {
+    const val = newTaskInput.trim();
+    if (!val) return;
+    if (tasks.length >= 3) {
+      toast.info('Rule of 3: Chỉ nên đặt tối đa 3 nhiệm vụ để duy trì tập trung cao độ!');
+      return;
+    }
+    setTasks((prev) => [...prev, { id: Date.now(), text: val, completed: false }]);
+    setNewTaskInput('');
+    toast.success('Đã thêm mục tiêu mới!');
+  };
+
+  const toggleRuleOfThreeTask = (id: number) => {
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (t.id === id) {
+          const next = !t.completed;
+          if (next) {
+            addXP(50);
+            triggerConfetti();
+            setUserTask(t.text);
+            onUpdateGoal(t.text);
+            toast.success(`Mục tiêu xong! 🎉 +50 XP: "${t.text}"`);
+          }
+          return { ...t, completed: next };
+        }
+        return t;
+      })
+    );
+  };
+
+  const deleteRuleOfThreeTask = (id: number) => {
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  const addXP = (amount: number) => {
+    setUserXP((prev) => prev + amount);
+  };
+
+  // -------------------------------------------------------------
+  // 7. Chat System
+  // -------------------------------------------------------------
+  const appendLocalChat = (author: string, text: string, isSystem = false) => {
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    setLocalMessages((prev) => [...prev, { id: Math.random().toString(), author, text, time, isSystem }]);
+  };
+
+  const handleSendChatForm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const val = chatInput.trim();
+    if (!val) return;
+
+    appendLocalChat(myName, val);
+    setChatInput('');
+
+    if (onSendMessage) {
+      onSendMessage(val);
+    } else {
+      try {
+        await apiCall(`/api/study-space/rooms/${room.id}/messages`, 'POST', { text: val });
+      } catch {}
+    }
+  };
+
+  const handleQuickChip = (msg: string) => {
+    appendLocalChat(myName, msg);
+    if (onSendMessage) {
+      onSendMessage(msg);
+    } else {
+      apiCall(`/api/study-space/rooms/${room.id}/messages`, 'POST', { text: msg }).catch(() => {});
+    }
+  };
+
+  useEffect(() => {
+    chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [localMessages.length, room.messages?.length]);
+
+  // -------------------------------------------------------------
+  // 8. Sharing Room Link
+  // -------------------------------------------------------------
+  const copyRoomLink = () => {
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://lifeos.vn';
+    const link = `${origin}/?view=study-space&room=${encodeURIComponent(room.id)}`;
+    try {
+      navigator.clipboard.writeText(link);
+      triggerConfetti();
+      toast.success('Đã chép link phòng học vào khay nhớ tạm!');
+    } catch {
+      toast.info(`Link phòng: ${link}`);
+    }
+  };
+
+  // -------------------------------------------------------------
+  // 9. Real Peer Desks Setup (ZERO MOCK DATA)
+  // -------------------------------------------------------------
+  const otherMembers = (room.members || []).filter((m) => m.userId !== myId);
+  const remainingDesksCount = Math.max(0, 5 - otherMembers.length);
+
+  // Time formatters
+  const formatTimerClock = (totalSecs: number) => {
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const formatTaskTimer = (totalSecs: number) => {
+    const hrs = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    const secs = totalSecs % 60;
+    return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Calculate Pomodoro ring strokeDashoffset (circumference = 62.8)
+  const ringProgress = pomodoroLeft / pomodoroDuration;
+  const strokeDashoffset = 62.8 * (1 - ringProgress);
+
+  // Frame equip
+  const equipFrame = (frameClass: string) => {
+    setSelectedFrame(frameClass);
+    toast.success('Đã trang bị khung Avatar mới!');
+  };
+
+  // Leave room execution
+  const executeLeave = () => {
+    if (taskTimerSeconds >= 60) {
+      try {
+        recordUserActivity('study', Math.round(taskTimerSeconds / 60));
       } catch {}
     }
     onLeaveRoom();
   };
 
-  // -------------------------------------------------------------
-  // 4. Ambient Sound Initializer
-  // -------------------------------------------------------------
-  useEffect(() => {
-    // Start ambient rain by default if not yet started
-    if (!audioInitializedRef.current) {
-      audioInitializedRef.current = true;
-      try {
-        ambientSoundMixer.toggleTrack('rain');
-        ambientSoundMixer.setTrackVolume('rain', 0.45);
-      } catch {}
-    }
-
-    return () => {
-      // Pause ambient audio when leaving room
-      try {
-        ambientSoundMixer.stopAll();
-      } catch {}
-    };
-  }, []);
-
-  const handleToggleSound = (trackId: AmbientTrackId) => {
-    try {
-      soundEngine.play('click');
-      if (activeSound === trackId) {
-        // Toggle off
-        ambientSoundMixer.toggleTrack(trackId);
-        setActiveSound(null);
-      } else {
-        // Switch to new track
-        if (activeSound) {
-          ambientSoundMixer.toggleTrack(activeSound);
-        }
-        ambientSoundMixer.toggleTrack(trackId);
-        ambientSoundMixer.setTrackVolume(trackId, ambientVolume);
-        setActiveSound(trackId);
-      }
-    } catch (e) {
-      console.warn('Ambient mixer audio context error:', e);
-    }
-  };
-
-  const handleVolumeChange = (newVol: number) => {
-    setAmbientVolume(newVol);
-    if (activeSound) {
-      ambientSoundMixer.setTrackVolume(activeSound, newVol);
-    }
-  };
-
-  // -------------------------------------------------------------
-  // 5. Goal Completion
-  // -------------------------------------------------------------
-  const handleCompleteGoal = async () => {
-    if (isGoalCompleted) return;
-    setIsGoalCompleted(true);
-    triggerConfetti();
-    soundEngine.play('celebration');
-    toast.success('🎉 Xuất sắc! Bạn đã hoàn thành mục tiêu ca học này!');
-
-    const studyMinutes = Math.max(1, Math.round(sessionSeconds / 60));
-    try {
-      recordUserActivity('study', studyMinutes);
-    } catch {}
-
-    try {
-      await apiCall(`/api/study-space/rooms/${room.id}/complete-goal`, 'POST');
-    } catch {}
-  };
-
-  // -------------------------------------------------------------
-  // 6. Update Goal Modal
-  // -------------------------------------------------------------
-  const handleSaveGoal = async () => {
-    const clean = goalInput.trim();
-    if (!clean) {
-      toast.error('Vui lòng nhập mục tiêu cần làm');
-      return;
-    }
-    setCurrentGoal(clean);
-    setIsGoalCompleted(false);
-    setShowGoalModal(false);
-    onUpdateGoal(clean);
-    toast.success('Đã cập nhật mục tiêu mới! Hãy cùng tập trung nhé 🎯');
-  };
-
-  // -------------------------------------------------------------
-  // 7. Cheer Reaction (Floating Emojis)
-  // -------------------------------------------------------------
-  const triggerCheer = async (type: string, text: string) => {
-    setShowCheerSheet(false);
-    soundEngine.play('badge');
-
-    const emojiMap: Record<string, string> = {
-      fire: '🔥',
-      coffee: '☕',
-      zap: '⚡',
-      clap: '👏',
-      heart: '❤️'
-    };
-
-    const newCheer: FloatingCheer = {
-      id: Math.random().toString(),
-      emoji: emojiMap[type] || '🔥',
-      text,
-      senderName: currentUser?.name || 'Bạn',
-      x: 20 + Math.random() * 60 // 20% to 80% screen width
-    };
-
-    setFloatingCheers((prev) => [...prev, newCheer]);
-    setTimeout(() => {
-      setFloatingCheers((prev) => prev.filter((c) => c.id !== newCheer.id));
-    }, 3500);
-
-    try {
-      await apiCall(`/api/study-space/rooms/${room.id}/cheer`, 'POST', {
-        cheerType: type,
-        cheerText: text
-      });
-    } catch {}
-
-    toast.success(`Đã gửi lời cổ vũ: "${text}" ✨`);
-  };
-
-  // -------------------------------------------------------------
-  // 8. Share Room Link with Affiliate Code (?ref=...)
-  // -------------------------------------------------------------
-  const handleShareWithRef = () => {
-    soundEngine.play('click');
-    const refCode = currentUser?.referralCode || (currentUser as any)?.referral_code || '';
-    const origin = typeof window !== 'undefined' ? window.location.origin : 'https://lifeos.vn';
-    const refParam = refCode ? `&ref=${encodeURIComponent(refCode)}` : '';
-    const shareUrl = `${origin}/?view=study-space&room=${encodeURIComponent(room.id)}${refParam}`;
-
-    try {
-      navigator.clipboard.writeText(shareUrl);
-      triggerConfetti();
-      toast.success(
-        '🤝 Đã sao chép link bàn học! Bạn bè vào cùng bàn sẽ tự động được ghi nhận vào đội nhóm Cộng tác viên của bạn 🎁'
-      );
-      // Luồng 5: Thông báo rủ bạn bè vào bàn học
-      notifyStudyCommunity(
-        'FRIEND_INVITE',
-        `Bạn vừa tạo lời mời vào bàn học live "${room.name || 'Phòng học ảo'}". Link mời đã kèm mã CTV của bạn!`
-      ).catch(() => {});
-    } catch {
-      toast.info(`Link phòng học: ${shareUrl}`);
-    }
-  };
-
-  // -------------------------------------------------------------
-  // 9. Send Chat Message
-  // -------------------------------------------------------------
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const text = chatMessageInput.trim();
-    if (!text || isSendingMessage) return;
-
-    setIsSendingMessage(true);
-    try {
-      await apiCall(`/api/study-space/rooms/${room.id}/messages`, 'POST', { text });
-      setChatMessageInput('');
-      soundEngine.play('send');
-    } catch (err: any) {
-      toast.error(err?.message || 'Không thể gửi tin nhắn');
-    } finally {
-      setIsSendingMessage(false);
-    }
-  };
-
-  useEffect(() => {
-    if (showChatDrawer) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
-  }, [room.messages?.length, showChatDrawer]);
-
-  // Format Helpers
-  const formatTime = (totalSeconds: number) => {
-    const mins = Math.floor(totalSeconds / 60);
-    const secs = totalSeconds % 60;
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const formatHoursMins = (totalMinutes: number) => {
-    const h = Math.floor(totalMinutes / 60);
-    const m = totalMinutes % 60;
-    if (h === 0) return `${m} phút`;
-    return `${h}g ${m}p`;
-  };
-
-  // Filter members list: remove current user from others list
-  const otherMembers = (room.members || []).filter((m) => m.userId !== currentUser?.id);
-  const visibleMembers = otherMembers.slice(0, visibleDeskLimit);
-  const totalDesksCount = (room.members?.length || 0);
-
   return (
-    <div className="relative min-h-[92vh] flex flex-col justify-between font-sans pb-28 select-none">
-      {/* Floating Cheers Animations Overlay */}
-      <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
-        {floatingCheers.map((cheer) => (
-          <div
-            key={cheer.id}
-            style={{ left: `${cheer.x}%` }}
-            className="absolute bottom-24 animate-in fade-in slide-in-from-bottom-20 duration-1000 flex flex-col items-center gap-1 transition-all"
-          >
-            <span className="text-4xl sm:text-5xl animate-bounce drop-shadow-md">{cheer.emoji}</span>
-            <div className="bg-black/80 backdrop-blur-md text-white text-[11px] font-extrabold px-3 py-1 rounded-full shadow-lg border border-white/20 whitespace-nowrap">
-              <span>{cheer.senderName}: </span>
-              <span className="text-amber-300">{cheer.text}</span>
+    <div className="fixed inset-0 z-[100] w-screen h-screen overflow-hidden flex flex-col bg-[#090b10] text-slate-100 select-none font-sans">
+      {/* ========================================================= */}
+      {/* 1. TOP GOOGLE MEET HUD BAR (h-14)                         */}
+      {/* ========================================================= */}
+      <header
+        className={`h-14 px-4 flex items-center justify-between border-b border-white/10 bg-[#090b10]/95 backdrop-blur-md z-30 shrink-0 transition-all duration-300 ${
+          zenMode ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
+        }`}
+      >
+        {/* Left: Brand & Room Code & View Switcher */}
+        <div className="flex items-center gap-3">
+          {/* Logo */}
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <GraduationCap className="w-4 h-4 text-slate-950 font-black" />
             </div>
+            <span className="font-extrabold text-lg tracking-tight text-white flex items-center gap-1">
+              MeetStudy<span className="text-emerald-400">.vn</span>
+              <span className="relative flex h-2 w-2 ml-1">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+            </span>
           </div>
-        ))}
-      </div>
 
-      {/* ========================================================= */}
-      {/* TẦNG 1: THANH ĐỒNG HỒ & ÂM THANH NỀN (TOP BAR)            */}
-      {/* ========================================================= */}
-      <header className="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800/80 px-3.5 sm:px-6 py-2.5 shadow-xs">
-        <div className="max-w-7xl mx-auto flex flex-col gap-2.5">
-          {/* Top row: Room title + Live counter + Leave button */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping shrink-0" />
-              <div className="min-w-0">
-                <h1 className="text-sm sm:text-base font-black text-slate-900 dark:text-white truncate">
-                  {room.name}
-                </h1>
-                <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                  <span className="font-semibold text-indigo-600 dark:text-indigo-400">{room.topic}</span>
-                  <span>•</span>
-                  <span className="flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400">
-                    <Users className="w-3 h-3" />
-                    <span>
-                      {totalDesksCount === 0
-                        ? 'Bàn đang trống'
-                        : totalDesksCount === 1
-                        ? '1 bạn đang ngồi học (Bàn của bạn)'
-                        : `${totalDesksCount} bạn đang ngồi học`}
-                    </span>
-                  </span>
-                </div>
-              </div>
-            </div>
+          <div className="h-5 w-px bg-white/10 hidden sm:block" />
 
-            {/* Leave Room Button */}
+          {/* Room Code Badge */}
+          <button
+            onClick={copyRoomLink}
+            type="button"
+            className="hidden sm:flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-2.5 py-1 rounded-lg text-xs font-mono text-slate-300 transition cursor-pointer"
+            title="Sao chép link phòng"
+          >
+            <Lock className="w-3 h-3 text-emerald-400" />
+            <span>#{room.id.slice(0, 12)}</span>
+            <Copy className="w-3 h-3 text-slate-400" />
+          </button>
+
+          {/* Layout View Mode Switcher */}
+          <div className="flex items-center bg-white/5 border border-white/10 rounded-lg p-0.5 text-xs">
             <button
               type="button"
-              onClick={handleLeaveRoom}
-              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-rose-50 text-slate-600 hover:text-rose-600 dark:bg-slate-800 dark:hover:bg-rose-950/50 dark:text-slate-300 dark:hover:text-rose-400 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 border border-slate-200 dark:border-slate-700"
+              onClick={() => setTileLayout('grid')}
+              className={`px-2.5 py-1 rounded-md transition flex items-center gap-1.5 cursor-pointer font-bold ${
+                tileLayout === 'grid'
+                  ? 'bg-emerald-500/20 text-emerald-400 shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
             >
-              <LogOut className="w-3.5 h-3.5" />
-              <span>Rời bàn</span>
+              <LayoutGrid className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">Grid (3x2)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTileLayout('spotlight');
+                setPinnedTileKey('user');
+              }}
+              className={`px-2.5 py-1 rounded-md transition flex items-center gap-1.5 cursor-pointer font-bold ${
+                tileLayout === 'spotlight'
+                  ? 'bg-emerald-500/20 text-emerald-400 shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+              <span className="hidden md:inline">Ghim Màn Hình</span>
             </button>
           </div>
 
-          {/* Bottom row: Pomodoro clock badge + Ambient sound selector pills */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-slate-800/60">
-            {/* Pomodoro Live Clock */}
-            <div className="flex items-center gap-2">
-              <div
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black shadow-xs ${
-                  pomodoroPhase === 'FOCUS'
-                    ? 'bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-300 dark:border-amber-700/60'
-                    : 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700/60'
-                }`}
-              >
-                <Clock className="w-3.5 h-3.5 animate-spin" />
-                <span>{formatTime(pomodoroLeftSeconds)}</span>
-                <span className="text-[10px] font-bold uppercase tracking-wider ml-1">
-                  {pomodoroPhase === 'FOCUS' ? '🔥 Giờ Tập Trung' : '☕ Giờ Giải Lao'}
-                </span>
-              </div>
-            </div>
-
-            {/* Ambient Sound 1-Tap Pills */}
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5">
-              <span className="text-[11px] font-bold text-slate-400 shrink-0 hidden sm:inline">Âm thanh:</span>
-              {[
-                { id: 'rain', label: '🌧️ Mưa', name: 'Tiếng mưa' },
-                { id: 'cafe', label: '☕ Cafe', name: 'Quán cafe' },
-                { id: 'campfire', label: '🔥 Lửa trại', name: 'Lửa trại' },
-                { id: 'lofi', label: '🎧 Lo-Fi', name: 'Nhạc chill' }
-              ].map((s) => {
-                const isActive = activeSound === s.id;
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => handleToggleSound(s.id as AmbientTrackId)}
-                    className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer shrink-0 ${
-                      isActive
-                        ? 'bg-indigo-600 text-white shadow-xs scale-102 ring-1 ring-indigo-400 animate-pulse'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    }`}
-                    title={s.name}
-                  >
-                    <span>{s.label}</span>
-                  </button>
-                );
-              })}
-
-              {/* Mute button */}
-              {activeSound && (
-                <button
-                  type="button"
-                  onClick={() => handleToggleSound(activeSound)}
-                  className="p-1 rounded-xl bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-rose-500 cursor-pointer text-xs"
-                  title="Tắt âm thanh nền"
-                >
-                  <VolumeX className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </header>
-
-      {/* ========================================================= */}
-      {/* TẦNG 2: KHU VỰC BÀN HỌC CHUNG (LƯỚI 2 CỘT TRÊN MOBILE)     */}
-      {/* ========================================================= */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-3.5 sm:p-6 space-y-4">
-        {/* Banner Vibe Reminder */}
-        <div className="bg-gradient-to-r from-indigo-500/10 via-purple-500/10 to-transparent p-3 rounded-2xl border border-indigo-200/50 dark:border-indigo-800/40 flex items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            <span className="text-slate-700 dark:text-slate-300 font-medium">
-              Không video call nặng máy • Mọi người cùng hiện diện và tích lũy từng phút tập trung!
-            </span>
-          </div>
+          {/* Zen Mode Toggle */}
           <button
             type="button"
-            onClick={handleShareWithRef}
-            className="text-indigo-600 dark:text-indigo-400 font-black hover:underline shrink-0 flex items-center gap-1"
+            onClick={() => setZenMode(true)}
+            className="hidden xl:flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 px-2.5 py-1 rounded-lg text-xs text-slate-300 transition cursor-pointer"
+            title="Ẩn HUD để tập trung tuyệt đối"
           >
-            <span>Rủ bạn (?ref)</span>
-            <ExternalLink className="w-3 h-3" />
+            <EyeOff className="w-3.5 h-3.5 text-slate-400" />
+            <span>Zen Mode</span>
           </button>
         </div>
 
-        {/* Desks Grid (2 columns on mobile, 3 columns sm, 4 columns lg) */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
-          {/* ----------------------------------------------------- */}
-          {/* Ô 1: BÀN CỦA BẠN (Nổi bật nhất)                        */}
-          {/* ----------------------------------------------------- */}
-          <div className="relative rounded-3xl p-4 bg-linear-to-b from-indigo-500/15 via-purple-500/10 to-white dark:to-slate-900 border-2 border-indigo-500 shadow-lg shadow-indigo-500/15 flex flex-col justify-between space-y-3 transition-transform hover:scale-101">
-            {/* Header: User avatar + Your Badge */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between gap-1.5">
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-indigo-600 text-white uppercase tracking-wider shadow-xs">
-                  Bàn của bạn 🌟
-                </span>
-                <span className="inline-flex items-center gap-1 text-[11px] font-black text-amber-500">
-                  <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                  <span>{Math.floor(sessionSeconds / 60)}p</span>
-                </span>
-              </div>
-
-              {/* User profile row */}
-              <div className="flex items-center gap-2.5">
-                <div className="relative">
-                  <img
-                    src={currentUser?.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser?.name || 'You')}&background=6366f1&color=fff`}
-                    alt="Avatar của bạn"
-                    className="w-10 h-10 rounded-2xl object-cover ring-2 ring-indigo-500 shadow-xs"
-                  />
-                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
-                </div>
-                <div className="min-w-0">
-                  <div className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white truncate">
-                    {currentUser?.name || 'Bạn'}
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
-                    <span>🔥 {currentUser?.streakDays ?? 0} ngày</span>
-                    <span>•</span>
-                    <span className="text-purple-600 dark:text-purple-400 truncate">{currentUser?.badgeLevel || (currentUser?.isAffiliate ? '⭐ CTV LifeOS' : 'Tân Binh')}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Current Goal Box */}
-              <div className="p-2.5 rounded-2xl bg-white/80 dark:bg-slate-800/80 border border-indigo-100 dark:border-indigo-900/40 text-left space-y-1">
-                <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase">
-                  <span>Mục tiêu hiện tại:</span>
-                  <button
-                    type="button"
-                    onClick={() => setShowGoalModal(true)}
-                    className="text-indigo-600 hover:underline cursor-pointer"
-                  >
-                    Đổi
-                  </button>
-                </div>
-                <p className="text-xs font-bold text-slate-800 dark:text-slate-100 line-clamp-2 break-words">
-                  {currentGoal}
-                </p>
-              </div>
-            </div>
-
-            {/* Complete Goal Button (1-Tap) */}
-            <div className="pt-2">
-              {isGoalCompleted ? (
-                <div className="w-full py-2 px-3 rounded-2xl bg-emerald-500 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Đã xong mục tiêu! 🎉</span>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleCompleteGoal}
-                  className="w-full py-2 px-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 active:scale-95 text-white font-black text-xs transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Hoàn thành (✅)</span>
-                </button>
-              )}
-            </div>
+        {/* Center: Synchronized Group Pomodoro Timer Pill */}
+        <div className="flex items-center gap-2 bg-[#11151f]/90 border border-white/10 px-3 py-1 rounded-full shadow-lg">
+          <div className="relative w-6 h-6 flex items-center justify-center">
+            <svg className="w-6 h-6 transform -rotate-90">
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" className="text-slate-800" fill="transparent" />
+              <circle
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                className="text-emerald-400 transition-all duration-1000 ease-linear"
+                fill="transparent"
+                strokeDasharray="62.8"
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="round"
+              />
+            </svg>
           </div>
 
-          {/* ----------------------------------------------------- */}
-          {/* CÁC BÀN HỌC KHÁC TRONG PHÒNG                          */}
-          {/* ----------------------------------------------------- */}
-          {otherMembers.length === 0 ? (
-            <div className="col-span-1 rounded-3xl p-4 bg-slate-50/70 dark:bg-slate-800/40 border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-center space-y-2 py-6">
-              <span className="text-2xl">🌱</span>
-              <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                Không gian học yên tĩnh
-              </p>
-              <p className="text-[11px] text-slate-400 max-w-[180px] leading-relaxed">
-                Chưa có bạn học khác trong phòng. Hãy rủ bạn bè vào học cùng hoặc tận hưởng sự tập trung của riêng bạn!
-              </p>
-              <button
-                type="button"
-                onClick={handleShareWithRef}
-                className="mt-1 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-300 text-[11px] font-bold transition-all cursor-pointer inline-flex items-center gap-1"
-              >
-                <span>Rủ bạn học cùng</span>
-                <ExternalLink className="w-3 h-3" />
-              </button>
-            </div>
-          ) : (
-            visibleMembers.map((member, index) => {
-            const minutesStudied = Math.floor((Date.now() - member.joinedAt) / 60000);
-            const badgeTitle = member.badge || (member.championCount && member.championCount > 0 ? 'Quán Quân' : 'Chiến Binh');
+          {/* Clock Display */}
+          <span className="font-mono font-bold text-sm text-white tracking-wider">
+            {formatTimerClock(pomodoroLeft)}
+          </span>
 
-            return (
-              <div
-                key={member.userId || index}
-                className="relative rounded-3xl p-3.5 sm:p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 flex flex-col justify-between space-y-3 transition-all"
-              >
-                <div className="space-y-2">
-                  {/* Top status */}
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 truncate max-w-[85px]">
-                      {badgeTitle}
-                    </span>
-                    <span className="inline-flex items-center gap-0.5 text-[11px] font-black text-amber-500 shrink-0">
-                      <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                      <span>{minutesStudied}p</span>
-                    </span>
-                  </div>
+          {/* Phase Tag */}
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/60 uppercase">
+            {pomodoroPhase === 'FOCUS' ? '🔥 DEEP FOCUS' : '☕ NGHỈ NGƠI'}
+          </span>
 
-                  {/* Member info */}
-                  <div className="flex items-center gap-2">
-                    <div className="relative shrink-0">
-                      <img
-                        src={member.userAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.userName)}&background=10b981&color=fff`}
-                        alt={member.userName}
-                        className="w-9 h-9 rounded-2xl object-cover ring-1 ring-slate-200 dark:ring-slate-700"
-                      />
-                      <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-slate-900" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-extrabold text-xs text-slate-900 dark:text-white truncate">
-                        {member.userName}
-                      </div>
-                      <div className="text-[10px] text-slate-400 font-medium">
-                        Đang ngồi học
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Member goal */}
-                  <div className="p-2 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-left min-h-[46px] flex items-center">
-                    <p className="text-[11px] font-medium text-slate-700 dark:text-slate-300 line-clamp-2">
-                      {member.studyGoalCompleted ? '✅ ' : '🎯 '}
-                      {member.studyGoal || 'Đang tập trung...'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Desk bottom status */}
-                <div className="pt-1 flex items-center justify-between text-[10px] text-slate-400 font-bold border-t border-slate-100 dark:border-slate-800">
-                  <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    {member.studyGoalCompleted ? 'Đã xong' : 'Tập trung'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => triggerCheer('fire', `Gửi năng lượng tới ${member.userName} 🔥`)}
-                    className="text-slate-400 hover:text-amber-500 cursor-pointer"
-                    title="Gửi tim / cổ vũ"
-                  >
-                    ☕ Cổ vũ
-                  </button>
-                </div>
-              </div>
-            );
-          })
-        )}
-        </div>
-
-        {/* Show more desks button for 60fps mobile pagination */}
-        {otherMembers.length > visibleDeskLimit && (
-          <div className="text-center pt-2">
+          {/* Controls */}
+          <div className="flex items-center gap-1 ml-1 border-l border-white/10 pl-2">
             <button
               type="button"
-              onClick={() => setVisibleDeskLimit((prev) => prev + 20)}
-              className="px-5 py-2.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-indigo-600 dark:text-indigo-400 font-bold text-xs shadow-xs hover:bg-slate-50 cursor-pointer"
+              onClick={togglePomoTimer}
+              className="text-slate-300 hover:text-emerald-400 text-xs px-1.5 py-0.5 transition cursor-pointer"
+              title={isPomodoroRunning ? 'Tạm dừng' : 'Bắt đầu'}
             >
-              Xem thêm {otherMembers.length - visibleDeskLimit} bàn học khác ⬇
+              {isPomodoroRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+            </button>
+            <button
+              type="button"
+              onClick={resetPomoTimer}
+              className="text-slate-400 hover:text-white text-xs px-1.5 py-0.5 transition cursor-pointer"
+              title="Đặt lại"
+            >
+              <RotateCcw className="w-3 h-3" />
             </button>
           </div>
+
+          {/* Quick Presets */}
+          <div className="hidden lg:flex items-center gap-1 border-l border-white/10 pl-2 text-[10px]">
+            <button
+              type="button"
+              onClick={() => setTimerPreset(25)}
+              className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 transition cursor-pointer"
+            >
+              25m
+            </button>
+            <button
+              type="button"
+              onClick={() => setTimerPreset(50)}
+              className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 transition cursor-pointer"
+            >
+              50m
+            </button>
+            <button
+              type="button"
+              onClick={() => setTimerPreset(0.083)}
+              className="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/50 font-bold transition cursor-pointer"
+              title="Chạy thử 5 giây"
+            >
+              ⚡ Test 5s
+            </button>
+          </div>
+
+          <span className="text-[10px] text-slate-400 hidden xl:inline ml-1 font-medium">
+            {otherMembers.length > 0 ? `Đang học cùng ${otherMembers.length} bạn` : 'Bạn đang tập trung 1 mình'}
+          </span>
+        </div>
+
+        {/* Right: Gamification Stats & Frame Shop */}
+        <div className="flex items-center gap-3">
+          {/* Streak Badge */}
+          <div className="flex items-center gap-1.5 bg-gradient-to-r from-amber-950/60 to-[#11151f] border border-amber-500/40 px-2.5 py-1 rounded-xl text-xs font-bold text-amber-400 shadow-sm">
+            <Flame className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
+            <span>🔥 <strong className="text-white">{userStreak}</strong> Ngày</span>
+          </div>
+
+          {/* Level & XP Bar */}
+          <div className="hidden md:flex flex-col gap-0.5 bg-white/5 border border-white/10 px-3 py-1 rounded-xl min-w-[150px]">
+            <div className="flex justify-between items-center text-[10px]">
+              <span className="font-bold text-emerald-400">Lv.08 Học Bá</span>
+              <span className="text-slate-400 font-mono">{userXP}/1000 XP</span>
+            </div>
+            <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-emerald-500 to-teal-400 h-1.5 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.floor((userXP / 1000) * 100))}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Shop Frame Button */}
+          <button
+            type="button"
+            onClick={() => setShowFrameShopModal(true)}
+            className="flex items-center gap-1.5 bg-gradient-to-r from-purple-900/40 to-slate-900 hover:from-purple-800/60 border border-purple-500/40 text-purple-300 text-xs font-semibold px-2.5 py-1.5 rounded-xl transition shadow cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+            <span className="hidden lg:inline">Đổi Khung Avatar</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Zen Mode Exit Floating Pill (Visible only when in Zen Mode) */}
+      {zenMode && (
+        <button
+          type="button"
+          onClick={() => setZenMode(false)}
+          className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-slate-900/90 text-white px-3.5 py-2 rounded-full border border-white/20 shadow-2xl hover:scale-105 transition-all text-xs font-bold cursor-pointer"
+        >
+          <Eye className="w-4 h-4 text-emerald-400" />
+          <span>Hiện thanh công cụ (Thoát Zen)</span>
+        </button>
+      )}
+
+      {/* ========================================================= */}
+      {/* 2. MIDDLE MAIN STAGE (flex-1 flex overflow-hidden)        */}
+      {/* ========================================================= */}
+      <main className="flex-1 flex overflow-hidden p-3 gap-3 relative">
+        {/* Floating Emoji Reactions Overlay */}
+        <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden">
+          {floatingEmojis.map((e) => (
+            <div
+              key={e.id}
+              style={{ left: `${e.x}%`, bottom: '20px' }}
+              className="absolute text-4xl select-none animate-in fade-in slide-in-from-bottom-32 duration-1000"
+            >
+              {e.emoji}
+            </div>
+          ))}
+        </div>
+
+        {/* Video Stage Area */}
+        <div className="flex-1 h-full transition-all duration-300 overflow-hidden relative flex flex-col justify-center">
+          {tileLayout === 'grid' ? (
+            /* ================= GRID 3x2 MODE ================= */
+            <div className="w-full h-full grid grid-cols-1 md:grid-cols-3 grid-rows-2 gap-3 max-h-full">
+              {/* TILE 1: USER ("BẠN (YOU)") */}
+              <div className="bg-[#131824]/90 backdrop-blur-md rounded-2xl border-2 border-emerald-500/60 relative overflow-hidden flex flex-col justify-between p-3 group shadow-xl">
+                {/* Top Left: Live Goal & Task Timer Pill */}
+                <div
+                  onClick={editUserTask}
+                  className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 bg-slate-950/80 backdrop-blur-md border border-white/10 px-2.5 py-1 rounded-xl text-xs max-w-[85%] cursor-pointer hover:border-emerald-500 transition"
+                  title="Click để đổi mục tiêu trực tiếp"
+                >
+                  <span className="text-emerald-400 font-bold">🎯</span>
+                  <span className="truncate text-slate-200 font-medium">{userTask}</span>
+                  <span className="font-mono text-[10px] text-emerald-400 bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-800/60 ml-1">
+                    {formatTaskTimer(taskTimerSeconds)}
+                  </span>
+                </div>
+
+                {/* Top Right: Actions */}
+                <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1 opacity-90 group-hover:opacity-100">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTileLayout('spotlight');
+                      setPinnedTileKey('user');
+                    }}
+                    className="bg-slate-900/80 hover:bg-slate-800 text-slate-300 p-1.5 rounded-lg border border-white/10 text-xs cursor-pointer"
+                    title="Ghim màn hình này"
+                  >
+                    <Pin className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                {/* Center Tile Content: Webcam OR ScreenShare OR Gen Z Avatar */}
+                <div className="w-full h-full flex items-center justify-center relative rounded-xl overflow-hidden bg-[#0d111a]">
+                  {/* Real Webcam Element */}
+                  <video
+                    ref={webcamVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className={`w-full h-full object-cover transform -scale-x-100 ${isWebcamOn ? 'block' : 'hidden'}`}
+                  />
+
+                  {/* Real Screen Share Element */}
+                  <video
+                    ref={screenShareVideoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className={`w-full h-full object-cover ${isScreenSharing ? 'block' : 'hidden'}`}
+                  />
+
+                  {/* Virtual Gen Z Avatar Filter Box */}
+                  {!isWebcamOn && !isScreenSharing && (
+                    <div className="flex flex-col items-center justify-center text-center p-3 animate-pulse">
+                      {/* Avatar Frame Overlay Container */}
+                      <div className={`w-20 h-20 md:w-24 md:h-24 rounded-full p-1 relative transition-all duration-300 ${
+                        selectedFrame === 'frame-emerald'
+                          ? 'shadow-[0_0_0_3px_#10b981,0_0_15px_rgba(16,185,129,0.4)]'
+                          : selectedFrame === 'frame-neon'
+                          ? 'shadow-[0_0_0_3px_#a855f7,0_0_20px_rgba(168,85,247,0.6)]'
+                          : selectedFrame === 'frame-gold'
+                          ? 'shadow-[0_0_0_3px_#f59e0b,0_0_15px_rgba(245,158,11,0.5)]'
+                          : 'shadow-[0_0_0_3px_#06b6d4,0_0_15px_rgba(6,182,212,0.5)]'
+                      }`}>
+                        <img
+                          src={currentUserAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${avatarFilters[avatarFilterIndex].seed}`}
+                          alt="User Avatar"
+                          className="w-full h-full rounded-full bg-slate-900 object-cover"
+                        />
+                        <span className={`absolute bottom-0 right-0 w-6 h-6 border border-white/20 rounded-full flex items-center justify-center text-[10px] ${
+                          isMicOn ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-900 text-red-400'
+                        }`}>
+                          {isMicOn ? <Mic className="w-3 h-3" /> : <MicOff className="w-3 h-3" />}
+                        </span>
+                      </div>
+                      <span className="mt-2 text-xs font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-0.5 rounded-full">
+                        {avatarFilters[avatarFilterIndex].name}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Tile Burst Container */}
+                  {tileBursts['user'] && (
+                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-5xl animate-bounce">
+                      {tileBursts['user']}
+                    </div>
+                  )}
+                </div>
+
+                {/* Bottom Overlay: Name & Level & Vibe Tag */}
+                <div className="absolute bottom-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between pointer-events-none">
+                  <div className="flex items-center gap-1.5 bg-slate-950/80 backdrop-blur-md border border-white/10 px-2 py-0.5 rounded-lg text-xs">
+                    <span className="font-bold text-white">{myName}</span>
+                    <span className="text-[10px] text-emerald-400 font-mono font-bold bg-emerald-950/80 px-1 rounded">Lv.8</span>
+                    <span className="text-[10px] text-amber-400 font-semibold border-l border-white/10 pl-1.5">{userVibe}</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/90 border border-emerald-700/60 px-2 py-0.5 rounded-md flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" /> LIVE
+                  </span>
+                </div>
+              </div>
+
+              {/* PEER TILES (REAL MEMBERS) */}
+              {otherMembers.slice(0, 5).map((member, idx) => (
+                <div
+                  key={member.userId}
+                  className="bg-[#131824]/90 backdrop-blur-md rounded-2xl border border-white/10 relative overflow-hidden flex flex-col justify-between p-3 group hover:border-slate-600 transition-all shadow-xl"
+                >
+                  {/* Top Left: Goal */}
+                  <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 bg-slate-950/80 backdrop-blur-md border border-white/10 px-2.5 py-1 rounded-xl text-xs max-w-[85%]">
+                    <span className="text-cyan-400 font-bold">🎯</span>
+                    <span className="truncate text-slate-200 font-medium">{member.studyGoal || 'Đang cày cuốc chăm chỉ...'}</span>
+                  </div>
+
+                  {/* Top Right: Fire Cheer Button & Pin */}
+                  <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1 opacity-90 group-hover:opacity-100">
+                    <button
+                      type="button"
+                      onClick={() => sendTileFire(member.userName, `peer-${member.userId}`)}
+                      className="bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 p-1.5 rounded-lg border border-amber-500/40 text-xs transition cursor-pointer"
+                      title="Tiếp lửa trực tiếp"
+                    >
+                      🔥
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTileLayout('spotlight');
+                        setPinnedTileKey(member.userId);
+                      }}
+                      className="bg-slate-900/80 hover:bg-slate-800 text-slate-300 p-1.5 rounded-lg border border-white/10 text-xs cursor-pointer"
+                      title="Ghim màn hình này"
+                    >
+                      <Pin className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Center: Avatar */}
+                  <div className="w-full h-full flex items-center justify-center relative rounded-xl overflow-hidden bg-[#0d111a]">
+                    <div className="flex flex-col items-center justify-center text-center p-3">
+                      <div className="w-20 h-20 md:w-24 md:h-24 rounded-full p-1 relative shadow-[0_0_0_3px_#a855f7,0_0_20px_rgba(168,85,247,0.6)]">
+                        <img
+                          src={member.userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(member.userName)}`}
+                          alt={member.userName}
+                          className="w-full h-full rounded-full bg-slate-900 object-cover"
+                        />
+                        <span className="absolute bottom-0 right-0 w-6 h-6 bg-slate-900 border border-white/20 rounded-full flex items-center justify-center text-[10px] text-slate-400">
+                          <MicOff className="w-3 h-3" />
+                        </span>
+                      </div>
+                    </div>
+                    {tileBursts[`peer-${member.userId}`] && (
+                      <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-5xl animate-bounce">
+                        {tileBursts[`peer-${member.userId}`]}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Bottom: Name & Vibe */}
+                  <div className="absolute bottom-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between pointer-events-none">
+                    <div className="flex items-center gap-1.5 bg-slate-950/80 backdrop-blur-md border border-white/10 px-2 py-0.5 rounded-lg text-xs">
+                      <span className="font-bold text-slate-100">{member.userName}</span>
+                      <span className="text-[10px] text-purple-400 font-mono font-bold bg-purple-950/80 px-1 rounded">Lv.{member.level || 10}</span>
+                      <span className="text-[10px] text-cyan-300 font-semibold border-l border-white/10 pl-1.5">{member.vibe || '🔥 Tập trung'}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* REMAINING EMPTY STUDY DESKS (CLEAN - ZERO MOCK DATA) */}
+              {Array.from({ length: remainingDesksCount }).map((_, index) => (
+                <div
+                  key={`empty-desk-${index}`}
+                  className="bg-[#11151f]/50 border border-dashed border-white/10 rounded-2xl relative overflow-hidden flex flex-col items-center justify-center p-4 text-center group hover:border-emerald-500/40 hover:bg-[#11151f]/80 transition-all"
+                >
+                  <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
+                    <UserPlus className="w-7 h-7 text-slate-500 group-hover:text-emerald-400 transition-colors" />
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-400 group-hover:text-slate-200 transition-colors">
+                    Bàn chờ bạn học #{otherMembers.length + index + 2}
+                  </h4>
+                  <p className="text-[10px] text-slate-500 mt-0.5 max-w-[180px]">
+                    Sẵn sàng chào đón đồng đội mới vào cùng học
+                  </p>
+                  <button
+                    type="button"
+                    onClick={copyRoomLink}
+                    className="mt-3 px-3 py-1 rounded-xl bg-white/5 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 border border-white/10 hover:border-emerald-500/40 text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Copy className="w-3 h-3" />
+                    <span>+ Mời bạn học cùng</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            /* ================= SPOTLIGHT / PINNED MODE ================= */
+            <div className="w-full h-full flex gap-3">
+              {/* Pinned Large Tile (75% Width) */}
+              <div className="flex-1 h-full bg-[#131824]/95 rounded-2xl border-2 border-emerald-500/80 relative overflow-hidden flex flex-col justify-between p-4 shadow-2xl">
+                {/* Large Video Area */}
+                <div className="w-full h-full flex items-center justify-center relative rounded-xl overflow-hidden bg-[#0d111a]">
+                  {pinnedTileKey === 'user' ? (
+                    <>
+                      <video
+                        ref={webcamVideoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        className={`w-full h-full object-cover transform -scale-x-100 ${isWebcamOn ? 'block' : 'hidden'}`}
+                      />
+                      <video
+                        ref={screenShareVideoRef}
+                        autoPlay
+                        playsInline
+                        muted
+                        className={`w-full h-full object-contain ${isScreenSharing ? 'block' : 'hidden'}`}
+                      />
+                      {!isWebcamOn && !isScreenSharing && (
+                        <div className="flex flex-col items-center justify-center text-center p-6">
+                          <div className={`w-32 h-32 rounded-full p-2 relative shadow-[0_0_0_3px_#10b981,0_0_20px_rgba(16,185,129,0.5)]`}>
+                            <img
+                              src={currentUserAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${avatarFilters[avatarFilterIndex].seed}`}
+                              alt="Pinned User"
+                              className="w-full h-full rounded-full bg-slate-900 object-cover"
+                            />
+                          </div>
+                          <h3 className="text-base font-bold text-white mt-3">{myName}</h3>
+                          <span className="text-xs text-emerald-400 mt-1">{userTask}</span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    /* Pinned Peer */
+                    (() => {
+                      const peer = otherMembers.find((m) => m.userId === pinnedTileKey);
+                      return peer ? (
+                        <div className="flex flex-col items-center justify-center text-center p-6">
+                          <div className="w-32 h-32 rounded-full p-2 relative shadow-[0_0_0_3px_#a855f7,0_0_20px_rgba(168,85,247,0.5)]">
+                            <img
+                              src={peer.userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(peer.userName)}`}
+                              alt={peer.userName}
+                              className="w-full h-full rounded-full bg-slate-900 object-cover"
+                            />
+                          </div>
+                          <h3 className="text-base font-bold text-white mt-3">{peer.userName}</h3>
+                          <span className="text-xs text-cyan-400 mt-1">{peer.studyGoal || 'Đang tập trung học...'}</span>
+                        </div>
+                      ) : null;
+                    })()
+                  )}
+                </div>
+
+                {/* Unpin Floating Button */}
+                <button
+                  type="button"
+                  onClick={() => setTileLayout('grid')}
+                  className="absolute top-4 right-4 z-30 bg-slate-900/90 hover:bg-slate-800 border border-white/20 text-slate-200 px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-lg cursor-pointer font-bold"
+                >
+                  <PinOff className="w-3.5 h-3.5" /> Bỏ ghim (Trở về Grid)
+                </button>
+              </div>
+
+              {/* Vertical Filmstrip Sidebar for Other Desks (25% Width) */}
+              <div className="w-64 h-full flex flex-col gap-2 overflow-y-auto pr-1">
+                {pinnedTileKey !== 'user' && (
+                  <div
+                    onClick={() => setPinnedTileKey('user')}
+                    className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition flex items-center gap-2"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-slate-800 overflow-hidden shrink-0">
+                      <img
+                        src={currentUserAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${avatarFilters[avatarFilterIndex].seed}`}
+                        alt="User"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <h5 className="text-xs font-bold text-white truncate">{myName} (Bạn)</h5>
+                      <p className="text-[10px] text-emerald-400 truncate">{userTask}</p>
+                    </div>
+                  </div>
+                )}
+                {otherMembers.map((m) => {
+                  if (m.userId === pinnedTileKey) return null;
+                  return (
+                    <div
+                      key={`filmstrip-${m.userId}`}
+                      onClick={() => setPinnedTileKey(m.userId)}
+                      className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition flex items-center gap-2"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-slate-800 overflow-hidden shrink-0">
+                        <img
+                          src={m.userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(m.userName)}`}
+                          alt={m.userName}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <h5 className="text-xs font-bold text-slate-200 truncate">{m.userName}</h5>
+                        <p className="text-[10px] text-slate-400 truncate">{m.studyGoal || 'Đang học tập'}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* ========================================================= */}
+        {/* 3. RIGHT COLLAPSIBLE GOOGLE MEET DRAWER (w-80 md:w-85)    */}
+        {/* ========================================================= */}
+        {isDrawerOpen && (
+          <aside className="w-80 md:w-85 h-full bg-[#11151f] border border-white/10 rounded-2xl flex flex-col overflow-hidden transition-all duration-300 z-20 shrink-0">
+            {/* Drawer Header Tabs */}
+            <div className="flex border-b border-white/10 bg-[#0d111a] p-1 gap-1">
+              <button
+                type="button"
+                onClick={() => setActiveDrawerTab('chat')}
+                className={`flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeDrawerTab === 'chat'
+                    ? 'text-emerald-400 bg-white/10'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <MessageSquare className="w-3.5 h-3.5" /> Chat
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveDrawerTab('tasks')}
+                className={`flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeDrawerTab === 'tasks'
+                    ? 'text-emerald-400 bg-white/10'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <CheckSquare className="w-3.5 h-3.5" /> Mục tiêu
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveDrawerTab('rank')}
+                className={`flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeDrawerTab === 'rank'
+                    ? 'text-emerald-400 bg-white/10'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <Trophy className="w-3.5 h-3.5" /> BXH
+              </button>
+            </div>
+
+            {/* TAB 1: LIVE CHAT & SLANG CHIPS */}
+            {activeDrawerTab === 'chat' && (
+              <div className="flex-1 flex flex-col justify-between p-3 overflow-hidden">
+                {/* Quick Slang Chips Bar */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-white/10">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickChip('Cố lên ae 🔥')}
+                    className="whitespace-nowrap px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] text-slate-300 transition cursor-pointer"
+                  >
+                    Cố lên ae 🔥
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickChip('Đỉnh nóc 🚀')}
+                    className="whitespace-nowrap px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] text-slate-300 transition cursor-pointer"
+                  >
+                    Đỉnh nóc 🚀
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickChip('Cứu nét 😭')}
+                    className="whitespace-nowrap px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] text-slate-300 transition cursor-pointer"
+                  >
+                    Cứu nét 😭
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickChip('Uống nước ☕')}
+                    className="whitespace-nowrap px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] text-slate-300 transition cursor-pointer"
+                  >
+                    Uống nước ☕
+                  </button>
+                </div>
+
+                {/* Chat Stream */}
+                <div className="flex-1 overflow-y-auto my-2 space-y-3 pr-1 text-xs">
+                  {/* Real Server Messages */}
+                  {(room.messages || []).map((msg) => (
+                    <div key={msg.id} className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-purple-400">{msg.userName}</span>
+                        <span className="text-[9px] text-slate-500">
+                          {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="bg-white/5 text-slate-200 p-2.5 rounded-2xl rounded-tl-none border border-white/5 inline-block max-w-[90%]">
+                        {msg.text}
+                      </p>
+                    </div>
+                  ))}
+
+                  {/* Local Messages */}
+                  {localMessages.map((msg) => (
+                    <div key={msg.id} className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className={msg.isSystem ? 'text-amber-400 font-bold' : 'text-emerald-400 font-bold'}>
+                          {msg.author}
+                        </span>
+                        <span className="text-[9px] text-slate-500">{msg.time}</span>
+                      </div>
+                      <p className={`p-2.5 rounded-2xl rounded-tl-none border inline-block max-w-[90%] ${
+                        msg.isSystem
+                          ? 'bg-amber-950/40 border-amber-500/30 text-amber-200'
+                          : 'bg-white/5 text-slate-200 border-white/5'
+                      }`}>
+                        {msg.text}
+                      </p>
+                    </div>
+                  ))}
+
+                  <div className="bg-emerald-950/50 border border-emerald-800/50 p-2.5 rounded-xl text-emerald-300 text-[11px] text-center font-medium">
+                    💡 Mẹo: Nhấn nút ⚡ Test 5s trên thanh HUD để trải nghiệm nhận thưởng +100 XP!
+                  </div>
+
+                  <div ref={chatMessagesEndRef} />
+                </div>
+
+                {/* Send Form */}
+                <form onSubmit={handleSendChatForm} className="flex items-center gap-2 pt-2 border-t border-white/10">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Gửi tin nhắn năng lượng..."
+                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 placeholder:text-slate-500"
+                  />
+                  <button
+                    type="submit"
+                    className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold p-2.5 rounded-xl transition cursor-pointer"
+                  >
+                    <Send className="w-3.5 h-3.5" />
+                  </button>
+                </form>
+              </div>
+            )}
+
+            {/* TAB 2: ACTIVE TASKS (RULE OF 3) */}
+            {activeDrawerTab === 'tasks' && (
+              <div className="flex-1 flex flex-col p-3 overflow-hidden">
+                <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
+                  <span className="text-xs font-bold text-slate-200">CHỜ HOÀN THÀNH (RULE OF 3)</span>
+                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800">
+                    {tasks.filter((t) => t.completed).length}/{tasks.length} xong
+                  </span>
+                </div>
+
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={newTaskInput}
+                    onChange={(e) => setNewTaskInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') addRuleOfThreeTask();
+                    }}
+                    placeholder="VD: Đọc 20 trang sách..."
+                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 placeholder:text-slate-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={addRuleOfThreeTask}
+                    className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 font-bold px-3 py-2 rounded-xl text-xs border border-emerald-500/40 cursor-pointer"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                  {tasks.map((t) => (
+                    <div
+                      key={t.id}
+                      className={`flex items-center justify-between p-2.5 rounded-xl border text-xs transition ${
+                        t.completed
+                          ? 'bg-emerald-950/30 border-emerald-800/40 text-slate-400 line-through'
+                          : 'bg-white/5 border-white/10 text-slate-200'
+                      }`}
+                    >
+                      <div
+                        onClick={() => toggleRuleOfThreeTask(t.id)}
+                        className="flex items-center gap-2 flex-1 cursor-pointer"
+                      >
+                        <div
+                          className={`w-4 h-4 rounded border flex items-center justify-center ${
+                            t.completed
+                              ? 'bg-emerald-500 border-emerald-500 text-slate-950 font-bold text-[10px]'
+                              : 'border-slate-600'
+                          }`}
+                        >
+                          {t.completed && <Check className="w-3 h-3" />}
+                        </div>
+                        <span className="truncate">{t.text}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => deleteRuleOfThreeTask(t.id)}
+                        className="text-slate-500 hover:text-red-400 text-xs px-1 cursor-pointer"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: LEADERBOARD & VIBE FRAME SHOP */}
+            {activeDrawerTab === 'rank' && (
+              <div className="flex-1 flex flex-col p-3 overflow-y-auto space-y-4">
+                {/* Room Leaderboard */}
+                <div>
+                  <h4 className="text-xs font-bold text-slate-200 mb-2 flex items-center gap-1.5">
+                    <Trophy className="w-3.5 h-3.5 text-amber-400" /> BẢNG XẾP HẠNG PHÒNG HỌC
+                  </h4>
+                  <div className="space-y-1.5 text-xs">
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-emerald-950/60 border border-emerald-500/40 font-bold">
+                      <span className="text-emerald-400">1. {myName} (Bạn)</span>
+                      <span className="font-mono text-emerald-400">{userXP} XP</span>
+                    </div>
+                    {otherMembers.map((m, idx) => (
+                      <div key={m.userId} className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5">
+                        <span className="font-bold text-slate-200">{idx + 2}. {m.userName}</span>
+                        <span className="font-mono text-slate-400">{3000 - idx * 250} XP</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Frame Customizer Mini Panel */}
+                <div className="border-t border-white/10 pt-3">
+                  <h4 className="text-xs font-bold text-slate-200 mb-2 flex items-center gap-1.5">
+                    <Wand2 className="w-3.5 h-3.5 text-purple-400" /> NÂNG CẤP KHUNG AVATAR
+                  </h4>
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => equipFrame('frame-emerald')}
+                      className={`p-2 rounded-xl text-left transition cursor-pointer border ${
+                        selectedFrame === 'frame-emerald'
+                          ? 'bg-emerald-950/50 border-emerald-500'
+                          : 'bg-white/5 border-white/10 hover:border-emerald-500/50'
+                      }`}
+                    >
+                      <span className="font-bold text-emerald-400 block">Khung Lục Bảo</span>
+                      <span className="text-[10px] text-slate-400">
+                        {selectedFrame === 'frame-emerald' ? 'Đã trang bị' : 'Chọn dùng'}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => equipFrame('frame-neon')}
+                      className={`p-2 rounded-xl text-left transition cursor-pointer border ${
+                        selectedFrame === 'frame-neon'
+                          ? 'bg-purple-950/50 border-purple-500'
+                          : 'bg-white/5 border-white/10 hover:border-purple-500/50'
+                      }`}
+                    >
+                      <span className="font-bold text-purple-400 block">Neon Cực Quang</span>
+                      <span className="text-[10px] text-slate-400">
+                        {selectedFrame === 'frame-neon' ? 'Đã trang bị' : 'Chọn dùng'}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => equipFrame('frame-gold')}
+                      className={`p-2 rounded-xl text-left transition cursor-pointer border ${
+                        selectedFrame === 'frame-gold'
+                          ? 'bg-amber-950/50 border-amber-500'
+                          : 'bg-white/5 border-white/10 hover:border-amber-500/50'
+                      }`}
+                    >
+                      <span className="font-bold text-amber-400 block">Học Bá Hoàng Gia</span>
+                      <span className="text-[10px] text-slate-400">
+                        {selectedFrame === 'frame-gold' ? 'Đã trang bị' : 'Chọn dùng'}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => equipFrame('frame-cyber')}
+                      className={`p-2 rounded-xl text-left transition cursor-pointer border ${
+                        selectedFrame === 'frame-cyber'
+                          ? 'bg-cyan-950/50 border-cyan-500'
+                          : 'bg-white/5 border-white/10 hover:border-cyan-500/50'
+                      }`}
+                    >
+                      <span className="font-bold text-cyan-400 block">Cyberpunk 2077</span>
+                      <span className="text-[10px] text-slate-400">
+                        {selectedFrame === 'frame-cyber' ? 'Đã trang bị' : 'Chọn dùng'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </aside>
         )}
       </main>
 
       {/* ========================================================= */}
-      {/* TẦNG 3: THANH CÔNG CỤ 4 NÚT DƯỚI ĐÁY MÀN HÌNH (>= 44PX)   */}
+      {/* 4. BOTTOM GOOGLE MEET CONTROL DOCK (h-18)                 */}
       {/* ========================================================= */}
-      <nav className="fixed bottom-0 inset-x-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 p-2.5 sm:p-3 shadow-2xl safe-area-pb">
-        <div className="max-w-md mx-auto grid grid-cols-4 gap-2">
-          {/* Nút 1: Đặt mục tiêu */}
+      <footer
+        className={`h-18 px-4 md:px-6 flex items-center justify-between bg-[#090b10] border-t border-white/10 z-30 shrink-0 transition-all duration-300 ${
+          zenMode ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
+        }`}
+      >
+        {/* Left: Time & Quick Vibe Status Switcher */}
+        <div className="hidden sm:flex items-center gap-3">
+          <span className="font-mono text-sm font-bold text-slate-300">{clockDisplay}</span>
+          <div className="h-4 w-px bg-white/10" />
+          <select
+            value={userVibe}
+            onChange={(e) => {
+              setUserVibe(e.target.value);
+              toast.info(`Trạng thái: ${e.target.value}`);
+            }}
+            className="bg-white/5 border border-white/10 text-slate-200 text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 cursor-pointer"
+          >
+            <option value="🔥 Đang Focus" className="bg-slate-900 text-white">🔥 Đang Focus</option>
+            <option value="☕ Giải lao 5p" className="bg-slate-900 text-white">☕ Giải lao 5p</option>
+            <option value="🎧 Nghe nhạc Lofi" className="bg-slate-900 text-white">🎧 Nghe nhạc Lofi</option>
+            <option value="🤫 Im lặng tuyệt đối" className="bg-slate-900 text-white">🤫 Im lặng tuyệt đối</option>
+            <option value="🆘 Cứu nét bài tập" className="bg-slate-900 text-white">🆘 Cứu nét bài tập</option>
+          </select>
+        </div>
+
+        {/* Center: Main Google Meet Buttons */}
+        <div className="flex items-center gap-2 md:gap-3 mx-auto sm:mx-0">
+          {/* Mic Button */}
+          <button
+            type="button"
+            onClick={toggleDockMic}
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition shadow cursor-pointer border ${
+              isMicOn
+                ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 border-emerald-400'
+                : 'bg-red-500/20 hover:bg-red-500/30 border-red-500/50 text-red-400'
+            }`}
+            title="Bật/Tắt Micro"
+          >
+            {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+          </button>
+
+          {/* Cam Button */}
+          <button
+            type="button"
+            onClick={toggleDockCam}
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition shadow cursor-pointer border ${
+              isWebcamOn
+                ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 border-emerald-400'
+                : 'bg-white/10 hover:bg-white/20 border-white/10 text-slate-200'
+            }`}
+            title="Bật/Tắt Camera"
+          >
+            {isWebcamOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+          </button>
+
+          {/* Cycle Avatar Filter Button */}
+          <button
+            type="button"
+            onClick={cycleAvatarFilter}
+            className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-purple-400 flex items-center justify-center transition shadow cursor-pointer"
+            title="Đổi Filter Avatar Gen Z"
+          >
+            <Wand2 className="w-5 h-5" />
+          </button>
+
+          {/* Screen Share Button */}
+          <button
+            type="button"
+            onClick={toggleScreenShare}
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition shadow cursor-pointer border ${
+              isScreenSharing
+                ? 'bg-emerald-500 text-slate-950 border-emerald-400'
+                : 'bg-white/10 hover:bg-white/20 border-white/10 text-emerald-400'
+            }`}
+            title="Chia sẻ màn hình"
+          >
+            <Monitor className="w-5 h-5" />
+          </button>
+
+          {/* Ambient Sound Popover Button */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setIsSoundPopoverOpen((prev) => !prev)}
+              className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-cyan-400 flex items-center justify-center transition shadow cursor-pointer"
+              title="Âm thanh nền Lofi/Mưa"
+            >
+              <Headphones className="w-5 h-5" />
+            </button>
+
+            {/* FLOATING AMBIENT SOUND POPOVER */}
+            {isSoundPopoverOpen && (
+              <div className="absolute bottom-14 left-1/2 -translate-x-1/2 w-72 bg-[#11151f]/95 backdrop-blur-xl rounded-2xl p-3 border border-white/10 shadow-2xl z-50 flex flex-col gap-2.5">
+                <div className="flex justify-between items-center border-b border-white/10 pb-1.5">
+                  <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                    <Sliders className="w-3.5 h-3.5 text-cyan-400" /> ÂM THANH NỀN LOFI
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsSoundPopoverOpen(false)}
+                    className="text-slate-400 hover:text-white text-xs cursor-pointer"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                {/* Rain */}
+                <div className="flex flex-col gap-1 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300">🌧️ Mưa rơi</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleSoundSynth('rain')}
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer ${
+                        synthStates.rain.active
+                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                          : 'bg-white/10 text-slate-400'
+                      }`}
+                    >
+                      {synthStates.rain.active ? 'BẬT' : 'TẮT'}
+                    </button>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={synthStates.rain.vol}
+                    onChange={(e) => updateSoundVol('rain', parseFloat(e.target.value))}
+                    className="w-full accent-emerald-500 bg-slate-800 h-1 rounded cursor-pointer"
+                  />
+                </div>
+
+                {/* Keyboard */}
+                <div className="flex flex-col gap-1 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300">⌨️ Phím cơ</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleSoundSynth('keyboard')}
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer ${
+                        synthStates.keyboard.active
+                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                          : 'bg-white/10 text-slate-400'
+                      }`}
+                    >
+                      {synthStates.keyboard.active ? 'BẬT' : 'TẮT'}
+                    </button>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={synthStates.keyboard.vol}
+                    onChange={(e) => updateSoundVol('keyboard', parseFloat(e.target.value))}
+                    className="w-full accent-emerald-500 bg-slate-800 h-1 rounded cursor-pointer"
+                  />
+                </div>
+
+                {/* Cafe */}
+                <div className="flex flex-col gap-1 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300">☕ Quán Cafe</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleSoundSynth('cafe')}
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer ${
+                        synthStates.cafe.active
+                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                          : 'bg-white/10 text-slate-400'
+                      }`}
+                    >
+                      {synthStates.cafe.active ? 'BẬT' : 'TẮT'}
+                    </button>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={synthStates.cafe.vol}
+                    onChange={(e) => updateSoundVol('cafe', parseFloat(e.target.value))}
+                    className="w-full accent-emerald-500 bg-slate-800 h-1 rounded cursor-pointer"
+                  />
+                </div>
+
+                {/* Lofi */}
+                <div className="flex flex-col gap-1 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-slate-300">🎵 Lofi Chord Synth</span>
+                    <button
+                      type="button"
+                      onClick={() => toggleSoundSynth('lofi')}
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer ${
+                        synthStates.lofi.active
+                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+                          : 'bg-white/10 text-slate-400'
+                      }`}
+                    >
+                      {synthStates.lofi.active ? 'BẬT' : 'TẮT'}
+                    </button>
+                  </div>
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={synthStates.lofi.vol}
+                    onChange={(e) => updateSoundVol('lofi', parseFloat(e.target.value))}
+                    className="w-full accent-emerald-500 bg-slate-800 h-1 rounded cursor-pointer"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Emoji Reactions Bar */}
+          <div className="hidden md:flex items-center gap-1 bg-white/5 border border-white/10 px-2 py-1 rounded-full">
+            <button
+              type="button"
+              onClick={() => shootFloatingEmoji('🔥')}
+              className="p-1.5 hover:scale-125 transition text-base cursor-pointer"
+              title="Rực cháy"
+            >
+              🔥
+            </button>
+            <button
+              type="button"
+              onClick={() => shootFloatingEmoji('💖')}
+              className="p-1.5 hover:scale-125 transition text-base cursor-pointer"
+              title="Yêu thích"
+            >
+              💖
+            </button>
+            <button
+              type="button"
+              onClick={() => shootFloatingEmoji('👏')}
+              className="p-1.5 hover:scale-125 transition text-base cursor-pointer"
+              title="Vỗ tay"
+            >
+              👏
+            </button>
+            <button
+              type="button"
+              onClick={() => shootFloatingEmoji('😭')}
+              className="p-1.5 hover:scale-125 transition text-base cursor-pointer"
+              title="Khóc thét"
+            >
+              😭
+            </button>
+            <button
+              type="button"
+              onClick={() => shootFloatingEmoji('🧠')}
+              className="p-1.5 hover:scale-125 transition text-base cursor-pointer"
+              title="Tập trung"
+            >
+              🧠
+            </button>
+            <button
+              type="button"
+              onClick={handleRaiseHand}
+              className="p-1.5 hover:scale-125 transition text-xs font-bold text-amber-400 cursor-pointer"
+              title="Giơ tay phát biểu"
+            >
+              ✋
+            </button>
+          </div>
+
+          {/* Red Hang Up Button (Rời Phòng) */}
+          <button
+            type="button"
+            onClick={() => setShowSummaryModal(true)}
+            className="w-14 h-11 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center transition shadow-lg shadow-red-600/30 ml-2 cursor-pointer"
+            title="Rời phòng tự học"
+          >
+            <PhoneOff className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Right: Drawer Toggle Controls */}
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => {
-              setGoalInput(currentGoal);
-              setShowGoalModal(true);
+              if (activeDrawerTab === 'chat' && isDrawerOpen) setIsDrawerOpen(false);
+              else {
+                setIsDrawerOpen(true);
+                setActiveDrawerTab('chat');
+              }
             }}
-            className="min-h-[44px] h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950/60 active:scale-95 text-slate-700 dark:text-slate-200 hover:text-indigo-600 font-extrabold text-[11px] sm:text-xs flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer border border-slate-200 dark:border-slate-700/60"
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition relative cursor-pointer ${
+              isDrawerOpen && activeDrawerTab === 'chat'
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                : 'bg-white/5 hover:bg-white/10 text-slate-300'
+            }`}
+            title="Mở Chat"
           >
-            <Target className="w-4 h-4 text-indigo-500" />
-            <span>Mục tiêu</span>
+            <MessageSquare className="w-4 h-4" />
+            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400" />
           </button>
-
-          {/* Nút 2: Cổ vũ */}
           <button
             type="button"
-            onClick={() => setShowCheerSheet(true)}
-            className="min-h-[44px] h-12 rounded-2xl bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 active:scale-95 text-amber-900 dark:text-amber-200 font-extrabold text-[11px] sm:text-xs flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer border border-amber-200 dark:border-amber-800/60 shadow-xs"
+            onClick={() => {
+              if (activeDrawerTab === 'tasks' && isDrawerOpen) setIsDrawerOpen(false);
+              else {
+                setIsDrawerOpen(true);
+                setActiveDrawerTab('tasks');
+              }
+            }}
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition cursor-pointer ${
+              isDrawerOpen && activeDrawerTab === 'tasks'
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                : 'bg-white/5 hover:bg-white/10 text-slate-300'
+            }`}
+            title="Mở Mục tiêu"
           >
-            <Coffee className="w-4 h-4 text-amber-500" />
-            <span>Cổ vũ</span>
+            <CheckSquare className="w-4 h-4" />
           </button>
-
-          {/* Nút 3: Trò chuyện */}
           <button
             type="button"
-            onClick={() => setShowChatDrawer(true)}
-            className="min-h-[44px] h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 hover:bg-purple-50 dark:hover:bg-purple-950/60 active:scale-95 text-slate-700 dark:text-slate-200 hover:text-purple-600 font-extrabold text-[11px] sm:text-xs flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer border border-slate-200 dark:border-slate-700/60 relative"
+            onClick={() => {
+              if (activeDrawerTab === 'rank' && isDrawerOpen) setIsDrawerOpen(false);
+              else {
+                setIsDrawerOpen(true);
+                setActiveDrawerTab('rank');
+              }
+            }}
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition cursor-pointer ${
+              isDrawerOpen && activeDrawerTab === 'rank'
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                : 'bg-white/5 hover:bg-white/10 text-slate-300'
+            }`}
+            title="Bảng Xếp Hạng"
           >
-            <MessageSquare className="w-4 h-4 text-purple-500" />
-            <span>Trò chuyện</span>
-            {room.messages && room.messages.length > 0 && (
-              <span className="absolute top-1.5 right-3 w-2 h-2 rounded-full bg-purple-500" />
-            )}
-          </button>
-
-          {/* Nút 4: Rủ bạn ngồi cạnh (+ Mã giới thiệu CTV) */}
-          <button
-            type="button"
-            onClick={handleShareWithRef}
-            className="min-h-[44px] h-12 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:scale-95 text-white font-extrabold text-[11px] sm:text-xs flex flex-col items-center justify-center gap-0.5 transition-all cursor-pointer shadow-md shadow-indigo-500/20"
-          >
-            <Share2 className="w-4 h-4 text-amber-300" />
-            <span>Rủ bạn</span>
+            <Trophy className="w-4 h-4 text-amber-400" />
           </button>
         </div>
-      </nav>
+      </footer>
 
       {/* ========================================================= */}
-      {/* MODAL 1: ĐẶT MỤC TIÊU CA HỌC                              */}
+      {/* 5. MODAL 1: FRAME SHOP & AVATAR CUSTOMIZER                */}
       {/* ========================================================= */}
-      {showGoalModal && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 sm:p-6 max-w-sm w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Target className="w-5 h-5 text-indigo-600" />
-                <h3 className="font-extrabold text-slate-900 dark:text-white text-base">
-                  Mục Tiêu Ca Học Này
-                </h3>
-              </div>
+      {showFrameShopModal && (
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+          <div className="bg-[#11151f] w-full max-w-md rounded-2xl p-5 border border-white/10 relative flex flex-col gap-4 shadow-2xl">
+            <div className="flex justify-between items-center border-b border-white/10 pb-3">
+              <h3 className="font-bold text-base text-white flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-purple-400" /> Cửa Hàng Khung Avatar Gen Z
+              </h3>
               <button
                 type="button"
-                onClick={() => setShowGoalModal(false)}
-                className="p-1 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                onClick={() => setShowFrameShopModal(false)}
+                className="text-slate-400 hover:text-white text-lg cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-500">
-              Nhập việc cụ thể bạn sẽ hoàn thành trong 25 phút Pomodoro tiếp theo:
+            <p className="text-xs text-slate-300">
+              Tích lũy XP bằng cách hoàn thành Pomodoro để trang bị khung viền siêu ngầu trên màn hình học!
             </p>
 
-            <textarea
-              value={goalInput}
-              onChange={(e) => setGoalInput(e.target.value)}
-              rows={3}
-              placeholder="Ví dụ: Ôn 30 từ vựng Oxford, Giải 5 bài tập Toán..."
-              className="w-full p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-base sm:text-sm text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-indigo-500 resize-none font-medium"
-            />
-
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setShowGoalModal(false)}
-                className="min-h-[44px] px-4 py-2.5 rounded-xl text-slate-500 font-bold text-xs hover:bg-slate-100 cursor-pointer"
+            <div className="grid grid-cols-2 gap-3 text-xs">
+              <div
+                onClick={() => equipFrame('frame-emerald')}
+                className={`p-3 rounded-2xl bg-white/5 border flex flex-col items-center cursor-pointer transition ${
+                  selectedFrame === 'frame-emerald'
+                    ? 'border-emerald-500 bg-emerald-950/40'
+                    : 'border-white/10 hover:border-emerald-500/50'
+                }`}
               >
-                Hủy bỏ
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveGoal}
-                className="min-h-[44px] px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs shadow-md cursor-pointer"
-              >
-                Lưu mục tiêu 🎯
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================= */}
-      {/* MODAL 2: CỔ VŨ BẠN CÙNG PHÒNG (CHEER SHEET)              */}
-      {/* ========================================================= */}
-      {showCheerSheet && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 max-w-sm w-full border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Coffee className="w-5 h-5 text-amber-500" />
-                <h3 className="font-extrabold text-slate-900 dark:text-white text-base">
-                  Cổ Vũ Bạn Cùng Phòng
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCheerSheet(false)}
-                className="p-1 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-500">
-              Gửi một lời động viên nhanh để tiếp thêm năng lượng mà không làm phiền người khác:
-            </p>
-
-            <div className="grid grid-cols-1 gap-2.5">
-              {[
-                { type: 'fire', text: 'Cố lên bạn ơi! 🔥', desc: 'Tiếp thêm lửa tập trung' },
-                { type: 'coffee', text: 'Tặng bạn 1 ly cafe! ☕', desc: 'Thư giãn & tỉnh táo' },
-                { type: 'zap', text: 'Tập trung nào, không lướt top top! ⚡', desc: 'Nhắc nhở kỷ luật' },
-                { type: 'clap', text: 'Sắp xong rồi, tuyệt vời! 👏', desc: 'Khen ngợi nỗ lực' }
-              ].map((c) => (
-                <button
-                  key={c.type}
-                  type="button"
-                  onClick={() => triggerCheer(c.type, c.text)}
-                  className="w-full p-3 rounded-2xl bg-slate-50 dark:bg-slate-800 hover:bg-amber-50 dark:hover:bg-amber-950/40 border border-slate-200 dark:border-slate-700 hover:border-amber-300 text-left flex items-center justify-between transition-all cursor-pointer group active:scale-98"
-                >
-                  <div>
-                    <span className="font-extrabold text-xs sm:text-sm text-slate-900 dark:text-white block group-hover:text-amber-700 dark:group-hover:text-amber-300">
-                      {c.text}
-                    </span>
-                    <span className="text-[10px] text-slate-400">{c.desc}</span>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ========================================================= */}
-      {/* DRAWER 3: TRÒ CHUYỆN GỌN NHẸ (VỚI BANNER KỶ LUẬT GEN Z)   */}
-      {/* ========================================================= */}
-      {showChatDrawer && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
-          <div className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl max-w-md w-full h-[80vh] max-h-[600px] border border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col overflow-hidden">
-            {/* Drawer Header */}
-            <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="w-5 h-5 text-purple-600" />
-                <div>
-                  <h3 className="font-extrabold text-slate-900 dark:text-white text-sm">
-                    Trò Chuyện Bàn Học
-                  </h3>
-                  <p className="text-[10px] text-slate-400">{room.name}</p>
+                <div className="w-14 h-14 rounded-full p-1 shadow-[0_0_0_3px_#10b981,0_0_15px_rgba(16,185,129,0.4)] mb-2">
+                  <img
+                    src={currentUserAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=GenZStudentHero`}
+                    alt="Frame Emerald"
+                    className="w-full h-full rounded-full bg-slate-900"
+                  />
                 </div>
+                <span className="font-bold text-emerald-400">Lục Bảo Focus</span>
+                <span className="text-[10px] text-emerald-300">
+                  {selectedFrame === 'frame-emerald' ? 'Đang dùng' : 'Trang bị ngay'}
+                </span>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowChatDrawer(false)}
-                className="p-1 rounded-xl text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+
+              <div
+                onClick={() => equipFrame('frame-neon')}
+                className={`p-3 rounded-2xl bg-white/5 border flex flex-col items-center cursor-pointer transition ${
+                  selectedFrame === 'frame-neon'
+                    ? 'border-purple-500 bg-purple-950/40'
+                    : 'border-white/10 hover:border-purple-500/50'
+                }`}
               >
-                <X className="w-5 h-5" />
-              </button>
+                <div className="w-14 h-14 rounded-full p-1 shadow-[0_0_0_3px_#a855f7,0_0_20px_rgba(168,85,247,0.6)] mb-2">
+                  <img
+                    src={currentUserAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=GenZStudentHero`}
+                    alt="Frame Neon"
+                    className="w-full h-full rounded-full bg-slate-900"
+                  />
+                </div>
+                <span className="font-bold text-purple-400">Neon Cực Quang</span>
+                <span className="text-[10px] text-purple-300">
+                  {selectedFrame === 'frame-neon' ? 'Đang dùng' : 'Trang bị ngay'}
+                </span>
+              </div>
+
+              <div
+                onClick={() => equipFrame('frame-gold')}
+                className={`p-3 rounded-2xl bg-white/5 border flex flex-col items-center cursor-pointer transition ${
+                  selectedFrame === 'frame-gold'
+                    ? 'border-amber-500 bg-amber-950/40'
+                    : 'border-white/10 hover:border-amber-500/50'
+                }`}
+              >
+                <div className="w-14 h-14 rounded-full p-1 shadow-[0_0_0_3px_#f59e0b,0_0_15px_rgba(245,158,11,0.5)] mb-2">
+                  <img
+                    src={currentUserAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=GenZStudentHero`}
+                    alt="Frame Gold"
+                    className="w-full h-full rounded-full bg-slate-900"
+                  />
+                </div>
+                <span className="font-bold text-amber-400">Hoàng Gia Gold</span>
+                <span className="text-[10px] text-amber-300">
+                  {selectedFrame === 'frame-gold' ? 'Đang dùng' : 'Trang bị ngay'}
+                </span>
+              </div>
+
+              <div
+                onClick={() => equipFrame('frame-cyber')}
+                className={`p-3 rounded-2xl bg-white/5 border flex flex-col items-center cursor-pointer transition ${
+                  selectedFrame === 'frame-cyber'
+                    ? 'border-cyan-500 bg-cyan-950/40'
+                    : 'border-white/10 hover:border-cyan-500/50'
+                }`}
+              >
+                <div className="w-14 h-14 rounded-full p-1 shadow-[0_0_0_3px_#06b6d4,0_0_15px_rgba(6,182,212,0.5)] mb-2">
+                  <img
+                    src={currentUserAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=GenZStudentHero`}
+                    alt="Frame Cyber"
+                    className="w-full h-full rounded-full bg-slate-900"
+                  />
+                </div>
+                <span className="font-bold text-cyan-400">Cyberpunk 2077</span>
+                <span className="text-[10px] text-cyan-300">
+                  {selectedFrame === 'frame-cyber' ? 'Đang dùng' : 'Trang bị ngay'}
+                </span>
+              </div>
             </div>
 
-            {/* Smart Focus Reminder Banner */}
-            <div className="px-4 py-2 bg-purple-50 dark:bg-purple-950/40 border-b border-purple-100 dark:border-purple-900/40 text-[11px] font-bold text-purple-800 dark:text-purple-300 flex items-center gap-2">
-              {pomodoroPhase === 'FOCUS' ? (
-                <>
-                  <span className="text-base">🤫</span>
-                  <span>Đang trong giờ tập trung sâu (25 phút), hạn chế nhắn tin để mọi người cùng cày deadline nhé!</span>
-                </>
-              ) : (
-                <>
-                  <span className="text-base">☕</span>
-                  <span>Đang trong giờ giải lao (5 phút), hãy thoải mái giao lưu và nghỉ ngơi một chút nào!</span>
-                </>
-              )}
-            </div>
-
-            {/* Messages list */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {(room.messages || []).map((msg) => {
-                const isMe = msg.userId === currentUser?.id;
-                return (
-                  <div
-                    key={msg.id}
-                    className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
-                  >
-                    <span className="text-[10px] text-slate-400 mb-0.5 px-1 font-medium">
-                      {isMe ? 'Bạn' : msg.userName}
-                    </span>
-                    <div
-                      className={`max-w-[80%] px-3.5 py-2 rounded-2xl text-xs leading-relaxed ${
-                        isMe
-                          ? 'bg-indigo-600 text-white rounded-br-xs'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-bl-xs'
-                      }`}
-                    >
-                      {msg.text}
-                    </div>
-                  </div>
-                );
-              })}
-              <div ref={messagesEndRef} />
-            </div>
-
-            {/* Message Input form */}
-            <form
-              onSubmit={handleSendMessage}
-              className="p-3 border-t border-slate-100 dark:border-slate-800 flex items-center gap-2 bg-slate-50 dark:bg-slate-900"
+            <button
+              type="button"
+              onClick={() => setShowFrameShopModal(false)}
+              className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-2.5 rounded-xl text-xs transition cursor-pointer"
             >
-              <input
-                type="text"
-                value={chatMessageInput}
-                onChange={(e) => setChatMessageInput(e.target.value)}
-                placeholder="Nhắn tin với bàn học..."
-                maxLength={300}
-                className="flex-1 min-h-[44px] px-3.5 py-2 text-base sm:text-xs rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-purple-500 font-medium"
-              />
-              <button
-                type="submit"
-                disabled={!chatMessageInput.trim() || isSendingMessage}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white font-extrabold text-xs transition-all shadow-xs cursor-pointer"
-              >
-                <Send className="w-3.5 h-3.5" />
-              </button>
-            </form>
+              Xác nhận
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 6. MODAL 2: SESSION SUMMARY UPON LEAVING                  */}
+      {/* ========================================================= */}
+      {showSummaryModal && (
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[110] flex items-center justify-center p-4">
+          <div className="bg-[#11151f] w-full max-w-md rounded-2xl p-6 border border-white/10 text-center flex flex-col items-center gap-4 shadow-2xl">
+            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 text-2xl font-black shadow-xl">
+              🎓
+            </div>
+            <div>
+              <h3 className="font-extrabold text-xl text-white">BUỔI HỌC KẾT THÚC RỰC RỠ!</h3>
+              <p className="text-xs text-slate-400 mt-1">Tổng kết thành tích tự học hôm nay của bạn</p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 w-full my-2">
+              <div className="bg-white/5 border border-white/10 p-3 rounded-xl flex flex-col items-center">
+                <span className="text-xs text-slate-400">Thời gian</span>
+                <span className="font-mono text-base font-bold text-emerald-400">
+                  {formatTaskTimer(taskTimerSeconds)}
+                </span>
+              </div>
+              <div className="bg-white/5 border border-white/10 p-3 rounded-xl flex flex-col items-center">
+                <span className="text-xs text-slate-400">XP Nhận được</span>
+                <span className="font-mono text-base font-bold text-amber-400">+250 XP</span>
+              </div>
+              <div className="bg-white/5 border border-white/10 p-3 rounded-xl flex flex-col items-center">
+                <span className="text-xs text-slate-400">Mục tiêu xong</span>
+                <span className="font-mono text-base font-bold text-purple-400">
+                  {tasks.filter((t) => t.completed).length} / {tasks.length}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-emerald-300 bg-emerald-950/60 border border-emerald-800/60 p-2.5 rounded-xl">
+              🔥 Bạn đã giữ vững Chuỗi Tập Trung {userStreak} ngày liên tiếp! Hẹn gặp lại bạn tối nay.
+            </p>
+
+            <button
+              type="button"
+              onClick={executeLeave}
+              className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold py-2.5 rounded-xl text-sm transition cursor-pointer"
+            >
+              Trở Về Sảnh Học
+            </button>
           </div>
         </div>
       )}
