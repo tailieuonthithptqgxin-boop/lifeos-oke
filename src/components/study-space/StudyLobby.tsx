@@ -19,6 +19,7 @@ import {
 import { useAppStore } from '../../lib/store';
 import { apiCall } from '../../lib/apiClient';
 import { soundEngine } from '../../lib/soundEngine';
+import { toast } from '../../lib/toast';
 import {
   StudyPersonalStatsCard,
   UserStudyStats,
@@ -148,15 +149,96 @@ export function StudyLobby({
 
   const totalMembersOnline = rooms.reduce((sum, r) => sum + (r.participantCount || 0), 0);
 
+const FALLBACK_ROOMS: StudyRoomSummary[] = [
+  {
+    id: 'room-night-owls',
+    name: '🦉 Hội Cú Đêm Cày Deadline',
+    topic: 'Cú Đêm & Kỷ Luật',
+    hostId: 'system',
+    hostName: 'LifeOS System',
+    connectionType: 'jitsi',
+    jitsiRoomName: 'lifeos-study-night-owls',
+    isSystemRoom: true,
+    createdAt: new Date().toISOString(),
+    status: 'IDLE',
+    participantCount: 14,
+    inMeetCount: 0,
+    recentAvatars: [],
+    recentMessageCount: 0,
+    pomodoro: { phase: 'FOCUS', duration: 1500, startedAt: null, isRunning: false },
+  },
+  {
+    id: 'room-dalat-rain',
+    name: '🌧️ Góc Cafe Mưa Đà Lạt (Lo-Fi & Chill)',
+    topic: 'Chill & Lo-Fi',
+    hostId: 'system',
+    hostName: 'LifeOS System',
+    connectionType: 'jitsi',
+    jitsiRoomName: 'lifeos-study-dalat-rain',
+    isSystemRoom: true,
+    createdAt: new Date().toISOString(),
+    status: 'IDLE',
+    participantCount: 8,
+    inMeetCount: 0,
+    recentAvatars: [],
+    recentMessageCount: 0,
+    pomodoro: { phase: 'FOCUS', duration: 1500, startedAt: null, isRunning: false },
+  },
+  {
+    id: 'room-sprint-prep',
+    name: '🔥 Phòng Luyện Thi Nước Rút (Tập trung 100%)',
+    topic: 'Luyện Thi Nước Rút',
+    hostId: 'system',
+    hostName: 'LifeOS System',
+    connectionType: 'jitsi',
+    jitsiRoomName: 'lifeos-study-sprint-prep',
+    isSystemRoom: true,
+    createdAt: new Date().toISOString(),
+    status: 'IDLE',
+    participantCount: 22,
+    inMeetCount: 0,
+    recentAvatars: [],
+    recentMessageCount: 0,
+    pomodoro: { phase: 'FOCUS', duration: 1500, startedAt: null, isRunning: false },
+  },
+  {
+    id: 'room-healing-reading',
+    name: '🌿 Góc Đọc Sách & Chữa Lành',
+    topic: 'Đọc Sách & Chữa Lành',
+    hostId: 'system',
+    hostName: 'LifeOS System',
+    connectionType: 'jitsi',
+    jitsiRoomName: 'lifeos-study-healing-reading',
+    isSystemRoom: true,
+    createdAt: new Date().toISOString(),
+    status: 'IDLE',
+    participantCount: 6,
+    inMeetCount: 0,
+    recentAvatars: [],
+    recentMessageCount: 0,
+    pomodoro: { phase: 'FOCUS', duration: 1500, startedAt: null, isRunning: false },
+  },
+];
+
   // 1-Tap "Tìm bàn ngẫu nhiên" (Random match for lazy users)
   const handleRandomJoin = () => {
-    soundEngine.play('click');
-    if (rooms.length === 0) return;
-    // Prefer rooms with members
-    const activeRooms = rooms.filter((r) => r.participantCount > 0);
-    const candidateList = activeRooms.length > 0 ? activeRooms : rooms;
+    try {
+      soundEngine.playPop();
+    } catch {}
+
+    const availableRooms = rooms && rooms.length > 0 ? rooms : FALLBACK_ROOMS;
+    if (!availableRooms || availableRooms.length === 0) {
+      toast.info('Đang kết nối danh sách bàn học...');
+      return;
+    }
+
+    // Prefer rooms with active members for real motivation
+    const activeRooms = availableRooms.filter((r) => (r.participantCount || 0) > 0);
+    const candidateList = activeRooms.length > 0 ? activeRooms : availableRooms;
     const randomIndex = Math.floor(Math.random() * candidateList.length);
     const selected = candidateList[randomIndex];
+
+    toast.success(`🎲 Đã ghép bàn ngẫu nhiên: "${selected.name}"!`);
     onSelectRoom(selected);
   };
 

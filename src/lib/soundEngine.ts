@@ -122,6 +122,35 @@ class SoundEngine {
     return this.enabled;
   }
 
+  // 0. Generic play dispatcher for flexible sound triggers
+  public play(soundName: string = 'pop') {
+    switch (soundName.toLowerCase()) {
+      case 'success':
+      case 'celebration':
+        this.playSuccess();
+        break;
+      case 'notification':
+      case 'bell':
+        this.playNotification();
+        break;
+      case 'coin':
+        this.playCoinShower();
+        break;
+      case 'sword':
+        this.playSword();
+        break;
+      case 'fanfare':
+      case 'levelup':
+        this.playLevelUpFanfare();
+        break;
+      case 'click':
+      case 'pop':
+      default:
+        this.playPop();
+        break;
+    }
+  }
+
   // 1. Pop Sound (Dopamine checkmark / button click)
   public playPop() {
     hapticEngine.trigger('light');
