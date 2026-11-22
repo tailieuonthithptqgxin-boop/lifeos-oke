@@ -39,8 +39,16 @@ import {
   UserPlus,
   ChevronDown,
   ChevronLeft,
-  Settings
+  Settings,
+  Users
 } from 'lucide-react';
+import { io, Socket } from 'socket.io-client';
+import { StudyTimerDisplay } from './StudyTimerDisplay';
+import { CollectiveEnergyBar } from './CollectiveEnergyBar';
+import { PinnedFriendsRow } from './PinnedFriendsRow';
+import { StudyHallVirtualGrid } from './StudyHallVirtualGrid';
+import { SmartBreakChat, ChatMessageItem } from './SmartBreakChat';
+import type { CompactParticipant } from '../../backend/realtime/RoomManager';
 import { useAppStore } from '../../lib/store';
 import { apiCall } from '../../lib/apiClient';
 import { toast } from '../../lib/toast';
@@ -276,6 +284,185 @@ export function StudyRoomView({
   const [pomodoroDuration, setPomodoroDuration] = useState(25 * 60);
   const [isPomodoroRunning, setIsPomodoroRunning] = useState(false);
   const [pomodoroPhase, setPomodoroPhase] = useState<'FOCUS' | 'BREAK'>('FOCUS');
+
+  // High-Scale Virtual Hall State (100-500+ Co-Studying Peers)
+  const initialPeers = useMemo<CompactParticipant[]>(() => {
+    const list: CompactParticipant[] = [
+      {
+        id: myId,
+        name: myName,
+        avatar: currentUserAvatar,
+        goal: userTask,
+        presence: 'STUDYING',
+        streak: userStreak,
+      },
+    ];
+    for (let i = 1; i <= 120; i++) {
+      list.push({
+        id: `peer_${i}`,
+        name: `Học Viên ${i < 10 ? '0' + i : i}`,
+        avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=StudyPeer_${i}`,
+        goal: i % 3 === 0 ? 'Luyện đề THPT Quốc Gia' : i % 3 === 1 ? 'Học từ vựng IELTS Band 7.5' : 'Làm bài tập giải tích',
+        presence: i % 8 === 0 ? 'BREAK' : 'STUDYING',
+        streak: (i % 14) + 1,
+      });
+    }
+    return list;
+  }, [myId, myName, currentUserAvatar, userTask, userStreak]);
+
+  const [viewMode, setViewMode] = useState<'hall' | 'desk'>('hall');
+  const [pinnedFriends, setPinnedFriends] = useState<CompactParticipant[]>(() => initialPeers.slice(1, 7));
+  const [highScaleMembers, setHighScaleMembers] = useState<CompactParticipant[]>(() => initialPeers);
+  const [collectiveEnergy, setCollectiveEnergy] = useState({
+    activeCount: Math.max(121, room.participantCount || 121),
+    totalAccumulatedMinutes: 84 * 60,
+    kudosCount: 342,
+  });
+  const [realtimeChatMessages, setRealtimeChatMessages] = useState<ChatMessageItem[]>([]);
+  const socketRef = useRef<Socket | null>(null);
+
+  // Trigger floating batch kudos
+  const triggerFloatingBatchKudos = (breakdown: Record<string, number> = {}) => {
+    const emojis = Object.keys(breakdown);
+    if (emojis.length === 0) emojis.push('🔥');
+
+    for (let i = 0; i < Math.min(8, emojis.length * 3); i++) {
+      const randomEmoji = emojis[i % emojis.length];
+      setTimeout(() => {
+        setFloatingEmojis((prev) => [
+          ...prev.slice(-20),
+          {
+            id: `kudos_${Date.now()}_${Math.random()}`,
+            emoji: randomEmoji,
+            x: Math.random() * 80 + 10,
+          },
+        ]);
+      }, i * 120);
+    }
+  };
+
+  // High-Scale Realtime Socket.io Connection Loop
+  useEffect(() => {
+    const seedMembers: CompactParticipant[] = [];
+    for (let i = 1; i <= 120; i++) {
+      seedMembers.push({
+        id: `peer_${i}`,
+        name: `Học Viên ${i < 10 ? '0' + i : i}`,
+        avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=StudyPeer_${i}`,
+        goal: i % 3 === 0 ? 'Luyện đề THPT Quốc Gia' : i % 3 === 1 ? 'Học từ vựng IELTS Band 7.5' : 'Làm bài tập giải tích',
+        presence: i % 8 === 0 ? 'BREAK' : 'STUDYING',
+        streak: (i % 14) + 1,
+      });
+    }
+
+    let socket: Socket | null = null;
+    try {
+      socket = io({
+        transports: ['websocket', 'polling'],
+        reconnectionAttempts: 5,
+      });
+      socketRef.current = socket;
+
+      socket.emit('room:join', {
+        roomId: room.id,
+        userId: myId,
+        name: myName,
+        avatar: currentUserAvatar,
+        studyGoal: userTask,
+        streakDays: userStreak,
+      });
+
+      socket.on('room:snapshot', (snapshot: any) => {
+        const remoteMembers = snapshot.members || [];
+        const mergedMembers = [
+          ...remoteMembers,
+          ...seedMembers.filter((s) => !remoteMembers.some((r: any) => r.id === s.id)),
+        ];
+        setHighScaleMembers(mergedMembers);
+
+        if (snapshot.pinnedFriends && snapshot.pinnedFriends.length > 0) {
+          setPinnedFriends(snapshot.pinnedFriends);
+        } else {
+          setPinnedFriends(mergedMembers.filter((m) => m.id !== myId).slice(0, 6));
+        }
+
+        if (snapshot.energy) {
+          setCollectiveEnergy({
+            activeCount: Math.max(snapshot.energy.activeStudyingCount, mergedMembers.length),
+            totalAccumulatedMinutes: snapshot.energy.totalAccumulatedMinutesToday || 84 * 60,
+            kudosCount: snapshot.energy.kudosCountToday || 342,
+          });
+        }
+
+        if (snapshot.timer) {
+          setPomodoroPhase(snapshot.timer.phase);
+          setPomodoroDuration(snapshot.timer.durationSeconds);
+          setIsPomodoroRunning(snapshot.timer.isRunning);
+        }
+      });
+
+      socket.on('room:user_joined', ({ user, activeCount }: any) => {
+        setHighScaleMembers((prev) => {
+          if (prev.some((m) => m.id === user.id)) return prev;
+          return [user, ...prev];
+        });
+        setCollectiveEnergy((prev) => ({ ...prev, activeCount }));
+      });
+
+      socket.on('room:user_left', ({ userId, activeCount }: any) => {
+        setHighScaleMembers((prev) => prev.filter((m) => m.id !== userId));
+        setPinnedFriends((prev) => prev.filter((m) => m.id !== userId));
+        setCollectiveEnergy((prev) => ({ ...prev, activeCount }));
+      });
+
+      socket.on('room:goal_updated', ({ userId, goal }: any) => {
+        setHighScaleMembers((prev) =>
+          prev.map((m) => (m.id === userId ? { ...m, goal } : m))
+        );
+        setPinnedFriends((prev) =>
+          prev.map((m) => (m.id === userId ? { ...m, goal } : m))
+        );
+      });
+
+      socket.on('room:kudos_batched', (batch: any) => {
+        triggerFloatingBatchKudos(batch.breakdown);
+        setCollectiveEnergy((prev) => ({
+          ...prev,
+          kudosCount: prev.kudosCount + (batch.total || 1),
+        }));
+      });
+
+      socket.on('room:chat_message', (msg: any) => {
+        setRealtimeChatMessages((prev) => [...prev.slice(-100), msg]);
+      });
+
+      socket.on('room:chat_error', ({ message }: any) => {
+        toast.error(message);
+      });
+
+      socket.on('room:timer_state', (timer: any) => {
+        setPomodoroPhase(timer.phase);
+        setPomodoroDuration(timer.durationSeconds);
+        setIsPomodoroRunning(timer.isRunning);
+      });
+
+      socket.on('room:session_completed', (summary: any) => {
+        triggerConfetti();
+        toast.success(`🎉 Hoàn thành phiên Focus ${summary.focusMinutes} phút! +${summary.awardedXp || 25} XP`);
+      });
+    } catch (err) {
+      console.warn('Socket connection fallback to local:', err);
+      setPinnedFriends(seedMembers.slice(0, 6));
+      setHighScaleMembers(seedMembers);
+    }
+
+    return () => {
+      if (socket) {
+        socket.emit('room:leave', { roomId: room.id, userId: myId });
+        socket.disconnect();
+      }
+    };
+  }, [room.id, myId]);
 
   // Clock & Task Stopwatch
   useEffect(() => {
@@ -843,163 +1030,183 @@ export function StudyRoomView({
       }`}
     >
       {/* ========================================================= */}
-      {/* 1. TOP HUD BAR: TỐI GIẢN - TINH TẾ - HIỆN ĐẠI (h-14)       */}
+      {/* 1. TOP HUD BAR: ĐẦY ĐỦ TÍNH NĂNG NHƯ ẢNH THAM KHẢO (h-14)   */}
       {/* ========================================================= */}
       <header
-        className={`h-14 px-3 sm:px-6 flex items-center justify-between border-b backdrop-blur-xl z-30 shrink-0 transition-all duration-300 ${
-          isLight ? 'bg-white/90 border-slate-200/90 shadow-xs' : 'bg-[#090b10]/95 border-white/10'
+        className={`h-14 px-3 sm:px-4 flex items-center justify-between border-b backdrop-blur-xl z-30 shrink-0 gap-2 overflow-x-auto no-scrollbar transition-all duration-300 ${
+          isLight ? 'bg-white/95 border-slate-200 shadow-xs' : 'bg-[#090b10]/95 border-white/10'
         } ${zenMode ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}`}
       >
-        {/* Left: Nút Thoát / Rời phòng & Tên phòng tối giản */}
-        <div className="flex items-center gap-3">
+        {/* KHỐI TRÁI: RỜI PHÒNG, ROOM BADGE, VIEW TOGGLES, ZEN MODE */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Nút Rời phòng */}
           <button
             type="button"
             onClick={() => setShowSummaryModal(true)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer border ${
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer border ${
               isLight
-                ? 'bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-600 border-slate-200 hover:border-red-200 shadow-xs'
+                ? 'bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-600 border-slate-200 hover:border-red-200'
                 : 'bg-white/5 hover:bg-red-500/10 text-slate-300 hover:text-red-400 border-white/10 hover:border-red-500/30'
             }`}
             title="Rời phòng học"
           >
             <ChevronLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Rời phòng</span>
+            <span className="hidden md:inline">Rời</span>
           </button>
 
-          <div className={`h-4 w-px ${isLight ? 'bg-slate-200' : 'bg-white/10'}`} />
-
-          <div className="flex items-center gap-2">
-            <span className={`font-bold text-sm tracking-tight max-w-[130px] sm:max-w-[200px] truncate ${
-              isLight ? 'text-slate-900' : 'text-white'
-            }`}>
-              {room.name}
+          {/* Room ID Badge (Như ảnh: #room-night-o + copy) */}
+          <button
+            onClick={copyRoomLink}
+            type="button"
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-mono transition cursor-pointer border ${
+              isLight
+                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10'
+            }`}
+            title="Sao chép liên kết phòng học"
+          >
+            <span className="text-emerald-400 font-bold">#</span>
+            <span className="max-w-[100px] truncate font-medium">
+              {room.name ? room.name.toLowerCase().replace(/\s+/g, '-') : room.id.slice(0, 8)}
             </span>
+            <Copy className="w-3 h-3 text-slate-400" />
+          </button>
 
-            {/* Room Code Badge */}
-            <button
-              onClick={copyRoomLink}
-              type="button"
-              className={`hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono transition cursor-pointer border ${
-                isLight
-                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
-                  : 'bg-white/5 hover:bg-white/10 text-slate-400 border-white/10'
-              }`}
-              title="Sao chép link phòng"
-            >
-              <Lock className="w-2.5 h-2.5 text-emerald-500" />
-              <span>#{room.id.slice(0, 8)}</span>
-              <Copy className="w-2.5 h-2.5 text-slate-400" />
-            </button>
-          </div>
-        </div>
-
-        {/* Center: Minimalist Pomodoro Focus Pill */}
-        <div className={`flex items-center gap-2 sm:gap-2.5 px-3 py-1 rounded-full shadow-md border ${
-          isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#11151f]/95 border-white/10 text-white'
-        }`}>
-          {/* Circular Countdown Ring */}
-          <div className="relative w-5 h-5 flex items-center justify-center">
-            <svg className="w-5 h-5 transform -rotate-90">
-              <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2.5" className={isLight ? 'text-slate-200' : 'text-slate-800'} fill="transparent" />
-              <circle
-                cx="10"
-                cy="10"
-                r="8"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                className="text-emerald-500 transition-all duration-1000 ease-linear"
-                fill="transparent"
-                strokeDasharray="50.2"
-                strokeDashoffset={(strokeDashoffset * 50.2) / 62.8}
-                strokeLinecap="round"
-              />
-            </svg>
-          </div>
-
-          {/* Time Clock */}
-          <span className="font-mono font-bold text-sm tracking-wider">
-            {formatTimerClock(pomodoroLeft)}
-          </span>
-
-          {/* Phase Badge */}
-          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${
-            pomodoroPhase === 'FOCUS'
-              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60'
-              : 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/60'
+          {/* Bố cục View Switcher: Đại Sảnh (100+) | Grid (3x2) | Ghim Màn Hình */}
+          <div className={`flex items-center rounded-xl p-0.5 border text-xs font-semibold ${
+            isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/5 border-white/10'
           }`}>
-            {pomodoroPhase === 'FOCUS' ? '🔥 Focus' : '☕ Nghỉ'}
-          </span>
-
-          {/* Controls: Play & Reset */}
-          <div className={`flex items-center gap-1 border-l pl-2 ${isLight ? 'border-slate-200' : 'border-white/10'}`}>
             <button
               type="button"
-              onClick={togglePomoTimer}
-              className="text-emerald-600 dark:text-emerald-400 hover:scale-110 p-0.5 transition cursor-pointer"
-              title={isPomodoroRunning ? 'Tạm dừng' : 'Bắt đầu'}
-            >
-              {isPomodoroRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-            </button>
-            <button
-              type="button"
-              onClick={resetPomoTimer}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-0.5 transition cursor-pointer"
-              title="Đặt lại"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* Preset Popover Menu (Tối giản 1 nút bấm mở chọn 25m/50m/5s) */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setIsPresetPopoverOpen((prev) => !prev)}
-              className={`flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md transition cursor-pointer border ${
-                isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700' : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
+              onClick={() => {
+                setViewMode('desk');
+                setTileLayout('grid');
+              }}
+              className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition cursor-pointer ${
+                viewMode === 'desk' && tileLayout === 'grid'
+                  ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 shadow-xs'
+                  : 'text-slate-400 hover:text-white'
               }`}
-              title="Cài đặt thời gian"
+              title="Bố cục Lưới 3x2 bàn học"
             >
-              <span>{Math.round(pomodoroDuration / 60)}m</span>
-              <ChevronDown className="w-3 h-3 opacity-60" />
+              <LayoutGrid className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Grid (3x2)</span>
             </button>
-
-            {isPresetPopoverOpen && (
-              <div className={`absolute top-8 left-1/2 -translate-x-1/2 w-32 p-1.5 rounded-xl shadow-2xl border z-50 flex flex-col gap-1 text-xs animate-in fade-in zoom-in-95 duration-150 ${
-                isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-slate-900 border-white/15 text-white'
-              }`}>
-                <button
-                  type="button"
-                  onClick={() => setTimerPreset(25)}
-                  className={`w-full py-1.5 px-2.5 rounded-lg text-left font-medium transition cursor-pointer ${
-                    isLight ? 'hover:bg-slate-100' : 'hover:bg-white/10'
-                  }`}
-                >
-                  ⚡ 25 phút (Chuẩn)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTimerPreset(50)}
-                  className={`w-full py-1.5 px-2.5 rounded-lg text-left font-medium transition cursor-pointer ${
-                    isLight ? 'hover:bg-slate-100' : 'hover:bg-white/10'
-                  }`}
-                >
-                  🔥 50 phút (Sâu)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setTimerPreset(0.083)}
-                  className="w-full py-1.5 px-2.5 rounded-lg text-left font-bold text-emerald-500 hover:bg-emerald-500/10 transition cursor-pointer"
-                >
-                  🚀 Test nhanh 5s
-                </button>
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={() => {
+                setViewMode('desk');
+                setTileLayout('spotlight');
+                setPinnedTileKey('user');
+              }}
+              className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition cursor-pointer ${
+                viewMode === 'desk' && tileLayout === 'spotlight'
+                  ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 shadow-xs'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Ghim màn hình tiêu điểm (Spotlight)"
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+              <span className="hidden lg:inline">Ghim Màn Hình</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setViewMode('hall');
+              }}
+              className={`hidden xl:flex px-2.5 py-1 rounded-lg items-center gap-1.5 transition cursor-pointer ${
+                viewMode === 'hall'
+                  ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 shadow-xs font-bold'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+              title="Đại sảnh Thư viện 100+ học viên"
+            >
+              <span>Đại Sảnh (100+)</span>
+            </button>
           </div>
+
+          {/* Zen Mode Button (Như ảnh: icon eye-slash + Zen Mode) */}
+          <button
+            type="button"
+            onClick={() => setZenMode(true)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer border ${
+              isLight
+                ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
+                : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
+            }`}
+            title="Zen Mode: Ẩn mọi thanh công cụ để tập trung tuyệt đối"
+          >
+            <EyeOff className="w-3.5 h-3.5 text-slate-400" />
+            <span className="hidden sm:inline">Zen Mode</span>
+          </button>
         </div>
 
-        {/* Right: DUY NHẤT 2 NÚT CẦN THIẾT - Sáng/Tối & Toàn Màn Hình */}
-        <div className="flex items-center gap-2">
+        {/* KHỐI GIỮA: POMODORO TIMER CAPSULE CÔ LẬP RE-RENDER */}
+        <div className="shrink-0 flex items-center">
+          <StudyTimerDisplay
+            phase={pomodoroPhase}
+            durationSeconds={pomodoroDuration}
+            startedAtUTC={Date.now()}
+            endTimeUTC={Date.now() + pomodoroDuration * 1000}
+            serverTimeNow={Date.now()}
+            isRunning={isPomodoroRunning}
+            onToggleRunning={togglePomoTimer}
+            onReset={resetPomoTimer}
+            onSelectPreset={setTimerPreset}
+            isLight={isLight}
+          />
+        </div>
+
+        {/* KHỐI PHẢI: TRẠNG THÁI HỌC, STREAK, LEVEL XP, ĐỔI KHUNG, SÁNG/TỐI, FULLSCREEN */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Trạng thái tập trung (Như ảnh: Bạn đang tập trung 1 mình) */}
+          <span className="hidden 2xl:inline text-xs text-slate-400 font-medium whitespace-nowrap">
+            {collectiveEnergy.activeCount > 1
+              ? `🔥 Bạn đang học cùng ${collectiveEnergy.activeCount} người`
+              : 'Bạn đang tập trung 1 mình'}
+          </span>
+
+          {/* Streak Badge (Như ảnh: 🔥 14 Ngày) */}
+          <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border ${
+            isLight
+              ? 'bg-amber-50 border-amber-300 text-amber-700 shadow-xs'
+              : 'bg-amber-950/40 border-amber-500/40 text-amber-400'
+          }`}>
+            <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
+            <span>{userStreak} Ngày</span>
+          </div>
+
+          {/* Level & XP Progress (Như ảnh: Lv.08 Học Bá 850/1000 XP + thanh xanh lá) */}
+          <div className={`hidden md:flex flex-col justify-center px-2.5 py-1 rounded-xl border text-[11px] min-w-[130px] ${
+            isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-white/5 border-white/10 text-white'
+          }`}>
+            <div className="flex items-center justify-between font-bold text-[10px] leading-tight gap-1.5">
+              <span className="text-emerald-400">Lv.08 Học Bá</span>
+              <span className="font-mono text-slate-400">{userXP}/1000 XP</span>
+            </div>
+            <div className="w-full h-1 bg-slate-700 rounded-full overflow-hidden mt-1">
+              <div
+                className="h-full bg-emerald-400 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.max(10, (userXP % 1000) / 10))}%` }}
+              />
+            </div>
+          </div>
+
+          {/* Nút Đổi Khung Avatar (Như ảnh: ✨ Đổi Khung Avatar) */}
+          <button
+            type="button"
+            onClick={() => setShowFrameShopModal(true)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border ${
+              isLight
+                ? 'bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-300'
+                : 'bg-purple-950/40 hover:bg-purple-900/50 text-purple-300 border-purple-500/40 shadow-xs'
+            }`}
+            title="Đổi Khung Avatar"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+            <span className="hidden lg:inline">Đổi Khung Avatar</span>
+          </button>
+
           {/* Nút Chuyển Đổi Chế Độ Sáng / Tối (☀️ / 🌙) */}
           <button
             type="button"
@@ -1043,9 +1250,9 @@ export function StudyRoomView({
       )}
 
       {/* ========================================================= */}
-      {/* 2. MIDDLE MAIN STAGE: BÀN HỌC & VIDEO TILES (flex-1)       */}
+      {/* 2. MIDDLE MAIN STAGE: ĐẠI SẢNH 100+ & BÀN HỌC (flex-1)    */}
       {/* ========================================================= */}
-      <main className="flex-1 flex overflow-hidden p-3 gap-3 relative">
+      <main className="flex-1 flex flex-col overflow-hidden p-3 gap-3 relative">
         {/* Floating Reactions Overlay */}
         <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden">
           {floatingEmojis.map((e) => (
@@ -1059,8 +1266,23 @@ export function StudyRoomView({
           ))}
         </div>
 
-        {/* Video Stage Area */}
-        <div className="flex-1 h-full transition-all duration-300 overflow-hidden relative flex flex-col justify-center">
+        {/* 1. Focus Header & Collective Energy Bar (100+ Học Viên Đồng Thời) */}
+        <CollectiveEnergyBar
+          activeCount={collectiveEnergy.activeCount}
+          totalAccumulatedMinutes={collectiveEnergy.totalAccumulatedMinutes}
+          kudosCount={collectiveEnergy.kudosCount}
+          isLight={isLight}
+        />
+
+        {/* 2. Main Space Container: Hall (100+ Virtual Grid) vs Desk (Cam) */}
+        <div className="flex-1 flex overflow-hidden gap-3 relative">
+          {viewMode === 'hall' ? (
+            <div className="flex-1 flex flex-col gap-3 overflow-hidden">
+              <PinnedFriendsRow friends={pinnedFriends} isLight={isLight} />
+              <StudyHallVirtualGrid members={highScaleMembers} isLight={isLight} />
+            </div>
+          ) : (
+            <div className="flex-1 h-full transition-all duration-300 overflow-hidden relative flex flex-col justify-center">
           {tileLayout === 'grid' ? (
             /* ================= GRID 3x2 ================= */
             <div className="w-full h-full grid grid-cols-1 md:grid-cols-3 grid-rows-2 gap-3 max-h-full">
@@ -1396,6 +1618,7 @@ export function StudyRoomView({
             </div>
           )}
         </div>
+        )}
 
         {/* ========================================================= */}
         {/* 3. RIGHT DRAWER: CHAT, REAL TASKS, LEADERBOARD            */}
@@ -1441,83 +1664,54 @@ export function StudyRoomView({
               </button>
             </div>
 
-            {/* TAB 1: LIVE CHAT */}
+            {/* TAB 1: SMART BREAK CHAT (Focus Shield & 5s Slow Mode) */}
             {activeDrawerTab === 'chat' && (
-              <div className="flex-1 flex flex-col justify-between p-3 overflow-hidden">
-                <div className={`flex items-center gap-1.5 overflow-x-auto pb-2 border-b ${
-                  isLight ? 'border-slate-200' : 'border-white/10'
-                }`}>
-                  {['Cố lên ae 🔥', 'Đỉnh nóc 🚀', 'Cứu nét 😭', 'Uống nước ☕'].map((chip) => (
-                    <button
-                      key={chip}
-                      type="button"
-                      onClick={() => handleQuickChip(chip)}
-                      className={`whitespace-nowrap px-2.5 py-1 rounded-full text-[11px] transition cursor-pointer border ${
-                        isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200' : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10'
-                      }`}
-                    >
-                      {chip}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="flex-1 overflow-y-auto my-2 space-y-3 pr-1 text-xs">
-                  {(room.messages || []).map((msg) => (
-                    <div key={msg.id} className="flex flex-col gap-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-purple-500">{msg.userName}</span>
-                        <span className="text-[9px] text-slate-400">
-                          {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                      <p className={`p-2.5 rounded-2xl rounded-tl-none border inline-block max-w-[90%] ${
-                        isLight ? 'bg-slate-100 text-slate-800 border-slate-200' : 'bg-white/5 text-slate-200 border-white/5'
-                      }`}>
-                        {msg.text}
-                      </p>
-                    </div>
-                  ))}
-
-                  {localMessages.map((msg) => (
-                    <div key={msg.id} className="flex flex-col gap-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className={msg.isSystem ? 'text-amber-500 font-bold' : 'text-emerald-500 font-bold'}>
-                          {msg.author}
-                        </span>
-                        <span className="text-[9px] text-slate-400">{msg.time}</span>
-                      </div>
-                      <p className={`p-2.5 rounded-2xl rounded-tl-none border inline-block max-w-[90%] ${
-                        msg.isSystem
-                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-300'
-                          : (isLight ? 'bg-slate-100 text-slate-800 border-slate-200' : 'bg-white/5 text-slate-200 border-white/5')
-                      }`}>
-                        {msg.text}
-                      </p>
-                    </div>
-                  ))}
-
-                  <div ref={chatMessagesEndRef} />
-                </div>
-
-                <form onSubmit={handleSendChatForm} className={`flex items-center gap-2 pt-2 border-t ${
-                  isLight ? 'border-slate-200' : 'border-white/10'
-                }`}>
-                  <input
-                    type="text"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Gửi tin nhắn năng lượng..."
-                    className={`flex-1 border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 ${
-                      isLight ? 'bg-slate-100 border-slate-200 text-slate-900 placeholder:text-slate-400' : 'bg-white/5 border-white/10 text-white placeholder:text-slate-500'
-                    }`}
-                  />
-                  <button
-                    type="submit"
-                    className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold p-2.5 rounded-xl transition cursor-pointer"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                  </button>
-                </form>
+              <div className="flex-1 overflow-hidden p-2">
+                <SmartBreakChat
+                  phase={pomodoroPhase}
+                  messages={realtimeChatMessages}
+                  currentUserId={myId}
+                  onSendMessage={(text) => {
+                    if (socketRef.current) {
+                      socketRef.current.emit('room:chat', {
+                        roomId: room.id,
+                        userId: myId,
+                        userName: myName,
+                        userAvatar: currentUserAvatar,
+                        text,
+                      });
+                    }
+                    setRealtimeChatMessages((prev) => [
+                      ...prev,
+                      {
+                        id: `local_${Date.now()}`,
+                        userId: myId,
+                        userName: myName,
+                        userAvatar: currentUserAvatar,
+                        text,
+                        createdAt: new Date().toISOString(),
+                      },
+                    ]);
+                  }}
+                  onSendKudos={(emoji) => {
+                    if (socketRef.current) {
+                      socketRef.current.emit('room:kudos', {
+                        roomId: room.id,
+                        userId: myId,
+                        emoji,
+                      });
+                    }
+                    setFloatingEmojis((prev) => [
+                      ...prev.slice(-20),
+                      {
+                        id: `kudos_${Date.now()}_${Math.random()}`,
+                        emoji,
+                        x: Math.random() * 80 + 10,
+                      },
+                    ]);
+                  }}
+                  isLight={isLight}
+                />
               </div>
             )}
 
@@ -1650,6 +1844,7 @@ export function StudyRoomView({
             )}
           </aside>
         )}
+        </div>
       </main>
 
       {/* ========================================================= */}
@@ -1912,7 +2107,40 @@ export function StudyRoomView({
 
         {/* Right: Bố cục, Zen Mode & Drawer Toggles */}
         <div className="flex items-center gap-2">
-          {/* Bố cục: Lưới 3x2 vs Ghim Spotlight */}
+          {/* Switcher: Đại Sảnh (100+) vs Bàn Học Cam */}
+          <div className={`hidden sm:flex items-center rounded-xl p-0.5 border text-xs ${
+            isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/5 border-white/10'
+          }`}>
+            <button
+              type="button"
+              onClick={() => setViewMode('hall')}
+              className={`px-2.5 py-1.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                viewMode === 'hall'
+                  ? 'bg-emerald-500 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
+              }`}
+              title="Đại sảnh thư viện 100+ người"
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Đại Sảnh (100+)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('desk')}
+              className={`px-2.5 py-1.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                viewMode === 'desk'
+                  ? 'bg-emerald-500 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
+              }`}
+              title="Bàn học cá nhân (Webcam/Spotlight)"
+            >
+              <Video className="w-3.5 h-3.5" />
+              <span>Bàn Học Cam</span>
+            </button>
+          </div>
+
+          {/* Bố cục: Lưới 3x2 vs Ghim Spotlight (Khi ở Bàn Học Cam) */}
+          {viewMode === 'desk' && (
           <div className={`hidden sm:flex items-center rounded-xl p-0.5 border text-xs ${
             isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/5 border-white/10'
           }`}>
@@ -1944,6 +2172,7 @@ export function StudyRoomView({
               <Maximize2 className="w-4 h-4" />
             </button>
           </div>
+          )}
 
           {/* Zen Mode Button */}
           <button
