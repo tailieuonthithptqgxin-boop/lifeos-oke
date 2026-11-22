@@ -472,7 +472,13 @@ export function StudyRoomView({
                   <span>•</span>
                   <span className="flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400">
                     <Users className="w-3 h-3" />
-                    <span>{totalDesksCount} bạn đang ngồi học</span>
+                    <span>
+                      {totalDesksCount === 0
+                        ? 'Bàn đang trống'
+                        : totalDesksCount === 1
+                        ? '1 bạn đang ngồi học (Bàn của bạn)'
+                        : `${totalDesksCount} bạn đang ngồi học`}
+                    </span>
                   </span>
                 </div>
               </div>
@@ -654,7 +660,26 @@ export function StudyRoomView({
           {/* ----------------------------------------------------- */}
           {/* CÁC BÀN HỌC KHÁC TRONG PHÒNG                          */}
           {/* ----------------------------------------------------- */}
-          {visibleMembers.map((member, index) => {
+          {otherMembers.length === 0 ? (
+            <div className="col-span-1 rounded-3xl p-4 bg-slate-50/70 dark:bg-slate-800/40 border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center text-center space-y-2 py-6">
+              <span className="text-2xl">🌱</span>
+              <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                Không gian học yên tĩnh
+              </p>
+              <p className="text-[11px] text-slate-400 max-w-[180px] leading-relaxed">
+                Chưa có bạn học khác trong phòng. Hãy rủ bạn bè vào học cùng hoặc tận hưởng sự tập trung của riêng bạn!
+              </p>
+              <button
+                type="button"
+                onClick={handleShareWithRef}
+                className="mt-1 px-3 py-1.5 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 text-indigo-600 dark:text-indigo-300 text-[11px] font-bold transition-all cursor-pointer inline-flex items-center gap-1"
+              >
+                <span>Rủ bạn học cùng</span>
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
+          ) : (
+            visibleMembers.map((member, index) => {
             const minutesStudied = Math.floor((Date.now() - member.joinedAt) / 60000);
             const badgeTitle = member.badge || (member.championCount && member.championCount > 0 ? 'Quán Quân' : 'Chiến Binh');
 
@@ -721,7 +746,8 @@ export function StudyRoomView({
                 </div>
               </div>
             );
-          })}
+          })
+        )}
         </div>
 
         {/* Show more desks button for 60fps mobile pagination */}

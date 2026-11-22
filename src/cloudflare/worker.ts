@@ -1078,7 +1078,6 @@ const edgeStudyRoomsMemory = new Map<string, EdgeStudyRoom>();
 function initDefaultEdgeRooms() {
   if (edgeStudyRoomsMemory.size > 0) return;
 
-  const now = Date.now();
   const defaultRooms: EdgeStudyRoom[] = [
     {
       id: 'room-night-owls',
@@ -1090,68 +1089,9 @@ function initDefaultEdgeRooms() {
       jitsiRoomName: 'lifeos-study-night-owls',
       isSystemRoom: true,
       createdAt: new Date().toISOString(),
-      pomodoro: { phase: 'FOCUS', duration: 1500, startedAt: now - 420000, isRunning: true },
-      members: [
-        {
-          userId: 'sim-1',
-          userName: 'Hoàng Nam (IELTS 8.0)',
-          userAvatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&auto=format&fit=crop&q=80',
-          studyGoal: 'Ôn 30 từ vựng chuyên ngành & viết Task 2',
-          studyGoalCompleted: false,
-          presenceState: 'STUDYING',
-          joinedAt: now - 3600000,
-          lastPingAt: now,
-          isSimulated: true,
-          badge: 'Thủ Lĩnh Cú Đêm',
-          streakDays: 14,
-        },
-        {
-          userId: 'sim-2',
-          userName: 'Phương Anh (Ngoại Thương)',
-          userAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-          studyGoal: 'Hoàn thành slide bài thuyết trình Marketing',
-          studyGoalCompleted: true,
-          presenceState: 'IN_MEET',
-          joinedAt: now - 2400000,
-          lastPingAt: now,
-          isSimulated: true,
-          badge: 'Chăm Chỉ',
-          streakDays: 7,
-        },
-        {
-          userId: 'sim-3',
-          userName: 'Quốc Huy (Bách Khoa)',
-          userAvatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80',
-          studyGoal: 'Làm đề ôn thi Cuối kỳ Giải Tích 2',
-          studyGoalCompleted: false,
-          presenceState: 'STUDYING',
-          joinedAt: now - 1800000,
-          lastPingAt: now,
-          isSimulated: true,
-          badge: 'Chiến Binh',
-          streakDays: 5,
-        },
-      ],
-      messages: [
-        {
-          id: 'msg-1',
-          userId: 'sim-1',
-          userName: 'Hoàng Nam (IELTS 8.0)',
-          userAvatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&auto=format&fit=crop&q=80',
-          championCount: 1,
-          text: 'Chào cả nhà, cùng tập trung bật cam/mic hoặc tắt mic cày deadline nhé! 🔥',
-          createdAt: new Date(now - 3000000).toISOString(),
-        },
-        {
-          id: 'msg-2',
-          userId: 'sim-2',
-          userName: 'Phương Anh (Ngoại Thương)',
-          userAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-          championCount: 2,
-          text: 'Mình vừa xong bài đọc, giờ sang làm slide. Mọi người cố lên nha! ✨',
-          createdAt: new Date(now - 1200000).toISOString(),
-        },
-      ],
+      pomodoro: { phase: 'FOCUS', duration: 1500, startedAt: null, isRunning: false },
+      members: [],
+      messages: [],
     },
     {
       id: 'room-dalat-rain',
@@ -1163,45 +1103,9 @@ function initDefaultEdgeRooms() {
       jitsiRoomName: 'lifeos-study-dalat-rain',
       isSystemRoom: true,
       createdAt: new Date().toISOString(),
-      pomodoro: { phase: 'FOCUS', duration: 1500, startedAt: now - 600000, isRunning: true },
-      members: [
-        {
-          userId: 'sim-4',
-          userName: 'Thanh Thảo (Design)',
-          userAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80',
-          studyGoal: 'Đọc xong 2 chương sách Tâm lý học',
-          studyGoalCompleted: false,
-          presenceState: 'STUDYING',
-          joinedAt: now - 1500000,
-          lastPingAt: now,
-          isSimulated: true,
-          badge: 'Chill Master',
-          streakDays: 9,
-        },
-        {
-          userId: 'sim-5',
-          userName: 'Đăng Khoa (Y Dược)',
-          userAvatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120&auto=format&fit=crop&q=80',
-          studyGoal: 'Flashcard 50 thuật ngữ Dược lý',
-          studyGoalCompleted: false,
-          presenceState: 'STUDYING',
-          joinedAt: now - 900000,
-          lastPingAt: now,
-          isSimulated: true,
-          badge: 'Bền Bỉ',
-          streakDays: 12,
-        },
-      ],
-      messages: [
-        {
-          id: 'msg-dl-1',
-          userId: 'sim-4',
-          userName: 'Thanh Thảo (Design)',
-          userAvatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80',
-          text: 'Tiếng mưa với nhạc Lo-Fi dễ vào bài thật sự 🌧️☕',
-          createdAt: new Date(now - 1400000).toISOString(),
-        },
-      ],
+      pomodoro: { phase: 'FOCUS', duration: 1500, startedAt: null, isRunning: false },
+      members: [],
+      messages: [],
     },
     {
       id: 'room-sprint-prep',
@@ -1213,35 +1117,8 @@ function initDefaultEdgeRooms() {
       jitsiRoomName: 'lifeos-study-sprint-prep',
       isSystemRoom: true,
       createdAt: new Date().toISOString(),
-      pomodoro: { phase: 'FOCUS', duration: 1500, startedAt: now - 120000, isRunning: true },
-      members: [
-        {
-          userId: 'sim-6',
-          userName: 'Bảo Trâm (Y Hà Nội)',
-          userAvatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80',
-          studyGoal: 'Giải 50 câu trắc nghiệm Sinh học',
-          studyGoalCompleted: false,
-          presenceState: 'IN_MEET',
-          joinedAt: now - 2700000,
-          lastPingAt: now,
-          isSimulated: true,
-          badge: 'Top 1 BXH',
-          streakDays: 21,
-        },
-        {
-          userId: 'sim-7',
-          userName: 'Văn Đức (Kinh Tế)',
-          userAvatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&auto=format&fit=crop&q=80',
-          studyGoal: 'Luyện đề thi THPT QG môn Toán',
-          studyGoalCompleted: false,
-          presenceState: 'STUDYING',
-          joinedAt: now - 2100000,
-          lastPingAt: now,
-          isSimulated: true,
-          badge: 'Chiến Binh',
-          streakDays: 4,
-        },
-      ],
+      pomodoro: { phase: 'FOCUS', duration: 1500, startedAt: null, isRunning: false },
+      members: [],
       messages: [],
     },
     {
@@ -1254,22 +1131,8 @@ function initDefaultEdgeRooms() {
       jitsiRoomName: 'lifeos-study-healing-reading',
       isSystemRoom: true,
       createdAt: new Date().toISOString(),
-      pomodoro: { phase: 'FOCUS', duration: 1500, startedAt: now - 900000, isRunning: true },
-      members: [
-        {
-          userId: 'sim-8',
-          userName: 'Khánh Linh',
-          userAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80',
-          studyGoal: 'Đọc sách Tự Lực & ghi chép cảm nhận',
-          studyGoalCompleted: false,
-          presenceState: 'STUDYING',
-          joinedAt: now - 1800000,
-          lastPingAt: now,
-          isSimulated: true,
-          badge: 'Chữa Lành',
-          streakDays: 10,
-        },
-      ],
+      pomodoro: { phase: 'FOCUS', duration: 1500, startedAt: null, isRunning: false },
+      members: [],
       messages: [],
     },
   ];
@@ -1542,7 +1405,7 @@ async function handleEdgeStandaloneApi(request: Request, env?: Env): Promise<Res
       });
     }
 
-    // 2. Leaderboard & Champions
+    // 2. Leaderboard & Champions (Clean real data, zero fake users)
     if (
       pathname === '/api/study-space/leaderboard' ||
       pathname === '/api/study/leaderboard' ||
@@ -1552,19 +1415,10 @@ async function handleEdgeStandaloneApi(request: Request, env?: Env): Promise<Res
       return new Response(
         JSON.stringify({
           success: true,
-          topWeekly: [
-            { id: 'u-champ-1', name: 'Minh Anh (Thủ khoa)', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80', weeklyStudyMinutes: 1850, totalStudyMinutes: 6420, championCount: 3 },
-            { id: 'u-champ-2', name: 'Hoàng Nam (IELTS 8.0)', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&auto=format&fit=crop&q=80', weeklyStudyMinutes: 1620, totalStudyMinutes: 5100, championCount: 1 },
-            { id: 'u-champ-3', name: 'Bảo Trâm (Y Hà Nội)', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80', weeklyStudyMinutes: 1490, totalStudyMinutes: 4830, championCount: 2 },
-            { id: 'u-champ-4', name: 'Quốc Huy (Bách Khoa)', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80', weeklyStudyMinutes: 1350, totalStudyMinutes: 3900, championCount: 0 }
-          ],
-          topAllTime: [
-            { id: 'u-champ-1', name: 'Minh Anh (Thủ khoa)', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80', weeklyStudyMinutes: 1850, totalStudyMinutes: 6420, championCount: 3 },
-            { id: 'u-champ-2', name: 'Hoàng Nam (IELTS 8.0)', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&auto=format&fit=crop&q=80', weeklyStudyMinutes: 1620, totalStudyMinutes: 5100, championCount: 1 },
-            { id: 'u-champ-3', name: 'Bảo Trâm (Y Hà Nội)', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80', weeklyStudyMinutes: 1490, totalStudyMinutes: 4830, championCount: 2 }
-          ],
-          userStats: { totalMinutes: 45, weeklyMinutes: 45, rank: 5 },
-          weeklyChampion: { userId: 'u-champ-1', userName: 'Minh Anh (Thủ khoa)', userAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80', studyMinutes: 1850, weekRangeText: 'Tuần này' }
+          topWeekly: [],
+          topAllTime: [],
+          userStats: null,
+          weeklyChampion: null,
         }),
         { status: 200, headers: jsonHeaders }
       );
@@ -1574,19 +1428,13 @@ async function handleEdgeStandaloneApi(request: Request, env?: Env): Promise<Res
       return new Response(
         JSON.stringify({
           success: true,
-          champion: {
-            userId: 'u-champ-1',
-            userName: 'Minh Anh (Thủ khoa)',
-            userAvatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-            studyMinutes: 1850,
-            weekRangeText: 'Tuần này'
-          }
+          champion: null,
         }),
         { status: 200, headers: jsonHeaders }
       );
     }
 
-    // 3. Lobby Summary
+    // 3. Lobby Summary (Zero fake stats)
     if (pathname === '/api/study-space/lobby' || pathname === '/api/study/lobby') {
       const allRooms = Array.from(edgeStudyRoomsMemory.values()).map(edgeStudyRoomToSummary);
       const activeCount = allRooms.reduce((acc, r) => acc + r.participantCount, 0);
@@ -1595,11 +1443,8 @@ async function handleEdgeStandaloneApi(request: Request, env?: Env): Promise<Res
           success: true,
           rooms: allRooms,
           activeCount,
-          totalMinutes: 12450,
-          topUsers: [
-            { name: 'Minh Anh', minutes: 1850 },
-            { name: 'Hoàng Nam', minutes: 1620 },
-          ],
+          totalMinutes: 0,
+          topUsers: [],
         }),
         { status: 200, headers: jsonHeaders }
       );

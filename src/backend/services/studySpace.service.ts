@@ -191,81 +191,35 @@ class RoomPresenceService {
       name: string;
       topic: string;
       welcomeText: string;
-      simulatedMembers: Array<{ name: string; avatar: string; goal: string; minutes: number; badge: string }>;
     }> = [
       {
         id: 'room-night-owls',
         name: '🦉 Hội Cú Đêm Cày Deadline',
         topic: 'Cú Đêm & Kỷ Luật',
         welcomeText: 'Chào mừng các chiến binh Cú Đêm! Hãy cùng bật mode tập trung tối đa để dứt điểm mọi deadline tối nay nào! 🦉🌙',
-        simulatedMembers: [
-          { name: 'Quốc Bảo (Tech lead)', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80', goal: 'Fix nốt bug API production', minutes: 78, badge: 'Chiến Binh' },
-          { name: 'Thùy Linh (IELTS 8.0)', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80', goal: 'Luyện 2 đề Reading Cam 18', minutes: 54, badge: 'Ngôi Sao' },
-          { name: 'Hoàng Minh (Figma)', avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&auto=format&fit=crop&q=80', goal: 'Design UI Mobile Design System', minutes: 110, badge: 'Chiến Binh' },
-          { name: 'Khánh Vy', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80', goal: 'Ôn 50 từ vựng Oxford 3000', minutes: 35, badge: 'Tân Binh' },
-          { name: 'Đức Huy (Fintech)', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80', goal: 'Viết báo cáo tài chính Q4', minutes: 92, badge: 'Chiến Binh' },
-          { name: 'Bảo Trâm', avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=120&auto=format&fit=crop&q=80', goal: 'Dịch 10 trang tài liệu Pháp luật', minutes: 48, badge: 'Tân Binh' }
-        ]
       },
       {
         id: 'room-dalat-rain',
         name: '🌧️ Góc Cafe Mưa Đà Lạt (Lo-Fi & Chill)',
         topic: 'Chill & Lo-Fi',
         welcomeText: 'Hòa mình vào không gian cafe ấm cúng với tiếng mưa rơi và những giai điệu Lo-Fi nhẹ nhàng. Chúc bạn có ca học thật thư thái! ☕🌧️',
-        simulatedMembers: [
-          { name: 'Phương Uyên', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80', goal: 'Viết bài luận văn tốt nghiệp', minutes: 65, badge: 'Ngôi Sao' },
-          { name: 'Tấn Phát', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80', goal: 'Đọc sách Tư Duy Nhanh & Chậm', minutes: 42, badge: 'Tân Binh' },
-          { name: 'Mai Chi', avatar: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=120&auto=format&fit=crop&q=80', goal: 'Phân tích dữ liệu Google Sheet', minutes: 88, badge: 'Chiến Binh' },
-          { name: 'Hoàng Nam', avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=120&auto=format&fit=crop&q=80', goal: 'Luyện nghe podcast tiếng Anh', minutes: 30, badge: 'Tân Binh' }
-        ]
       },
       {
         id: 'room-sprint-prep',
         name: '🔥 Phòng Luyện Thi Nước Rút (Tập trung 100%)',
         topic: 'Luyện Thi Nước Rút',
         welcomeText: 'Không bấm điện thoại, không lướt top top! 100% thời gian dành cho mục tiêu lớn nhất của bạn. Bắt đầu ngay! 🔥⚡',
-        simulatedMembers: [
-          { name: 'Anh Quân (Đại học Y)', avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&auto=format&fit=crop&q=80', goal: 'Giải đề Giải phẫu học ca 3', minutes: 125, badge: 'Ngôi Sao' },
-          { name: 'Ngọc Hân', avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80', goal: 'Luyện 50 câu trắc nghiệm Hóa', minutes: 95, badge: 'Chiến Binh' },
-          { name: 'Minh Khang', avatar: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120&auto=format&fit=crop&q=80', goal: 'Cày đề Toán THPT Chuyên', minutes: 80, badge: 'Chiến Binh' },
-          { name: 'Thanh Thảo', avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80', goal: 'Học 30 từ Kanji N2', minutes: 40, badge: 'Tân Binh' },
-          { name: 'Trọng Nhân', avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80', goal: 'Viết đề tài Nghiên cứu khoa học', minutes: 110, badge: 'Ngôi Sao' }
-        ]
       },
       {
         id: 'room-healing-reading',
         name: '🌿 Góc Đọc Sách & Chữa Lành',
         topic: 'Đọc Sách & Chữa Lành',
         welcomeText: 'Một góc bình yên để bạn thả lỏng tâm trí, đọc sách, nghiên cứu và nuôi dưỡng tri thức mỗi ngày. 🌿📖',
-        simulatedMembers: [
-          { name: 'Bảo Châu', avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80', goal: 'Đọc Hiểu Về Trái Tim', minutes: 50, badge: 'Chiến Binh' },
-          { name: 'Gia Khiêm', avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80', goal: 'Ghi chép Nhật ký Biết ơn', minutes: 35, badge: 'Tân Binh' },
-          { name: 'Hải Yến', avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80', goal: 'Luyện viết sáng tạo mỗi ngày', minutes: 60, badge: 'Chiến Binh' }
-        ]
       }
     ];
 
     defaults.forEach(d => {
       const roomMembers = new Map<string, Participant>();
-
-      // Seed initial simulated community members
-      d.simulatedMembers.forEach((m, idx) => {
-        const uid = `simulated-${d.id}-${idx}`;
-        roomMembers.set(uid, {
-          userId: uid,
-          userName: m.name,
-          userAvatar: m.avatar,
-          championCount: idx === 0 ? 1 : 0,
-          studyGoal: m.goal,
-          studyGoalCompleted: idx % 3 === 0,
-          presenceState: 'STUDYING',
-          joinedAt: now - m.minutes * 60 * 1000,
-          lastPingAt: now,
-          isSimulated: true,
-          badge: m.badge,
-          streakDays: 3 + (idx % 7)
-        });
-      });
 
       this.rooms.set(d.id, {
         id: d.id,
@@ -281,20 +235,11 @@ class RoomPresenceService {
         pomodoro: {
           phase: 'FOCUS',
           duration: 1500,
-          startedAt: now - (idx => (idx % 2 === 0 ? 420000 : 900000))(d.id.length),
-          isRunning: true
+          startedAt: null,
+          isRunning: false
         },
         members: roomMembers,
-        messages: [
-          {
-            id: crypto.randomUUID(),
-            userId: 'system',
-            userName: 'Lumi Assistant',
-            userAvatar: 'https://ui-avatars.com/api/?name=Lumi+AI&background=10B981&color=fff',
-            text: d.welcomeText,
-            createdAt: new Date().toISOString()
-          }
-        ],
+        messages: [],
         listeners: new Set()
       });
     });
