@@ -74,7 +74,6 @@ const SpatialBackgroundRig = lazyWithRetry(() => import('./components/spatial/Sp
 import { CookieConsentBanner } from './components/common/CookieConsentBanner';
 import { StickyTopBanner } from './components/common/StickyTopBanner';
 import { LoginAnnouncementModal } from './components/notifications/LoginAnnouncementModal';
-import { DevicePreviewDock, DeviceMode } from './components/common/DevicePreviewDock';
 
 
 
@@ -279,9 +278,6 @@ function AppContent() {
     }
     return null;
   });
-
-  const [deviceMode, setDeviceMode] = useState<DeviceMode>('desktop');
-  const [deviceOrientation, setDeviceOrientation] = useState<'portrait' | 'landscape'>('portrait');
 
   // Handle Google OAuth query feedback
   React.useEffect(() => {
@@ -623,12 +619,8 @@ function AppContent() {
     );
   };
 
-  const isSimulated = deviceMode !== 'desktop';
-
-  const shellContent = (
-    <div className={`relative flex h-full w-full bg-[#F8FAFC]/90 dark:bg-[#07070C]/90 overflow-hidden font-sans text-[#0F172A] dark:text-slate-100 transition-colors duration-150 ${
-      deviceMode === 'mobile' ? 'mobile-viewport' : deviceMode === 'tablet' ? 'tablet-viewport' : ''
-    }`}>
+  return (
+    <div className="relative flex h-full w-full h-screen h-[100dvh] bg-[#F8FAFC]/90 dark:bg-[#07070C]/90 overflow-hidden font-sans text-[#0F172A] dark:text-slate-100 transition-colors duration-150">
       <React.Suspense fallback={null}>
         <SpatialBackgroundRig />
       </React.Suspense>
@@ -666,52 +658,6 @@ function AppContent() {
         currentUserAvatar={currentUser?.avatar}
       />
       <CookieConsentBanner />
-    </div>
-  );
-
-  return (
-    <div className="relative h-screen h-[100dvh] w-full bg-slate-950 flex items-center justify-center overflow-hidden">
-      {!isSimulated ? (
-        shellContent
-      ) : (
-        <div className="w-full h-full flex items-center justify-center bg-slate-950/90 backdrop-blur-3xl p-2 sm:p-6 overflow-hidden">
-          {/* Simulated Device Chassis */}
-          <div
-            className={`relative shadow-[0_25px_60px_-15px_rgba(0,0,0,0.8)] border-slate-800 bg-black transition-all duration-300 flex flex-col overflow-hidden ring-1 ring-white/10 ${
-              deviceMode === 'mobile'
-                ? deviceOrientation === 'portrait'
-                  ? 'w-[390px] h-[844px] max-h-[94vh] rounded-[48px] border-[10px]'
-                  : 'w-[844px] h-[390px] max-w-[95vw] rounded-[48px] border-[10px]'
-                : deviceOrientation === 'portrait'
-                ? 'w-[820px] h-[1180px] max-h-[94vh] rounded-[36px] border-[12px]'
-                : 'w-[1180px] h-[820px] max-w-[95vw] max-h-[92vh] rounded-[36px] border-[12px]'
-            }`}
-          >
-            {/* Dynamic Island / Tablet camera */}
-            {deviceMode === 'mobile' && deviceOrientation === 'portrait' && (
-              <div className="absolute top-2.5 left-1/2 -translate-x-1/2 w-28 h-6 bg-black rounded-full z-50 flex items-center justify-between px-3 pointer-events-none">
-                <span className="w-2.5 h-2.5 rounded-full bg-slate-900 border border-slate-700/60" />
-                <span className="w-2.5 h-2.5 rounded-full bg-blue-950/80" />
-              </div>
-            )}
-            {deviceMode === 'tablet' && (
-              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-slate-800 rounded-full z-50 pointer-events-none" />
-            )}
-            {/* Device Screen Content */}
-            <div className="w-full h-full overflow-hidden flex flex-col relative">
-              {shellContent}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* 1-Click Device Preview Dock */}
-      <DevicePreviewDock
-        deviceMode={deviceMode}
-        onSelectMode={(mode) => setDeviceMode(mode)}
-        orientation={deviceOrientation}
-        onToggleOrientation={() => setDeviceOrientation(prev => prev === 'portrait' ? 'landscape' : 'portrait')}
-      />
     </div>
   );
 }
