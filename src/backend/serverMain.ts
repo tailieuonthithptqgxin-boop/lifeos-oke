@@ -71,6 +71,7 @@ import { validateEnvOnStartup } from './config/env.config.js';
 import { sanitizeInputMiddleware } from './security/sanitizer.js';
 import { generalApiRateLimiter } from './security/rateLimiter.js';
 import { globalChatService } from './services/globalChat.service.js';
+import { initStudyRoomSocket } from './realtime/studyRoomSocket.js';
 
 async function ensurePostgresRunning() {
   try {
@@ -641,6 +642,8 @@ async function startServer() {
 
   const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 LifeOS Server running on http://0.0.0.0:${PORT}`);
+    // Initialize Real-time High-Scale Socket.io Co-Study Server (100-500+ users)
+    initStudyRoomSocket(server);
     // Start Outbox Email Queue Worker (Automatic Retry & Delivery Guarantee)
     emailQueueService.startQueueWorker();
     // Initialize Automated 24/7 Cron Engine (Hybrid Cloudflare & Backend Scheduler)

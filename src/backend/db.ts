@@ -21,6 +21,21 @@ export async function checkDbConnection(): Promise<boolean> {
   const prisma = getPrisma();
   await prisma.$queryRaw`SELECT 1`;
 
+  // Configure SQLite WAL mode if SQLite is in use
+  const dbUrl = process.env.DATABASE_URL || '';
+  if (dbUrl.includes('sqlite') || dbUrl.includes('.db') || dbUrl.startsWith('file:')) {
+    try {
+      await prisma.$executeRawUnsafe('PRAGMA journal_mode = WAL;');
+      await prisma.$executeRawUnsafe('PRAGMA synchronous = NORMAL;');
+      await prisma.$executeRawUnsafe('PRAGMA cache_size = 10000;');
+      await prisma.$executeRawUnsafe('PRAGMA temp_store = MEMORY;');
+      await prisma.$executeRawUnsafe('PRAGMA busy_timeout = 5000;');
+      console.log('⚡ [SQLite] WAL mode and high-concurrency pragmas enabled successfully.');
+    } catch (e) {
+      // Safe to ignore on non-sqlite or if pragma not supported
+    }
+  }
+
   const isProduction = process.env.NODE_ENV === 'production';
 
   try {
