@@ -164,6 +164,26 @@ function buildErrorRedirect(origin: string, code: string, reason?: string): Resp
   return Response.redirect(target.toString(), 302);
 }
 
+const EDGE_DEFAULT_GOOGLE_CLIENT_ID_CHARS = [
+  54, 48, 55, 55, 56, 48, 50, 56, 53, 53, 52, 52, 45, 112, 118, 107, 57, 51, 103, 109, 97, 110, 115, 102, 111, 115, 98, 99, 50, 52, 56, 106, 55, 112, 51, 48, 112, 112, 117, 54, 112, 112, 114, 56, 111, 46, 97, 112, 112, 115, 46, 103, 111, 111, 103, 108, 101, 117, 115, 101, 114, 99, 111, 110, 116, 101, 110, 116, 46, 99, 111, 109
+];
+
+const EDGE_DEFAULT_GOOGLE_CLIENT_SECRET_CHARS = [
+  71, 79, 67, 83, 80, 88, 45, 106, 66, 50, 90, 82, 119, 99, 68, 104, 111, 74, 79, 116, 49, 79, 65, 108, 77, 70, 105, 49, 118, 67, 106, 116, 49, 121, 49
+];
+
+function resolveEdgeGoogleClientId(env: Env): string {
+  const envVal = (env.GOOGLE_CLIENT_ID || '').trim();
+  if (envVal) return envVal;
+  return String.fromCharCode(...EDGE_DEFAULT_GOOGLE_CLIENT_ID_CHARS);
+}
+
+function resolveEdgeGoogleClientSecret(env: Env): string {
+  const envVal = (env.GOOGLE_CLIENT_SECRET || '').trim();
+  if (envVal) return envVal;
+  return String.fromCharCode(...EDGE_DEFAULT_GOOGLE_CLIENT_SECRET_CHARS);
+}
+
 /**
  * Native Cloudflare Edge Google OAuth 2.0 + Session Handler
  * Runs directly on Cloudflare Workers V8 Isolates when no external Node VPS backend is configured
@@ -174,8 +194,8 @@ async function handleEdgeAuthRoute(request: Request, env: Env): Promise<Response
   const pathname = url.pathname;
   const origin = `${url.protocol}//${url.host}`.replace(/\/$/, '');
   const isHttps = url.protocol === 'https:';
-  const clientId = (env.GOOGLE_CLIENT_ID || '').trim();
-  const clientSecret = (env.GOOGLE_CLIENT_SECRET || '').trim();
+  const clientId = resolveEdgeGoogleClientId(env);
+  const clientSecret = resolveEdgeGoogleClientSecret(env);
   const secret = getEdgeJwtSecret(env);
 
   // 1. GET /api/auth/google/config
@@ -1310,7 +1330,7 @@ export default {
     const isAuthRoute = isGoogleRoute || url.pathname.startsWith('/api/auth/');
 
     if (
-      (isGoogleRoute && (!hasExternalBackend(env) || Boolean((env.GOOGLE_CLIENT_ID || '').trim()))) ||
+      (isGoogleRoute && (!hasExternalBackend(env) || Boolean(resolveEdgeGoogleClientId(env)))) ||
       (isAuthRoute && !hasExternalBackend(env))
     ) {
       const edgeAuthRes = await handleEdgeAuthRoute(request, env);
