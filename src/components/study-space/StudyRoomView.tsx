@@ -38,6 +38,7 @@ import {
   Check,
   UserPlus,
   ChevronDown,
+  ChevronLeft,
   Settings
 } from 'lucide-react';
 import { useAppStore } from '../../lib/store';
@@ -845,62 +846,71 @@ export function StudyRoomView({
       {/* 1. TOP HUD BAR: TỐI GIẢN - TINH TẾ - HIỆN ĐẠI (h-14)       */}
       {/* ========================================================= */}
       <header
-        className={`h-14 px-3 sm:px-4 flex items-center justify-between border-b backdrop-blur-xl z-30 shrink-0 transition-all duration-300 ${
+        className={`h-14 px-3 sm:px-6 flex items-center justify-between border-b backdrop-blur-xl z-30 shrink-0 transition-all duration-300 ${
           isLight ? 'bg-white/90 border-slate-200/90 shadow-xs' : 'bg-[#090b10]/95 border-white/10'
         } ${zenMode ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}`}
       >
-        {/* Left: Brand & Room Code */}
-        <div className="flex items-center gap-2.5">
+        {/* Left: Nút Thoát / Rời phòng & Tên phòng tối giản */}
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowSummaryModal(true)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer border ${
+              isLight
+                ? 'bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-600 border-slate-200 hover:border-red-200 shadow-xs'
+                : 'bg-white/5 hover:bg-red-500/10 text-slate-300 hover:text-red-400 border-white/10 hover:border-red-500/30'
+            }`}
+            title="Rời phòng học"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Rời phòng</span>
+          </button>
+
+          <div className={`h-4 w-px ${isLight ? 'bg-slate-200' : 'bg-white/10'}`} />
+
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-emerald-400 flex items-center justify-center shadow-md shadow-emerald-500/20">
-              <GraduationCap className="w-4 h-4 text-slate-950 font-black" />
-            </div>
-            <span className={`font-extrabold text-base tracking-tight hidden sm:flex items-center gap-1 ${
+            <span className={`font-bold text-sm tracking-tight max-w-[130px] sm:max-w-[200px] truncate ${
               isLight ? 'text-slate-900' : 'text-white'
             }`}>
-              MeetStudy<span className="text-emerald-500">.vn</span>
-              <span className="relative flex h-2 w-2 ml-1">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-              </span>
+              {room.name}
             </span>
-          </div>
 
-          {/* Room Code Badge */}
-          <button
-            onClick={copyRoomLink}
-            type="button"
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono transition cursor-pointer border ${
-              isLight
-                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
-                : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10'
-            }`}
-            title="Sao chép link phòng"
-          >
-            <Lock className="w-3 h-3 text-emerald-500" />
-            <span className="max-w-[90px] sm:max-w-none truncate">#{room.id.slice(0, 8)}</span>
-            <Copy className="w-3 h-3 text-slate-400" />
-          </button>
+            {/* Room Code Badge */}
+            <button
+              onClick={copyRoomLink}
+              type="button"
+              className={`hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-mono transition cursor-pointer border ${
+                isLight
+                  ? 'bg-slate-100 hover:bg-slate-200 text-slate-600 border-slate-200'
+                  : 'bg-white/5 hover:bg-white/10 text-slate-400 border-white/10'
+              }`}
+              title="Sao chép link phòng"
+            >
+              <Lock className="w-2.5 h-2.5 text-emerald-500" />
+              <span>#{room.id.slice(0, 8)}</span>
+              <Copy className="w-2.5 h-2.5 text-slate-400" />
+            </button>
+          </div>
         </div>
 
         {/* Center: Minimalist Pomodoro Focus Pill */}
-        <div className={`flex items-center gap-2 px-3 py-1 rounded-full shadow-md border ${
+        <div className={`flex items-center gap-2 sm:gap-2.5 px-3 py-1 rounded-full shadow-md border ${
           isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#11151f]/95 border-white/10 text-white'
         }`}>
           {/* Circular Countdown Ring */}
-          <div className="relative w-6 h-6 flex items-center justify-center">
-            <svg className="w-6 h-6 transform -rotate-90">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" className={isLight ? 'text-slate-200' : 'text-slate-800'} fill="transparent" />
+          <div className="relative w-5 h-5 flex items-center justify-center">
+            <svg className="w-5 h-5 transform -rotate-90">
+              <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2.5" className={isLight ? 'text-slate-200' : 'text-slate-800'} fill="transparent" />
               <circle
-                cx="12"
-                cy="12"
-                r="10"
+                cx="10"
+                cy="10"
+                r="8"
                 stroke="currentColor"
                 strokeWidth="2.5"
                 className="text-emerald-500 transition-all duration-1000 ease-linear"
                 fill="transparent"
-                strokeDasharray="62.8"
-                strokeDashoffset={strokeDashoffset}
+                strokeDasharray="50.2"
+                strokeDashoffset={(strokeDashoffset * 50.2) / 62.8}
                 strokeLinecap="round"
               />
             </svg>
@@ -914,8 +924,8 @@ export function StudyRoomView({
           {/* Phase Badge */}
           <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${
             pomodoroPhase === 'FOCUS'
-              ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60'
-              : 'bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/60'
+              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60'
+              : 'bg-amber-50 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/60'
           }`}>
             {pomodoroPhase === 'FOCUS' ? '🔥 Focus' : '☕ Nghỉ'}
           </span>
@@ -925,18 +935,18 @@ export function StudyRoomView({
             <button
               type="button"
               onClick={togglePomoTimer}
-              className="text-emerald-600 dark:text-emerald-400 hover:scale-110 p-1 transition cursor-pointer"
+              className="text-emerald-600 dark:text-emerald-400 hover:scale-110 p-0.5 transition cursor-pointer"
               title={isPomodoroRunning ? 'Tạm dừng' : 'Bắt đầu'}
             >
-              {isPomodoroRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+              {isPomodoroRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
             </button>
             <button
               type="button"
               onClick={resetPomoTimer}
-              className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 transition cursor-pointer"
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-0.5 transition cursor-pointer"
               title="Đặt lại"
             >
-              <RotateCcw className="w-3 h-3" />
+              <RotateCcw className="w-3.5 h-3.5" />
             </button>
           </div>
 
@@ -988,13 +998,13 @@ export function StudyRoomView({
           </div>
         </div>
 
-        {/* Right: Mở Sáng / Tối, Toàn Màn Hình, Bố Cục & Zen Mode */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        {/* Right: DUY NHẤT 2 NÚT CẦN THIẾT - Sáng/Tối & Toàn Màn Hình */}
+        <div className="flex items-center gap-2">
           {/* Nút Chuyển Đổi Chế Độ Sáng / Tối (☀️ / 🌙) */}
           <button
             type="button"
             onClick={toggleThemeMode}
-            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer border ${
+            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer border ${
               isLight
                 ? 'bg-amber-100 hover:bg-amber-200 border-amber-300 text-amber-700 shadow-xs'
                 : 'bg-white/5 hover:bg-white/10 border-white/10 text-amber-400'
@@ -1008,82 +1018,14 @@ export function StudyRoomView({
           <button
             type="button"
             onClick={toggleFullscreen}
-            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer border ${
+            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer border ${
               isLight
-                ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
+                ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700 shadow-xs'
                 : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
             }`}
             title={isFullscreen ? 'Thu nhỏ cửa sổ' : 'Mở toàn màn hình (Fullscreen)'}
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-          </button>
-
-          {/* Layout Switcher (Grid vs Spotlight) */}
-          <div className={`hidden sm:flex items-center rounded-xl p-0.5 border text-xs ${
-            isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/5 border-white/10'
-          }`}>
-            <button
-              type="button"
-              onClick={() => setTileLayout('grid')}
-              className={`p-1.5 rounded-lg transition cursor-pointer ${
-                tileLayout === 'grid'
-                  ? 'bg-emerald-500 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
-              }`}
-              title="Lưới 3x2 (Grid)"
-            >
-              <LayoutGrid className="w-3.5 h-3.5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setTileLayout('spotlight');
-                setPinnedTileKey('user');
-              }}
-              className={`p-1.5 rounded-lg transition cursor-pointer ${
-                tileLayout === 'spotlight'
-                  ? 'bg-emerald-500 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
-              }`}
-              title="Ghim màn hình chính (Spotlight)"
-            >
-              <Maximize2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* Zen Mode Button */}
-          <button
-            type="button"
-            onClick={() => setZenMode(true)}
-            className={`hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer border ${
-              isLight
-                ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
-                : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
-            }`}
-            title="Ẩn thanh công cụ để tập trung tuyệt đối"
-          >
-            <EyeOff className="w-3.5 h-3.5 text-slate-400" />
-            <span className="hidden lg:inline">Zen Mode</span>
-          </button>
-
-          {/* Streak Badge */}
-          <div className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border ${
-            isLight
-              ? 'bg-amber-50 border-amber-200 text-amber-700'
-              : 'bg-amber-950/40 border-amber-500/30 text-amber-400'
-          }`}>
-            <Flame className="w-3.5 h-3.5 text-amber-500" />
-            <span>{userStreak}N</span>
-          </div>
-
-          {/* Shop Frame Button */}
-          <button
-            type="button"
-            onClick={() => setShowFrameShopModal(true)}
-            className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 hover:opacity-90 text-white flex items-center justify-center transition shadow-xs cursor-pointer"
-            title="Đổi Khung Avatar"
-          >
-            <Sparkles className="w-4 h-4" />
           </button>
         </div>
       </header>
@@ -1968,8 +1910,56 @@ export function StudyRoomView({
           </button>
         </div>
 
-        {/* Right: Drawer Toggles */}
+        {/* Right: Bố cục, Zen Mode & Drawer Toggles */}
         <div className="flex items-center gap-2">
+          {/* Bố cục: Lưới 3x2 vs Ghim Spotlight */}
+          <div className={`hidden sm:flex items-center rounded-xl p-0.5 border text-xs ${
+            isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/5 border-white/10'
+          }`}>
+            <button
+              type="button"
+              onClick={() => setTileLayout('grid')}
+              className={`p-2 rounded-lg transition cursor-pointer ${
+                tileLayout === 'grid'
+                  ? 'bg-emerald-500 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
+              }`}
+              title="Bố cục Lưới (Grid)"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTileLayout('spotlight');
+                setPinnedTileKey('user');
+              }}
+              className={`p-2 rounded-lg transition cursor-pointer ${
+                tileLayout === 'spotlight'
+                  ? 'bg-emerald-500 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
+              }`}
+              title="Ghim màn hình chính (Spotlight)"
+            >
+              <Maximize2 className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Zen Mode Button */}
+          <button
+            type="button"
+            onClick={() => setZenMode(true)}
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition cursor-pointer border ${
+              isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700' : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
+            }`}
+            title="Zen Mode (Ẩn thanh công cụ)"
+          >
+            <EyeOff className="w-4 h-4" />
+          </button>
+
+          {/* Divider */}
+          <div className={`h-5 w-px ${isLight ? 'bg-slate-200' : 'bg-white/10'}`} />
+
           <button
             type="button"
             onClick={() => {
