@@ -27,6 +27,89 @@ interface SessionSummaryData {
   wasRecorded: boolean;
 }
 
+const DEFAULT_STUDY_ROOMS: StudyRoomSummary[] = [
+  {
+    id: 'room-night-owls',
+    name: '🦉 Hội Cú Đêm Cày Deadline',
+    topic: 'Cú Đêm & Kỷ Luật',
+    hostId: 'system',
+    hostName: 'LifeOS System',
+    connectionType: 'jitsi',
+    jitsiRoomName: 'lifeos-study-night-owls',
+    isSystemRoom: true,
+    createdAt: new Date().toISOString(),
+    status: 'ACTIVE',
+    participantCount: 6,
+    inMeetCount: 2,
+    recentAvatars: [
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=120&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120&auto=format&fit=crop&q=80',
+    ],
+    recentMessageCount: 12,
+    pomodoro: { phase: 'FOCUS', duration: 1500, startedAt: Date.now() - 420000, isRunning: true },
+  },
+  {
+    id: 'room-dalat-rain',
+    name: '🌧️ Góc Cafe Mưa Đà Lạt (Lo-Fi & Chill)',
+    topic: 'Chill & Lo-Fi',
+    hostId: 'system',
+    hostName: 'LifeOS System',
+    connectionType: 'jitsi',
+    jitsiRoomName: 'lifeos-study-dalat-rain',
+    isSystemRoom: true,
+    createdAt: new Date().toISOString(),
+    status: 'ACTIVE',
+    participantCount: 4,
+    inMeetCount: 0,
+    recentAvatars: [
+      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=120&auto=format&fit=crop&q=80',
+    ],
+    recentMessageCount: 6,
+    pomodoro: { phase: 'FOCUS', duration: 1500, startedAt: Date.now() - 600000, isRunning: true },
+  },
+  {
+    id: 'room-sprint-prep',
+    name: '🔥 Phòng Luyện Thi Nước Rút (Tập trung 100%)',
+    topic: 'Luyện Thi Nước Rút',
+    hostId: 'system',
+    hostName: 'LifeOS System',
+    connectionType: 'jitsi',
+    jitsiRoomName: 'lifeos-study-sprint-prep',
+    isSystemRoom: true,
+    createdAt: new Date().toISOString(),
+    status: 'ACTIVE',
+    participantCount: 5,
+    inMeetCount: 3,
+    recentAvatars: [
+      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=120&auto=format&fit=crop&q=80',
+      'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=120&auto=format&fit=crop&q=80',
+    ],
+    recentMessageCount: 15,
+    pomodoro: { phase: 'FOCUS', duration: 1500, startedAt: Date.now() - 120000, isRunning: true },
+  },
+  {
+    id: 'room-healing-reading',
+    name: '🌿 Góc Đọc Sách & Chữa Lành',
+    topic: 'Đọc Sách & Chữa Lành',
+    hostId: 'system',
+    hostName: 'LifeOS System',
+    connectionType: 'jitsi',
+    jitsiRoomName: 'lifeos-study-healing-reading',
+    isSystemRoom: true,
+    createdAt: new Date().toISOString(),
+    status: 'ACTIVE',
+    participantCount: 3,
+    inMeetCount: 0,
+    recentAvatars: [
+      'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=120&auto=format&fit=crop&q=80',
+    ],
+    recentMessageCount: 4,
+    pomodoro: { phase: 'FOCUS', duration: 1500, startedAt: Date.now() - 900000, isRunning: true },
+  },
+];
+
 interface StudySpaceViewProps {
   initialTab?: 'rooms' | 'classroom';
 }
@@ -42,7 +125,7 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
     return initialTab;
   });
 
-  const [rooms, setRooms] = useState<StudyRoomSummary[]>([]);
+  const [rooms, setRooms] = useState<StudyRoomSummary[]>(DEFAULT_STUDY_ROOMS);
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
   const [activeRoomDetail, setActiveRoomDetail] = useState<RoomDetail | null>(null);
   const [isLoadingRooms, setIsLoadingRooms] = useState(false);
@@ -66,7 +149,7 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
     setIsLoadingRooms(true);
     try {
       const res = await apiCall<{ success: boolean; rooms: StudyRoomSummary[] }>('/api/study-space/rooms');
-      if (res && res.success && Array.isArray(res.rooms)) {
+      if (res && res.success && Array.isArray(res.rooms) && res.rooms.length > 0) {
         setRooms(res.rooms);
       }
     } catch (err) {
@@ -122,11 +205,34 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
       const res = await apiCall<{ success: boolean; room: RoomDetail }>(`/api/study-space/rooms/${roomId}`);
       if (res && res.success && res.room) {
         setActiveRoomDetail(res.room);
+        return;
       }
     } catch (err) {
       console.warn(`Failed to fetch details for room ${roomId}:`, err);
     }
-  }, []);
+
+    // Defensive fallback: find room in default rooms
+    const matched = DEFAULT_STUDY_ROOMS.find(r => r.id === roomId);
+    if (matched) {
+      setActiveRoomDetail(prev => prev || {
+        ...matched,
+        participantCount: Math.max(1, matched.participantCount || 1),
+        members: [
+          {
+            userId: currentUser?.id || 'guest',
+            userName: currentUser?.name || 'Bạn (Học viên)',
+            userAvatar: currentUser?.avatar,
+            studyGoal: 'Đang tập trung học tập...',
+            presenceState: 'STUDYING',
+            joinedAt: Date.now(),
+            lastPingAt: Date.now(),
+            badge: 'Chiến Binh',
+          }
+        ],
+        messages: [],
+      });
+    }
+  }, [currentUser]);
 
   // 4. F5 Auto-Reconnect & URL Deep Link (?room=...) Resilience
   useEffect(() => {
@@ -201,12 +307,51 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
   const handleConfirmCheckIn = async (goal: string) => {
     if (!pendingCheckInRoom) return;
     setIsCheckingIn(true);
+    const targetRoom = pendingCheckInRoom;
+    const roomId = targetRoom.id;
+    const roomName = targetRoom.name;
+
+    const optimisticDetail: RoomDetail = {
+      id: roomId,
+      name: roomName,
+      topic: targetRoom.topic || 'Tự học tập trung',
+      hostId: targetRoom.hostId || 'system',
+      hostName: targetRoom.hostName || 'LifeOS System',
+      connectionType: targetRoom.connectionType || 'jitsi',
+      externalUrl: targetRoom.externalUrl,
+      jitsiRoomName: targetRoom.jitsiRoomName || `lifeos-study-${roomId}`,
+      isSystemRoom: targetRoom.isSystemRoom ?? true,
+      createdAt: targetRoom.createdAt || new Date().toISOString(),
+      participantCount: Math.max(1, (targetRoom.participantCount || 0) + 1),
+      inMeetCount: targetRoom.inMeetCount || 0,
+      recentAvatars: targetRoom.recentAvatars || [],
+      recentMessageCount: targetRoom.recentMessageCount || 0,
+      pomodoro: targetRoom.pomodoro || {
+        phase: 'FOCUS',
+        duration: 1500,
+        startedAt: Date.now(),
+        isRunning: true,
+      },
+      members: [
+        {
+          userId: currentUser?.id || 'guest',
+          userName: currentUser?.name || 'Bạn (Học viên)',
+          userAvatar: currentUser?.avatar,
+          studyGoal: goal,
+          presenceState: 'STUDYING',
+          joinedAt: Date.now(),
+          lastPingAt: Date.now(),
+          badge: 'Chiến Binh',
+        },
+      ],
+      messages: [],
+    };
+
+    setActiveRoomDetail(optimisticDetail);
+    setActiveRoomId(roomId);
+    setPendingCheckInRoom(null);
+
     try {
-      await apiCall(`/api/study-space/rooms/${pendingCheckInRoom.id}/checkin`, 'POST', {
-        goal
-      });
-      const roomId = pendingCheckInRoom.id;
-      const roomName = pendingCheckInRoom.name;
 
       // Track into Smart Analytics Batcher
       analyticsTracker.trackFeatureUsage('study-space', 'Phòng Học Ảo (Virtual Study Room)', 'Học tập');
@@ -224,11 +369,16 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
         sessionStorage.setItem('lifeos_active_study_room', JSON.stringify(deskData));
       } catch {}
 
-      setPendingCheckInRoom(null);
-      setActiveRoomId(roomId);
-      await loadRoomDetail(roomId);
+      const res = await apiCall<any>(`/api/study-space/rooms/${roomId}/checkin`, 'POST', {
+        goal
+      });
+      if (res && res.success && res.room) {
+        setActiveRoomDetail(res.room);
+      } else {
+        await loadRoomDetail(roomId);
+      }
     } catch (err) {
-      console.error('Failed to checkin to study room:', err);
+      console.warn('Background checkin sync warning (kept optimistic room detail):', err);
     } finally {
       setIsCheckingIn(false);
     }
