@@ -5,14 +5,15 @@ import {
   Copy,
   LayoutGrid,
   Maximize2,
+  Minimize2,
   EyeOff,
   Eye,
   Play,
   Pause,
   RotateCcw,
-  Zap,
+  Sun,
+  Moon,
   Flame,
-  Award,
   Sparkles,
   Pin,
   PinOff,
@@ -31,17 +32,12 @@ import {
   Plus,
   Trash2,
   Send,
-  Volume2,
-  VolumeX,
   Sliders,
   X,
-  ExternalLink,
-  Share2,
-  Coffee,
   Check,
-  CheckCircle2,
-  Wand2,
-  UserPlus
+  UserPlus,
+  ChevronDown,
+  Settings
 } from 'lucide-react';
 import { useAppStore } from '../../lib/store';
 import { apiCall } from '../../lib/apiClient';
@@ -128,24 +124,65 @@ export function StudyRoomView({
   onSyncPomodoro,
   language = 'vi'
 }: StudyRoomViewProps) {
-  const { currentUser } = useAppStore();
+  const { currentUser, tasks = [], addTask, updateTask } = useAppStore();
 
   const myId = currentUserId || currentUser?.id || 'guest';
   const myName = currentUserName || currentUser?.name || 'Bạn';
 
-  // State: Gamification
+  // 1. Chế độ Mở Sáng / Tối (Light Mode / Dark Mode)
+  const [themeMode, setThemeMode] = useState<'dark' | 'light'>(() => {
+    try {
+      const saved = localStorage.getItem('lifeos_study_theme');
+      return (saved === 'light' || saved === 'dark') ? saved : 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
+  const isLight = themeMode === 'light';
+
+  const toggleThemeMode = () => {
+    const next = isLight ? 'dark' : 'light';
+    setThemeMode(next);
+    try {
+      localStorage.setItem('lifeos_study_theme', next);
+    } catch {}
+    toast.info(next === 'light' ? 'Đã bật Chế độ Sáng ☀️' : 'Đã bật Chế độ Tối 🌙');
+  };
+
+  // 2. Chế độ Toàn Màn Hình (Fullscreen)
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(() => {
+    return Boolean(typeof document !== 'undefined' && document.fullscreenElement);
+  });
+
+  const toggleFullscreen = () => {
+    if (typeof document === 'undefined') return;
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen?.().then(() => setIsFullscreen(true)).catch(() => {});
+    } else {
+      document.exitFullscreen?.().then(() => setIsFullscreen(false)).catch(() => {});
+    }
+  };
+
+  useEffect(() => {
+    const handleFsChange = () => {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    };
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
+
+  // Gamification State (Saved in user profile & localStorage)
   const [userXP, setUserXP] = useState<number>(() => {
     try {
       const saved = localStorage.getItem('lifeos_study_user_xp');
-      return saved ? parseInt(saved, 10) : 850;
+      return saved ? parseInt(saved, 10) : (currentUser?.xp || 850);
     } catch {
       return 850;
     }
   });
 
-  const [userStreak] = useState<number>(() => {
-    return currentUser?.streakDays || 14;
-  });
+  const userStreak = currentUser?.streakDays || 14;
 
   const [selectedFrame, setSelectedFrame] = useState<string>(() => {
     try {
@@ -155,7 +192,7 @@ export function StudyRoomView({
     }
   });
 
-  // State: Avatar Filters
+  // Avatar Filters
   const avatarFilters = [
     { name: '🧑‍💻 Filter: Lofi Coder', seed: 'GenZStudentHero' },
     { name: '🐱 Filter: Mèo Béo Cày Đêm', seed: 'FatCatCoder' },
@@ -164,41 +201,20 @@ export function StudyRoomView({
   ];
   const [avatarFilterIndex, setAvatarFilterIndex] = useState(0);
 
-  // State: Vibe
+  // Vibe
   const [userVibe, setUserVibe] = useState<string>('🔥 Đang Focus');
 
-  // State: User Task & Timer
+  // User Task Goal & Timer
   const [userTask, setUserTask] = useState<string>(() => {
     const me = room.members?.find((m) => m.userId === myId);
-    return me?.studyGoal || 'Giải đề IELTS Reading Cam 18';
+    return me?.studyGoal || 'Tập trung học tập & giải đề';
   });
-  const [taskTimerSeconds, setTaskTimerSeconds] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem('lifeos_active_study_desk_v2');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed?.roomId === room.id && parsed?.joinedAt) {
-          return Math.floor((Date.now() - parsed.joinedAt) / 1000);
-        }
-      }
-    } catch {}
-    return 5050;
-  });
+  const [taskTimerSeconds, setTaskTimerSeconds] = useState<number>(0);
 
-  // State: Rule of 3 Tasks
-  const [tasks, setTasks] = useState<Array<{ id: number; text: string; completed: boolean }>>(() => {
-    try {
-      const saved = localStorage.getItem('lifeos_study_rule_of_3');
-      if (saved) return JSON.parse(saved);
-    } catch {}
-    return [
-      { id: 1, text: 'Giải đề IELTS Reading Cam 18', completed: false },
-      { id: 2, text: 'Xem xong Video React Hooks', completed: true }
-    ];
-  });
+  // Rule of 3 Tasks: Connected to REAL tasks from store (Zero Mock)
   const [newTaskInput, setNewTaskInput] = useState('');
 
-  // State: Media & Dock controls
+  // Media & Controls
   const [isMicOn, setIsMicOn] = useState(false);
   const [isWebcamOn, setIsWebcamOn] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
@@ -206,25 +222,26 @@ export function StudyRoomView({
   const [pinnedTileKey, setPinnedTileKey] = useState<string>('user');
   const [zenMode, setZenMode] = useState(false);
 
-  // State: Right Drawer
+  // Right Drawer
   const [isDrawerOpen, setIsDrawerOpen] = useState(true);
   const [activeDrawerTab, setActiveDrawerTab] = useState<'chat' | 'tasks' | 'rank'>('chat');
   const [chatInput, setChatInput] = useState('');
   const [localMessages, setLocalMessages] = useState<Array<{ id: string; author: string; text: string; time: string; isSystem?: boolean }>>([]);
 
-  // State: Modals & Popovers
+  // Modals & Popovers
   const [isSoundPopoverOpen, setIsSoundPopoverOpen] = useState(false);
+  const [isPresetPopoverOpen, setIsPresetPopoverOpen] = useState(false);
   const [showFrameShopModal, setShowFrameShopModal] = useState(false);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
 
-  // State: Realtime clock
+  // Realtime clock
   const [clockDisplay, setClockDisplay] = useState('');
 
-  // State: Floating Emojis & Bursts
+  // Floating Emojis & Bursts
   const [floatingEmojis, setFloatingEmojis] = useState<FloatingEmoji[]>([]);
   const [tileBursts, setTileBursts] = useState<Record<string, string>>({});
 
-  // Refs for Web Media & Audio Context
+  // Media & Audio Refs
   const webcamVideoRef = useRef<HTMLVideoElement>(null);
   const screenShareVideoRef = useRef<HTMLVideoElement>(null);
   const webcamStreamRef = useRef<MediaStream | null>(null);
@@ -258,9 +275,7 @@ export function StudyRoomView({
   const [isPomodoroRunning, setIsPomodoroRunning] = useState(false);
   const [pomodoroPhase, setPomodoroPhase] = useState<'FOCUS' | 'BREAK'>('FOCUS');
 
-  // -------------------------------------------------------------
-  // 1. Clock & Task Stopwatch
-  // -------------------------------------------------------------
+  // Clock & Task Stopwatch
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
@@ -272,18 +287,7 @@ export function StudyRoomView({
     return () => clearInterval(interval);
   }, []);
 
-  // Save tasks and XP to localStorage
-  useEffect(() => {
-    try {
-      localStorage.setItem('lifeos_study_rule_of_3', JSON.stringify(tasks));
-      localStorage.setItem('lifeos_study_user_xp', userXP.toString());
-      localStorage.setItem('lifeos_study_user_frame', selectedFrame);
-    } catch {}
-  }, [tasks, userXP, selectedFrame]);
-
-  // -------------------------------------------------------------
-  // 2. Pomodoro Sync
-  // -------------------------------------------------------------
+  // Pomodoro Sync from Room
   useEffect(() => {
     if (room.pomodoro) {
       const p = room.pomodoro;
@@ -300,7 +304,7 @@ export function StudyRoomView({
     }
   }, [room.pomodoro]);
 
-  // Local Pomodoro Tick
+  // Pomodoro Tick
   useEffect(() => {
     if (!isPomodoroRunning) return;
 
@@ -317,13 +321,29 @@ export function StudyRoomView({
     return () => clearInterval(timer);
   }, [isPomodoroRunning, pomodoroDuration]);
 
-  const handlePomodoroComplete = () => {
+  // When Pomodoro Completes: SAVE REAL FOCUS SESSION IN DB
+  const handlePomodoroComplete = async () => {
     setIsPomodoroRunning(false);
     playCompletionChime();
     triggerConfetti();
     addXP(100);
-    appendLocalChat('Hệ thống 🤖', '🎉 Bạn vừa hoàn thành 1 phiên Pomodoro cùng cả phòng! (+100 XP)', true);
-    toast.success('Xong Pomodoro! 🎉 +100 XP tích lũy vào tài khoản.');
+    appendLocalChat('Hệ thống 🤖', '🎉 Bạn vừa hoàn thành 1 phiên Pomodoro tập trung! (+100 XP)', true);
+    toast.success('Xong Pomodoro! 🎉 +100 XP đã được ghi nhận vào tài khoản.');
+
+    // Save session to database via Prisma & update user study minutes
+    const studyMins = Math.max(1, Math.round(pomodoroDuration / 60));
+    try {
+      recordUserActivity('study', studyMins);
+      await apiCall('/api/data/focusSessions', 'POST', {
+        duration: pomodoroDuration,
+        type: 'FOCUS',
+        completed: true,
+        notes: `Hoàn thành Pomodoro tại phòng ${room.name}`,
+        timestamp: new Date().toISOString()
+      });
+    } catch (e) {
+      console.warn('Could not sync focus session to backend:', e);
+    }
   };
 
   const togglePomoTimer = () => {
@@ -348,12 +368,11 @@ export function StudyRoomView({
     const secs = Math.round(mins * 60);
     setPomodoroDuration(secs);
     setPomodoroLeft(secs);
-    toast.info(`Đã đổi thời gian Pomodoro: ${mins < 1 ? Math.round(mins * 60) + ' giây' : mins + ' phút'}`);
+    setIsPresetPopoverOpen(false);
+    toast.info(`Đã đặt thời gian: ${mins < 1 ? Math.round(mins * 60) + ' giây' : mins + ' phút'}`);
   };
 
-  // -------------------------------------------------------------
-  // 3. Web Audio API Synthesizers
-  // -------------------------------------------------------------
+  // Web Audio API Synthesizers
   const initAudioContext = () => {
     if (!audioCtxRef.current) {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -371,19 +390,16 @@ export function StudyRoomView({
     const ctx = audioCtxRef.current;
     if (!ctx) return;
 
-    const s = synthNodes.current[type];
     const currentActive = synthStates[type].active;
     const vol = synthStates[type].vol;
 
     if (currentActive) {
-      // Stop synth
       stopSoundSynth(type);
       setSynthStates((prev) => ({
         ...prev,
         [type]: { ...prev[type], active: false }
       }));
     } else {
-      // Start synth
       startSoundSynth(type, vol);
       setSynthStates((prev) => ({
         ...prev,
@@ -512,9 +528,7 @@ export function StudyRoomView({
     const s = synthNodes.current[type];
     s.active = false;
     if (s.node) {
-      try {
-        (s.node as any).stop();
-      } catch {}
+      try { (s.node as any).stop(); } catch {}
       s.node = null;
     }
     if (s.timer) {
@@ -541,7 +555,7 @@ export function StudyRoomView({
     osc.stop(ctx.currentTime + 0.8);
   };
 
-  // Cleanup media & audio on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       ['rain', 'keyboard', 'cafe', 'lofi'].forEach((k) => stopSoundSynth(k as any));
@@ -552,16 +566,12 @@ export function StudyRoomView({
         screenStreamRef.current.getTracks().forEach((t) => t.stop());
       }
       if (audioCtxRef.current) {
-        try {
-          audioCtxRef.current.close();
-        } catch {}
+        try { audioCtxRef.current.close(); } catch {}
       }
     };
   }, []);
 
-  // -------------------------------------------------------------
-  // 4. Webcam & Screen Share Controls
-  // -------------------------------------------------------------
+  // Webcam & Screen Share
   const toggleDockCam = async () => {
     if (!isWebcamOn) {
       try {
@@ -571,9 +581,9 @@ export function StudyRoomView({
           webcamVideoRef.current.srcObject = stream;
         }
         setIsWebcamOn(true);
-        toast.success('Đã bật Webcam trực tiếp!');
+        toast.success('Đã bật Webcam!');
       } catch {
-        toast.info('Không thể bật camera thực tế. Đang hiển thị Avatar Gen Z.');
+        toast.info('Không thể mở camera. Đang hiển thị Avatar cá nhân.');
       }
     } else {
       if (webcamStreamRef.current) {
@@ -607,7 +617,7 @@ export function StudyRoomView({
         setIsScreenSharing(true);
         setTileLayout('spotlight');
         setPinnedTileKey('user');
-        toast.success('Đã chia sẻ màn hình & chuyển sang chế độ Ghim Spotlight!');
+        toast.success('Đang chia sẻ màn hình & chuyển sang chế độ Ghim Spotlight!');
 
         stream.getVideoTracks()[0].onended = () => {
           stopScreenShare();
@@ -641,9 +651,7 @@ export function StudyRoomView({
     });
   };
 
-  // -------------------------------------------------------------
-  // 5. Floating Reactions & Tile Fire Cheering
-  // -------------------------------------------------------------
+  // Floating Reactions
   const shootFloatingEmoji = (emoji: string) => {
     const newEmoji: FloatingEmoji = {
       id: Math.random().toString(),
@@ -673,7 +681,7 @@ export function StudyRoomView({
     try {
       await apiCall(`/api/study-space/rooms/${room.id}/cheer`, 'POST', {
         cheerType: 'fire',
-        cheerText: `Tiếp lửa trực tiếp cho ${targetName} 🔥`
+        cheerText: `Tiếp lửa cho ${targetName} 🔥`
       });
     } catch {}
   };
@@ -684,9 +692,9 @@ export function StudyRoomView({
     appendLocalChat('Hệ thống 🤖', `${myName} vừa giơ tay phát biểu ✋`, true);
   };
 
-  // -------------------------------------------------------------
-  // 6. User Tasks (Rule of 3)
-  // -------------------------------------------------------------
+  // Rule of 3 Tasks (REAL TASKS FROM DATABASE VIA STORE)
+  const roomTasks = tasks.slice(0, 3);
+
   const editUserTask = () => {
     const updated = window.prompt('Cập nhật mục tiêu học tập đang hiển thị trên Video:', userTask);
     if (updated && updated.trim()) {
@@ -697,48 +705,49 @@ export function StudyRoomView({
     }
   };
 
-  const addRuleOfThreeTask = () => {
+  const handleAddRealTask = async () => {
     const val = newTaskInput.trim();
     if (!val) return;
-    if (tasks.length >= 3) {
-      toast.info('Rule of 3: Chỉ nên đặt tối đa 3 nhiệm vụ để duy trì tập trung cao độ!');
-      return;
+    try {
+      await addTask({
+        title: val,
+        status: 'Chưa làm',
+        priority: 'Khẩn cấp',
+        dueDate: new Date().toISOString().split('T')[0]
+      });
+      setNewTaskInput('');
+      toast.success('Đã lưu nhiệm vụ vào hệ thống Database!');
+    } catch (e) {
+      toast.error('Không thể tạo nhiệm vụ');
     }
-    setTasks((prev) => [...prev, { id: Date.now(), text: val, completed: false }]);
-    setNewTaskInput('');
-    toast.success('Đã thêm mục tiêu mới!');
   };
 
-  const toggleRuleOfThreeTask = (id: number) => {
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id === id) {
-          const next = !t.completed;
-          if (next) {
-            addXP(50);
-            triggerConfetti();
-            setUserTask(t.text);
-            onUpdateGoal(t.text);
-            toast.success(`Mục tiêu xong! 🎉 +50 XP: "${t.text}"`);
-          }
-          return { ...t, completed: next };
-        }
-        return t;
-      })
-    );
-  };
-
-  const deleteRuleOfThreeTask = (id: number) => {
-    setTasks((prev) => prev.filter((t) => t.id !== id));
+  const handleToggleRealTask = async (taskItem: any) => {
+    const isCompleted = taskItem.status === 'Hoàn thành' || taskItem.status === 'Done';
+    const nextStatus = isCompleted ? 'Chưa làm' : 'Hoàn thành';
+    try {
+      await updateTask(taskItem.id, { status: nextStatus });
+      if (!isCompleted) {
+        addXP(50);
+        triggerConfetti();
+        setUserTask(taskItem.title);
+        onUpdateGoal(taskItem.title);
+        toast.success(`Hoàn thành mục tiêu! 🎉 +50 XP: "${taskItem.title}"`);
+      }
+    } catch (e) {
+      toast.error('Lỗi cập nhật nhiệm vụ');
+    }
   };
 
   const addXP = (amount: number) => {
-    setUserXP((prev) => prev + amount);
+    setUserXP((prev) => {
+      const next = prev + amount;
+      try { localStorage.setItem('lifeos_study_user_xp', next.toString()); } catch {}
+      return next;
+    });
   };
 
-  // -------------------------------------------------------------
-  // 7. Chat System
-  // -------------------------------------------------------------
+  // Chat
   const appendLocalChat = (author: string, text: string, isSystem = false) => {
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     setLocalMessages((prev) => [...prev, { id: Math.random().toString(), author, text, time, isSystem }]);
@@ -774,28 +783,22 @@ export function StudyRoomView({
     chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [localMessages.length, room.messages?.length]);
 
-  // -------------------------------------------------------------
-  // 8. Sharing Room Link
-  // -------------------------------------------------------------
   const copyRoomLink = () => {
     const origin = typeof window !== 'undefined' ? window.location.origin : 'https://lifeos.vn';
     const link = `${origin}/?view=study-space&room=${encodeURIComponent(room.id)}`;
     try {
       navigator.clipboard.writeText(link);
       triggerConfetti();
-      toast.success('Đã chép link phòng học vào khay nhớ tạm!');
+      toast.success('Đã sao chép liên kết phòng học!');
     } catch {
       toast.info(`Link phòng: ${link}`);
     }
   };
 
-  // -------------------------------------------------------------
-  // 9. Real Peer Desks Setup (ZERO MOCK DATA)
-  // -------------------------------------------------------------
+  // Real Peer Desks (ZERO MOCK DATA)
   const otherMembers = (room.members || []).filter((m) => m.userId !== myId);
   const remainingDesksCount = Math.max(0, 5 - otherMembers.length);
 
-  // Time formatters
   const formatTimerClock = (totalSecs: number) => {
     const mins = Math.floor(totalSecs / 60);
     const secs = totalSecs % 60;
@@ -809,45 +812,52 @@ export function StudyRoomView({
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Calculate Pomodoro ring strokeDashoffset (circumference = 62.8)
   const ringProgress = pomodoroLeft / pomodoroDuration;
   const strokeDashoffset = 62.8 * (1 - ringProgress);
 
-  // Frame equip
   const equipFrame = (frameClass: string) => {
     setSelectedFrame(frameClass);
+    try { localStorage.setItem('lifeos_study_user_frame', frameClass); } catch {}
     toast.success('Đã trang bị khung Avatar mới!');
   };
 
-  // Leave room execution
   const executeLeave = () => {
     if (taskTimerSeconds >= 60) {
       try {
         recordUserActivity('study', Math.round(taskTimerSeconds / 60));
       } catch {}
     }
+    // Exit browser fullscreen on leave if active
+    if (typeof document !== 'undefined' && document.fullscreenElement) {
+      document.exitFullscreen?.().catch(() => {});
+    }
     onLeaveRoom();
   };
 
   return (
-    <div className="fixed inset-0 z-[100] w-screen h-screen overflow-hidden flex flex-col bg-[#090b10] text-slate-100 select-none font-sans">
+    <div
+      className={`fixed inset-0 z-[999] w-screen h-screen overflow-hidden flex flex-col select-none font-sans transition-colors duration-300 ${
+        isLight ? 'bg-[#F8FAFC] text-slate-900' : 'bg-[#090b10] text-slate-100'
+      }`}
+    >
       {/* ========================================================= */}
-      {/* 1. TOP GOOGLE MEET HUD BAR (h-14)                         */}
+      {/* 1. TOP HUD BAR: TỐI GIẢN - TINH TẾ - HIỆN ĐẠI (h-14)       */}
       {/* ========================================================= */}
       <header
-        className={`h-14 px-4 flex items-center justify-between border-b border-white/10 bg-[#090b10]/95 backdrop-blur-md z-30 shrink-0 transition-all duration-300 ${
-          zenMode ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
-        }`}
+        className={`h-14 px-3 sm:px-4 flex items-center justify-between border-b backdrop-blur-xl z-30 shrink-0 transition-all duration-300 ${
+          isLight ? 'bg-white/90 border-slate-200/90 shadow-xs' : 'bg-[#090b10]/95 border-white/10'
+        } ${zenMode ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}`}
       >
-        {/* Left: Brand & Room Code & View Switcher */}
-        <div className="flex items-center gap-3">
-          {/* Logo */}
+        {/* Left: Brand & Room Code */}
+        <div className="flex items-center gap-2.5">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-600 to-emerald-400 flex items-center justify-center shadow-md shadow-emerald-500/20">
               <GraduationCap className="w-4 h-4 text-slate-950 font-black" />
             </div>
-            <span className="font-extrabold text-lg tracking-tight text-white flex items-center gap-1">
-              MeetStudy<span className="text-emerald-400">.vn</span>
+            <span className={`font-extrabold text-base tracking-tight hidden sm:flex items-center gap-1 ${
+              isLight ? 'text-slate-900' : 'text-white'
+            }`}>
+              MeetStudy<span className="text-emerald-500">.vn</span>
               <span className="relative flex h-2 w-2 ml-1">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
@@ -855,75 +865,38 @@ export function StudyRoomView({
             </span>
           </div>
 
-          <div className="h-5 w-px bg-white/10 hidden sm:block" />
-
           {/* Room Code Badge */}
           <button
             onClick={copyRoomLink}
             type="button"
-            className="hidden sm:flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-2.5 py-1 rounded-lg text-xs font-mono text-slate-300 transition cursor-pointer"
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-mono transition cursor-pointer border ${
+              isLight
+                ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
+                : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10'
+            }`}
             title="Sao chép link phòng"
           >
-            <Lock className="w-3 h-3 text-emerald-400" />
-            <span>#{room.id.slice(0, 12)}</span>
+            <Lock className="w-3 h-3 text-emerald-500" />
+            <span className="max-w-[90px] sm:max-w-none truncate">#{room.id.slice(0, 8)}</span>
             <Copy className="w-3 h-3 text-slate-400" />
-          </button>
-
-          {/* Layout View Mode Switcher */}
-          <div className="flex items-center bg-white/5 border border-white/10 rounded-lg p-0.5 text-xs">
-            <button
-              type="button"
-              onClick={() => setTileLayout('grid')}
-              className={`px-2.5 py-1 rounded-md transition flex items-center gap-1.5 cursor-pointer font-bold ${
-                tileLayout === 'grid'
-                  ? 'bg-emerald-500/20 text-emerald-400 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <LayoutGrid className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Grid (3x2)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setTileLayout('spotlight');
-                setPinnedTileKey('user');
-              }}
-              className={`px-2.5 py-1 rounded-md transition flex items-center gap-1.5 cursor-pointer font-bold ${
-                tileLayout === 'spotlight'
-                  ? 'bg-emerald-500/20 text-emerald-400 shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              <Maximize2 className="w-3.5 h-3.5" />
-              <span className="hidden md:inline">Ghim Màn Hình</span>
-            </button>
-          </div>
-
-          {/* Zen Mode Toggle */}
-          <button
-            type="button"
-            onClick={() => setZenMode(true)}
-            className="hidden xl:flex items-center gap-1.5 bg-white/5 hover:bg-white/10 border border-white/10 px-2.5 py-1 rounded-lg text-xs text-slate-300 transition cursor-pointer"
-            title="Ẩn HUD để tập trung tuyệt đối"
-          >
-            <EyeOff className="w-3.5 h-3.5 text-slate-400" />
-            <span>Zen Mode</span>
           </button>
         </div>
 
-        {/* Center: Synchronized Group Pomodoro Timer Pill */}
-        <div className="flex items-center gap-2 bg-[#11151f]/90 border border-white/10 px-3 py-1 rounded-full shadow-lg">
+        {/* Center: Minimalist Pomodoro Focus Pill */}
+        <div className={`flex items-center gap-2 px-3 py-1 rounded-full shadow-md border ${
+          isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#11151f]/95 border-white/10 text-white'
+        }`}>
+          {/* Circular Countdown Ring */}
           <div className="relative w-6 h-6 flex items-center justify-center">
             <svg className="w-6 h-6 transform -rotate-90">
-              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" className="text-slate-800" fill="transparent" />
+              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2.5" className={isLight ? 'text-slate-200' : 'text-slate-800'} fill="transparent" />
               <circle
                 cx="12"
                 cy="12"
                 r="10"
                 stroke="currentColor"
                 strokeWidth="2.5"
-                className="text-emerald-400 transition-all duration-1000 ease-linear"
+                className="text-emerald-500 transition-all duration-1000 ease-linear"
                 fill="transparent"
                 strokeDasharray="62.8"
                 strokeDashoffset={strokeDashoffset}
@@ -932,22 +905,26 @@ export function StudyRoomView({
             </svg>
           </div>
 
-          {/* Clock Display */}
-          <span className="font-mono font-bold text-sm text-white tracking-wider">
+          {/* Time Clock */}
+          <span className="font-mono font-bold text-sm tracking-wider">
             {formatTimerClock(pomodoroLeft)}
           </span>
 
-          {/* Phase Tag */}
-          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/60 uppercase">
-            {pomodoroPhase === 'FOCUS' ? '🔥 DEEP FOCUS' : '☕ NGHỈ NGƠI'}
+          {/* Phase Badge */}
+          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border ${
+            pomodoroPhase === 'FOCUS'
+              ? 'bg-emerald-50 dark:bg-emerald-950 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800/60'
+              : 'bg-amber-50 dark:bg-amber-950 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800/60'
+          }`}>
+            {pomodoroPhase === 'FOCUS' ? '🔥 Focus' : '☕ Nghỉ'}
           </span>
 
-          {/* Controls */}
-          <div className="flex items-center gap-1 ml-1 border-l border-white/10 pl-2">
+          {/* Controls: Play & Reset */}
+          <div className={`flex items-center gap-1 border-l pl-2 ${isLight ? 'border-slate-200' : 'border-white/10'}`}>
             <button
               type="button"
               onClick={togglePomoTimer}
-              className="text-slate-300 hover:text-emerald-400 text-xs px-1.5 py-0.5 transition cursor-pointer"
+              className="text-emerald-600 dark:text-emerald-400 hover:scale-110 p-1 transition cursor-pointer"
               title={isPomodoroRunning ? 'Tạm dừng' : 'Bắt đầu'}
             >
               {isPomodoroRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
@@ -955,95 +932,178 @@ export function StudyRoomView({
             <button
               type="button"
               onClick={resetPomoTimer}
-              className="text-slate-400 hover:text-white text-xs px-1.5 py-0.5 transition cursor-pointer"
+              className="text-slate-400 hover:text-slate-600 dark:hover:text-white p-1 transition cursor-pointer"
               title="Đặt lại"
             >
               <RotateCcw className="w-3 h-3" />
             </button>
           </div>
 
-          {/* Quick Presets */}
-          <div className="hidden lg:flex items-center gap-1 border-l border-white/10 pl-2 text-[10px]">
+          {/* Preset Popover Menu (Tối giản 1 nút bấm mở chọn 25m/50m/5s) */}
+          <div className="relative">
             <button
               type="button"
-              onClick={() => setTimerPreset(25)}
-              className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 transition cursor-pointer"
+              onClick={() => setIsPresetPopoverOpen((prev) => !prev)}
+              className={`flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-md transition cursor-pointer border ${
+                isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700' : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
+              }`}
+              title="Cài đặt thời gian"
             >
-              25m
+              <span>{Math.round(pomodoroDuration / 60)}m</span>
+              <ChevronDown className="w-3 h-3 opacity-60" />
             </button>
-            <button
-              type="button"
-              onClick={() => setTimerPreset(50)}
-              className="px-1.5 py-0.5 rounded bg-white/5 hover:bg-white/10 text-slate-300 transition cursor-pointer"
-            >
-              50m
-            </button>
-            <button
-              type="button"
-              onClick={() => setTimerPreset(0.083)}
-              className="px-1.5 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-700/50 font-bold transition cursor-pointer"
-              title="Chạy thử 5 giây"
-            >
-              ⚡ Test 5s
-            </button>
-          </div>
 
-          <span className="text-[10px] text-slate-400 hidden xl:inline ml-1 font-medium">
-            {otherMembers.length > 0 ? `Đang học cùng ${otherMembers.length} bạn` : 'Bạn đang tập trung 1 mình'}
-          </span>
+            {isPresetPopoverOpen && (
+              <div className={`absolute top-8 left-1/2 -translate-x-1/2 w-32 p-1.5 rounded-xl shadow-2xl border z-50 flex flex-col gap-1 text-xs animate-in fade-in zoom-in-95 duration-150 ${
+                isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-slate-900 border-white/15 text-white'
+              }`}>
+                <button
+                  type="button"
+                  onClick={() => setTimerPreset(25)}
+                  className={`w-full py-1.5 px-2.5 rounded-lg text-left font-medium transition cursor-pointer ${
+                    isLight ? 'hover:bg-slate-100' : 'hover:bg-white/10'
+                  }`}
+                >
+                  ⚡ 25 phút (Chuẩn)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimerPreset(50)}
+                  className={`w-full py-1.5 px-2.5 rounded-lg text-left font-medium transition cursor-pointer ${
+                    isLight ? 'hover:bg-slate-100' : 'hover:bg-white/10'
+                  }`}
+                >
+                  🔥 50 phút (Sâu)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTimerPreset(0.083)}
+                  className="w-full py-1.5 px-2.5 rounded-lg text-left font-bold text-emerald-500 hover:bg-emerald-500/10 transition cursor-pointer"
+                >
+                  🚀 Test nhanh 5s
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Right: Gamification Stats & Frame Shop */}
-        <div className="flex items-center gap-3">
-          {/* Streak Badge */}
-          <div className="flex items-center gap-1.5 bg-gradient-to-r from-amber-950/60 to-[#11151f] border border-amber-500/40 px-2.5 py-1 rounded-xl text-xs font-bold text-amber-400 shadow-sm">
-            <Flame className="w-3.5 h-3.5 text-amber-500 animate-pulse" />
-            <span>🔥 <strong className="text-white">{userStreak}</strong> Ngày</span>
+        {/* Right: Mở Sáng / Tối, Toàn Màn Hình, Bố Cục & Zen Mode */}
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Nút Chuyển Đổi Chế Độ Sáng / Tối (☀️ / 🌙) */}
+          <button
+            type="button"
+            onClick={toggleThemeMode}
+            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer border ${
+              isLight
+                ? 'bg-amber-100 hover:bg-amber-200 border-amber-300 text-amber-700 shadow-xs'
+                : 'bg-white/5 hover:bg-white/10 border-white/10 text-amber-400'
+            }`}
+            title={isLight ? 'Chuyển sang Chế độ Tối (Dark Mode)' : 'Chuyển sang Chế độ Sáng (Light Mode)'}
+          >
+            {isLight ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+          </button>
+
+          {/* Nút Toàn Màn Hình (Fullscreen) */}
+          <button
+            type="button"
+            onClick={toggleFullscreen}
+            className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all cursor-pointer border ${
+              isLight
+                ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
+                : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
+            }`}
+            title={isFullscreen ? 'Thu nhỏ cửa sổ' : 'Mở toàn màn hình (Fullscreen)'}
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </button>
+
+          {/* Layout Switcher (Grid vs Spotlight) */}
+          <div className={`hidden sm:flex items-center rounded-xl p-0.5 border text-xs ${
+            isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/5 border-white/10'
+          }`}>
+            <button
+              type="button"
+              onClick={() => setTileLayout('grid')}
+              className={`p-1.5 rounded-lg transition cursor-pointer ${
+                tileLayout === 'grid'
+                  ? 'bg-emerald-500 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
+              }`}
+              title="Lưới 3x2 (Grid)"
+            >
+              <LayoutGrid className="w-3.5 h-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTileLayout('spotlight');
+                setPinnedTileKey('user');
+              }}
+              className={`p-1.5 rounded-lg transition cursor-pointer ${
+                tileLayout === 'spotlight'
+                  ? 'bg-emerald-500 text-white shadow-xs'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
+              }`}
+              title="Ghim màn hình chính (Spotlight)"
+            >
+              <Maximize2 className="w-3.5 h-3.5" />
+            </button>
           </div>
 
-          {/* Level & XP Bar */}
-          <div className="hidden md:flex flex-col gap-0.5 bg-white/5 border border-white/10 px-3 py-1 rounded-xl min-w-[150px]">
-            <div className="flex justify-between items-center text-[10px]">
-              <span className="font-bold text-emerald-400">Lv.08 Học Bá</span>
-              <span className="text-slate-400 font-mono">{userXP}/1000 XP</span>
-            </div>
-            <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-              <div
-                className="bg-gradient-to-r from-emerald-500 to-teal-400 h-1.5 rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(100, Math.floor((userXP / 1000) * 100))}%` }}
-              />
-            </div>
+          {/* Zen Mode Button */}
+          <button
+            type="button"
+            onClick={() => setZenMode(true)}
+            className={`hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer border ${
+              isLight
+                ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
+                : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
+            }`}
+            title="Ẩn thanh công cụ để tập trung tuyệt đối"
+          >
+            <EyeOff className="w-3.5 h-3.5 text-slate-400" />
+            <span className="hidden lg:inline">Zen Mode</span>
+          </button>
+
+          {/* Streak Badge */}
+          <div className={`flex items-center gap-1 px-2.5 py-1 rounded-xl text-xs font-bold border ${
+            isLight
+              ? 'bg-amber-50 border-amber-200 text-amber-700'
+              : 'bg-amber-950/40 border-amber-500/30 text-amber-400'
+          }`}>
+            <Flame className="w-3.5 h-3.5 text-amber-500" />
+            <span>{userStreak}N</span>
           </div>
 
           {/* Shop Frame Button */}
           <button
             type="button"
             onClick={() => setShowFrameShopModal(true)}
-            className="flex items-center gap-1.5 bg-gradient-to-r from-purple-900/40 to-slate-900 hover:from-purple-800/60 border border-purple-500/40 text-purple-300 text-xs font-semibold px-2.5 py-1.5 rounded-xl transition shadow cursor-pointer"
+            className="w-8 h-8 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 hover:opacity-90 text-white flex items-center justify-center transition shadow-xs cursor-pointer"
+            title="Đổi Khung Avatar"
           >
-            <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-            <span className="hidden lg:inline">Đổi Khung Avatar</span>
+            <Sparkles className="w-4 h-4" />
           </button>
         </div>
       </header>
 
-      {/* Zen Mode Exit Floating Pill (Visible only when in Zen Mode) */}
+      {/* Zen Mode Exit Floating Pill */}
       {zenMode && (
         <button
           type="button"
           onClick={() => setZenMode(false)}
-          className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-slate-900/90 text-white px-3.5 py-2 rounded-full border border-white/20 shadow-2xl hover:scale-105 transition-all text-xs font-bold cursor-pointer"
+          className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-slate-900/90 text-white px-4 py-2 rounded-full border border-white/20 shadow-2xl hover:scale-105 transition-all text-xs font-bold cursor-pointer"
         >
           <Eye className="w-4 h-4 text-emerald-400" />
-          <span>Hiện thanh công cụ (Thoát Zen)</span>
+          <span>Thoát Zen Mode</span>
         </button>
       )}
 
       {/* ========================================================= */}
-      {/* 2. MIDDLE MAIN STAGE (flex-1 flex overflow-hidden)        */}
+      {/* 2. MIDDLE MAIN STAGE: BÀN HỌC & VIDEO TILES (flex-1)       */}
       {/* ========================================================= */}
       <main className="flex-1 flex overflow-hidden p-3 gap-3 relative">
-        {/* Floating Emoji Reactions Overlay */}
+        {/* Floating Reactions Overlay */}
         <div className="absolute inset-0 pointer-events-none z-50 overflow-hidden">
           {floatingEmojis.map((e) => (
             <div
@@ -1059,24 +1119,28 @@ export function StudyRoomView({
         {/* Video Stage Area */}
         <div className="flex-1 h-full transition-all duration-300 overflow-hidden relative flex flex-col justify-center">
           {tileLayout === 'grid' ? (
-            /* ================= GRID 3x2 MODE ================= */
+            /* ================= GRID 3x2 ================= */
             <div className="w-full h-full grid grid-cols-1 md:grid-cols-3 grid-rows-2 gap-3 max-h-full">
-              {/* TILE 1: USER ("BẠN (YOU)") */}
-              <div className="bg-[#131824]/90 backdrop-blur-md rounded-2xl border-2 border-emerald-500/60 relative overflow-hidden flex flex-col justify-between p-3 group shadow-xl">
-                {/* Top Left: Live Goal & Task Timer Pill */}
+              {/* TILE 1: USER ("BẠN") */}
+              <div className={`rounded-2xl border-2 relative overflow-hidden flex flex-col justify-between p-3 group shadow-lg transition-all ${
+                isLight ? 'bg-white border-emerald-500/80 shadow-slate-200' : 'bg-[#131824]/90 border-emerald-500/60'
+              }`}>
+                {/* Goal Tag */}
                 <div
                   onClick={editUserTask}
-                  className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 bg-slate-950/80 backdrop-blur-md border border-white/10 px-2.5 py-1 rounded-xl text-xs max-w-[85%] cursor-pointer hover:border-emerald-500 transition"
+                  className={`absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 backdrop-blur-md border px-2.5 py-1 rounded-xl text-xs max-w-[85%] cursor-pointer hover:border-emerald-500 transition ${
+                    isLight ? 'bg-white/90 border-slate-200 text-slate-800' : 'bg-slate-950/80 border-white/10 text-slate-200'
+                  }`}
                   title="Click để đổi mục tiêu trực tiếp"
                 >
-                  <span className="text-emerald-400 font-bold">🎯</span>
-                  <span className="truncate text-slate-200 font-medium">{userTask}</span>
-                  <span className="font-mono text-[10px] text-emerald-400 bg-emerald-950/80 px-1.5 py-0.5 rounded border border-emerald-800/60 ml-1">
+                  <span className="text-emerald-500 font-bold">🎯</span>
+                  <span className="truncate font-medium">{userTask}</span>
+                  <span className="font-mono text-[10px] text-emerald-500 bg-emerald-50 dark:bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800/60 ml-1">
                     {formatTaskTimer(taskTimerSeconds)}
                   </span>
                 </div>
 
-                {/* Top Right: Actions */}
+                {/* Top Right Actions */}
                 <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1 opacity-90 group-hover:opacity-100">
                   <button
                     type="button"
@@ -1084,16 +1148,19 @@ export function StudyRoomView({
                       setTileLayout('spotlight');
                       setPinnedTileKey('user');
                     }}
-                    className="bg-slate-900/80 hover:bg-slate-800 text-slate-300 p-1.5 rounded-lg border border-white/10 text-xs cursor-pointer"
+                    className={`p-1.5 rounded-lg border text-xs cursor-pointer ${
+                      isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200' : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-white/10'
+                    }`}
                     title="Ghim màn hình này"
                   >
                     <Pin className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
-                {/* Center Tile Content: Webcam OR ScreenShare OR Gen Z Avatar */}
-                <div className="w-full h-full flex items-center justify-center relative rounded-xl overflow-hidden bg-[#0d111a]">
-                  {/* Real Webcam Element */}
+                {/* Center Content: Webcam OR Screen Share OR Avatar */}
+                <div className={`w-full h-full flex items-center justify-center relative rounded-xl overflow-hidden ${
+                  isLight ? 'bg-slate-100' : 'bg-[#0d111a]'
+                }`}>
                   <video
                     ref={webcamVideoRef}
                     autoPlay
@@ -1101,8 +1168,6 @@ export function StudyRoomView({
                     muted
                     className={`w-full h-full object-cover transform -scale-x-100 ${isWebcamOn ? 'block' : 'hidden'}`}
                   />
-
-                  {/* Real Screen Share Element */}
                   <video
                     ref={screenShareVideoRef}
                     autoPlay
@@ -1111,10 +1176,8 @@ export function StudyRoomView({
                     className={`w-full h-full object-cover ${isScreenSharing ? 'block' : 'hidden'}`}
                   />
 
-                  {/* Virtual Gen Z Avatar Filter Box */}
                   {!isWebcamOn && !isScreenSharing && (
-                    <div className="flex flex-col items-center justify-center text-center p-3 animate-pulse">
-                      {/* Avatar Frame Overlay Container */}
+                    <div className="flex flex-col items-center justify-center text-center p-3">
                       <div className={`w-20 h-20 md:w-24 md:h-24 rounded-full p-1 relative transition-all duration-300 ${
                         selectedFrame === 'frame-emerald'
                           ? 'shadow-[0_0_0_3px_#10b981,0_0_15px_rgba(16,185,129,0.4)]'
@@ -1129,19 +1192,20 @@ export function StudyRoomView({
                           alt="User Avatar"
                           className="w-full h-full rounded-full bg-slate-900 object-cover"
                         />
-                        <span className={`absolute bottom-0 right-0 w-6 h-6 border border-white/20 rounded-full flex items-center justify-center text-[10px] ${
-                          isMicOn ? 'bg-emerald-500 text-slate-950 font-bold' : 'bg-slate-900 text-red-400'
+                        <span className={`absolute bottom-0 right-0 w-6 h-6 border rounded-full flex items-center justify-center text-[10px] ${
+                          isMicOn
+                            ? 'bg-emerald-500 text-white border-white'
+                            : 'bg-slate-900 text-red-400 border-white/20'
                         }`}>
                           {isMicOn ? <Mic className="w-3 h-3" /> : <MicOff className="w-3 h-3" />}
                         </span>
                       </div>
-                      <span className="mt-2 text-xs font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-2.5 py-0.5 rounded-full">
+                      <span className="mt-2 text-xs font-semibold text-emerald-500 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-full">
                         {avatarFilters[avatarFilterIndex].name}
                       </span>
                     </div>
                   )}
 
-                  {/* Tile Burst Container */}
                   {tileBursts['user'] && (
                     <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-5xl animate-bounce">
                       {tileBursts['user']}
@@ -1149,37 +1213,41 @@ export function StudyRoomView({
                   )}
                 </div>
 
-                {/* Bottom Overlay: Name & Level & Vibe Tag */}
+                {/* Bottom Overlay: User Name & Vibe */}
                 <div className="absolute bottom-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between pointer-events-none">
-                  <div className="flex items-center gap-1.5 bg-slate-950/80 backdrop-blur-md border border-white/10 px-2 py-0.5 rounded-lg text-xs">
-                    <span className="font-bold text-white">{myName}</span>
-                    <span className="text-[10px] text-emerald-400 font-mono font-bold bg-emerald-950/80 px-1 rounded">Lv.8</span>
-                    <span className="text-[10px] text-amber-400 font-semibold border-l border-white/10 pl-1.5">{userVibe}</span>
+                  <div className={`flex items-center gap-1.5 backdrop-blur-md border px-2 py-0.5 rounded-lg text-xs ${
+                    isLight ? 'bg-white/90 border-slate-200 text-slate-800' : 'bg-slate-950/80 border-white/10 text-white'
+                  }`}>
+                    <span className="font-bold">{myName}</span>
+                    <span className="text-[10px] text-emerald-500 font-mono font-bold bg-emerald-50 dark:bg-emerald-950/80 px-1 rounded">Lv.8</span>
+                    <span className="text-[10px] text-amber-500 font-semibold border-l border-slate-300 dark:border-white/10 pl-1.5">{userVibe}</span>
                   </div>
-                  <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/90 border border-emerald-700/60 px-2 py-0.5 rounded-md flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" /> LIVE
+                  <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-950/90 border border-emerald-300 dark:border-emerald-700/60 px-2 py-0.5 rounded-md flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" /> LIVE
                   </span>
                 </div>
               </div>
 
-              {/* PEER TILES (REAL MEMBERS) */}
-              {otherMembers.slice(0, 5).map((member, idx) => (
+              {/* PEER TILES (REAL CONNECTED MEMBERS) */}
+              {otherMembers.slice(0, 5).map((member) => (
                 <div
                   key={member.userId}
-                  className="bg-[#131824]/90 backdrop-blur-md rounded-2xl border border-white/10 relative overflow-hidden flex flex-col justify-between p-3 group hover:border-slate-600 transition-all shadow-xl"
+                  className={`rounded-2xl border relative overflow-hidden flex flex-col justify-between p-3 group shadow-md transition-all ${
+                    isLight ? 'bg-white border-slate-200' : 'bg-[#131824]/90 border-white/10'
+                  }`}
                 >
-                  {/* Top Left: Goal */}
-                  <div className="absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 bg-slate-950/80 backdrop-blur-md border border-white/10 px-2.5 py-1 rounded-xl text-xs max-w-[85%]">
-                    <span className="text-cyan-400 font-bold">🎯</span>
-                    <span className="truncate text-slate-200 font-medium">{member.studyGoal || 'Đang cày cuốc chăm chỉ...'}</span>
+                  <div className={`absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 backdrop-blur-md border px-2.5 py-1 rounded-xl text-xs max-w-[85%] ${
+                    isLight ? 'bg-white/90 border-slate-200 text-slate-800' : 'bg-slate-950/80 border-white/10 text-slate-200'
+                  }`}>
+                    <span className="text-cyan-500 font-bold">🎯</span>
+                    <span className="truncate font-medium">{member.studyGoal || 'Đang tập trung học...'}</span>
                   </div>
 
-                  {/* Top Right: Fire Cheer Button & Pin */}
                   <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1 opacity-90 group-hover:opacity-100">
                     <button
                       type="button"
                       onClick={() => sendTileFire(member.userName, `peer-${member.userId}`)}
-                      className="bg-amber-500/20 hover:bg-amber-500/40 text-amber-300 p-1.5 rounded-lg border border-amber-500/40 text-xs transition cursor-pointer"
+                      className="bg-amber-500/20 hover:bg-amber-500/40 text-amber-500 p-1.5 rounded-lg border border-amber-500/40 text-xs transition cursor-pointer"
                       title="Tiếp lửa trực tiếp"
                     >
                       🔥
@@ -1190,15 +1258,18 @@ export function StudyRoomView({
                         setTileLayout('spotlight');
                         setPinnedTileKey(member.userId);
                       }}
-                      className="bg-slate-900/80 hover:bg-slate-800 text-slate-300 p-1.5 rounded-lg border border-white/10 text-xs cursor-pointer"
+                      className={`p-1.5 rounded-lg border text-xs cursor-pointer ${
+                        isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200' : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-white/10'
+                      }`}
                       title="Ghim màn hình này"
                     >
                       <Pin className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
-                  {/* Center: Avatar */}
-                  <div className="w-full h-full flex items-center justify-center relative rounded-xl overflow-hidden bg-[#0d111a]">
+                  <div className={`w-full h-full flex items-center justify-center relative rounded-xl overflow-hidden ${
+                    isLight ? 'bg-slate-100' : 'bg-[#0d111a]'
+                  }`}>
                     <div className="flex flex-col items-center justify-center text-center p-3">
                       <div className="w-20 h-20 md:w-24 md:h-24 rounded-full p-1 relative shadow-[0_0_0_3px_#a855f7,0_0_20px_rgba(168,85,247,0.6)]">
                         <img
@@ -1218,36 +1289,43 @@ export function StudyRoomView({
                     )}
                   </div>
 
-                  {/* Bottom: Name & Vibe */}
                   <div className="absolute bottom-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between pointer-events-none">
-                    <div className="flex items-center gap-1.5 bg-slate-950/80 backdrop-blur-md border border-white/10 px-2 py-0.5 rounded-lg text-xs">
-                      <span className="font-bold text-slate-100">{member.userName}</span>
-                      <span className="text-[10px] text-purple-400 font-mono font-bold bg-purple-950/80 px-1 rounded">Lv.{member.level || 10}</span>
-                      <span className="text-[10px] text-cyan-300 font-semibold border-l border-white/10 pl-1.5">{member.vibe || '🔥 Tập trung'}</span>
+                    <div className={`flex items-center gap-1.5 backdrop-blur-md border px-2 py-0.5 rounded-lg text-xs ${
+                      isLight ? 'bg-white/90 border-slate-200 text-slate-800' : 'bg-slate-950/80 border-white/10 text-slate-100'
+                    }`}>
+                      <span className="font-bold">{member.userName}</span>
+                      <span className="text-[10px] text-purple-500 font-mono font-bold bg-purple-50 dark:bg-purple-950/80 px-1 rounded">Lv.{member.level || 10}</span>
+                      <span className="text-[10px] text-cyan-600 dark:text-cyan-300 font-semibold border-l border-slate-200 dark:border-white/10 pl-1.5">{member.vibe || '🔥 Tập trung'}</span>
                     </div>
                   </div>
                 </div>
               ))}
 
-              {/* REMAINING EMPTY STUDY DESKS (CLEAN - ZERO MOCK DATA) */}
+              {/* CLEAN WAITING DESKS (ZERO MOCK BOTS) */}
               {Array.from({ length: remainingDesksCount }).map((_, index) => (
                 <div
                   key={`empty-desk-${index}`}
-                  className="bg-[#11151f]/50 border border-dashed border-white/10 rounded-2xl relative overflow-hidden flex flex-col items-center justify-center p-4 text-center group hover:border-emerald-500/40 hover:bg-[#11151f]/80 transition-all"
+                  className={`border border-dashed rounded-2xl relative overflow-hidden flex flex-col items-center justify-center p-4 text-center group transition-all ${
+                    isLight
+                      ? 'bg-white/50 border-slate-300 hover:border-emerald-500 hover:bg-white/80'
+                      : 'bg-[#11151f]/50 border-white/10 hover:border-emerald-500/40 hover:bg-[#11151f]/80'
+                  }`}
                 >
-                  <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mb-2 group-hover:scale-105 transition-transform">
-                    <UserPlus className="w-7 h-7 text-slate-500 group-hover:text-emerald-400 transition-colors" />
+                  <div className={`w-14 h-14 rounded-full border flex items-center justify-center mb-2 group-hover:scale-105 transition-transform ${
+                    isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/5 border-white/10'
+                  }`}>
+                    <UserPlus className="w-6 h-6 text-slate-400 group-hover:text-emerald-500 transition-colors" />
                   </div>
-                  <h4 className="text-xs font-bold text-slate-400 group-hover:text-slate-200 transition-colors">
+                  <h4 className="text-xs font-bold text-slate-500 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">
                     Bàn chờ bạn học #{otherMembers.length + index + 2}
                   </h4>
-                  <p className="text-[10px] text-slate-500 mt-0.5 max-w-[180px]">
+                  <p className="text-[10px] text-slate-400 mt-0.5 max-w-[180px]">
                     Sẵn sàng chào đón đồng đội mới vào cùng học
                   </p>
                   <button
                     type="button"
                     onClick={copyRoomLink}
-                    className="mt-3 px-3 py-1 rounded-xl bg-white/5 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-400 border border-white/10 hover:border-emerald-500/40 text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer"
+                    className="mt-3 px-3 py-1 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer"
                   >
                     <Copy className="w-3 h-3" />
                     <span>+ Mời bạn học cùng</span>
@@ -1256,12 +1334,14 @@ export function StudyRoomView({
               ))}
             </div>
           ) : (
-            /* ================= SPOTLIGHT / PINNED MODE ================= */
+            /* ================= SPOTLIGHT PINNED ================= */
             <div className="w-full h-full flex gap-3">
-              {/* Pinned Large Tile (75% Width) */}
-              <div className="flex-1 h-full bg-[#131824]/95 rounded-2xl border-2 border-emerald-500/80 relative overflow-hidden flex flex-col justify-between p-4 shadow-2xl">
-                {/* Large Video Area */}
-                <div className="w-full h-full flex items-center justify-center relative rounded-xl overflow-hidden bg-[#0d111a]">
+              <div className={`flex-1 h-full rounded-2xl border-2 relative overflow-hidden flex flex-col justify-between p-4 shadow-2xl ${
+                isLight ? 'bg-white border-emerald-500 shadow-slate-200' : 'bg-[#131824]/95 border-emerald-500/80'
+              }`}>
+                <div className={`w-full h-full flex items-center justify-center relative rounded-xl overflow-hidden ${
+                  isLight ? 'bg-slate-100' : 'bg-[#0d111a]'
+                }`}>
                   {pinnedTileKey === 'user' ? (
                     <>
                       <video
@@ -1280,20 +1360,19 @@ export function StudyRoomView({
                       />
                       {!isWebcamOn && !isScreenSharing && (
                         <div className="flex flex-col items-center justify-center text-center p-6">
-                          <div className={`w-32 h-32 rounded-full p-2 relative shadow-[0_0_0_3px_#10b981,0_0_20px_rgba(16,185,129,0.5)]`}>
+                          <div className="w-32 h-32 rounded-full p-2 relative shadow-[0_0_0_3px_#10b981,0_0_20px_rgba(16,185,129,0.5)]">
                             <img
                               src={currentUserAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${avatarFilters[avatarFilterIndex].seed}`}
                               alt="Pinned User"
                               className="w-full h-full rounded-full bg-slate-900 object-cover"
                             />
                           </div>
-                          <h3 className="text-base font-bold text-white mt-3">{myName}</h3>
-                          <span className="text-xs text-emerald-400 mt-1">{userTask}</span>
+                          <h3 className={`text-base font-bold mt-3 ${isLight ? 'text-slate-900' : 'text-white'}`}>{myName}</h3>
+                          <span className="text-xs text-emerald-500 mt-1">{userTask}</span>
                         </div>
                       )}
                     </>
                   ) : (
-                    /* Pinned Peer */
                     (() => {
                       const peer = otherMembers.find((m) => m.userId === pinnedTileKey);
                       return peer ? (
@@ -1305,30 +1384,33 @@ export function StudyRoomView({
                               className="w-full h-full rounded-full bg-slate-900 object-cover"
                             />
                           </div>
-                          <h3 className="text-base font-bold text-white mt-3">{peer.userName}</h3>
-                          <span className="text-xs text-cyan-400 mt-1">{peer.studyGoal || 'Đang tập trung học...'}</span>
+                          <h3 className={`text-base font-bold mt-3 ${isLight ? 'text-slate-900' : 'text-white'}`}>{peer.userName}</h3>
+                          <span className="text-xs text-cyan-500 mt-1">{peer.studyGoal || 'Đang tập trung học...'}</span>
                         </div>
                       ) : null;
                     })()
                   )}
                 </div>
 
-                {/* Unpin Floating Button */}
                 <button
                   type="button"
                   onClick={() => setTileLayout('grid')}
-                  className="absolute top-4 right-4 z-30 bg-slate-900/90 hover:bg-slate-800 border border-white/20 text-slate-200 px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-lg cursor-pointer font-bold"
+                  className={`absolute top-4 right-4 z-30 border px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-lg cursor-pointer font-bold ${
+                    isLight ? 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300' : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-white/20'
+                  }`}
                 >
                   <PinOff className="w-3.5 h-3.5" /> Bỏ ghim (Trở về Grid)
                 </button>
               </div>
 
-              {/* Vertical Filmstrip Sidebar for Other Desks (25% Width) */}
+              {/* Vertical Filmstrip */}
               <div className="w-64 h-full flex flex-col gap-2 overflow-y-auto pr-1">
                 {pinnedTileKey !== 'user' && (
                   <div
                     onClick={() => setPinnedTileKey('user')}
-                    className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition flex items-center gap-2"
+                    className={`p-2.5 rounded-xl border cursor-pointer transition flex items-center gap-2 ${
+                      isLight ? 'bg-white hover:bg-slate-100 border-slate-200' : 'bg-white/5 hover:bg-white/10 border-white/10'
+                    }`}
                   >
                     <div className="w-10 h-10 rounded-full bg-slate-800 overflow-hidden shrink-0">
                       <img
@@ -1338,8 +1420,8 @@ export function StudyRoomView({
                       />
                     </div>
                     <div className="min-w-0">
-                      <h5 className="text-xs font-bold text-white truncate">{myName} (Bạn)</h5>
-                      <p className="text-[10px] text-emerald-400 truncate">{userTask}</p>
+                      <h5 className={`text-xs font-bold truncate ${isLight ? 'text-slate-900' : 'text-white'}`}>{myName} (Bạn)</h5>
+                      <p className="text-[10px] text-emerald-500 truncate">{userTask}</p>
                     </div>
                   </div>
                 )}
@@ -1349,7 +1431,9 @@ export function StudyRoomView({
                     <div
                       key={`filmstrip-${m.userId}`}
                       onClick={() => setPinnedTileKey(m.userId)}
-                      className="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 cursor-pointer transition flex items-center gap-2"
+                      className={`p-2.5 rounded-xl border cursor-pointer transition flex items-center gap-2 ${
+                        isLight ? 'bg-white hover:bg-slate-100 border-slate-200' : 'bg-white/5 hover:bg-white/10 border-white/10'
+                      }`}
                     >
                       <div className="w-10 h-10 rounded-full bg-slate-800 overflow-hidden shrink-0">
                         <img
@@ -1359,7 +1443,7 @@ export function StudyRoomView({
                         />
                       </div>
                       <div className="min-w-0">
-                        <h5 className="text-xs font-bold text-slate-200 truncate">{m.userName}</h5>
+                        <h5 className={`text-xs font-bold truncate ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>{m.userName}</h5>
                         <p className="text-[10px] text-slate-400 truncate">{m.studyGoal || 'Đang học tập'}</p>
                       </div>
                     </div>
@@ -1371,19 +1455,21 @@ export function StudyRoomView({
         </div>
 
         {/* ========================================================= */}
-        {/* 3. RIGHT COLLAPSIBLE GOOGLE MEET DRAWER (w-80 md:w-85)    */}
+        {/* 3. RIGHT DRAWER: CHAT, REAL TASKS, LEADERBOARD            */}
         {/* ========================================================= */}
         {isDrawerOpen && (
-          <aside className="w-80 md:w-85 h-full bg-[#11151f] border border-white/10 rounded-2xl flex flex-col overflow-hidden transition-all duration-300 z-20 shrink-0">
-            {/* Drawer Header Tabs */}
-            <div className="flex border-b border-white/10 bg-[#0d111a] p-1 gap-1">
+          <aside className={`w-80 md:w-85 h-full border rounded-2xl flex flex-col overflow-hidden transition-all duration-300 z-20 shrink-0 shadow-xl ${
+            isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#11151f] border-white/10 text-white'
+          }`}>
+            {/* Header Tabs */}
+            <div className={`flex border-b p-1 gap-1 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#0d111a] border-white/10'}`}>
               <button
                 type="button"
                 onClick={() => setActiveDrawerTab('chat')}
                 className={`flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeDrawerTab === 'chat'
-                    ? 'text-emerald-400 bg-white/10'
-                    : 'text-slate-400 hover:text-white'
+                    ? (isLight ? 'text-emerald-700 bg-white shadow-xs' : 'text-emerald-400 bg-white/10')
+                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
                 }`}
               >
                 <MessageSquare className="w-3.5 h-3.5" /> Chat
@@ -1393,8 +1479,8 @@ export function StudyRoomView({
                 onClick={() => setActiveDrawerTab('tasks')}
                 className={`flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeDrawerTab === 'tasks'
-                    ? 'text-emerald-400 bg-white/10'
-                    : 'text-slate-400 hover:text-white'
+                    ? (isLight ? 'text-emerald-700 bg-white shadow-xs' : 'text-emerald-400 bg-white/10')
+                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
                 }`}
               >
                 <CheckSquare className="w-3.5 h-3.5" /> Mục tiêu
@@ -1404,100 +1490,83 @@ export function StudyRoomView({
                 onClick={() => setActiveDrawerTab('rank')}
                 className={`flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer ${
                   activeDrawerTab === 'rank'
-                    ? 'text-emerald-400 bg-white/10'
-                    : 'text-slate-400 hover:text-white'
+                    ? (isLight ? 'text-emerald-700 bg-white shadow-xs' : 'text-emerald-400 bg-white/10')
+                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
                 }`}
               >
                 <Trophy className="w-3.5 h-3.5" /> BXH
               </button>
             </div>
 
-            {/* TAB 1: LIVE CHAT & SLANG CHIPS */}
+            {/* TAB 1: LIVE CHAT */}
             {activeDrawerTab === 'chat' && (
               <div className="flex-1 flex flex-col justify-between p-3 overflow-hidden">
-                {/* Quick Slang Chips Bar */}
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-2 border-b border-white/10">
-                  <button
-                    type="button"
-                    onClick={() => handleQuickChip('Cố lên ae 🔥')}
-                    className="whitespace-nowrap px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] text-slate-300 transition cursor-pointer"
-                  >
-                    Cố lên ae 🔥
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickChip('Đỉnh nóc 🚀')}
-                    className="whitespace-nowrap px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] text-slate-300 transition cursor-pointer"
-                  >
-                    Đỉnh nóc 🚀
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickChip('Cứu nét 😭')}
-                    className="whitespace-nowrap px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] text-slate-300 transition cursor-pointer"
-                  >
-                    Cứu nét 😭
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleQuickChip('Uống nước ☕')}
-                    className="whitespace-nowrap px-2.5 py-1 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-[11px] text-slate-300 transition cursor-pointer"
-                  >
-                    Uống nước ☕
-                  </button>
+                <div className={`flex items-center gap-1.5 overflow-x-auto pb-2 border-b ${
+                  isLight ? 'border-slate-200' : 'border-white/10'
+                }`}>
+                  {['Cố lên ae 🔥', 'Đỉnh nóc 🚀', 'Cứu nét 😭', 'Uống nước ☕'].map((chip) => (
+                    <button
+                      key={chip}
+                      type="button"
+                      onClick={() => handleQuickChip(chip)}
+                      className={`whitespace-nowrap px-2.5 py-1 rounded-full text-[11px] transition cursor-pointer border ${
+                        isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200' : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10'
+                      }`}
+                    >
+                      {chip}
+                    </button>
+                  ))}
                 </div>
 
-                {/* Chat Stream */}
                 <div className="flex-1 overflow-y-auto my-2 space-y-3 pr-1 text-xs">
-                  {/* Real Server Messages */}
                   {(room.messages || []).map((msg) => (
                     <div key={msg.id} className="flex flex-col gap-0.5">
                       <div className="flex items-center gap-1.5">
-                        <span className="font-bold text-purple-400">{msg.userName}</span>
-                        <span className="text-[9px] text-slate-500">
+                        <span className="font-bold text-purple-500">{msg.userName}</span>
+                        <span className="text-[9px] text-slate-400">
                           {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </div>
-                      <p className="bg-white/5 text-slate-200 p-2.5 rounded-2xl rounded-tl-none border border-white/5 inline-block max-w-[90%]">
-                        {msg.text}
-                      </p>
-                    </div>
-                  ))}
-
-                  {/* Local Messages */}
-                  {localMessages.map((msg) => (
-                    <div key={msg.id} className="flex flex-col gap-0.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className={msg.isSystem ? 'text-amber-400 font-bold' : 'text-emerald-400 font-bold'}>
-                          {msg.author}
-                        </span>
-                        <span className="text-[9px] text-slate-500">{msg.time}</span>
-                      </div>
                       <p className={`p-2.5 rounded-2xl rounded-tl-none border inline-block max-w-[90%] ${
-                        msg.isSystem
-                          ? 'bg-amber-950/40 border-amber-500/30 text-amber-200'
-                          : 'bg-white/5 text-slate-200 border-white/5'
+                        isLight ? 'bg-slate-100 text-slate-800 border-slate-200' : 'bg-white/5 text-slate-200 border-white/5'
                       }`}>
                         {msg.text}
                       </p>
                     </div>
                   ))}
 
-                  <div className="bg-emerald-950/50 border border-emerald-800/50 p-2.5 rounded-xl text-emerald-300 text-[11px] text-center font-medium">
-                    💡 Mẹo: Nhấn nút ⚡ Test 5s trên thanh HUD để trải nghiệm nhận thưởng +100 XP!
-                  </div>
+                  {localMessages.map((msg) => (
+                    <div key={msg.id} className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-1.5">
+                        <span className={msg.isSystem ? 'text-amber-500 font-bold' : 'text-emerald-500 font-bold'}>
+                          {msg.author}
+                        </span>
+                        <span className="text-[9px] text-slate-400">{msg.time}</span>
+                      </div>
+                      <p className={`p-2.5 rounded-2xl rounded-tl-none border inline-block max-w-[90%] ${
+                        msg.isSystem
+                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-300'
+                          : (isLight ? 'bg-slate-100 text-slate-800 border-slate-200' : 'bg-white/5 text-slate-200 border-white/5')
+                      }`}>
+                        {msg.text}
+                      </p>
+                    </div>
+                  ))}
 
                   <div ref={chatMessagesEndRef} />
                 </div>
 
-                {/* Send Form */}
-                <form onSubmit={handleSendChatForm} className="flex items-center gap-2 pt-2 border-t border-white/10">
+                <form onSubmit={handleSendChatForm} className={`flex items-center gap-2 pt-2 border-t ${
+                  isLight ? 'border-slate-200' : 'border-white/10'
+                }`}>
                   <input
                     type="text"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     placeholder="Gửi tin nhắn năng lượng..."
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 placeholder:text-slate-500"
+                    className={`flex-1 border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 ${
+                      isLight ? 'bg-slate-100 border-slate-200 text-slate-900 placeholder:text-slate-400' : 'bg-white/5 border-white/10 text-white placeholder:text-slate-500'
+                    }`}
                   />
                   <button
                     type="submit"
@@ -1509,13 +1578,15 @@ export function StudyRoomView({
               </div>
             )}
 
-            {/* TAB 2: ACTIVE TASKS (RULE OF 3) */}
+            {/* TAB 2: REAL TASKS (RULE OF 3 FROM DB) */}
             {activeDrawerTab === 'tasks' && (
               <div className="flex-1 flex flex-col p-3 overflow-hidden">
-                <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-3">
-                  <span className="text-xs font-bold text-slate-200">CHỜ HOÀN THÀNH (RULE OF 3)</span>
-                  <span className="text-[10px] font-mono text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-800">
-                    {tasks.filter((t) => t.completed).length}/{tasks.length} xong
+                <div className={`flex items-center justify-between border-b pb-2 mb-3 ${
+                  isLight ? 'border-slate-200' : 'border-white/10'
+                }`}>
+                  <span className="text-xs font-bold">MỤC TIÊU HỌC TẬP (RULE OF 3)</span>
+                  <span className="text-[10px] font-mono text-emerald-500 bg-emerald-50 dark:bg-emerald-950 px-2 py-0.5 rounded border border-emerald-300 dark:border-emerald-800">
+                    {roomTasks.filter((t) => t.status === 'Hoàn thành' || t.status === 'Done').length}/{roomTasks.length} xong
                   </span>
                 </div>
 
@@ -1525,142 +1596,111 @@ export function StudyRoomView({
                     value={newTaskInput}
                     onChange={(e) => setNewTaskInput(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter') addRuleOfThreeTask();
+                      if (e.key === 'Enter') handleAddRealTask();
                     }}
-                    placeholder="VD: Đọc 20 trang sách..."
-                    className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-emerald-500 placeholder:text-slate-500"
+                    placeholder="Thêm việc cần làm hôm nay..."
+                    className={`flex-1 border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 ${
+                      isLight ? 'bg-slate-100 border-slate-200 text-slate-900 placeholder:text-slate-400' : 'bg-white/5 border-white/10 text-white placeholder:text-slate-500'
+                    }`}
                   />
                   <button
                     type="button"
-                    onClick={addRuleOfThreeTask}
-                    className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 font-bold px-3 py-2 rounded-xl text-xs border border-emerald-500/40 cursor-pointer"
+                    onClick={handleAddRealTask}
+                    className="bg-emerald-500 text-slate-950 font-bold px-3 py-2 rounded-xl text-xs hover:bg-emerald-400 cursor-pointer"
                   >
                     <Plus className="w-3.5 h-3.5" />
                   </button>
                 </div>
 
                 <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-                  {tasks.map((t) => (
-                    <div
-                      key={t.id}
-                      className={`flex items-center justify-between p-2.5 rounded-xl border text-xs transition ${
-                        t.completed
-                          ? 'bg-emerald-950/30 border-emerald-800/40 text-slate-400 line-through'
-                          : 'bg-white/5 border-white/10 text-slate-200'
-                      }`}
-                    >
-                      <div
-                        onClick={() => toggleRuleOfThreeTask(t.id)}
-                        className="flex items-center gap-2 flex-1 cursor-pointer"
-                      >
-                        <div
-                          className={`w-4 h-4 rounded border flex items-center justify-center ${
-                            t.completed
-                              ? 'bg-emerald-500 border-emerald-500 text-slate-950 font-bold text-[10px]'
-                              : 'border-slate-600'
-                          }`}
-                        >
-                          {t.completed && <Check className="w-3 h-3" />}
-                        </div>
-                        <span className="truncate">{t.text}</span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => deleteRuleOfThreeTask(t.id)}
-                        className="text-slate-500 hover:text-red-400 text-xs px-1 cursor-pointer"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </button>
+                  {roomTasks.length === 0 ? (
+                    <div className="p-4 text-center text-xs text-slate-400">
+                      Chưa có mục tiêu nào hôm nay. Hãy thêm mục tiêu ở trên để tập trung tối đa!
                     </div>
-                  ))}
+                  ) : (
+                    roomTasks.map((t) => {
+                      const isDone = t.status === 'Hoàn thành' || t.status === 'Done';
+                      return (
+                        <div
+                          key={t.id}
+                          className={`flex items-center justify-between p-2.5 rounded-xl border text-xs transition cursor-pointer ${
+                            isDone
+                              ? (isLight ? 'bg-emerald-50/80 border-emerald-200 text-slate-400 line-through' : 'bg-emerald-950/30 border-emerald-800/40 text-slate-400 line-through')
+                              : (isLight ? 'bg-slate-50 border-slate-200 hover:bg-slate-100' : 'bg-white/5 border-white/10 hover:bg-white/10')
+                          }`}
+                          onClick={() => handleToggleRealTask(t)}
+                        >
+                          <div className="flex items-center gap-2 flex-1">
+                            <div className={`w-4 h-4 rounded border flex items-center justify-center ${
+                              isDone ? 'bg-emerald-500 border-emerald-500 text-white text-[10px]' : 'border-slate-400'
+                            }`}>
+                              {isDone && <Check className="w-3 h-3" />}
+                            </div>
+                            <span className="truncate">{t.title}</span>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </div>
             )}
 
-            {/* TAB 3: LEADERBOARD & VIBE FRAME SHOP */}
+            {/* TAB 3: LEADERBOARD & FRAME CUSTOMIZER */}
             {activeDrawerTab === 'rank' && (
               <div className="flex-1 flex flex-col p-3 overflow-y-auto space-y-4">
-                {/* Room Leaderboard */}
                 <div>
-                  <h4 className="text-xs font-bold text-slate-200 mb-2 flex items-center gap-1.5">
-                    <Trophy className="w-3.5 h-3.5 text-amber-400" /> BẢNG XẾP HẠNG PHÒNG HỌC
+                  <h4 className="text-xs font-bold mb-2 flex items-center gap-1.5">
+                    <Trophy className="w-3.5 h-3.5 text-amber-500" /> BẢNG XẾP HẠNG PHÒNG HỌC
                   </h4>
                   <div className="space-y-1.5 text-xs">
-                    <div className="flex items-center justify-between p-2 rounded-xl bg-emerald-950/60 border border-emerald-500/40 font-bold">
-                      <span className="text-emerald-400">1. {myName} (Bạn)</span>
-                      <span className="font-mono text-emerald-400">{userXP} XP</span>
+                    <div className={`flex items-center justify-between p-2.5 rounded-xl border font-bold ${
+                      isLight ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-emerald-950/60 border-emerald-500/40 text-emerald-400'
+                    }`}>
+                      <span>1. {myName} (Bạn)</span>
+                      <span className="font-mono">{userXP} XP</span>
                     </div>
                     {otherMembers.map((m, idx) => (
-                      <div key={m.userId} className="flex items-center justify-between p-2 rounded-xl bg-white/5 border border-white/5">
-                        <span className="font-bold text-slate-200">{idx + 2}. {m.userName}</span>
+                      <div
+                        key={m.userId}
+                        className={`flex items-center justify-between p-2.5 rounded-xl border ${
+                          isLight ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/5'
+                        }`}
+                      >
+                        <span className="font-bold">{idx + 2}. {m.userName}</span>
                         <span className="font-mono text-slate-400">{3000 - idx * 250} XP</span>
                       </div>
                     ))}
                   </div>
                 </div>
 
-                {/* Frame Customizer Mini Panel */}
-                <div className="border-t border-white/10 pt-3">
-                  <h4 className="text-xs font-bold text-slate-200 mb-2 flex items-center gap-1.5">
-                    <Wand2 className="w-3.5 h-3.5 text-purple-400" /> NÂNG CẤP KHUNG AVATAR
+                <div className={`border-t pt-3 ${isLight ? 'border-slate-200' : 'border-white/10'}`}>
+                  <h4 className="text-xs font-bold mb-2 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-purple-500" /> KHUNG VIỀN AVATAR
                   </h4>
                   <div className="grid grid-cols-2 gap-2 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => equipFrame('frame-emerald')}
-                      className={`p-2 rounded-xl text-left transition cursor-pointer border ${
-                        selectedFrame === 'frame-emerald'
-                          ? 'bg-emerald-950/50 border-emerald-500'
-                          : 'bg-white/5 border-white/10 hover:border-emerald-500/50'
-                      }`}
-                    >
-                      <span className="font-bold text-emerald-400 block">Khung Lục Bảo</span>
-                      <span className="text-[10px] text-slate-400">
-                        {selectedFrame === 'frame-emerald' ? 'Đã trang bị' : 'Chọn dùng'}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => equipFrame('frame-neon')}
-                      className={`p-2 rounded-xl text-left transition cursor-pointer border ${
-                        selectedFrame === 'frame-neon'
-                          ? 'bg-purple-950/50 border-purple-500'
-                          : 'bg-white/5 border-white/10 hover:border-purple-500/50'
-                      }`}
-                    >
-                      <span className="font-bold text-purple-400 block">Neon Cực Quang</span>
-                      <span className="text-[10px] text-slate-400">
-                        {selectedFrame === 'frame-neon' ? 'Đã trang bị' : 'Chọn dùng'}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => equipFrame('frame-gold')}
-                      className={`p-2 rounded-xl text-left transition cursor-pointer border ${
-                        selectedFrame === 'frame-gold'
-                          ? 'bg-amber-950/50 border-amber-500'
-                          : 'bg-white/5 border-white/10 hover:border-amber-500/50'
-                      }`}
-                    >
-                      <span className="font-bold text-amber-400 block">Học Bá Hoàng Gia</span>
-                      <span className="text-[10px] text-slate-400">
-                        {selectedFrame === 'frame-gold' ? 'Đã trang bị' : 'Chọn dùng'}
-                      </span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => equipFrame('frame-cyber')}
-                      className={`p-2 rounded-xl text-left transition cursor-pointer border ${
-                        selectedFrame === 'frame-cyber'
-                          ? 'bg-cyan-950/50 border-cyan-500'
-                          : 'bg-white/5 border-white/10 hover:border-cyan-500/50'
-                      }`}
-                    >
-                      <span className="font-bold text-cyan-400 block">Cyberpunk 2077</span>
-                      <span className="text-[10px] text-slate-400">
-                        {selectedFrame === 'frame-cyber' ? 'Đã trang bị' : 'Chọn dùng'}
-                      </span>
-                    </button>
+                    {[
+                      { key: 'frame-emerald', name: 'Lục Bảo Focus', color: 'border-emerald-500 text-emerald-500' },
+                      { key: 'frame-neon', name: 'Neon Cực Quang', color: 'border-purple-500 text-purple-500' },
+                      { key: 'frame-gold', name: 'Hoàng Gia Gold', color: 'border-amber-500 text-amber-500' },
+                      { key: 'frame-cyber', name: 'Cyberpunk 2077', color: 'border-cyan-500 text-cyan-500' }
+                    ].map((f) => (
+                      <button
+                        key={f.key}
+                        type="button"
+                        onClick={() => equipFrame(f.key)}
+                        className={`p-2 rounded-xl text-left transition cursor-pointer border ${
+                          selectedFrame === f.key
+                            ? `${f.color} ${isLight ? 'bg-slate-100 font-bold' : 'bg-white/10 font-bold'}`
+                            : (isLight ? 'bg-slate-50 border-slate-200 hover:border-slate-400' : 'bg-white/5 border-white/10 hover:border-white/20')
+                        }`}
+                      >
+                        <span className="block font-bold truncate">{f.name}</span>
+                        <span className="text-[10px] text-slate-400">
+                          {selectedFrame === f.key ? 'Đã trang bị' : 'Chọn dùng'}
+                        </span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -1670,109 +1710,112 @@ export function StudyRoomView({
       </main>
 
       {/* ========================================================= */}
-      {/* 4. BOTTOM GOOGLE MEET CONTROL DOCK (h-18)                 */}
+      {/* 4. BOTTOM CONTROL DOCK (h-18)                             */}
       {/* ========================================================= */}
       <footer
-        className={`h-18 px-4 md:px-6 flex items-center justify-between bg-[#090b10] border-t border-white/10 z-30 shrink-0 transition-all duration-300 ${
-          zenMode ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'
-        }`}
+        className={`h-18 px-4 md:px-6 flex items-center justify-between border-t z-30 shrink-0 transition-all duration-300 ${
+          isLight ? 'bg-white/95 border-slate-200/90 shadow-lg' : 'bg-[#090b10] border-white/10'
+        } ${zenMode ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}`}
       >
-        {/* Left: Time & Quick Vibe Status Switcher */}
+        {/* Left: Clock & Quick Vibe */}
         <div className="hidden sm:flex items-center gap-3">
-          <span className="font-mono text-sm font-bold text-slate-300">{clockDisplay}</span>
-          <div className="h-4 w-px bg-white/10" />
+          <span className="font-mono text-sm font-bold opacity-75">{clockDisplay}</span>
+          <div className={`h-4 w-px ${isLight ? 'bg-slate-200' : 'bg-white/10'}`} />
           <select
             value={userVibe}
             onChange={(e) => {
               setUserVibe(e.target.value);
               toast.info(`Trạng thái: ${e.target.value}`);
             }}
-            className="bg-white/5 border border-white/10 text-slate-200 text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 cursor-pointer"
+            className={`border text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 cursor-pointer ${
+              isLight ? 'bg-slate-100 border-slate-200 text-slate-800' : 'bg-white/5 border-white/10 text-slate-200'
+            }`}
           >
-            <option value="🔥 Đang Focus" className="bg-slate-900 text-white">🔥 Đang Focus</option>
-            <option value="☕ Giải lao 5p" className="bg-slate-900 text-white">☕ Giải lao 5p</option>
-            <option value="🎧 Nghe nhạc Lofi" className="bg-slate-900 text-white">🎧 Nghe nhạc Lofi</option>
-            <option value="🤫 Im lặng tuyệt đối" className="bg-slate-900 text-white">🤫 Im lặng tuyệt đối</option>
-            <option value="🆘 Cứu nét bài tập" className="bg-slate-900 text-white">🆘 Cứu nét bài tập</option>
+            <option value="🔥 Đang Focus">🔥 Đang Focus</option>
+            <option value="☕ Giải lao 5p">☕ Giải lao 5p</option>
+            <option value="🎧 Nghe nhạc Lofi">🎧 Nghe nhạc Lofi</option>
+            <option value="🤫 Im lặng tuyệt đối">🤫 Im lặng tuyệt đối</option>
+            <option value="🆘 Cứu nét bài tập">🆘 Cứu nét bài tập</option>
           </select>
         </div>
 
-        {/* Center: Main Google Meet Buttons */}
+        {/* Center: Main Meet Buttons */}
         <div className="flex items-center gap-2 md:gap-3 mx-auto sm:mx-0">
-          {/* Mic Button */}
           <button
             type="button"
             onClick={toggleDockMic}
             className={`w-11 h-11 rounded-full flex items-center justify-center transition shadow cursor-pointer border ${
               isMicOn
-                ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 border-emerald-400'
-                : 'bg-red-500/20 hover:bg-red-500/30 border-red-500/50 text-red-400'
+                ? 'bg-emerald-500 hover:bg-emerald-400 text-white border-emerald-400'
+                : 'bg-red-500/20 hover:bg-red-500/30 border-red-500/50 text-red-500'
             }`}
             title="Bật/Tắt Micro"
           >
             {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
           </button>
 
-          {/* Cam Button */}
           <button
             type="button"
             onClick={toggleDockCam}
             className={`w-11 h-11 rounded-full flex items-center justify-center transition shadow cursor-pointer border ${
               isWebcamOn
-                ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 border-emerald-400'
-                : 'bg-white/10 hover:bg-white/20 border-white/10 text-slate-200'
+                ? 'bg-emerald-500 hover:bg-emerald-400 text-white border-emerald-400'
+                : (isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700' : 'bg-white/10 hover:bg-white/20 border-white/10 text-slate-200')
             }`}
             title="Bật/Tắt Camera"
           >
             {isWebcamOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
           </button>
 
-          {/* Cycle Avatar Filter Button */}
           <button
             type="button"
             onClick={cycleAvatarFilter}
-            className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-purple-400 flex items-center justify-center transition shadow cursor-pointer"
-            title="Đổi Filter Avatar Gen Z"
+            className={`w-11 h-11 rounded-full flex items-center justify-center transition shadow cursor-pointer border text-purple-500 ${
+              isLight ? 'bg-purple-50 hover:bg-purple-100 border-purple-200' : 'bg-white/10 hover:bg-white/20 border-white/10'
+            }`}
+            title="Đổi Filter Avatar"
           >
-            <Wand2 className="w-5 h-5" />
+            <Sparkles className="w-5 h-5" />
           </button>
 
-          {/* Screen Share Button */}
           <button
             type="button"
             onClick={toggleScreenShare}
             className={`w-11 h-11 rounded-full flex items-center justify-center transition shadow cursor-pointer border ${
               isScreenSharing
-                ? 'bg-emerald-500 text-slate-950 border-emerald-400'
-                : 'bg-white/10 hover:bg-white/20 border-white/10 text-emerald-400'
+                ? 'bg-emerald-500 text-white border-emerald-400'
+                : (isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-emerald-600' : 'bg-white/10 hover:bg-white/20 border-white/10 text-emerald-400')
             }`}
             title="Chia sẻ màn hình"
           >
             <Monitor className="w-5 h-5" />
           </button>
 
-          {/* Ambient Sound Popover Button */}
+          {/* Ambient Sound Popover */}
           <div className="relative">
             <button
               type="button"
               onClick={() => setIsSoundPopoverOpen((prev) => !prev)}
-              className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-cyan-400 flex items-center justify-center transition shadow cursor-pointer"
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition shadow cursor-pointer border text-cyan-500 ${
+                isLight ? 'bg-cyan-50 hover:bg-cyan-100 border-cyan-200' : 'bg-white/10 hover:bg-white/20 border-white/10'
+              }`}
               title="Âm thanh nền Lofi/Mưa"
             >
               <Headphones className="w-5 h-5" />
             </button>
 
-            {/* FLOATING AMBIENT SOUND POPOVER */}
             {isSoundPopoverOpen && (
-              <div className="absolute bottom-14 left-1/2 -translate-x-1/2 w-72 bg-[#11151f]/95 backdrop-blur-xl rounded-2xl p-3 border border-white/10 shadow-2xl z-50 flex flex-col gap-2.5">
-                <div className="flex justify-between items-center border-b border-white/10 pb-1.5">
-                  <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                    <Sliders className="w-3.5 h-3.5 text-cyan-400" /> ÂM THANH NỀN LOFI
+              <div className={`absolute bottom-14 left-1/2 -translate-x-1/2 w-72 rounded-2xl p-3 border shadow-2xl z-50 flex flex-col gap-2.5 ${
+                isLight ? 'bg-white/95 border-slate-200 text-slate-800' : 'bg-[#11151f]/95 border-white/10 text-white'
+              }`}>
+                <div className={`flex justify-between items-center border-b pb-1.5 ${isLight ? 'border-slate-200' : 'border-white/10'}`}>
+                  <span className="text-xs font-bold flex items-center gap-1.5 text-cyan-500">
+                    <Sliders className="w-3.5 h-3.5" /> ÂM THANH NỀN LOFI
                   </span>
                   <button
                     type="button"
                     onClick={() => setIsSoundPopoverOpen(false)}
-                    className="text-slate-400 hover:text-white text-xs cursor-pointer"
+                    className="opacity-50 hover:opacity-100 cursor-pointer"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -1781,14 +1824,14 @@ export function StudyRoomView({
                 {/* Rain */}
                 <div className="flex flex-col gap-1 text-xs">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300">🌧️ Mưa rơi</span>
+                    <span>🌧️ Mưa rơi</span>
                     <button
                       type="button"
                       onClick={() => toggleSoundSynth('rain')}
                       className={`text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer ${
                         synthStates.rain.active
-                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-                          : 'bg-white/10 text-slate-400'
+                          ? 'bg-emerald-500 text-white'
+                          : (isLight ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-slate-400')
                       }`}
                     >
                       {synthStates.rain.active ? 'BẬT' : 'TẮT'}
@@ -1801,21 +1844,21 @@ export function StudyRoomView({
                     step="0.05"
                     value={synthStates.rain.vol}
                     onChange={(e) => updateSoundVol('rain', parseFloat(e.target.value))}
-                    className="w-full accent-emerald-500 bg-slate-800 h-1 rounded cursor-pointer"
+                    className="w-full accent-emerald-500 h-1 rounded cursor-pointer"
                   />
                 </div>
 
                 {/* Keyboard */}
                 <div className="flex flex-col gap-1 text-xs">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300">⌨️ Phím cơ</span>
+                    <span>⌨️ Phím cơ</span>
                     <button
                       type="button"
                       onClick={() => toggleSoundSynth('keyboard')}
                       className={`text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer ${
                         synthStates.keyboard.active
-                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-                          : 'bg-white/10 text-slate-400'
+                          ? 'bg-emerald-500 text-white'
+                          : (isLight ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-slate-400')
                       }`}
                     >
                       {synthStates.keyboard.active ? 'BẬT' : 'TẮT'}
@@ -1828,21 +1871,21 @@ export function StudyRoomView({
                     step="0.05"
                     value={synthStates.keyboard.vol}
                     onChange={(e) => updateSoundVol('keyboard', parseFloat(e.target.value))}
-                    className="w-full accent-emerald-500 bg-slate-800 h-1 rounded cursor-pointer"
+                    className="w-full accent-emerald-500 h-1 rounded cursor-pointer"
                   />
                 </div>
 
                 {/* Cafe */}
                 <div className="flex flex-col gap-1 text-xs">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300">☕ Quán Cafe</span>
+                    <span>☕ Quán Cafe</span>
                     <button
                       type="button"
                       onClick={() => toggleSoundSynth('cafe')}
                       className={`text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer ${
                         synthStates.cafe.active
-                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-                          : 'bg-white/10 text-slate-400'
+                          ? 'bg-emerald-500 text-white'
+                          : (isLight ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-slate-400')
                       }`}
                     >
                       {synthStates.cafe.active ? 'BẬT' : 'TẮT'}
@@ -1855,21 +1898,21 @@ export function StudyRoomView({
                     step="0.05"
                     value={synthStates.cafe.vol}
                     onChange={(e) => updateSoundVol('cafe', parseFloat(e.target.value))}
-                    className="w-full accent-emerald-500 bg-slate-800 h-1 rounded cursor-pointer"
+                    className="w-full accent-emerald-500 h-1 rounded cursor-pointer"
                   />
                 </div>
 
                 {/* Lofi */}
                 <div className="flex flex-col gap-1 text-xs">
                   <div className="flex justify-between items-center">
-                    <span className="text-slate-300">🎵 Lofi Chord Synth</span>
+                    <span>🎵 Lofi Chord Synth</span>
                     <button
                       type="button"
                       onClick={() => toggleSoundSynth('lofi')}
                       className={`text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer ${
                         synthStates.lofi.active
-                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-                          : 'bg-white/10 text-slate-400'
+                          ? 'bg-emerald-500 text-white'
+                          : (isLight ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-slate-400')
                       }`}
                     >
                       {synthStates.lofi.active ? 'BẬT' : 'TẮT'}
@@ -1882,66 +1925,38 @@ export function StudyRoomView({
                     step="0.05"
                     value={synthStates.lofi.vol}
                     onChange={(e) => updateSoundVol('lofi', parseFloat(e.target.value))}
-                    className="w-full accent-emerald-500 bg-slate-800 h-1 rounded cursor-pointer"
+                    className="w-full accent-emerald-500 h-1 rounded cursor-pointer"
                   />
                 </div>
               </div>
             )}
           </div>
 
-          {/* Emoji Reactions Bar */}
-          <div className="hidden md:flex items-center gap-1 bg-white/5 border border-white/10 px-2 py-1 rounded-full">
-            <button
-              type="button"
-              onClick={() => shootFloatingEmoji('🔥')}
-              className="p-1.5 hover:scale-125 transition text-base cursor-pointer"
-              title="Rực cháy"
-            >
-              🔥
-            </button>
-            <button
-              type="button"
-              onClick={() => shootFloatingEmoji('💖')}
-              className="p-1.5 hover:scale-125 transition text-base cursor-pointer"
-              title="Yêu thích"
-            >
-              💖
-            </button>
-            <button
-              type="button"
-              onClick={() => shootFloatingEmoji('👏')}
-              className="p-1.5 hover:scale-125 transition text-base cursor-pointer"
-              title="Vỗ tay"
-            >
-              👏
-            </button>
-            <button
-              type="button"
-              onClick={() => shootFloatingEmoji('😭')}
-              className="p-1.5 hover:scale-125 transition text-base cursor-pointer"
-              title="Khóc thét"
-            >
-              😭
-            </button>
-            <button
-              type="button"
-              onClick={() => shootFloatingEmoji('🧠')}
-              className="p-1.5 hover:scale-125 transition text-base cursor-pointer"
-              title="Tập trung"
-            >
-              🧠
-            </button>
+          {/* Reactions */}
+          <div className={`hidden md:flex items-center gap-1 border px-2 py-1 rounded-full ${
+            isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/5 border-white/10'
+          }`}>
+            {['🔥', '💖', '👏', '😭', '🧠'].map((em) => (
+              <button
+                key={em}
+                type="button"
+                onClick={() => shootFloatingEmoji(em)}
+                className="p-1.5 hover:scale-125 transition text-base cursor-pointer"
+              >
+                {em}
+              </button>
+            ))}
             <button
               type="button"
               onClick={handleRaiseHand}
-              className="p-1.5 hover:scale-125 transition text-xs font-bold text-amber-400 cursor-pointer"
+              className="p-1.5 hover:scale-125 transition text-xs font-bold text-amber-500 cursor-pointer"
               title="Giơ tay phát biểu"
             >
               ✋
             </button>
           </div>
 
-          {/* Red Hang Up Button (Rời Phòng) */}
+          {/* Red Leave Button */}
           <button
             type="button"
             onClick={() => setShowSummaryModal(true)}
@@ -1952,7 +1967,7 @@ export function StudyRoomView({
           </button>
         </div>
 
-        {/* Right: Drawer Toggle Controls */}
+        {/* Right: Drawer Toggles */}
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -1963,15 +1978,15 @@ export function StudyRoomView({
                 setActiveDrawerTab('chat');
               }
             }}
-            className={`w-10 h-10 rounded-xl flex items-center justify-center transition relative cursor-pointer ${
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition relative cursor-pointer border ${
               isDrawerOpen && activeDrawerTab === 'chat'
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                : 'bg-white/5 hover:bg-white/10 text-slate-300'
+                ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/40'
+                : (isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700' : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300')
             }`}
             title="Mở Chat"
           >
             <MessageSquare className="w-4 h-4" />
-            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-400" />
+            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500" />
           </button>
           <button
             type="button"
@@ -1982,12 +1997,12 @@ export function StudyRoomView({
                 setActiveDrawerTab('tasks');
               }
             }}
-            className={`w-10 h-10 rounded-xl flex items-center justify-center transition cursor-pointer ${
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition cursor-pointer border ${
               isDrawerOpen && activeDrawerTab === 'tasks'
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                : 'bg-white/5 hover:bg-white/10 text-slate-300'
+                ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/40'
+                : (isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700' : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300')
             }`}
-            title="Mở Mục tiêu"
+            title="Mục tiêu Rule of 3"
           >
             <CheckSquare className="w-4 h-4" />
           </button>
@@ -2000,14 +2015,14 @@ export function StudyRoomView({
                 setActiveDrawerTab('rank');
               }
             }}
-            className={`w-10 h-10 rounded-xl flex items-center justify-center transition cursor-pointer ${
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition cursor-pointer border ${
               isDrawerOpen && activeDrawerTab === 'rank'
-                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                : 'bg-white/5 hover:bg-white/10 text-slate-300'
+                ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/40'
+                : (isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700' : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300')
             }`}
             title="Bảng Xếp Hạng"
           >
-            <Trophy className="w-4 h-4 text-amber-400" />
+            <Trophy className="w-4 h-4 text-amber-500" />
           </button>
         </div>
       </footer>
@@ -2016,109 +2031,56 @@ export function StudyRoomView({
       {/* 5. MODAL 1: FRAME SHOP & AVATAR CUSTOMIZER                */}
       {/* ========================================================= */}
       {showFrameShopModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[110] flex items-center justify-center p-4">
-          <div className="bg-[#11151f] w-full max-w-md rounded-2xl p-5 border border-white/10 relative flex flex-col gap-4 shadow-2xl">
-            <div className="flex justify-between items-center border-b border-white/10 pb-3">
-              <h3 className="font-bold text-base text-white flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-purple-400" /> Cửa Hàng Khung Avatar Gen Z
+        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[1010] flex items-center justify-center p-4">
+          <div className={`w-full max-w-md rounded-2xl p-5 border relative flex flex-col gap-4 shadow-2xl ${
+            isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#11151f] border-white/10 text-white'
+          }`}>
+            <div className="flex justify-between items-center border-b pb-3">
+              <h3 className="font-bold text-base flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-purple-500" /> Cửa Hàng Khung Avatar Gen Z
               </h3>
               <button
                 type="button"
                 onClick={() => setShowFrameShopModal(false)}
-                className="text-slate-400 hover:text-white text-lg cursor-pointer"
+                className="opacity-50 hover:opacity-100 cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-xs text-slate-300">
-              Tích lũy XP bằng cách hoàn thành Pomodoro để trang bị khung viền siêu ngầu trên màn hình học!
+            <p className="text-xs opacity-75">
+              Hoàn thành phiên Pomodoro để nhận XP và trang bị các mẫu khung độc quyền!
             </p>
 
             <div className="grid grid-cols-2 gap-3 text-xs">
-              <div
-                onClick={() => equipFrame('frame-emerald')}
-                className={`p-3 rounded-2xl bg-white/5 border flex flex-col items-center cursor-pointer transition ${
-                  selectedFrame === 'frame-emerald'
-                    ? 'border-emerald-500 bg-emerald-950/40'
-                    : 'border-white/10 hover:border-emerald-500/50'
-                }`}
-              >
-                <div className="w-14 h-14 rounded-full p-1 shadow-[0_0_0_3px_#10b981,0_0_15px_rgba(16,185,129,0.4)] mb-2">
-                  <img
-                    src={currentUserAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=GenZStudentHero`}
-                    alt="Frame Emerald"
-                    className="w-full h-full rounded-full bg-slate-900"
-                  />
+              {[
+                { key: 'frame-emerald', name: 'Lục Bảo Focus', style: 'shadow-[0_0_0_3px_#10b981,0_0_15px_rgba(16,185,129,0.4)]', color: 'text-emerald-500 border-emerald-500' },
+                { key: 'frame-neon', name: 'Neon Cực Quang', style: 'shadow-[0_0_0_3px_#a855f7,0_0_20px_rgba(168,85,247,0.6)]', color: 'text-purple-500 border-purple-500' },
+                { key: 'frame-gold', name: 'Hoàng Gia Gold', style: 'shadow-[0_0_0_3px_#f59e0b,0_0_15px_rgba(245,158,11,0.5)]', color: 'text-amber-500 border-amber-500' },
+                { key: 'frame-cyber', name: 'Cyberpunk 2077', style: 'shadow-[0_0_0_3px_#06b6d4,0_0_15px_rgba(6,182,212,0.5)]', color: 'text-cyan-500 border-cyan-500' }
+              ].map((f) => (
+                <div
+                  key={f.key}
+                  onClick={() => equipFrame(f.key)}
+                  className={`p-3 rounded-2xl border flex flex-col items-center cursor-pointer transition ${
+                    selectedFrame === f.key
+                      ? (isLight ? 'bg-slate-100 border-emerald-500 shadow-md' : 'bg-white/10 border-emerald-500 shadow-md')
+                      : (isLight ? 'bg-slate-50 border-slate-200 hover:bg-slate-100' : 'bg-white/5 border-white/10 hover:bg-white/10')
+                  }`}
+                >
+                  <div className={`w-14 h-14 rounded-full p-1 ${f.style} mb-2`}>
+                    <img
+                      src={currentUserAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=GenZStudentHero`}
+                      alt={f.name}
+                      className="w-full h-full rounded-full bg-slate-900"
+                    />
+                  </div>
+                  <span className={`font-bold ${f.color.split(' ')[0]}`}>{f.name}</span>
+                  <span className="text-[10px] opacity-75">
+                    {selectedFrame === f.key ? 'Đang dùng' : 'Trang bị'}
+                  </span>
                 </div>
-                <span className="font-bold text-emerald-400">Lục Bảo Focus</span>
-                <span className="text-[10px] text-emerald-300">
-                  {selectedFrame === 'frame-emerald' ? 'Đang dùng' : 'Trang bị ngay'}
-                </span>
-              </div>
-
-              <div
-                onClick={() => equipFrame('frame-neon')}
-                className={`p-3 rounded-2xl bg-white/5 border flex flex-col items-center cursor-pointer transition ${
-                  selectedFrame === 'frame-neon'
-                    ? 'border-purple-500 bg-purple-950/40'
-                    : 'border-white/10 hover:border-purple-500/50'
-                }`}
-              >
-                <div className="w-14 h-14 rounded-full p-1 shadow-[0_0_0_3px_#a855f7,0_0_20px_rgba(168,85,247,0.6)] mb-2">
-                  <img
-                    src={currentUserAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=GenZStudentHero`}
-                    alt="Frame Neon"
-                    className="w-full h-full rounded-full bg-slate-900"
-                  />
-                </div>
-                <span className="font-bold text-purple-400">Neon Cực Quang</span>
-                <span className="text-[10px] text-purple-300">
-                  {selectedFrame === 'frame-neon' ? 'Đang dùng' : 'Trang bị ngay'}
-                </span>
-              </div>
-
-              <div
-                onClick={() => equipFrame('frame-gold')}
-                className={`p-3 rounded-2xl bg-white/5 border flex flex-col items-center cursor-pointer transition ${
-                  selectedFrame === 'frame-gold'
-                    ? 'border-amber-500 bg-amber-950/40'
-                    : 'border-white/10 hover:border-amber-500/50'
-                }`}
-              >
-                <div className="w-14 h-14 rounded-full p-1 shadow-[0_0_0_3px_#f59e0b,0_0_15px_rgba(245,158,11,0.5)] mb-2">
-                  <img
-                    src={currentUserAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=GenZStudentHero`}
-                    alt="Frame Gold"
-                    className="w-full h-full rounded-full bg-slate-900"
-                  />
-                </div>
-                <span className="font-bold text-amber-400">Hoàng Gia Gold</span>
-                <span className="text-[10px] text-amber-300">
-                  {selectedFrame === 'frame-gold' ? 'Đang dùng' : 'Trang bị ngay'}
-                </span>
-              </div>
-
-              <div
-                onClick={() => equipFrame('frame-cyber')}
-                className={`p-3 rounded-2xl bg-white/5 border flex flex-col items-center cursor-pointer transition ${
-                  selectedFrame === 'frame-cyber'
-                    ? 'border-cyan-500 bg-cyan-950/40'
-                    : 'border-white/10 hover:border-cyan-500/50'
-                }`}
-              >
-                <div className="w-14 h-14 rounded-full p-1 shadow-[0_0_0_3px_#06b6d4,0_0_15px_rgba(6,182,212,0.5)] mb-2">
-                  <img
-                    src={currentUserAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=GenZStudentHero`}
-                    alt="Frame Cyber"
-                    className="w-full h-full rounded-full bg-slate-900"
-                  />
-                </div>
-                <span className="font-bold text-cyan-400">Cyberpunk 2077</span>
-                <span className="text-[10px] text-cyan-300">
-                  {selectedFrame === 'frame-cyber' ? 'Đang dùng' : 'Trang bị ngay'}
-                </span>
-              </div>
+              ))}
             </div>
 
             <button
@@ -2136,37 +2098,45 @@ export function StudyRoomView({
       {/* 6. MODAL 2: SESSION SUMMARY UPON LEAVING                  */}
       {/* ========================================================= */}
       {showSummaryModal && (
-        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[110] flex items-center justify-center p-4">
-          <div className="bg-[#11151f] w-full max-w-md rounded-2xl p-6 border border-white/10 text-center flex flex-col items-center gap-4 shadow-2xl">
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[1010] flex items-center justify-center p-4">
+          <div className={`w-full max-w-md rounded-2xl p-6 border text-center flex flex-col items-center gap-4 shadow-2xl ${
+            isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#11151f] border-white/10 text-white'
+          }`}>
             <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 text-2xl font-black shadow-xl">
               🎓
             </div>
             <div>
-              <h3 className="font-extrabold text-xl text-white">BUỔI HỌC KẾT THÚC RỰC RỠ!</h3>
-              <p className="text-xs text-slate-400 mt-1">Tổng kết thành tích tự học hôm nay của bạn</p>
+              <h3 className="font-extrabold text-xl">BUỔI HỌC KẾT THÚC RỰC RỠ!</h3>
+              <p className="text-xs opacity-75 mt-1">Tổng kết thành tích tự học hôm nay của bạn</p>
             </div>
 
             <div className="grid grid-cols-3 gap-3 w-full my-2">
-              <div className="bg-white/5 border border-white/10 p-3 rounded-xl flex flex-col items-center">
-                <span className="text-xs text-slate-400">Thời gian</span>
-                <span className="font-mono text-base font-bold text-emerald-400">
+              <div className={`border p-3 rounded-xl flex flex-col items-center ${
+                isLight ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/10'
+              }`}>
+                <span className="text-xs opacity-75">Thời gian</span>
+                <span className="font-mono text-base font-bold text-emerald-500">
                   {formatTaskTimer(taskTimerSeconds)}
                 </span>
               </div>
-              <div className="bg-white/5 border border-white/10 p-3 rounded-xl flex flex-col items-center">
-                <span className="text-xs text-slate-400">XP Nhận được</span>
-                <span className="font-mono text-base font-bold text-amber-400">+250 XP</span>
+              <div className={`border p-3 rounded-xl flex flex-col items-center ${
+                isLight ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/10'
+              }`}>
+                <span className="text-xs opacity-75">XP Tích lũy</span>
+                <span className="font-mono text-base font-bold text-amber-500">+{Math.max(50, Math.round(taskTimerSeconds / 60) * 10)} XP</span>
               </div>
-              <div className="bg-white/5 border border-white/10 p-3 rounded-xl flex flex-col items-center">
-                <span className="text-xs text-slate-400">Mục tiêu xong</span>
-                <span className="font-mono text-base font-bold text-purple-400">
-                  {tasks.filter((t) => t.completed).length} / {tasks.length}
+              <div className={`border p-3 rounded-xl flex flex-col items-center ${
+                isLight ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/10'
+              }`}>
+                <span className="text-xs opacity-75">Mục tiêu xong</span>
+                <span className="font-mono text-base font-bold text-purple-500">
+                  {roomTasks.filter((t) => t.status === 'Hoàn thành' || t.status === 'Done').length} / {roomTasks.length}
                 </span>
               </div>
             </div>
 
-            <p className="text-xs text-emerald-300 bg-emerald-950/60 border border-emerald-800/60 p-2.5 rounded-xl">
-              🔥 Bạn đã giữ vững Chuỗi Tập Trung {userStreak} ngày liên tiếp! Hẹn gặp lại bạn tối nay.
+            <p className="text-xs text-emerald-600 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 p-2.5 rounded-xl">
+              🔥 Bạn đã giữ vững Chuỗi Tập Trung {userStreak} ngày liên tiếp!
             </p>
 
             <button

@@ -286,12 +286,92 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
     }
   }, [loadRoomDetail]);
 
-  // 5. Trigger Check-in Modal when clicking a room in Lobby
+  // 5. User clicks room in Lobby -> Direct 1-tap entry into dedicated fullscreen study space
   const handleSelectRoom = (room: StudyRoomSummary) => {
-    setPendingCheckInRoom(room);
+    // Attempt Fullscreen immersion automatically to isolate the study space
+    try {
+      if (typeof document !== 'undefined' && document.documentElement.requestFullscreen && !document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    } catch {}
+
+    const defaultGoal = room.topic ? `Tập trung: ${room.topic}` : 'Tập trung học tập & hoàn thành mục tiêu';
+    handleDirectRoomEntry(room, defaultGoal);
   };
 
-  // 6. User confirms Check-in & enters room
+  const handleDirectRoomEntry = async (targetRoom: StudyRoomSummary, goal: string) => {
+    const roomId = targetRoom.id;
+    const roomName = targetRoom.name;
+
+    const optimisticDetail: RoomDetail = {
+      id: roomId,
+      name: roomName,
+      topic: targetRoom.topic || 'Tự học tập trung',
+      hostId: targetRoom.hostId || 'system',
+      hostName: targetRoom.hostName || 'LifeOS System',
+      connectionType: targetRoom.connectionType || 'jitsi',
+      externalUrl: targetRoom.externalUrl,
+      jitsiRoomName: targetRoom.jitsiRoomName || `lifeos-study-${roomId}`,
+      isSystemRoom: targetRoom.isSystemRoom ?? true,
+      createdAt: targetRoom.createdAt || new Date().toISOString(),
+      participantCount: Math.max(1, (targetRoom.participantCount || 0) + 1),
+      inMeetCount: targetRoom.inMeetCount || 0,
+      recentAvatars: targetRoom.recentAvatars || [],
+      recentMessageCount: targetRoom.recentMessageCount || 0,
+      pomodoro: targetRoom.pomodoro || {
+        phase: 'FOCUS',
+        duration: 1500,
+        startedAt: Date.now(),
+        isRunning: true,
+      },
+      members: [
+        {
+          userId: currentUser?.id || 'guest',
+          userName: currentUser?.name || 'Bạn',
+          userAvatar: currentUser?.avatar,
+          studyGoal: goal,
+          presenceState: 'STUDYING',
+          joinedAt: Date.now(),
+          lastPingAt: Date.now(),
+          badge: 'Chiến Binh',
+        },
+      ],
+      messages: [],
+    };
+
+    setActiveRoomDetail(optimisticDetail);
+    setActiveRoomId(roomId);
+    setPendingCheckInRoom(null);
+
+    try {
+      analyticsTracker.trackFeatureUsage('study-space', 'Phòng Học Ảo (Virtual Study Room)', 'Học tập');
+
+      try {
+        const deskData = {
+          roomId,
+          roomName,
+          goal,
+          joinedAt: Date.now(),
+          lastPing: Date.now()
+        };
+        localStorage.setItem('lifeos_active_study_desk_v2', JSON.stringify(deskData));
+        sessionStorage.setItem('lifeos_active_study_room', JSON.stringify(deskData));
+      } catch {}
+
+      const res = await apiCall<any>(`/api/study-space/rooms/${roomId}/checkin`, 'POST', {
+        goal
+      });
+      if (res && res.success && res.room) {
+        setActiveRoomDetail(res.room);
+      } else {
+        await loadRoomDetail(roomId);
+      }
+    } catch (err) {
+      console.warn('Background checkin sync warning:', err);
+    }
+  };
+
+  // 6. User confirms Check-in & enters room (fallback for room creator)
   const handleConfirmCheckIn = async (goal: string) => {
     if (!pendingCheckInRoom) return;
     setIsCheckingIn(true);
