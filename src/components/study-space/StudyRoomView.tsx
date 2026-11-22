@@ -40,7 +40,8 @@ import {
   ChevronDown,
   ChevronLeft,
   Settings,
-  Users
+  Users,
+  Search
 } from 'lucide-react';
 import { io, Socket } from 'socket.io-client';
 import { StudyTimerDisplay } from './StudyTimerDisplay';
@@ -49,6 +50,12 @@ import { PinnedFriendsRow } from './PinnedFriendsRow';
 import { StudyHallVirtualGrid } from './StudyHallVirtualGrid';
 import { SmartBreakChat, ChatMessageItem } from './SmartBreakChat';
 import type { CompactParticipant } from '../../backend/realtime/RoomManager';
+import { useMeetGridLayout, MeetLayoutMode } from './useMeetGridLayout';
+import { useSortedParticipants, MeetParticipant } from './useSortedParticipants';
+import { ParticipantTile } from './ParticipantTile';
+import { OverflowTile } from './OverflowTile';
+import { LayoutSettingsModal, LayoutSettings, loadSavedLayoutSettings } from './LayoutSettingsModal';
+import { BottomControlBar } from './BottomControlBar';
 import { useAppStore } from '../../lib/store';
 import { apiCall } from '../../lib/apiClient';
 import { toast } from '../../lib/toast';
@@ -233,8 +240,16 @@ export function StudyRoomView({
   const [zenMode, setZenMode] = useState(false);
 
   // Right Drawer
-  const [isDrawerOpen, setIsDrawerOpen] = useState(true);
-  const [activeDrawerTab, setActiveDrawerTab] = useState<'chat' | 'tasks' | 'rank'>('chat');
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [activeDrawerTab, setActiveDrawerTab] = useState<'members' | 'chat' | 'tasks' | 'rank'>('members');
+  const [memberSearchQuery, setMemberSearchQuery] = useState('');
+
+  // Google Meet Layout Engine & Sorting State
+  const [layoutSettings, setLayoutSettings] = useState<LayoutSettings>(loadSavedLayoutSettings);
+  const [isLayoutModalOpen, setIsLayoutModalOpen] = useState(false);
+  const [spotlightUserId, setSpotlightUserId] = useState<string | null>(null);
+  const stageContainerRef = useRef<HTMLDivElement>(null);
+  const friendIds = useMemo(() => ['peer_1', 'peer_2', 'peer_5', 'peer_8', 'peer_12'], []);
   const [chatInput, setChatInput] = useState('');
   const [localMessages, setLocalMessages] = useState<Array<{ id: string; author: string; text: string; time: string; isSystem?: boolean }>>([]);
 
@@ -313,6 +328,61 @@ export function StudyRoomView({
   const [viewMode, setViewMode] = useState<'hall' | 'desk'>('hall');
   const [pinnedFriends, setPinnedFriends] = useState<CompactParticipant[]>(() => initialPeers.slice(1, 7));
   const [highScaleMembers, setHighScaleMembers] = useState<CompactParticipant[]>(() => initialPeers);
+
+  // Google Meet Auto-Sorting Hook (5 Priority Tiers)
+  const {
+    visibleParticipants,
+    overflowParticipants,
+    overflowCount,
+    hasOverflow,
+    overflowPreviewAvatars,
+    allSortedParticipants,
+    pinnedIds,
+    togglePin,
+    isPinned,
+  } = useSortedParticipants(
+    highScaleMembers as MeetParticipant[],
+    [],
+    friendIds,
+    layoutSettings.maxTiles,
+    {
+      selfId: myId,
+      hideSelf: layoutSettings.hideSelf,
+    }
+  );
+
+  // Google Meet Layout Engine Hook (Auto 16:9 Grid calculation)
+  const meetTileCount = visibleParticipants.length + (hasOverflow ? 1 : 0);
+  const {
+    columns: meetColumns,
+    rows: meetRows,
+    tileWidth: meetTileWidth,
+    tileHeight: meetTileHeight,
+    isCompact: isMeetCompact,
+    gridStyle: meetGridStyle,
+  } = useMeetGridLayout(stageContainerRef, meetTileCount, layoutSettings.mode, {
+    aspectRatio: 16 / 9,
+    gap: 10,
+    maxColumns: 7,
+  });
+
+  const formatPomodoroTime = useCallback((secs: number) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+  }, []);
+
+  const triggerBatchKudos = useCallback((emoji = '🔥') => {
+    shootFloatingEmoji(emoji);
+    if (socketRef.current) {
+      socketRef.current.emit('room:kudos', {
+        roomId: room.id,
+        userId: myId,
+        emoji,
+      });
+    }
+    toast.success(`Bạn đã tiếp lửa ${emoji} cho cả phòng!`);
+  }, [room.id, myId]);
   const [collectiveEnergy, setCollectiveEnergy] = useState({
     activeCount: Math.max(121, room.participantCount || 121),
     totalAccumulatedMinutes: 84 * 60,
@@ -1026,24 +1096,23 @@ export function StudyRoomView({
   const roomContent = (
     <div
       className={`fixed inset-0 z-[99999] w-screen h-screen overflow-hidden flex flex-col select-none font-sans transition-colors duration-300 ${
-        isLight ? 'bg-[#F8FAFC] text-slate-900' : 'bg-[#090b10] text-slate-100'
+        isLight ? 'bg-[#F8FAFC] text-slate-900' : 'bg-[#202124] text-slate-100'
       }`}
     >
       {/* ========================================================= */}
-      {/* 1. TOP HUD BAR: ĐẦY ĐỦ TÍNH NĂNG NHƯ ẢNH THAM KHẢO (h-14)   */}
+      {/* 1. TOP HUD BAR: TỐI GIẢN CHUẨN GOOGLE MEET (h-14)         */}
       {/* ========================================================= */}
       <header
-        className={`h-14 px-3 sm:px-4 flex items-center justify-between border-b backdrop-blur-xl z-30 shrink-0 gap-2 overflow-x-auto no-scrollbar transition-all duration-300 ${
-          isLight ? 'bg-white/95 border-slate-200 shadow-xs' : 'bg-[#090b10]/95 border-white/10'
+        className={`h-14 px-3 sm:px-5 flex items-center justify-between border-b backdrop-blur-xl z-30 shrink-0 transition-all duration-300 select-none ${
+          isLight ? 'bg-white/95 border-slate-200 shadow-xs text-slate-800' : 'bg-[#202124]/95 border-white/10 text-white shadow-md'
         } ${zenMode ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}`}
       >
-        {/* KHỐI TRÁI: RỜI PHÒNG, ROOM BADGE, VIEW TOGGLES, ZEN MODE */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Nút Rời phòng */}
+        {/* KHỐI TRÁI: TÊN PHÒNG & MÃ PHÒNG (COPY LINK MỜI BẠN) */}
+        <div className="flex items-center gap-2.5 min-w-0">
           <button
             type="button"
             onClick={() => setShowSummaryModal(true)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer border ${
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer border ${
               isLight
                 ? 'bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-600 border-slate-200 hover:border-red-200'
                 : 'bg-white/5 hover:bg-red-500/10 text-slate-300 hover:text-red-400 border-white/10 hover:border-red-500/30'
@@ -1051,123 +1120,35 @@ export function StudyRoomView({
             title="Rời phòng học"
           >
             <ChevronLeft className="w-4 h-4" />
-            <span className="hidden md:inline">Rời</span>
+            <span className="hidden sm:inline">Rời</span>
           </button>
 
-          {/* Room ID Badge (Như ảnh: #room-night-o + copy) */}
+          <div className="flex items-center gap-2 min-w-0">
+            <GraduationCap className="w-4 h-4 text-emerald-400 shrink-0" />
+            <h2 className="text-sm font-bold truncate max-w-[160px] sm:max-w-xs md:max-w-md">
+              {room.name || 'Phòng Học Chung'}
+            </h2>
+          </div>
+
           <button
             onClick={copyRoomLink}
             type="button"
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-mono transition cursor-pointer border ${
+            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-mono transition cursor-pointer border ${
               isLight
                 ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200'
                 : 'bg-white/5 hover:bg-white/10 text-slate-300 border-white/10'
             }`}
-            title="Sao chép liên kết phòng học"
+            title="Sao chép liên kết mời bạn bè"
           >
             <span className="text-emerald-400 font-bold">#</span>
-            <span className="max-w-[100px] truncate font-medium">
-              {room.name ? room.name.toLowerCase().replace(/\s+/g, '-') : room.id.slice(0, 8)}
-            </span>
+            <span className="max-w-[80px] truncate">{room.id.replace('room-', '').slice(0, 8)}</span>
             <Copy className="w-3 h-3 text-slate-400" />
           </button>
-
-          {/* Bố cục View Switcher: Đại Sảnh (100+) | Grid (3x2) | Ghim Màn Hình */}
-          <div className={`flex items-center rounded-xl p-0.5 border text-xs font-semibold ${
-            isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/5 border-white/10'
-          }`}>
-            <button
-              type="button"
-              onClick={() => {
-                setViewMode('desk');
-                setTileLayout('grid');
-              }}
-              className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition cursor-pointer ${
-                viewMode === 'desk' && tileLayout === 'grid'
-                  ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 shadow-xs'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-              title="Bố cục Lưới 3x2 bàn học"
-            >
-              <LayoutGrid className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Grid (3x2)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setViewMode('desk');
-                setTileLayout('spotlight');
-                setPinnedTileKey('user');
-              }}
-              className={`px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition cursor-pointer ${
-                viewMode === 'desk' && tileLayout === 'spotlight'
-                  ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 shadow-xs'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-              title="Ghim màn hình tiêu điểm (Spotlight)"
-            >
-              <Maximize2 className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline">Ghim Màn Hình</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setViewMode('hall');
-              }}
-              className={`hidden xl:flex px-2.5 py-1 rounded-lg items-center gap-1.5 transition cursor-pointer ${
-                viewMode === 'hall'
-                  ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/40 shadow-xs font-bold'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-              title="Đại sảnh Thư viện 100+ học viên"
-            >
-              <span>Đại Sảnh (100+)</span>
-            </button>
-          </div>
-
-          {/* Zen Mode Button (Như ảnh: icon eye-slash + Zen Mode) */}
-          <button
-            type="button"
-            onClick={() => setZenMode(true)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer border ${
-              isLight
-                ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
-                : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
-            }`}
-            title="Zen Mode: Ẩn mọi thanh công cụ để tập trung tuyệt đối"
-          >
-            <EyeOff className="w-3.5 h-3.5 text-slate-400" />
-            <span className="hidden sm:inline">Zen Mode</span>
-          </button>
         </div>
 
-        {/* KHỐI GIỮA: POMODORO TIMER CAPSULE CÔ LẬP RE-RENDER */}
-        <div className="shrink-0 flex items-center">
-          <StudyTimerDisplay
-            phase={pomodoroPhase}
-            durationSeconds={pomodoroDuration}
-            startedAtUTC={Date.now()}
-            endTimeUTC={Date.now() + pomodoroDuration * 1000}
-            serverTimeNow={Date.now()}
-            isRunning={isPomodoroRunning}
-            onToggleRunning={togglePomoTimer}
-            onReset={resetPomoTimer}
-            onSelectPreset={setTimerPreset}
-            isLight={isLight}
-          />
-        </div>
-
-        {/* KHỐI PHẢI: TRẠNG THÁI HỌC, STREAK, LEVEL XP, ĐỔI KHUNG, SÁNG/TỐI, FULLSCREEN */}
-        <div className="flex items-center gap-2 shrink-0">
-          {/* Trạng thái tập trung (Như ảnh: Bạn đang tập trung 1 mình) */}
-          <span className="hidden 2xl:inline text-xs text-slate-400 font-medium whitespace-nowrap">
-            {collectiveEnergy.activeCount > 1
-              ? `🔥 Bạn đang học cùng ${collectiveEnergy.activeCount} người`
-              : 'Bạn đang tập trung 1 mình'}
-          </span>
-
-          {/* Streak Badge (Như ảnh: 🔥 14 Ngày) */}
-          <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold border ${
+        {/* KHỐI GIỮA: STREAK & LEVEL XP TINH TẾ (TỐI GIẢN, KHÔNG RƯỜM RÀ) */}
+        <div className="hidden md:flex items-center gap-3">
+          <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
             isLight
               ? 'bg-amber-50 border-amber-300 text-amber-700 shadow-xs'
               : 'bg-amber-950/40 border-amber-500/40 text-amber-400'
@@ -1176,23 +1157,18 @@ export function StudyRoomView({
             <span>{userStreak} Ngày</span>
           </div>
 
-          {/* Level & XP Progress (Như ảnh: Lv.08 Học Bá 850/1000 XP + thanh xanh lá) */}
-          <div className={`hidden md:flex flex-col justify-center px-2.5 py-1 rounded-xl border text-[11px] min-w-[130px] ${
-            isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-white/5 border-white/10 text-white'
+          <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold border ${
+            isLight
+              ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+              : 'bg-emerald-950/40 border-emerald-500/30 text-emerald-400'
           }`}>
-            <div className="flex items-center justify-between font-bold text-[10px] leading-tight gap-1.5">
-              <span className="text-emerald-400">Lv.08 Học Bá</span>
-              <span className="font-mono text-slate-400">{userXP}/1000 XP</span>
-            </div>
-            <div className="w-full h-1 bg-slate-700 rounded-full overflow-hidden mt-1">
-              <div
-                className="h-full bg-emerald-400 rounded-full transition-all duration-500"
-                style={{ width: `${Math.min(100, Math.max(10, (userXP % 1000) / 10))}%` }}
-              />
-            </div>
+            <span>Lv.08 Học Bá</span>
+            <span className="text-[10px] text-slate-400 font-mono font-normal">({userXP}/1000 XP)</span>
           </div>
+        </div>
 
-          {/* Nút Đổi Khung Avatar (Như ảnh: ✨ Đổi Khung Avatar) */}
+        {/* KHỐI PHẢI: KHUNG AVATAR, SÁNG/TỐI, TOÀN MÀN HÌNH, ZEN MODE */}
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             type="button"
             onClick={() => setShowFrameShopModal(true)}
@@ -1204,14 +1180,13 @@ export function StudyRoomView({
             title="Đổi Khung Avatar"
           >
             <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-            <span className="hidden lg:inline">Đổi Khung Avatar</span>
+            <span className="hidden lg:inline">Khung</span>
           </button>
 
-          {/* Nút Chuyển Đổi Chế Độ Sáng / Tối (☀️ / 🌙) */}
           <button
             type="button"
             onClick={toggleThemeMode}
-            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer border ${
+            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition cursor-pointer border ${
               isLight
                 ? 'bg-amber-100 hover:bg-amber-200 border-amber-300 text-amber-700 shadow-xs'
                 : 'bg-white/5 hover:bg-white/10 border-white/10 text-amber-400'
@@ -1221,11 +1196,10 @@ export function StudyRoomView({
             {isLight ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
           </button>
 
-          {/* Nút Toàn Màn Hình (Fullscreen) */}
           <button
             type="button"
             onClick={toggleFullscreen}
-            className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all cursor-pointer border ${
+            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition cursor-pointer border ${
               isLight
                 ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700 shadow-xs'
                 : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
@@ -1233,6 +1207,20 @@ export function StudyRoomView({
             title={isFullscreen ? 'Thu nhỏ cửa sổ' : 'Mở toàn màn hình (Fullscreen)'}
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setZenMode(true)}
+            className={`hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer border ${
+              isLight
+                ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
+                : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
+            }`}
+            title="Zen Mode: Ẩn mọi thanh công cụ để tập trung tuyệt đối"
+          >
+            <EyeOff className="w-3.5 h-3.5 text-slate-400" />
+            <span className="hidden md:inline">Zen Mode</span>
           </button>
         </div>
       </header>
@@ -1242,7 +1230,7 @@ export function StudyRoomView({
         <button
           type="button"
           onClick={() => setZenMode(false)}
-          className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-slate-900/90 text-white px-4 py-2 rounded-full border border-white/20 shadow-2xl hover:scale-105 transition-all text-xs font-bold cursor-pointer"
+          className="fixed top-4 right-4 z-50 flex items-center gap-2 bg-[#202124]/90 text-white px-4 py-2 rounded-full border border-white/20 shadow-2xl hover:scale-105 transition-all text-xs font-bold cursor-pointer"
         >
           <Eye className="w-4 h-4 text-emerald-400" />
           <span>Thoát Zen Mode</span>
@@ -1274,397 +1262,278 @@ export function StudyRoomView({
           isLight={isLight}
         />
 
-        {/* 2. Main Space Container: Hall (100+ Virtual Grid) vs Desk (Cam) */}
-        <div className="flex-1 flex overflow-hidden gap-3 relative">
-          {viewMode === 'hall' ? (
-            <div className="flex-1 flex flex-col gap-3 overflow-hidden">
-              <PinnedFriendsRow friends={pinnedFriends} isLight={isLight} />
-              <StudyHallVirtualGrid members={highScaleMembers} isLight={isLight} />
-            </div>
-          ) : (
-            <div className="flex-1 h-full transition-all duration-300 overflow-hidden relative flex flex-col justify-center">
-          {tileLayout === 'grid' ? (
-            /* ================= GRID 3x2 ================= */
-            <div className="w-full h-full grid grid-cols-1 md:grid-cols-3 grid-rows-2 gap-3 max-h-full">
-              {/* TILE 1: USER ("BẠN") */}
-              <div className={`rounded-2xl border-2 relative overflow-hidden flex flex-col justify-between p-3 group shadow-lg transition-all ${
-                isLight ? 'bg-white border-emerald-500/80 shadow-slate-200' : 'bg-[#131824]/90 border-emerald-500/60'
-              }`}>
-                {/* Goal Tag */}
-                <div
-                  onClick={editUserTask}
-                  className={`absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 backdrop-blur-md border px-2.5 py-1 rounded-xl text-xs max-w-[85%] cursor-pointer hover:border-emerald-500 transition ${
-                    isLight ? 'bg-white/90 border-slate-200 text-slate-800' : 'bg-slate-950/80 border-white/10 text-slate-200'
-                  }`}
-                  title="Click để đổi mục tiêu trực tiếp"
-                >
-                  <span className="text-emerald-500 font-bold">🎯</span>
-                  <span className="truncate font-medium">{userTask}</span>
-                  <span className="font-mono text-[10px] text-emerald-500 bg-emerald-50 dark:bg-emerald-950 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800/60 ml-1">
-                    {formatTaskTimer(taskTimerSeconds)}
-                  </span>
-                </div>
+        {/* 2. Google Meet Layout Engine Stage (Auto, Tiled, Spotlight, Sidebar) */}
+        <div className="flex-1 flex overflow-hidden gap-3 relative pb-20">
+          {layoutSettings.mode === 'spotlight' ? (
+            /* VIEW: SPOTLIGHT MODE */
+            <div className="flex-1 flex flex-col items-center justify-center p-3 sm:p-6 overflow-hidden relative">
+              {(() => {
+                const spotlightTarget =
+                  allSortedParticipants.find((p) => p.id === (spotlightUserId || pinnedIds[0])) ||
+                  allSortedParticipants[0];
 
-                {/* Top Right Actions */}
-                <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1 opacity-90 group-hover:opacity-100">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setTileLayout('spotlight');
-                      setPinnedTileKey('user');
-                    }}
-                    className={`p-1.5 rounded-lg border text-xs cursor-pointer ${
-                      isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200' : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-white/10'
-                    }`}
-                    title="Ghim màn hình này"
-                  >
-                    <Pin className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                if (!spotlightTarget) return null;
+                const isTargetSelf = spotlightTarget.id === myId;
 
-                {/* Center Content: Webcam OR Screen Share OR Avatar */}
-                <div className={`w-full h-full flex items-center justify-center relative rounded-xl overflow-hidden ${
-                  isLight ? 'bg-slate-100' : 'bg-[#0d111a]'
-                }`}>
-                  <video
-                    ref={webcamVideoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className={`w-full h-full object-cover transform -scale-x-100 ${isWebcamOn ? 'block' : 'hidden'}`}
-                  />
-                  <video
-                    ref={screenShareVideoRef}
-                    autoPlay
-                    playsInline
-                    muted
-                    className={`w-full h-full object-cover ${isScreenSharing ? 'block' : 'hidden'}`}
-                  />
-
-                  {!isWebcamOn && !isScreenSharing && (
-                    <div className="flex flex-col items-center justify-center text-center p-3">
-                      <div className={`w-20 h-20 md:w-24 md:h-24 rounded-full p-1 relative transition-all duration-300 ${
-                        selectedFrame === 'frame-emerald'
-                          ? 'shadow-[0_0_0_3px_#10b981,0_0_15px_rgba(16,185,129,0.4)]'
-                          : selectedFrame === 'frame-neon'
-                          ? 'shadow-[0_0_0_3px_#a855f7,0_0_20px_rgba(168,85,247,0.6)]'
-                          : selectedFrame === 'frame-gold'
-                          ? 'shadow-[0_0_0_3px_#f59e0b,0_0_15px_rgba(245,158,11,0.5)]'
-                          : 'shadow-[0_0_0_3px_#06b6d4,0_0_15px_rgba(6,182,212,0.5)]'
-                      }`}>
-                        <img
-                          src={currentUserAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${avatarFilters[avatarFilterIndex].seed}`}
-                          alt="User Avatar"
-                          className="w-full h-full rounded-full bg-slate-900 object-cover"
-                        />
-                        <span className={`absolute bottom-0 right-0 w-6 h-6 border rounded-full flex items-center justify-center text-[10px] ${
-                          isMicOn
-                            ? 'bg-emerald-500 text-white border-white'
-                            : 'bg-slate-900 text-red-400 border-white/20'
-                        }`}>
-                          {isMicOn ? <Mic className="w-3 h-3" /> : <MicOff className="w-3 h-3" />}
-                        </span>
-                      </div>
-                      <span className="mt-2 text-xs font-semibold text-emerald-500 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/60 px-2.5 py-0.5 rounded-full">
-                        {avatarFilters[avatarFilterIndex].name}
-                      </span>
-                    </div>
-                  )}
-
-                  {tileBursts['user'] && (
-                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-5xl animate-bounce">
-                      {tileBursts['user']}
-                    </div>
-                  )}
-                </div>
-
-                {/* Bottom Overlay: User Name & Vibe */}
-                <div className="absolute bottom-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between pointer-events-none">
-                  <div className={`flex items-center gap-1.5 backdrop-blur-md border px-2 py-0.5 rounded-lg text-xs ${
-                    isLight ? 'bg-white/90 border-slate-200 text-slate-800' : 'bg-slate-950/80 border-white/10 text-white'
-                  }`}>
-                    <span className="font-bold">{myName}</span>
-                    <span className="text-[10px] text-emerald-500 font-mono font-bold bg-emerald-50 dark:bg-emerald-950/80 px-1 rounded">Lv.8</span>
-                    <span className="text-[10px] text-amber-500 font-semibold border-l border-slate-300 dark:border-white/10 pl-1.5">{userVibe}</span>
-                  </div>
-                  <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-950/90 border border-emerald-300 dark:border-emerald-700/60 px-2 py-0.5 rounded-md flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" /> LIVE
-                  </span>
-                </div>
-              </div>
-
-              {/* PEER TILES (REAL CONNECTED MEMBERS) */}
-              {otherMembers.slice(0, 5).map((member) => (
-                <div
-                  key={member.userId}
-                  className={`rounded-2xl border relative overflow-hidden flex flex-col justify-between p-3 group shadow-md transition-all ${
-                    isLight ? 'bg-white border-slate-200' : 'bg-[#131824]/90 border-white/10'
-                  }`}
-                >
-                  <div className={`absolute top-2.5 left-2.5 z-20 flex items-center gap-1.5 backdrop-blur-md border px-2.5 py-1 rounded-xl text-xs max-w-[85%] ${
-                    isLight ? 'bg-white/90 border-slate-200 text-slate-800' : 'bg-slate-950/80 border-white/10 text-slate-200'
-                  }`}>
-                    <span className="text-cyan-500 font-bold">🎯</span>
-                    <span className="truncate font-medium">{member.studyGoal || 'Đang tập trung học...'}</span>
-                  </div>
-
-                  <div className="absolute top-2.5 right-2.5 z-20 flex items-center gap-1 opacity-90 group-hover:opacity-100">
-                    <button
-                      type="button"
-                      onClick={() => sendTileFire(member.userName, `peer-${member.userId}`)}
-                      className="bg-amber-500/20 hover:bg-amber-500/40 text-amber-500 p-1.5 rounded-lg border border-amber-500/40 text-xs transition cursor-pointer"
-                      title="Tiếp lửa trực tiếp"
-                    >
-                      🔥
-                    </button>
+                return (
+                  <div className="w-full max-w-4xl h-full max-h-[72vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl relative border border-white/10 group">
+                    <ParticipantTile
+                      participant={spotlightTarget}
+                      isSelf={isTargetSelf}
+                      isPinned={true}
+                      isCompact={false}
+                      onTogglePin={(id) => togglePin(id)}
+                      onSendKudos={(id, emoji) => sendTileFire(spotlightTarget.name, id)}
+                    />
                     <button
                       type="button"
                       onClick={() => {
-                        setTileLayout('spotlight');
-                        setPinnedTileKey(member.userId);
+                        setLayoutSettings((prev) => ({ ...prev, mode: 'auto' }));
                       }}
-                      className={`p-1.5 rounded-lg border text-xs cursor-pointer ${
-                        isLight ? 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200' : 'bg-slate-900/80 hover:bg-slate-800 text-slate-300 border-white/10'
-                      }`}
-                      title="Ghim màn hình này"
+                      className="absolute top-4 right-4 z-30 bg-[#202124]/90 hover:bg-[#3c4043] text-white border border-white/20 px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 shadow-xl cursor-pointer"
                     >
-                      <Pin className="w-3.5 h-3.5" />
+                      <PinOff className="w-3.5 h-3.5" />
+                      <span>Thoát Tiêu Điểm</span>
                     </button>
                   </div>
-
-                  <div className={`w-full h-full flex items-center justify-center relative rounded-xl overflow-hidden ${
-                    isLight ? 'bg-slate-100' : 'bg-[#0d111a]'
-                  }`}>
-                    <div className="flex flex-col items-center justify-center text-center p-3">
-                      <div className="w-20 h-20 md:w-24 md:h-24 rounded-full p-1 relative shadow-[0_0_0_3px_#a855f7,0_0_20px_rgba(168,85,247,0.6)]">
-                        <img
-                          src={member.userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(member.userName)}`}
-                          alt={member.userName}
-                          className="w-full h-full rounded-full bg-slate-900 object-cover"
-                        />
-                        <span className="absolute bottom-0 right-0 w-6 h-6 bg-slate-900 border border-white/20 rounded-full flex items-center justify-center text-[10px] text-slate-400">
-                          <MicOff className="w-3 h-3" />
-                        </span>
-                      </div>
-                    </div>
-                    {tileBursts[`peer-${member.userId}`] && (
-                      <div className="absolute inset-0 pointer-events-none flex items-center justify-center text-5xl animate-bounce">
-                        {tileBursts[`peer-${member.userId}`]}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="absolute bottom-2.5 left-2.5 right-2.5 z-20 flex items-center justify-between pointer-events-none">
-                    <div className={`flex items-center gap-1.5 backdrop-blur-md border px-2 py-0.5 rounded-lg text-xs ${
-                      isLight ? 'bg-white/90 border-slate-200 text-slate-800' : 'bg-slate-950/80 border-white/10 text-slate-100'
-                    }`}>
-                      <span className="font-bold">{member.userName}</span>
-                      <span className="text-[10px] text-purple-500 font-mono font-bold bg-purple-50 dark:bg-purple-950/80 px-1 rounded">Lv.{member.level || 10}</span>
-                      <span className="text-[10px] text-cyan-600 dark:text-cyan-300 font-semibold border-l border-slate-200 dark:border-white/10 pl-1.5">{member.vibe || '🔥 Tập trung'}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-
-              {/* CLEAN WAITING DESKS (ZERO MOCK BOTS) */}
-              {Array.from({ length: remainingDesksCount }).map((_, index) => (
-                <div
-                  key={`empty-desk-${index}`}
-                  className={`border border-dashed rounded-2xl relative overflow-hidden flex flex-col items-center justify-center p-4 text-center group transition-all ${
-                    isLight
-                      ? 'bg-white/50 border-slate-300 hover:border-emerald-500 hover:bg-white/80'
-                      : 'bg-[#11151f]/50 border-white/10 hover:border-emerald-500/40 hover:bg-[#11151f]/80'
-                  }`}
-                >
-                  <div className={`w-14 h-14 rounded-full border flex items-center justify-center mb-2 group-hover:scale-105 transition-transform ${
-                    isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/5 border-white/10'
-                  }`}>
-                    <UserPlus className="w-6 h-6 text-slate-400 group-hover:text-emerald-500 transition-colors" />
-                  </div>
-                  <h4 className="text-xs font-bold text-slate-500 group-hover:text-slate-800 dark:group-hover:text-slate-200 transition-colors">
-                    Bàn chờ bạn học #{otherMembers.length + index + 2}
-                  </h4>
-                  <p className="text-[10px] text-slate-400 mt-0.5 max-w-[180px]">
-                    Sẵn sàng chào đón đồng đội mới vào cùng học
-                  </p>
-                  <button
-                    type="button"
-                    onClick={copyRoomLink}
-                    className="mt-3 px-3 py-1 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[11px] font-bold transition flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Copy className="w-3 h-3" />
-                    <span>+ Mời bạn học cùng</span>
-                  </button>
-                </div>
-              ))}
+                );
+              })()}
             </div>
-          ) : (
-            /* ================= SPOTLIGHT PINNED ================= */
-            <div className="w-full h-full flex gap-3">
-              <div className={`flex-1 h-full rounded-2xl border-2 relative overflow-hidden flex flex-col justify-between p-4 shadow-2xl ${
-                isLight ? 'bg-white border-emerald-500 shadow-slate-200' : 'bg-[#131824]/95 border-emerald-500/80'
-              }`}>
-                <div className={`w-full h-full flex items-center justify-center relative rounded-xl overflow-hidden ${
-                  isLight ? 'bg-slate-100' : 'bg-[#0d111a]'
-                }`}>
-                  {pinnedTileKey === 'user' ? (
-                    <>
-                      <video
-                        ref={webcamVideoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        className={`w-full h-full object-cover transform -scale-x-100 ${isWebcamOn ? 'block' : 'hidden'}`}
-                      />
-                      <video
-                        ref={screenShareVideoRef}
-                        autoPlay
-                        playsInline
-                        muted
-                        className={`w-full h-full object-contain ${isScreenSharing ? 'block' : 'hidden'}`}
-                      />
-                      {!isWebcamOn && !isScreenSharing && (
-                        <div className="flex flex-col items-center justify-center text-center p-6">
-                          <div className="w-32 h-32 rounded-full p-2 relative shadow-[0_0_0_3px_#10b981,0_0_20px_rgba(16,185,129,0.5)]">
-                            <img
-                              src={currentUserAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${avatarFilters[avatarFilterIndex].seed}`}
-                              alt="Pinned User"
-                              className="w-full h-full rounded-full bg-slate-900 object-cover"
-                            />
-                          </div>
-                          <h3 className={`text-base font-bold mt-3 ${isLight ? 'text-slate-900' : 'text-white'}`}>{myName}</h3>
-                          <span className="text-xs text-emerald-500 mt-1">{userTask}</span>
-                        </div>
-                      )}
-                    </>
-                  ) : (
-                    (() => {
-                      const peer = otherMembers.find((m) => m.userId === pinnedTileKey);
-                      return peer ? (
-                        <div className="flex flex-col items-center justify-center text-center p-6">
-                          <div className="w-32 h-32 rounded-full p-2 relative shadow-[0_0_0_3px_#a855f7,0_0_20px_rgba(168,85,247,0.5)]">
-                            <img
-                              src={peer.userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(peer.userName)}`}
-                              alt={peer.userName}
-                              className="w-full h-full rounded-full bg-slate-900 object-cover"
-                            />
-                          </div>
-                          <h3 className={`text-base font-bold mt-3 ${isLight ? 'text-slate-900' : 'text-white'}`}>{peer.userName}</h3>
-                          <span className="text-xs text-cyan-500 mt-1">{peer.studyGoal || 'Đang tập trung học...'}</span>
-                        </div>
-                      ) : null;
-                    })()
-                  )}
-                </div>
+          ) : layoutSettings.mode === 'sidebar' ? (
+            /* VIEW: SIDEBAR MODE (75% Spotlight Left + 25% Filmstrip Right) */
+            <div className="flex-1 flex overflow-hidden p-3 gap-3">
+              {/* Left Main Spotlight (75%) */}
+              <div className="flex-1 h-full flex items-center justify-center rounded-2xl overflow-hidden relative shadow-lg">
+                {(() => {
+                  const spotlightTarget =
+                    allSortedParticipants.find((p) => p.id === (spotlightUserId || pinnedIds[0])) ||
+                    allSortedParticipants[0];
 
-                <button
-                  type="button"
-                  onClick={() => setTileLayout('grid')}
-                  className={`absolute top-4 right-4 z-30 border px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 shadow-lg cursor-pointer font-bold ${
-                    isLight ? 'bg-white hover:bg-slate-100 text-slate-800 border-slate-300' : 'bg-slate-900/90 hover:bg-slate-800 text-slate-200 border-white/20'
-                  }`}
-                >
-                  <PinOff className="w-3.5 h-3.5" /> Bỏ ghim (Trở về Grid)
-                </button>
-              </div>
-
-              {/* Vertical Filmstrip */}
-              <div className="w-64 h-full flex flex-col gap-2 overflow-y-auto pr-1">
-                {pinnedTileKey !== 'user' && (
-                  <div
-                    onClick={() => setPinnedTileKey('user')}
-                    className={`p-2.5 rounded-xl border cursor-pointer transition flex items-center gap-2 ${
-                      isLight ? 'bg-white hover:bg-slate-100 border-slate-200' : 'bg-white/5 hover:bg-white/10 border-white/10'
-                    }`}
-                  >
-                    <div className="w-10 h-10 rounded-full bg-slate-800 overflow-hidden shrink-0">
-                      <img
-                        src={currentUserAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${avatarFilters[avatarFilterIndex].seed}`}
-                        alt="User"
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <h5 className={`text-xs font-bold truncate ${isLight ? 'text-slate-900' : 'text-white'}`}>{myName} (Bạn)</h5>
-                      <p className="text-[10px] text-emerald-500 truncate">{userTask}</p>
-                    </div>
-                  </div>
-                )}
-                {otherMembers.map((m) => {
-                  if (m.userId === pinnedTileKey) return null;
+                  if (!spotlightTarget) return null;
                   return (
-                    <div
-                      key={`filmstrip-${m.userId}`}
-                      onClick={() => setPinnedTileKey(m.userId)}
-                      className={`p-2.5 rounded-xl border cursor-pointer transition flex items-center gap-2 ${
-                        isLight ? 'bg-white hover:bg-slate-100 border-slate-200' : 'bg-white/5 hover:bg-white/10 border-white/10'
-                      }`}
-                    >
-                      <div className="w-10 h-10 rounded-full bg-slate-800 overflow-hidden shrink-0">
-                        <img
-                          src={m.userAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(m.userName)}`}
-                          alt={m.userName}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div className="min-w-0">
-                        <h5 className={`text-xs font-bold truncate ${isLight ? 'text-slate-900' : 'text-slate-200'}`}>{m.userName}</h5>
-                        <p className="text-[10px] text-slate-400 truncate">{m.studyGoal || 'Đang học tập'}</p>
-                      </div>
+                    <div className="w-full h-full max-h-[75vh] relative rounded-2xl overflow-hidden shadow-xl">
+                      <ParticipantTile
+                        participant={spotlightTarget}
+                        isSelf={spotlightTarget.id === myId}
+                        isPinned={isPinned(spotlightTarget.id)}
+                        isCompact={false}
+                        onTogglePin={(id) => togglePin(id)}
+                        onSendKudos={(id, emoji) => sendTileFire(spotlightTarget.name, id)}
+                      />
                     </div>
                   );
-                })}
+                })()}
+              </div>
+
+              {/* Right Vertical Filmstrip (25%) */}
+              <div className="w-64 sm:w-72 h-full flex flex-col gap-2 overflow-y-auto pr-1">
+                {allSortedParticipants
+                  .filter((p) => p.id !== (spotlightUserId || pinnedIds[0] || allSortedParticipants[0]?.id))
+                  .slice(0, 15)
+                  .map((p) => (
+                    <div
+                      key={`filmstrip-${p.id}`}
+                      className="h-36 shrink-0 relative cursor-pointer"
+                      onClick={() => setSpotlightUserId(p.id)}
+                    >
+                      <ParticipantTile
+                        participant={p}
+                        isSelf={p.id === myId}
+                        isPinned={isPinned(p.id)}
+                        isCompact={true}
+                        onTogglePin={(id) => togglePin(id)}
+                        onSendKudos={(id, emoji) => sendTileFire(p.name, id)}
+                        onTileClick={() => setSpotlightUserId(p.id)}
+                      />
+                    </div>
+                  ))}
+              </div>
+            </div>
+          ) : (
+            /* VIEW: AUTO / TILED 16:9 GRID WITH OVERFLOW TILE */
+            <div
+              ref={stageContainerRef}
+              className="flex-1 w-full h-full flex items-center justify-center p-2 sm:p-4 overflow-hidden"
+            >
+              <div
+                style={meetGridStyle}
+                className="transition-all duration-300 w-full h-full"
+              >
+                {visibleParticipants.map((participant) => (
+                  <ParticipantTile
+                    key={participant.id}
+                    participant={participant}
+                    isSelf={participant.id === myId}
+                    isPinned={isPinned(participant.id)}
+                    isCompact={isMeetCompact || layoutSettings.maxTiles >= 30}
+                    onTogglePin={(id) => togglePin(id)}
+                    onSendKudos={(id, emoji) => sendTileFire(participant.name, id)}
+                    onTileClick={(p) => {
+                      setSpotlightUserId(p.id);
+                    }}
+                  />
+                ))}
+
+                {hasOverflow && (
+                  <OverflowTile
+                    count={overflowCount}
+                    previewAvatars={overflowPreviewAvatars}
+                    isCompact={isMeetCompact || layoutSettings.maxTiles >= 30}
+                    onClick={() => {
+                      setIsDrawerOpen(true);
+                      setActiveDrawerTab('members');
+                    }}
+                  />
+                )}
               </div>
             </div>
           )}
         </div>
-        )}
-
         {/* ========================================================= */}
-        {/* 3. RIGHT DRAWER: CHAT, REAL TASKS, LEADERBOARD            */}
+        {/* 3. RIGHT DRAWER: MEMBERS (120+), CHAT, TASKS, RANK       */}
         {/* ========================================================= */}
         {isDrawerOpen && (
-          <aside className={`w-80 md:w-85 h-full border rounded-2xl flex flex-col overflow-hidden transition-all duration-300 z-20 shrink-0 shadow-xl ${
-            isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#11151f] border-white/10 text-white'
+          <aside className={`w-80 md:w-88 h-full border-l flex flex-col overflow-hidden transition-all duration-300 z-30 shrink-0 shadow-2xl ${
+            isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#181a1d] border-white/10 text-white'
           }`}>
             {/* Header Tabs */}
-            <div className={`flex border-b p-1 gap-1 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#0d111a] border-white/10'}`}>
+            <div className={`flex items-center justify-between border-b p-2 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#1e2023] border-white/10'}`}>
+              <div className="flex gap-1 overflow-x-auto no-scrollbar">
+                <button
+                  type="button"
+                  onClick={() => setActiveDrawerTab('members')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer ${
+                    activeDrawerTab === 'members'
+                      ? (isLight ? 'text-emerald-700 bg-white shadow-xs' : 'text-emerald-400 bg-white/10')
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" /> Thành viên ({allSortedParticipants.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveDrawerTab('chat')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer ${
+                    activeDrawerTab === 'chat'
+                      ? (isLight ? 'text-emerald-700 bg-white shadow-xs' : 'text-emerald-400 bg-white/10')
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <MessageSquare className="w-3.5 h-3.5" /> Chat
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveDrawerTab('tasks')}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-xl transition flex items-center gap-1.5 cursor-pointer ${
+                    activeDrawerTab === 'tasks'
+                      ? (isLight ? 'text-emerald-700 bg-white shadow-xs' : 'text-emerald-400 bg-white/10')
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <CheckSquare className="w-3.5 h-3.5" /> Mục tiêu
+                </button>
+              </div>
+
               <button
                 type="button"
-                onClick={() => setActiveDrawerTab('chat')}
-                className={`flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                  activeDrawerTab === 'chat'
-                    ? (isLight ? 'text-emerald-700 bg-white shadow-xs' : 'text-emerald-400 bg-white/10')
-                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
-                }`}
+                onClick={() => setIsDrawerOpen(false)}
+                className="p-1.5 rounded-lg opacity-50 hover:opacity-100 hover:bg-white/10 cursor-pointer"
+                title="Đóng bảng"
               >
-                <MessageSquare className="w-3.5 h-3.5" /> Chat
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveDrawerTab('tasks')}
-                className={`flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                  activeDrawerTab === 'tasks'
-                    ? (isLight ? 'text-emerald-700 bg-white shadow-xs' : 'text-emerald-400 bg-white/10')
-                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
-                }`}
-              >
-                <CheckSquare className="w-3.5 h-3.5" /> Mục tiêu
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveDrawerTab('rank')}
-                className={`flex-1 py-2 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer ${
-                  activeDrawerTab === 'rank'
-                    ? (isLight ? 'text-emerald-700 bg-white shadow-xs' : 'text-emerald-400 bg-white/10')
-                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
-                }`}
-              >
-                <Trophy className="w-3.5 h-3.5" /> BXH
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* TAB 1: SMART BREAK CHAT (Focus Shield & 5s Slow Mode) */}
+            {/* TAB 1: MEMBERS ROSTER (WITH SEARCH) */}
+            {activeDrawerTab === 'members' && (
+              <div className="flex-1 flex flex-col p-3 overflow-hidden">
+                <div className="relative mb-3">
+                  <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    value={memberSearchQuery}
+                    onChange={(e) => setMemberSearchQuery(e.target.value)}
+                    placeholder="Tìm theo tên học viên..."
+                    className={`w-full text-xs pl-8 pr-3 py-2 rounded-xl border focus:outline-none transition ${
+                      isLight
+                        ? 'bg-slate-50 border-slate-200 text-slate-800 focus:border-emerald-500'
+                        : 'bg-white/5 border-white/10 text-white focus:border-emerald-500'
+                    }`}
+                  />
+                </div>
+
+                <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+                  {allSortedParticipants
+                    .filter((p) =>
+                      !memberSearchQuery ||
+                      p.name.toLowerCase().includes(memberSearchQuery.toLowerCase()) ||
+                      (p.goal && p.goal.toLowerCase().includes(memberSearchQuery.toLowerCase()))
+                    )
+                    .map((p) => {
+                      const isSelf = p.id === myId;
+                      const pinned = isPinned(p.id);
+                      return (
+                        <div
+                          key={`member-${p.id}`}
+                          className={`p-2 rounded-xl border flex items-center justify-between gap-2.5 transition ${
+                            isLight
+                              ? 'bg-slate-50 hover:bg-slate-100 border-slate-200'
+                              : 'bg-white/5 hover:bg-white/10 border-white/5'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <img
+                              src={p.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${p.id}`}
+                              alt={p.name}
+                              className="w-8 h-8 rounded-full bg-slate-800 shrink-0 object-cover ring-1 ring-white/10"
+                            />
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-bold truncate">
+                                  {p.name} {isSelf && '(Bạn)'}
+                                </span>
+                                {(p.streak || p.streakDays) && (
+                                  <span className="text-[10px] text-amber-500 font-bold shrink-0">
+                                    🔥{p.streak || p.streakDays}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-slate-400 truncate">
+                                {p.goal || p.studyGoal || 'Đang tập trung học...'}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => sendTileFire(p.name, p.id)}
+                              className="p-1 rounded-lg hover:bg-amber-500/20 text-amber-500 text-xs transition cursor-pointer"
+                              title="Tiếp lửa"
+                            >
+                              🔥
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => togglePin(p.id)}
+                              className={`p-1 rounded-lg text-xs transition cursor-pointer ${
+                                pinned
+                                  ? 'text-cyan-400 bg-cyan-500/20'
+                                  : 'text-slate-400 hover:text-white hover:bg-white/10'
+                              }`}
+                              title={pinned ? 'Bỏ ghim' : 'Ghim'}
+                            >
+                              <Pin className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: SMART BREAK CHAT */}
             {activeDrawerTab === 'chat' && (
               <div className="flex-1 overflow-hidden p-2">
                 <SmartBreakChat
@@ -1693,29 +1562,13 @@ export function StudyRoomView({
                       },
                     ]);
                   }}
-                  onSendKudos={(emoji) => {
-                    if (socketRef.current) {
-                      socketRef.current.emit('room:kudos', {
-                        roomId: room.id,
-                        userId: myId,
-                        emoji,
-                      });
-                    }
-                    setFloatingEmojis((prev) => [
-                      ...prev.slice(-20),
-                      {
-                        id: `kudos_${Date.now()}_${Math.random()}`,
-                        emoji,
-                        x: Math.random() * 80 + 10,
-                      },
-                    ]);
-                  }}
+                  onSendKudos={(emoji) => triggerBatchKudos(emoji)}
                   isLight={isLight}
                 />
               </div>
             )}
 
-            {/* TAB 2: REAL TASKS (RULE OF 3 FROM DB) */}
+            {/* TAB 3: TASKS (RULE OF 3) */}
             {activeDrawerTab === 'tasks' && (
               <div className="flex-1 flex flex-col p-3 overflow-hidden">
                 <div className={`flex items-center justify-between border-b pb-2 mb-3 ${
@@ -1732,522 +1585,221 @@ export function StudyRoomView({
                     type="text"
                     value={newTaskInput}
                     onChange={(e) => setNewTaskInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') handleAddRealTask();
-                    }}
-                    placeholder="Thêm việc cần làm hôm nay..."
-                    className={`flex-1 border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-emerald-500 ${
-                      isLight ? 'bg-slate-100 border-slate-200 text-slate-900 placeholder:text-slate-400' : 'bg-white/5 border-white/10 text-white placeholder:text-slate-500'
+                    onKeyDown={(e) => e.key === 'Enter' && handleAddRealTask()}
+                    placeholder="Thêm mục tiêu mới..."
+                    className={`flex-1 text-xs px-3 py-1.5 rounded-xl border focus:outline-none transition ${
+                      isLight ? 'bg-slate-50 border-slate-200 text-slate-800' : 'bg-white/5 border-white/10 text-white'
                     }`}
                   />
                   <button
                     type="button"
                     onClick={handleAddRealTask}
-                    className="bg-emerald-500 text-slate-950 font-bold px-3 py-2 rounded-xl text-xs hover:bg-emerald-400 cursor-pointer"
+                    className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer"
                   >
-                    <Plus className="w-3.5 h-3.5" />
+                    +
                   </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-                  {roomTasks.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-slate-400">
-                      Chưa có mục tiêu nào hôm nay. Hãy thêm mục tiêu ở trên để tập trung tối đa!
-                    </div>
-                  ) : (
-                    roomTasks.map((t) => {
-                      const isDone = t.status === 'Hoàn thành' || t.status === 'Done';
-                      return (
-                        <div
-                          key={t.id}
-                          className={`flex items-center justify-between p-2.5 rounded-xl border text-xs transition cursor-pointer ${
-                            isDone
-                              ? (isLight ? 'bg-emerald-50/80 border-emerald-200 text-slate-400 line-through' : 'bg-emerald-950/30 border-emerald-800/40 text-slate-400 line-through')
-                              : (isLight ? 'bg-slate-50 border-slate-200 hover:bg-slate-100' : 'bg-white/5 border-white/10 hover:bg-white/10')
-                          }`}
-                          onClick={() => handleToggleRealTask(t)}
-                        >
-                          <div className="flex items-center gap-2 flex-1">
-                            <div className={`w-4 h-4 rounded border flex items-center justify-center ${
-                              isDone ? 'bg-emerald-500 border-emerald-500 text-white text-[10px]' : 'border-slate-400'
-                            }`}>
-                              {isDone && <Check className="w-3 h-3" />}
-                            </div>
-                            <span className="truncate">{t.title}</span>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* TAB 3: LEADERBOARD & FRAME CUSTOMIZER */}
-            {activeDrawerTab === 'rank' && (
-              <div className="flex-1 flex flex-col p-3 overflow-y-auto space-y-4">
-                <div>
-                  <h4 className="text-xs font-bold mb-2 flex items-center gap-1.5">
-                    <Trophy className="w-3.5 h-3.5 text-amber-500" /> BẢNG XẾP HẠNG PHÒNG HỌC
-                  </h4>
-                  <div className="space-y-1.5 text-xs">
-                    <div className={`flex items-center justify-between p-2.5 rounded-xl border font-bold ${
-                      isLight ? 'bg-emerald-50 border-emerald-300 text-emerald-800' : 'bg-emerald-950/60 border-emerald-500/40 text-emerald-400'
-                    }`}>
-                      <span>1. {myName} (Bạn)</span>
-                      <span className="font-mono">{userXP} XP</span>
-                    </div>
-                    {otherMembers.map((m, idx) => (
+                <div className="flex-1 overflow-y-auto space-y-2">
+                  {roomTasks.map((task) => {
+                    const isDone = task.status === 'Hoàn thành' || task.status === 'Done';
+                    return (
                       <div
-                        key={m.userId}
-                        className={`flex items-center justify-between p-2.5 rounded-xl border ${
-                          isLight ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/5'
+                        key={task.id}
+                        onClick={() => handleToggleRealTask(task)}
+                        className={`p-2.5 rounded-xl border flex items-center justify-between cursor-pointer transition ${
+                          isDone
+                            ? (isLight ? 'bg-emerald-50 border-emerald-200 opacity-60' : 'bg-emerald-950/20 border-emerald-500/20 opacity-60')
+                            : (isLight ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/10')
                         }`}
                       >
-                        <span className="font-bold">{idx + 2}. {m.userName}</span>
-                        <span className="font-mono text-slate-400">{3000 - idx * 250} XP</span>
+                        <div className="flex items-center gap-2">
+                          {isDone ? <CheckSquare className="w-4 h-4 text-emerald-500" /> : <Square className="w-4 h-4 text-slate-400" />}
+                          <span className={`text-xs ${isDone ? 'line-through text-slate-400' : ''}`}>{task.title}</span>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div className={`border-t pt-3 ${isLight ? 'border-slate-200' : 'border-white/10'}`}>
-                  <h4 className="text-xs font-bold mb-2 flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-purple-500" /> KHUNG VIỀN AVATAR
-                  </h4>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    {[
-                      { key: 'frame-emerald', name: 'Lục Bảo Focus', color: 'border-emerald-500 text-emerald-500' },
-                      { key: 'frame-neon', name: 'Neon Cực Quang', color: 'border-purple-500 text-purple-500' },
-                      { key: 'frame-gold', name: 'Hoàng Gia Gold', color: 'border-amber-500 text-amber-500' },
-                      { key: 'frame-cyber', name: 'Cyberpunk 2077', color: 'border-cyan-500 text-cyan-500' }
-                    ].map((f) => (
-                      <button
-                        key={f.key}
-                        type="button"
-                        onClick={() => equipFrame(f.key)}
-                        className={`p-2 rounded-xl text-left transition cursor-pointer border ${
-                          selectedFrame === f.key
-                            ? `${f.color} ${isLight ? 'bg-slate-100 font-bold' : 'bg-white/10 font-bold'}`
-                            : (isLight ? 'bg-slate-50 border-slate-200 hover:border-slate-400' : 'bg-white/5 border-white/10 hover:border-white/20')
-                        }`}
-                      >
-                        <span className="block font-bold truncate">{f.name}</span>
-                        <span className="text-[10px] text-slate-400">
-                          {selectedFrame === f.key ? 'Đã trang bị' : 'Chọn dùng'}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
           </aside>
         )}
-        </div>
       </main>
 
       {/* ========================================================= */}
-      {/* 4. BOTTOM CONTROL DOCK (h-18)                             */}
+      {/* 4. BOTTOM DOCK: GOOGLE MEET CONTROL BAR (#202124 h-76px)   */}
       {/* ========================================================= */}
-      <footer
-        className={`h-18 px-4 md:px-6 flex items-center justify-between border-t z-30 shrink-0 transition-all duration-300 ${
-          isLight ? 'bg-white/95 border-slate-200/90 shadow-lg' : 'bg-[#090b10] border-white/10'
-        } ${zenMode ? 'translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}`}
-      >
-        {/* Left: Clock & Quick Vibe */}
-        <div className="hidden sm:flex items-center gap-3">
-          <span className="font-mono text-sm font-bold opacity-75">{clockDisplay}</span>
-          <div className={`h-4 w-px ${isLight ? 'bg-slate-200' : 'bg-white/10'}`} />
-          <select
-            value={userVibe}
-            onChange={(e) => {
-              setUserVibe(e.target.value);
-              toast.info(`Trạng thái: ${e.target.value}`);
-            }}
-            className={`border text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 cursor-pointer ${
-              isLight ? 'bg-slate-100 border-slate-200 text-slate-800' : 'bg-white/5 border-white/10 text-slate-200'
-            }`}
-          >
-            <option value="🔥 Đang Focus">🔥 Đang Focus</option>
-            <option value="☕ Giải lao 5p">☕ Giải lao 5p</option>
-            <option value="🎧 Nghe nhạc Lofi">🎧 Nghe nhạc Lofi</option>
-            <option value="🤫 Im lặng tuyệt đối">🤫 Im lặng tuyệt đối</option>
-            <option value="🆘 Cứu nét bài tập">🆘 Cứu nét bài tập</option>
-          </select>
-        </div>
+      {!zenMode && (
+        <BottomControlBar
+          roomName={room.name || 'Phòng Học Chung'}
+          onlineCount={collectiveEnergy.activeCount}
+          userGoal={userTask}
+          pomodoro={{
+            phase: pomodoroPhase,
+            timeFormatted: formatPomodoroTime(pomodoroLeft),
+            isRunning: isPomodoroRunning,
+          }}
+          unreadChatCount={realtimeChatMessages.length}
+          isDrawerOpen={isDrawerOpen}
+          activeDrawerTab={activeDrawerTab === 'chat' ? 'chat' : 'members'}
+          isLight={isLight}
+          isFullscreen={isFullscreen}
+          onTogglePlayPomodoro={togglePomoTimer}
+          onResetPomodoro={resetPomoTimer}
+          onEditGoalClick={editUserTask}
+          onOpenAmbientMusic={() => setIsSoundPopoverOpen((prev) => !prev)}
+          onSendKudosClick={() => triggerBatchKudos('🔥')}
+          onOpenLayoutSettings={() => setIsLayoutModalOpen(true)}
+          onLeaveRoomClick={() => setShowSummaryModal(true)}
+          onToggleDrawer={(tab) => {
+            if (isDrawerOpen && activeDrawerTab === tab) {
+              setIsDrawerOpen(false);
+            } else {
+              setIsDrawerOpen(true);
+              setActiveDrawerTab(tab);
+            }
+          }}
+          onToggleTheme={toggleThemeMode}
+          onToggleFullscreen={toggleFullscreen}
+        />
+      )}
 
-        {/* Center: Main Meet Buttons */}
-        <div className="flex items-center gap-2 md:gap-3 mx-auto sm:mx-0">
-          <button
-            type="button"
-            onClick={toggleDockMic}
-            className={`w-11 h-11 rounded-full flex items-center justify-center transition shadow cursor-pointer border ${
-              isMicOn
-                ? 'bg-emerald-500 hover:bg-emerald-400 text-white border-emerald-400'
-                : 'bg-red-500/20 hover:bg-red-500/30 border-red-500/50 text-red-500'
-            }`}
-            title="Bật/Tắt Micro"
-          >
-            {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-          </button>
-
-          <button
-            type="button"
-            onClick={toggleDockCam}
-            className={`w-11 h-11 rounded-full flex items-center justify-center transition shadow cursor-pointer border ${
-              isWebcamOn
-                ? 'bg-emerald-500 hover:bg-emerald-400 text-white border-emerald-400'
-                : (isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700' : 'bg-white/10 hover:bg-white/20 border-white/10 text-slate-200')
-            }`}
-            title="Bật/Tắt Camera"
-          >
-            {isWebcamOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
-          </button>
-
-          <button
-            type="button"
-            onClick={cycleAvatarFilter}
-            className={`w-11 h-11 rounded-full flex items-center justify-center transition shadow cursor-pointer border text-purple-500 ${
-              isLight ? 'bg-purple-50 hover:bg-purple-100 border-purple-200' : 'bg-white/10 hover:bg-white/20 border-white/10'
-            }`}
-            title="Đổi Filter Avatar"
-          >
-            <Sparkles className="w-5 h-5" />
-          </button>
-
-          <button
-            type="button"
-            onClick={toggleScreenShare}
-            className={`w-11 h-11 rounded-full flex items-center justify-center transition shadow cursor-pointer border ${
-              isScreenSharing
-                ? 'bg-emerald-500 text-white border-emerald-400'
-                : (isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-emerald-600' : 'bg-white/10 hover:bg-white/20 border-white/10 text-emerald-400')
-            }`}
-            title="Chia sẻ màn hình"
-          >
-            <Monitor className="w-5 h-5" />
-          </button>
-
-          {/* Ambient Sound Popover */}
-          <div className="relative">
+      {/* AMBIENT SOUND POPOVER */}
+      {isSoundPopoverOpen && (
+        <div className={`fixed bottom-22 left-1/2 -translate-x-1/2 w-80 rounded-2xl p-4 border shadow-2xl z-50 flex flex-col gap-3 animate-in fade-in zoom-in-95 duration-150 ${
+          isLight ? 'bg-white/95 border-slate-200 text-slate-800' : 'bg-[#181a1d]/95 border-white/10 text-white backdrop-blur-xl'
+        }`}>
+          <div className={`flex justify-between items-center border-b pb-2 ${isLight ? 'border-slate-200' : 'border-white/10'}`}>
+            <span className="text-xs font-bold flex items-center gap-2 text-cyan-400">
+              <Sliders className="w-4 h-4" /> ÂM THANH NỀN TẬP TRUNG
+            </span>
             <button
               type="button"
-              onClick={() => setIsSoundPopoverOpen((prev) => !prev)}
-              className={`w-11 h-11 rounded-full flex items-center justify-center transition shadow cursor-pointer border text-cyan-500 ${
-                isLight ? 'bg-cyan-50 hover:bg-cyan-100 border-cyan-200' : 'bg-white/10 hover:bg-white/20 border-white/10'
-              }`}
-              title="Âm thanh nền Lofi/Mưa"
+              onClick={() => setIsSoundPopoverOpen(false)}
+              className="opacity-50 hover:opacity-100 cursor-pointer p-1"
             >
-              <Headphones className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
-
-            {isSoundPopoverOpen && (
-              <div className={`absolute bottom-14 left-1/2 -translate-x-1/2 w-72 rounded-2xl p-3 border shadow-2xl z-50 flex flex-col gap-2.5 ${
-                isLight ? 'bg-white/95 border-slate-200 text-slate-800' : 'bg-[#11151f]/95 border-white/10 text-white'
-              }`}>
-                <div className={`flex justify-between items-center border-b pb-1.5 ${isLight ? 'border-slate-200' : 'border-white/10'}`}>
-                  <span className="text-xs font-bold flex items-center gap-1.5 text-cyan-500">
-                    <Sliders className="w-3.5 h-3.5" /> ÂM THANH NỀN LOFI
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setIsSoundPopoverOpen(false)}
-                    className="opacity-50 hover:opacity-100 cursor-pointer"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-
-                {/* Rain */}
-                <div className="flex flex-col gap-1 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span>🌧️ Mưa rơi</span>
-                    <button
-                      type="button"
-                      onClick={() => toggleSoundSynth('rain')}
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer ${
-                        synthStates.rain.active
-                          ? 'bg-emerald-500 text-white'
-                          : (isLight ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-slate-400')
-                      }`}
-                    >
-                      {synthStates.rain.active ? 'BẬT' : 'TẮT'}
-                    </button>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value={synthStates.rain.vol}
-                    onChange={(e) => updateSoundVol('rain', parseFloat(e.target.value))}
-                    className="w-full accent-emerald-500 h-1 rounded cursor-pointer"
-                  />
-                </div>
-
-                {/* Keyboard */}
-                <div className="flex flex-col gap-1 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span>⌨️ Phím cơ</span>
-                    <button
-                      type="button"
-                      onClick={() => toggleSoundSynth('keyboard')}
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer ${
-                        synthStates.keyboard.active
-                          ? 'bg-emerald-500 text-white'
-                          : (isLight ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-slate-400')
-                      }`}
-                    >
-                      {synthStates.keyboard.active ? 'BẬT' : 'TẮT'}
-                    </button>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value={synthStates.keyboard.vol}
-                    onChange={(e) => updateSoundVol('keyboard', parseFloat(e.target.value))}
-                    className="w-full accent-emerald-500 h-1 rounded cursor-pointer"
-                  />
-                </div>
-
-                {/* Cafe */}
-                <div className="flex flex-col gap-1 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span>☕ Quán Cafe</span>
-                    <button
-                      type="button"
-                      onClick={() => toggleSoundSynth('cafe')}
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer ${
-                        synthStates.cafe.active
-                          ? 'bg-emerald-500 text-white'
-                          : (isLight ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-slate-400')
-                      }`}
-                    >
-                      {synthStates.cafe.active ? 'BẬT' : 'TẮT'}
-                    </button>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value={synthStates.cafe.vol}
-                    onChange={(e) => updateSoundVol('cafe', parseFloat(e.target.value))}
-                    className="w-full accent-emerald-500 h-1 rounded cursor-pointer"
-                  />
-                </div>
-
-                {/* Lofi */}
-                <div className="flex flex-col gap-1 text-xs">
-                  <div className="flex justify-between items-center">
-                    <span>🎵 Lofi Chord Synth</span>
-                    <button
-                      type="button"
-                      onClick={() => toggleSoundSynth('lofi')}
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded cursor-pointer ${
-                        synthStates.lofi.active
-                          ? 'bg-emerald-500 text-white'
-                          : (isLight ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-slate-400')
-                      }`}
-                    >
-                      {synthStates.lofi.active ? 'BẬT' : 'TẮT'}
-                    </button>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value={synthStates.lofi.vol}
-                    onChange={(e) => updateSoundVol('lofi', parseFloat(e.target.value))}
-                    className="w-full accent-emerald-500 h-1 rounded cursor-pointer"
-                  />
-                </div>
-              </div>
-            )}
           </div>
 
-          {/* Reactions */}
-          <div className={`hidden md:flex items-center gap-1 border px-2 py-1 rounded-full ${
-            isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/5 border-white/10'
-          }`}>
-            {['🔥', '💖', '👏', '😭', '🧠'].map((em) => (
+          {/* Rain */}
+          <div className="flex flex-col gap-1 text-xs">
+            <div className="flex justify-between items-center">
+              <span>🌧️ Mưa rơi nhẹ</span>
               <button
-                key={em}
                 type="button"
-                onClick={() => shootFloatingEmoji(em)}
-                className="p-1.5 hover:scale-125 transition text-base cursor-pointer"
+                onClick={() => toggleSoundSynth('rain')}
+                className={`text-[10px] font-bold px-2.5 py-1 rounded-lg cursor-pointer transition ${
+                  synthStates.rain.active
+                    ? 'bg-emerald-500 text-white shadow-xs'
+                    : (isLight ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-slate-400')
+                }`}
               >
-                {em}
+                {synthStates.rain.active ? 'BẬT' : 'TẮT'}
               </button>
-            ))}
-            <button
-              type="button"
-              onClick={handleRaiseHand}
-              className="p-1.5 hover:scale-125 transition text-xs font-bold text-amber-500 cursor-pointer"
-              title="Giơ tay phát biểu"
-            >
-              ✋
-            </button>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={synthStates.rain.vol}
+              onChange={(e) => updateSoundVol('rain', parseFloat(e.target.value))}
+              className="w-full accent-emerald-500 h-1.5 rounded cursor-pointer"
+            />
           </div>
 
-          {/* Red Leave Button */}
-          <button
-            type="button"
-            onClick={() => setShowSummaryModal(true)}
-            className="w-14 h-11 rounded-full bg-red-600 hover:bg-red-500 text-white flex items-center justify-center transition shadow-lg shadow-red-600/30 ml-2 cursor-pointer"
-            title="Rời phòng tự học"
-          >
-            <PhoneOff className="w-5 h-5" />
-          </button>
+          {/* Keyboard */}
+          <div className="flex flex-col gap-1 text-xs">
+            <div className="flex justify-between items-center">
+              <span>⌨️ Tiếng phím cơ</span>
+              <button
+                type="button"
+                onClick={() => toggleSoundSynth('keyboard')}
+                className={`text-[10px] font-bold px-2.5 py-1 rounded-lg cursor-pointer transition ${
+                  synthStates.keyboard.active
+                    ? 'bg-emerald-500 text-white shadow-xs'
+                    : (isLight ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-slate-400')
+                }`}
+              >
+                {synthStates.keyboard.active ? 'BẬT' : 'TẮT'}
+              </button>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={synthStates.keyboard.vol}
+              onChange={(e) => updateSoundVol('keyboard', parseFloat(e.target.value))}
+              className="w-full accent-emerald-500 h-1.5 rounded cursor-pointer"
+            />
+          </div>
+
+          {/* Cafe */}
+          <div className="flex flex-col gap-1 text-xs">
+            <div className="flex justify-between items-center">
+              <span>☕ Không gian quán Cafe</span>
+              <button
+                type="button"
+                onClick={() => toggleSoundSynth('cafe')}
+                className={`text-[10px] font-bold px-2.5 py-1 rounded-lg cursor-pointer transition ${
+                  synthStates.cafe.active
+                    ? 'bg-emerald-500 text-white shadow-xs'
+                    : (isLight ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-slate-400')
+                }`}
+              >
+                {synthStates.cafe.active ? 'BẬT' : 'TẮT'}
+              </button>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={synthStates.cafe.vol}
+              onChange={(e) => updateSoundVol('cafe', parseFloat(e.target.value))}
+              className="w-full accent-emerald-500 h-1.5 rounded cursor-pointer"
+            />
+          </div>
+
+          {/* Lofi */}
+          <div className="flex flex-col gap-1 text-xs">
+            <div className="flex justify-between items-center">
+              <span>🎵 Giai điệu Lo-Fi Chill</span>
+              <button
+                type="button"
+                onClick={() => toggleSoundSynth('lofi')}
+                className={`text-[10px] font-bold px-2.5 py-1 rounded-lg cursor-pointer transition ${
+                  synthStates.lofi.active
+                    ? 'bg-emerald-500 text-white shadow-xs'
+                    : (isLight ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-slate-400')
+                }`}
+              >
+                {synthStates.lofi.active ? 'BẬT' : 'TẮT'}
+              </button>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={synthStates.lofi.vol}
+              onChange={(e) => updateSoundVol('lofi', parseFloat(e.target.value))}
+              className="w-full accent-emerald-500 h-1.5 rounded cursor-pointer"
+            />
+          </div>
         </div>
+      )}
 
-        {/* Right: Bố cục, Zen Mode & Drawer Toggles */}
-        <div className="flex items-center gap-2">
-          {/* Switcher: Đại Sảnh (100+) vs Bàn Học Cam */}
-          <div className={`hidden sm:flex items-center rounded-xl p-0.5 border text-xs ${
-            isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/5 border-white/10'
-          }`}>
-            <button
-              type="button"
-              onClick={() => setViewMode('hall')}
-              className={`px-2.5 py-1.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                viewMode === 'hall'
-                  ? 'bg-emerald-500 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
-              }`}
-              title="Đại sảnh thư viện 100+ người"
-            >
-              <Users className="w-3.5 h-3.5" />
-              <span>Đại Sảnh (100+)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('desk')}
-              className={`px-2.5 py-1.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1.5 ${
-                viewMode === 'desk'
-                  ? 'bg-emerald-500 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
-              }`}
-              title="Bàn học cá nhân (Webcam/Spotlight)"
-            >
-              <Video className="w-3.5 h-3.5" />
-              <span>Bàn Học Cam</span>
-            </button>
-          </div>
-
-          {/* Bố cục: Lưới 3x2 vs Ghim Spotlight (Khi ở Bàn Học Cam) */}
-          {viewMode === 'desk' && (
-          <div className={`hidden sm:flex items-center rounded-xl p-0.5 border text-xs ${
-            isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/5 border-white/10'
-          }`}>
-            <button
-              type="button"
-              onClick={() => setTileLayout('grid')}
-              className={`p-2 rounded-lg transition cursor-pointer ${
-                tileLayout === 'grid'
-                  ? 'bg-emerald-500 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
-              }`}
-              title="Bố cục Lưới (Grid)"
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setTileLayout('spotlight');
-                setPinnedTileKey('user');
-              }}
-              className={`p-2 rounded-lg transition cursor-pointer ${
-                tileLayout === 'spotlight'
-                  ? 'bg-emerald-500 text-white shadow-xs'
-                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-white'
-              }`}
-              title="Ghim màn hình chính (Spotlight)"
-            >
-              <Maximize2 className="w-4 h-4" />
-            </button>
-          </div>
-          )}
-
-          {/* Zen Mode Button */}
-          <button
-            type="button"
-            onClick={() => setZenMode(true)}
-            className={`w-10 h-10 rounded-xl flex items-center justify-center transition cursor-pointer border ${
-              isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700' : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300'
-            }`}
-            title="Zen Mode (Ẩn thanh công cụ)"
-          >
-            <EyeOff className="w-4 h-4" />
-          </button>
-
-          {/* Divider */}
-          <div className={`h-5 w-px ${isLight ? 'bg-slate-200' : 'bg-white/10'}`} />
-
-          <button
-            type="button"
-            onClick={() => {
-              if (activeDrawerTab === 'chat' && isDrawerOpen) setIsDrawerOpen(false);
-              else {
-                setIsDrawerOpen(true);
-                setActiveDrawerTab('chat');
-              }
-            }}
-            className={`w-10 h-10 rounded-xl flex items-center justify-center transition relative cursor-pointer border ${
-              isDrawerOpen && activeDrawerTab === 'chat'
-                ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/40'
-                : (isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700' : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300')
-            }`}
-            title="Mở Chat"
-          >
-            <MessageSquare className="w-4 h-4" />
-            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500" />
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (activeDrawerTab === 'tasks' && isDrawerOpen) setIsDrawerOpen(false);
-              else {
-                setIsDrawerOpen(true);
-                setActiveDrawerTab('tasks');
-              }
-            }}
-            className={`w-10 h-10 rounded-xl flex items-center justify-center transition cursor-pointer border ${
-              isDrawerOpen && activeDrawerTab === 'tasks'
-                ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/40'
-                : (isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700' : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300')
-            }`}
-            title="Mục tiêu Rule of 3"
-          >
-            <CheckSquare className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (activeDrawerTab === 'rank' && isDrawerOpen) setIsDrawerOpen(false);
-              else {
-                setIsDrawerOpen(true);
-                setActiveDrawerTab('rank');
-              }
-            }}
-            className={`w-10 h-10 rounded-xl flex items-center justify-center transition cursor-pointer border ${
-              isDrawerOpen && activeDrawerTab === 'rank'
-                ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/40'
-                : (isLight ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700' : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-300')
-            }`}
-            title="Bảng Xếp Hạng"
-          >
-            <Trophy className="w-4 h-4 text-amber-500" />
-          </button>
-        </div>
-      </footer>
-
-      {/* ========================================================= */}
+      {/* MODAL: GOOGLE MEET LAYOUT SETTINGS */}
+      <LayoutSettingsModal
+        isOpen={isLayoutModalOpen}
+        onClose={() => setIsLayoutModalOpen(false)}
+        currentSettings={layoutSettings}
+        onSaveSettings={(settings) => setLayoutSettings(settings)}
+      />
       {/* 5. MODAL 1: FRAME SHOP & AVATAR CUSTOMIZER                */}
       {/* ========================================================= */}
       {showFrameShopModal && (

@@ -252,3 +252,69 @@ export function useMeetGridLayout(
     recalculate,
   };
 }
+
+/**
+ * Pure calculation helper for testing and headless usage
+ */
+export function calculateMeetGrid(
+  W: number,
+  H: number,
+  tileCount: number,
+  mode: MeetLayoutMode = 'auto',
+  aspectRatio: number = 16 / 9,
+  gap: number = 8,
+  maxColumns: number = 7,
+  minTileWidth: number = 120,
+  minTileHeight: number = 90
+): { columns: number; rows: number; tileWidth: number; tileHeight: number } {
+  if (tileCount <= 0) return { columns: 1, rows: 1, tileWidth: W, tileHeight: H };
+  if (mode === 'spotlight' || mode === 'sidebar') {
+    return { columns: 1, rows: 1, tileWidth: W, tileHeight: H };
+  }
+
+  let bestCols = 1;
+  let bestRows = 1;
+  let maxArea = 0;
+  let bestTileW = 0;
+  let bestTileH = 0;
+
+  const maxCandidateCols = Math.min(tileCount, maxColumns, 8);
+
+  for (let c = 1; c <= maxCandidateCols; c++) {
+    const r = Math.ceil(tileCount / c);
+    const totalGapW = (c - 1) * gap;
+    const totalGapH = (r - 1) * gap;
+
+    const availW = (W - totalGapW) / c;
+    const availH = (H - totalGapH) / r;
+
+    if (availW <= 0 || availH <= 0) continue;
+
+    let tileW: number;
+    let tileH: number;
+
+    if (availW / availH > aspectRatio) {
+      tileH = availH;
+      tileW = tileH * aspectRatio;
+    } else {
+      tileW = availW;
+      tileH = tileW / aspectRatio;
+    }
+
+    const area = tileW * tileH;
+    if (area > maxArea) {
+      maxArea = area;
+      bestCols = c;
+      bestRows = r;
+      bestTileW = tileW;
+      bestTileH = tileH;
+    }
+  }
+
+  return {
+    columns: Math.max(1, bestCols),
+    rows: Math.max(1, bestRows),
+    tileWidth: Math.max(minTileWidth, Math.round(bestTileW || W / bestCols)),
+    tileHeight: Math.max(minTileHeight, Math.round(bestTileH || H / bestRows)),
+  };
+}

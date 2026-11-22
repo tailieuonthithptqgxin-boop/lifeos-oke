@@ -58,26 +58,46 @@ export interface UseSortedParticipantsResult {
  */
 export function useSortedParticipants(
   participants: MeetParticipant[] = [],
-  initialPinnedIds: string[] = [],
+  initialPinnedIds: string[] | string = [],
   friendIds: string[] | Set<string> = new Set(),
-  maxTiles: number = 16,
-  options: UseSortedParticipantsOptions = {}
+  maxTiles: number | string[] | Set<string> = 16,
+  options: UseSortedParticipantsOptions | number = {},
+  optionalHideSelf?: boolean
 ): UseSortedParticipantsResult {
-  const {
-    selfId,
-    hideSelf = false,
-    searchQuery = '',
-    maxPins = 6,
-  } = options;
+  // Support both (participants, initialPinnedIds, friendIds, maxTiles, options)
+  // and legacy/test (participants, selfId, pinnedIds, friendIds, maxTiles, hideSelf)
+  let effectiveSelfId = typeof options === 'object' ? options.selfId : undefined;
+  let effectiveHideSelf = typeof options === 'object' ? (options.hideSelf ?? false) : false;
+  let effectiveSearchQuery = typeof options === 'object' ? (options.searchQuery ?? '') : '';
+  let effectiveMaxPins = typeof options === 'object' ? (options.maxPins ?? 6) : 6;
+  let effectiveInitialPins: string[] = Array.isArray(initialPinnedIds) ? initialPinnedIds : [];
+  let effectiveFriendIds = friendIds;
+  let effectiveMaxTiles = typeof maxTiles === 'number' ? maxTiles : 16;
+
+  if (typeof initialPinnedIds === 'string') {
+    // Called with selfId as 2nd arg
+    effectiveSelfId = initialPinnedIds;
+    effectiveInitialPins = Array.isArray(friendIds) ? friendIds : [];
+    effectiveFriendIds = (maxTiles as any) || new Set();
+    effectiveMaxTiles = typeof options === 'number' ? options : 16;
+    effectiveHideSelf = Boolean(optionalHideSelf);
+  } else if (typeof maxTiles !== 'number') {
+    // If maxTiles was inadvertently passed an array/set
+    if (typeof options === 'number') {
+      effectiveMaxTiles = options;
+    } else {
+      effectiveMaxTiles = 16;
+    }
+  }
 
   const [pinnedIds, setPinnedIds] = useState<string[]>(() => {
-    return (initialPinnedIds || []).slice(0, maxPins);
+    return effectiveInitialPins.slice(0, effectiveMaxPins);
   });
 
   const friendIdSet = useMemo(() => {
-    if (friendIds instanceof Set) return friendIds;
-    return new Set(friendIds || []);
-  }, [friendIds]);
+    if (effectiveFriendIds instanceof Set) return effectiveFriendIds;
+    return new Set(effectiveFriendIds || []);
+  }, [effectiveFriendIds]);
 
   const pinnedIdSet = useMemo(() => new Set(pinnedIds), [pinnedIds]);
 
@@ -89,7 +109,7 @@ export function useSortedParticipants(
         success = true;
         return prev.filter((pId) => pId !== id);
       }
-      if (prev.length >= maxPins) {
+      if (prev.length >= effectiveMaxPins) {
         success = false;
         return prev;
       }
@@ -97,10 +117,10 @@ export function useSortedParticipants(
       return [...prev, id];
     });
     return success;
-  }, [maxPins]);
+  }, [effectiveMaxPins]);
 
   const isPinned = useCallback((id: string) => pinnedIdSet.has(id), [pinnedIdSet]);
-  const canPinMore = pinnedIds.length < maxPins;
+  const canPinMore = pinnedIds.length < effectiveMaxPins;
 
   // Filter & Sort Logic
   const {
@@ -113,7 +133,7 @@ export function useSortedParticipants(
     selfParticipant,
   } = useMemo(() => {
     // 0. Search query filter
-    const query = searchQuery.trim().toLowerCase();
+    const query = effectiveSearchQuery.trim().toLowerCase();
     const filtered = query
       ? participants.filter((p) => {
           const nameMatch = p.name?.toLowerCase().includes(query);
@@ -127,7 +147,7 @@ export function useSortedParticipants(
     const nonSelfList: MeetParticipant[] = [];
 
     for (const p of filtered) {
-      if (p.isSelf || (selfId && p.id === selfId)) {
+      if (p.isSelf || (effectiveSelfId && p.id === effectiveSelfId)) {
         selfItem = p;
       } else {
         nonSelfList.push(p);
@@ -187,13 +207,13 @@ export function useSortedParticipants(
     // Combine all in strict priority order:
     // [Self (if not hidden)] -> [Pinned] -> [Friends] -> [Focusing] -> [Others]
     const combined: MeetParticipant[] = [];
-    if (selfItem && !hideSelf) {
+    if (selfItem && !effectiveHideSelf) {
       combined.push(selfItem);
     }
     combined.push(...tierPinned, ...tierFriends, ...tierFocusing, ...tierOthers);
 
     // Grid Slicing with Overflow Tile logic
-    const limit = Math.max(1, maxTiles);
+    const limit = Math.max(1, Number(effectiveMaxTiles) || 16);
     const total = combined.length;
 
     if (total <= limit) {
@@ -209,10 +229,10 @@ export function useSortedParticipants(
     }
 
     // When total > limit: reserve 1 slot for "+N others" overflow tile
-    const visibleSlots = limit - 1;
+    const visibleSlots = Math.max(1, limit - 1);
     const visible = combined.slice(0, visibleSlots);
     const overflow = combined.slice(visibleSlots);
-    const count = total - visibleSlots;
+    const count = Math.max(0, total - visibleSlots);
 
     const previewAvatars = overflow
       .slice(0, 3)
@@ -227,7 +247,7 @@ export function useSortedParticipants(
       overflowPreviewAvatars: previewAvatars,
       selfParticipant: selfItem,
     };
-  }, [participants, selfId, hideSelf, searchQuery, pinnedIds, friendIdSet, maxTiles]);
+  }, [participants, effectiveSelfId, effectiveHideSelf, effectiveSearchQuery, pinnedIds, friendIdSet, effectiveMaxTiles]);
 
   return {
     visibleParticipants,
