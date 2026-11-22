@@ -14,8 +14,7 @@ export const NAV_MODULE_METADATA = [
   { id: 'habits' as ViewState, labelVi: 'Thói quen', labelEn: 'Habits', iconEmoji: '🔥', descVi: 'Theo dõi chuỗi streak kỉ luật mỗi ngày', descEn: 'Track daily discipline habit streaks', group: 'space' },
   { id: 'finance' as ViewState, labelVi: 'Tài chính', labelEn: 'Finance', iconEmoji: '💳', descVi: 'Thu chi, Safe-to-Spend & quy tắc 50/30/20', descEn: 'Cash flow, Safe-to-Spend & 50/30/20 rule', group: 'space' },
   { id: 'study' as ViewState, labelVi: 'Học tập & Từ vựng', labelEn: 'Study & Vocab', iconEmoji: '📚', descVi: 'Flashcards Spaced Repetition (JLPT, IELTS, HSK)', descEn: 'Spaced Repetition flashcards (JLPT, IELTS, HSK)', group: 'space' },
-  { id: 'study-space' as ViewState, labelVi: 'Phòng học ảo', labelEn: 'Study Space', iconEmoji: '🎥', descVi: 'Không gian tự học ảo, phòng học nhóm, check-in & chia sẻ mục tiêu', descEn: 'Virtual study rooms, group study, check-in & live goals', group: 'space' },
-  { id: 'classroom' as ViewState, labelVi: 'Lớp học Online', labelEn: 'Online Classroom', iconEmoji: '🎓', descVi: 'Lớp học trực tuyến tích hợp Google Meet, đếm ngược & tài liệu bài học', descEn: 'Online classes integrated with Google Meet, study timers & prep tasks', group: 'space' },
+  { id: 'study-space' as ViewState, labelVi: 'Phòng & Lớp học Live', labelEn: 'Live Study & Classes', iconEmoji: '🎓', descVi: 'Hợp nhất Bàn tự học Pomodoro 24/7 & Lớp học theo lịch Google Meet', descEn: 'Unified 24/7 Pomodoro study desks & scheduled Google Meet classes', group: 'space' },
   { id: 'connect' as ViewState, labelVi: 'Bảng Tin Cộng Đồng', labelEn: 'Community & Feed', iconEmoji: '🌐', descVi: 'Mạng xã hội học tập, Bảng tin cộng đồng, Chat đa kênh & Phòng học trực tuyến Live Meet', descEn: 'Social learning network, community feed, multi-channel chat & Live Meet study rooms', group: 'space' },
   { id: 'notes' as ViewState, labelVi: 'Sổ tay & Ghi chú', labelEn: 'Journal & Notes', iconEmoji: '📝', descVi: 'Second Brain, ghi chép nhanh & ý tưởng', descEn: 'Second Brain, quick notes & ideation', group: 'space' },
   { id: 'goals' as ViewState, labelVi: 'Mục tiêu', labelEn: 'Goals', iconEmoji: '🎯', descVi: 'Mục tiêu năm, quý & OKRs', descEn: 'Annual, quarterly goals & OKRs', group: 'space' },
@@ -40,7 +39,7 @@ export const PRESET_MODES = [
     icon: GraduationCap,
     descVi: 'Tối ưu học thi, từ vựng JLPT/IELTS, thói quen & ví tiền',
     descEn: 'Optimized for exams, vocab flashcards, habits & budget',
-    allowed: ['dashboard', 'focus', 'tasks', 'study', 'connect', 'habits', 'finance', 'notes'] as ViewState[]
+    allowed: ['dashboard', 'focus', 'tasks', 'study', 'study-space', 'connect', 'habits', 'finance', 'notes'] as ViewState[]
   },
   {
     id: 'builder',

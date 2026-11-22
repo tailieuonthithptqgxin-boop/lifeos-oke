@@ -8,7 +8,11 @@ import {
   Flame,
   Award,
   Users,
-  Video
+  Video,
+  GraduationCap,
+  HelpCircle,
+  ChevronRight,
+  Info
 } from 'lucide-react';
 import { useAppStore } from '../../lib/store';
 import { apiCall } from '../../lib/apiClient';
@@ -126,6 +130,28 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
 
   // Rule 3: Session summary celebratory modal state when user leaves room
   const [sessionSummary, setSessionSummary] = useState<SessionSummaryData | null>(null);
+
+  // Smart Mode Guide State (Expandable/Collapsible)
+  const [showModeGuide, setShowModeGuide] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('lifeos_study_guide_dismissed') !== 'true';
+    } catch {
+      return true;
+    }
+  });
+
+  const toggleModeGuide = () => {
+    setShowModeGuide((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('lifeos_study_guide_dismissed', next ? 'false' : 'true');
+      } catch {}
+      return next;
+    });
+  };
+
+  const totalOnline = rooms.reduce((sum, r) => sum + (r.participantCount || 0), 0);
+  const streakDays = currentUser?.streakDays || 14;
 
   const roomEventSourceRef = useRef<EventSource | null>(null);
   const lobbyEventSourceRef = useRef<EventSource | null>(null);
@@ -684,44 +710,156 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-200">
-      {/* Unified Tab Switcher: Sảnh Phòng Học Live vs Lớp Học Đặt Lịch Google Meet */}
+      {/* Unified Learning Academy Hub Header */}
       {!activeRoomId && (
-        <div className="flex items-center gap-2 p-1.5 rounded-3xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800 shadow-xs max-w-fit">
-          <button
-            type="button"
-            onClick={() => setCurrentTab('rooms')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-              currentTab === 'rooms'
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/25 scale-[1.02]'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Users className="w-4 h-4" />
-            <span>Sảnh Học Live & Co-working</span>
-            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
-              currentTab === 'rooms' ? 'bg-white/20 text-white' : 'bg-violet-100 dark:bg-violet-950/70 text-violet-700 dark:text-violet-300'
-            }`}>
-              LIVE
-            </span>
-          </button>
+        <div className="space-y-4">
+          {/* Top Hero Banner */}
+          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-950 border border-indigo-500/20 p-6 sm:p-7 shadow-xl text-white">
+            <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-1/3 -mb-16 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-          <button
-            type="button"
-            onClick={() => setCurrentTab('classroom')}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-              currentTab === 'classroom'
-                ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/25 scale-[1.02]'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
-            }`}
-          >
-            <Video className="w-4 h-4" />
-            <span>Lớp Học Đặt Lịch (Google Meet)</span>
-            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
-              currentTab === 'classroom' ? 'bg-white/20 text-white' : 'bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300'
-            }`}>
-              MEET
-            </span>
-          </button>
+            <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-5">
+              <div className="space-y-2 max-w-2xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-xs font-bold tracking-wide">
+                  <GraduationCap className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>TRUNG TÂM HỌC TRỰC TUYẾN TOÀN DIỆN</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
+                  MeetStudy Space
+                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold uppercase">
+                    All-in-One
+                  </span>
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  Hợp nhất trọn vẹn <strong>Bàn tự học Pomodoro 24/7</strong> và <strong>Lớp học theo lịch Google Meet</strong> trong một không gian duy nhất. Không còn phân tán, tập trung 100%.
+                </p>
+              </div>
+
+              {/* Quick Stat Badges */}
+              <div className="flex items-center gap-2.5 shrink-0 flex-wrap">
+                <div className="px-3.5 py-2 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-2.5">
+                  <span className="relative flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+                  </span>
+                  <div className="text-left">
+                    <div className="text-[10px] text-slate-400 uppercase font-semibold">Tự học Live</div>
+                    <div className="text-sm font-extrabold text-white">{totalOnline} đang học</div>
+                  </div>
+                </div>
+
+                <div className="px-3.5 py-2 rounded-2xl bg-white/5 border border-white/10 flex items-center gap-2.5">
+                  <Flame className="w-4 h-4 text-amber-400" />
+                  <div className="text-left">
+                    <div className="text-[10px] text-slate-400 uppercase font-semibold">Chuỗi ngày</div>
+                    <div className="text-sm font-extrabold text-amber-300">{streakDays} ngày</div>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={toggleModeGuide}
+                  className="px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-300 flex items-center gap-1.5 transition cursor-pointer"
+                  title="Xem phân biệt 2 chế độ"
+                >
+                  <HelpCircle className="w-4 h-4 text-indigo-400" />
+                  <span className="hidden sm:inline">Phân biệt 2 chế độ</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Smart Mode Comparison Guide (Expandable) */}
+            {showModeGuide && (
+              <div className="mt-5 pt-4 border-t border-white/10 grid grid-cols-1 md:grid-cols-2 gap-3.5 animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="p-3.5 rounded-2xl bg-indigo-900/40 border border-indigo-500/30 space-y-1.5">
+                  <div className="flex items-center gap-2 text-indigo-300 font-bold text-xs uppercase tracking-wide">
+                    <Users className="w-4 h-4 text-indigo-400" />
+                    <span>1. Bàn Tự Học 24/7 (Co-Study Space)</span>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Dành cho lúc bạn muốn <strong>tự học cá nhân</strong>, tự cày đề, đọc sách một mình trong không gian có người cùng học để chống lười. Có sẵn âm thanh Lo-Fi/tiếng mưa, đồng hồ Pomodoro và đua top bảng xếp hạng tuần. Không cần hẹn giờ hay giáo viên.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-emerald-900/40 border border-emerald-500/30 space-y-1.5">
+                  <div className="flex items-center gap-2 text-emerald-300 font-bold text-xs uppercase tracking-wide">
+                    <Video className="w-4 h-4 text-emerald-400" />
+                    <span>2. Lớp Học & Google Meet (Scheduled Classroom)</span>
+                  </div>
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Dành cho các buổi học <strong>có lịch trình cố định</strong>, có giáo viên, gia sư hoặc họp nhóm thảo luận dự án. Tự động đồng bộ Google Calendar, tạo link Google Meet tức thì, có danh sách email học viên và tài liệu buổi học.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Segmented Mode Switcher */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-1.5 rounded-3xl bg-white/70 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-slate-800 shadow-xs">
+            <button
+              type="button"
+              onClick={() => setCurrentTab('rooms')}
+              className={`flex items-center justify-between p-3.5 sm:p-4 rounded-2xl text-left transition-all cursor-pointer ${
+                currentTab === 'rooms'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-md border border-indigo-500/40 ring-1 ring-indigo-500/20'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/50'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                  currentTab === 'rooms'
+                    ? 'bg-gradient-to-tr from-indigo-600 to-purple-600 text-white shadow-md shadow-indigo-600/30'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                }`}>
+                  <Users className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-sm sm:text-base">Bàn Tự Học 24/7</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                      LIVE
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">
+                    Tự học Pomodoro, âm thanh Lo-Fi & đua top tuần
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className={`w-5 h-5 transition-transform ${currentTab === 'rooms' ? 'text-indigo-600 dark:text-indigo-400 translate-x-0.5' : 'text-slate-400 opacity-40'}`} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setCurrentTab('classroom')}
+              className={`flex items-center justify-between p-3.5 sm:p-4 rounded-2xl text-left transition-all cursor-pointer ${
+                currentTab === 'classroom'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-md border border-emerald-500/40 ring-1 ring-emerald-500/20'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100/70 dark:hover:bg-slate-800/50'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                  currentTab === 'classroom'
+                    ? 'bg-gradient-to-tr from-emerald-600 to-teal-500 text-white shadow-md shadow-emerald-600/30'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
+                }`}>
+                  <Video className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-extrabold text-sm sm:text-base">Lớp Học & Google Meet</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                      MEET
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">
+                    Lên lịch ca học, phòng Google Meet & tài liệu
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className={`w-5 h-5 transition-transform ${currentTab === 'classroom' ? 'text-emerald-600 dark:text-emerald-400 translate-x-0.5' : 'text-slate-400 opacity-40'}`} />
+            </button>
+          </div>
         </div>
       )}
 
