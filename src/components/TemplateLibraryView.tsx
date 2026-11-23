@@ -368,7 +368,7 @@ export function TemplateLibraryView() {
   };
 
   return (
-    <div className="w-full min-w-0 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 overflow-x-hidden">
+    <div className="w-full min-w-0 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:pb-8 overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 w-full min-w-0">
         <div className="min-w-0">
@@ -431,26 +431,26 @@ export function TemplateLibraryView() {
       {/* Search & Filter Bar */}
       <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs w-full min-w-0">
         <div className="relative flex-1 w-full min-w-0">
-          <Search className="w-4 h-4 absolute left-3.5 top-3 text-slate-400" />
+          <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             placeholder="Tìm kiếm mẫu P.A.R.A, tài chính 50/30/20, thói quen nguyên tử..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full pl-9 pr-9 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 text-xs sm:text-sm focus:outline-none focus:ring-1 focus:ring-slate-400 text-slate-800 dark:text-slate-100"
+            className="w-full min-h-[44px] sm:min-h-0 pl-9 pr-9 py-2 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 text-base sm:text-sm focus:outline-none focus:ring-1 focus:ring-slate-400 text-slate-800 dark:text-slate-100 font-medium"
           />
           {searchTerm && (
             <button
               type="button"
               onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-2.5 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer rounded-full transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 min-w-[32px] min-h-[32px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer rounded-full transition-colors"
               aria-label="Xóa tìm kiếm"
             >
               <X className="w-4 h-4" />
             </button>
           )}
         </div>
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar w-full sm:w-auto pb-1 sm:pb-0 min-w-0">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-pan-x overscroll-x-contain py-1 w-full sm:w-auto pb-1 sm:pb-0 min-w-0">
           {categories.map(cat => {
             const isActive = selectedCategory === cat;
             return (
@@ -461,7 +461,7 @@ export function TemplateLibraryView() {
                   setSelectedCategory(cat);
                   soundEngine.playPop();
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors cursor-pointer shrink-0 ${
+                className={`px-3.5 py-2 sm:py-1.5 min-h-[38px] sm:min-h-0 rounded-xl text-xs font-medium whitespace-nowrap transition-colors cursor-pointer shrink-0 ${
                   isActive
                     ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs font-semibold'
                     : 'bg-[#F1F5F9] dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200/80 dark:hover:bg-slate-700/80'

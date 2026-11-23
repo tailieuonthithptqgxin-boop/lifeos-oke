@@ -324,13 +324,13 @@ const FALLBACK_ROOMS: StudyRoomSummary[] = [
           {/* Filter Pills & Search */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             {/* Filter Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar touch-pan-x overscroll-x-contain py-1">
               {FILTER_TOPICS.map((topic) => (
                 <button
                   key={topic}
                   type="button"
                   onClick={() => setSelectedTopic(topic)}
-                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
+                  className={`px-3.5 py-1.5 min-h-[38px] sm:min-h-0 rounded-xl text-xs font-bold whitespace-nowrap transition-all border cursor-pointer ${
                     selectedTopic === topic
                       ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
                       : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
@@ -349,7 +349,7 @@ const FALLBACK_ROOMS: StudyRoomSummary[] = [
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Tìm chủ đề phòng..."
-                className="w-full pl-9 pr-3.5 py-2 text-xs rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                className="w-full pl-9 pr-3.5 py-2 text-base sm:text-xs min-h-[44px] sm:min-h-0 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
               />
             </div>
           </div>
@@ -457,7 +457,7 @@ const FALLBACK_ROOMS: StudyRoomSummary[] = [
                     <button
                       type="button"
                       onClick={() => onSelectRoom(room)}
-                      className="w-full py-2.5 px-4 rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:scale-98 text-white font-extrabold text-xs shadow-md shadow-indigo-600/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      className="w-full py-2.5 px-4 min-h-[44px] rounded-2xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:scale-98 text-white font-extrabold text-xs shadow-md shadow-indigo-600/20 flex items-center justify-center gap-1.5 transition-all cursor-pointer"
                     >
                       <span>Vào học ngay ⚡</span>
                       <ArrowRight className="w-3.5 h-3.5" />

@@ -766,7 +766,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto px-2 sm:px-4 pb-12">
+    <div className="space-y-6 max-w-7xl mx-auto px-2 sm:px-4 pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:pb-12 overflow-x-hidden">
       
       {/* 1. TOP HEADER & WORKSPACE SWITCHER */}
       <div className="bg-white dark:bg-[#141E30] rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] p-5 sm:p-6 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -832,7 +832,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
       </div>
 
       {/* 2. SUB-NAVIGATION TABS (SCIENTIFIC & CLEAN SEGMENTED CONTROL) */}
-      <div className="bg-slate-100/90 dark:bg-[#141E30]/90 backdrop-blur-md p-1.5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] flex items-center gap-1 overflow-x-auto no-scrollbar shadow-2xs">
+      <div className="bg-slate-100/90 dark:bg-[#141E30]/90 backdrop-blur-md p-1.5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] flex items-center gap-1 overflow-x-auto no-scrollbar shadow-2xs touch-pan-x overscroll-x-contain py-1">
         
         {/* GROUP 1: HỌC TẬP & LUYỆN TẬP (STUDY & PRACTICE) */}
         
@@ -1531,13 +1531,13 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
 
       {/* Floating Undo & Notification Toasts */}
       {undoWord && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl shadow-2xl border border-slate-700 animate-in slide-in-from-bottom-4 duration-200">
-          <span className="text-sm font-medium">
+        <div className="fixed bottom-[max(5rem,calc(env(safe-area-inset-bottom)+4.5rem))] sm:bottom-6 right-4 sm:right-6 z-50 max-w-[calc(100vw-2rem)] flex items-center gap-3 px-4 py-3 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl shadow-2xl border border-slate-700 animate-in slide-in-from-bottom-4 duration-200">
+          <span className="text-sm font-medium min-w-0 flex-1 truncate">
             Đã xóa từ <strong>"{undoWord.word.term}"</strong>
           </span>
           <button
             onClick={handleRestoreWord}
-            className="px-3 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl transition shadow-sm cursor-pointer"
+            className="px-3.5 py-1.5 min-h-[38px] bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded-xl transition shadow-sm cursor-pointer shrink-0 active:scale-95"
           >
             Hoàn tác (5s)
           </button>
@@ -1547,7 +1547,7 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
               if (undoWordTimeoutRef.current) clearTimeout(undoWordTimeoutRef.current);
               setUndoWord(null);
             }}
-            className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer"
+            className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer rounded-lg shrink-0"
             title="Đóng"
           >
             <X className="w-4 h-4" />
@@ -1556,12 +1556,12 @@ export function VocabMasterView({ currentUser }: VocabMasterViewProps) {
       )}
 
       {vocabToast && !undoWord && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl shadow-2xl border border-slate-700 animate-in slide-in-from-bottom-4 duration-200">
-          <span className="text-sm font-medium">{vocabToast}</span>
+        <div className="fixed bottom-[max(5rem,calc(env(safe-area-inset-bottom)+4.5rem))] sm:bottom-6 right-4 sm:right-6 z-50 max-w-[calc(100vw-2rem)] flex items-center gap-2 px-4 py-3 bg-slate-900 dark:bg-slate-800 text-white rounded-2xl shadow-2xl border border-slate-700 animate-in slide-in-from-bottom-4 duration-200">
+          <span className="text-sm font-medium min-w-0 flex-1">{vocabToast}</span>
           <button
             type="button"
             onClick={() => setVocabToast(null)}
-            className="p-1 text-slate-400 hover:text-white transition-colors cursor-pointer ml-1"
+            className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer rounded-lg ml-1 shrink-0"
             title="Đóng thông báo"
           >
             <X className="w-3.5 h-3.5" />

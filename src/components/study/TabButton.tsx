@@ -13,7 +13,7 @@ export function TabButton({ active, onClick, icon, label, count }: TabButtonProp
     <button 
       type="button"
       onClick={onClick}
-      className={`flex items-center gap-2 px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer
+      className={`flex items-center gap-2 px-3.5 sm:px-4 py-2.5 sm:py-2 min-h-[40px] sm:min-h-0 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap cursor-pointer
         ${active 
           ? 'bg-emerald-500 text-slate-950 font-black shadow-2xs' 
           : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'}`}

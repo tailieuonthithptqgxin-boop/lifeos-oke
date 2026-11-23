@@ -433,7 +433,7 @@ export function ReferralView() {
   });
 
   return (
-    <div className="w-full max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-8 space-y-4 sm:space-y-6">
+    <div className="w-full max-w-4xl mx-auto px-3 sm:px-6 py-4 sm:py-8 space-y-4 sm:space-y-6 pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:pb-8 overflow-x-hidden">
       {/* ======================================================== */}
       {/* ADMIN SHORTCUT BANNER: Dành cho Admin/SuperAdmin quản lý hệ thống CTV */}
       {/* ======================================================== */}

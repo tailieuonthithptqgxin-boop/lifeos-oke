@@ -763,7 +763,7 @@ export function FocusView() {
             Focus Streak
           </span>
           <div className="text-lg font-black text-amber-500 dark:text-amber-400 font-mono tracking-tight leading-none mt-1">
-            {currentUser?.streakDays ?? 1} <span className="text-[10px] font-normal text-slate-400 font-sans">{isVi ? 'ngày' : 'days'}</span>
+            {currentUser?.streakDays ?? 0} <span className="text-[10px] font-normal text-slate-400 font-sans">{isVi ? 'ngày' : 'days'}</span>
           </div>
         </div>
         <div className="w-8 h-8 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/50 dark:border-amber-800/50 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
@@ -774,7 +774,7 @@ export function FocusView() {
   );
 
   return (
-    <div className={`w-full min-w-0 max-w-7xl mx-auto flex flex-col space-y-3.5 sm:space-y-4 overflow-x-hidden ${
+    <div className={`w-full min-w-0 max-w-7xl mx-auto flex flex-col space-y-3.5 sm:space-y-4 pb-[max(7rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:pb-8 lg:pb-8 overflow-x-hidden ${
       isZenMode ? 'dark fixed inset-0 z-[99999] w-screen h-screen bg-slate-950 text-slate-100 max-w-none p-4 sm:p-12 overflow-y-auto' : 'p-3 sm:p-6 lg:p-8'
     }`}>
       
@@ -802,16 +802,16 @@ export function FocusView() {
         </div>
 
         {/* Action Bar */}
-        <div className="flex flex-wrap items-center gap-2 self-start lg:self-auto shrink-0">
+        <div className="flex flex-wrap items-center gap-2 self-stretch sm:self-start lg:self-auto shrink-0">
           {/* Quick Test 5-Second Button */}
           <button
             type="button"
             onClick={handleStartQuickTest}
-            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-100 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
+            className="flex-1 sm:flex-none justify-center px-3 py-2 min-h-[44px] rounded-xl text-xs font-bold bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-800 hover:bg-amber-100 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95"
             title="Kiểm tra chuông kêu & tự nhảy sang giờ nghỉ trong 10 giây (5s Học -> 5s Nghỉ)"
           >
-            <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-            <span>⚡ Chạy thử nhanh (5s)</span>
+            <Zap className="w-3.5 h-3.5 fill-amber-500 text-amber-500 shrink-0" />
+            <span>⚡ Chạy thử (5s)</span>
           </button>
 
           {/* Music Toggle Button */}
@@ -821,13 +821,13 @@ export function FocusView() {
               soundEngine.playPop();
               setShowMusicPanel(!showMusicPanel);
             }}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 ${
+            className={`flex-1 sm:flex-none justify-center px-3 py-2 min-h-[44px] rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 ${
               showMusicPanel 
                 ? 'bg-purple-600 text-white shadow-purple-500/25' 
                 : 'bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 dark:text-slate-200 dark:border-slate-700'
             }`}
           >
-            <Music className={`w-3.5 h-3.5 ${showMusicPanel ? 'text-white' : 'text-purple-500'}`} />
+            <Music className={`w-3.5 h-3.5 shrink-0 ${showMusicPanel ? 'text-white' : 'text-purple-500'}`} />
             <span>{showMusicPanel ? (isVi ? 'Ẩn nhạc' : 'Hide Music') : (isVi ? 'Hiện nhạc' : 'Show Music')}</span>
           </button>
 
@@ -835,14 +835,14 @@ export function FocusView() {
           <button
             type="button"
             onClick={toggleZenMode}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 ${
+            className={`flex-1 sm:flex-none justify-center px-3 py-2 min-h-[44px] rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs active:scale-95 ${
               isZenMode 
                 ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white' 
                 : 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white'
             }`}
           >
-            {isZenMode ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-            <span>{isZenMode ? (isVi ? 'Thoát Zen' : 'Exit') : (isVi ? 'Toàn màn hình' : 'Zen')}</span>
+            {isZenMode ? <Minimize2 className="w-3.5 h-3.5 shrink-0" /> : <Maximize2 className="w-3.5 h-3.5 shrink-0" />}
+            <span>{isZenMode ? (isVi ? 'Thoát' : 'Exit') : (isVi ? 'Toàn màn hình' : 'Zen')}</span>
           </button>
         </div>
       </div>
@@ -865,7 +865,7 @@ export function FocusView() {
                 <Sparkles className="w-3.5 h-3.5 text-orange-500" />
                 <span>Gợi ý chế độ:</span>
               </div>
-              <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 w-full sm:w-auto">
                 {[
                   { label: '🔥 25p / 5p', name: 'Tiêu chuẩn', f: 25, b: 5, r: 4 },
                   { label: '⚡ 45p / 10p', name: 'Chuyên sâu', f: 45, b: 10, r: 3 },
@@ -886,7 +886,7 @@ export function FocusView() {
                           setTotalPhaseSeconds(preset.f * 60);
                         }
                       }}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[36px] active:scale-95 disabled:opacity-50 flex items-center gap-1 ${
+                      className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer min-h-[44px] justify-center active:scale-95 disabled:opacity-50 flex items-center gap-1 ${
                         isCur
                           ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-xs shadow-orange-500/30'
                           : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300'
@@ -916,7 +916,7 @@ export function FocusView() {
               />
 
               <svg 
-                className="w-72 h-72 sm:w-80 sm:h-80 select-none overflow-visible transform -rotate-90 origin-center" 
+                className="w-64 h-64 xs:w-72 xs:h-72 sm:w-80 sm:h-80 max-w-[76vw] max-h-[76vw] select-none overflow-visible transform -rotate-90 origin-center shrink-0" 
                 viewBox="0 0 240 240"
               >
                 {/* Gradient Definitions */}
@@ -1090,7 +1090,7 @@ export function FocusView() {
                 </div>
 
                 {/* Big Monospace Numbers */}
-                <div className={`text-5xl sm:text-6xl md:text-7xl font-light font-mono tracking-tight tabular-nums transition-colors duration-200 ${
+                <div className={`text-4xl xs:text-5xl sm:text-6xl md:text-7xl font-light font-mono tracking-tight tabular-nums transition-colors duration-200 ${
                   phase === 'BREAK'
                     ? 'text-emerald-600 dark:text-emerald-400'
                     : isPaused
@@ -1104,11 +1104,11 @@ export function FocusView() {
 
                 {/* Quick Minute Adjustment Pills (-5m, +5m) */}
                 {(!isRunning || isPaused) ? (
-                  <div className="flex items-center gap-1.5 mt-1.5 pointer-events-auto">
+                  <div className="flex items-center gap-2 mt-2 pointer-events-auto">
                     <button
                       type="button"
                       onClick={() => handleAdjustMinutes(-5)}
-                      className="px-2.5 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[11px] font-bold text-slate-600 dark:text-slate-300 transition-all active:scale-95 cursor-pointer shadow-2xs"
+                      className="min-h-[40px] px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 transition-all active:scale-95 cursor-pointer shadow-2xs"
                       title="Giảm 5 phút"
                     >
                       −5m
@@ -1117,7 +1117,7 @@ export function FocusView() {
                     <button
                       type="button"
                       onClick={() => handleAdjustMinutes(5)}
-                      className="px-2.5 py-0.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-[11px] font-bold text-slate-600 dark:text-slate-300 transition-all active:scale-95 cursor-pointer shadow-2xs"
+                      className="min-h-[40px] px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 transition-all active:scale-95 cursor-pointer shadow-2xs"
                       title="Tăng 5 phút"
                     >
                       +5m
@@ -1180,12 +1180,12 @@ export function FocusView() {
                   </div>
                 </div>
               ) : (
-                <div className="w-full flex flex-wrap items-center justify-center gap-2.5">
+                <div className="w-full flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-2.5">
                   {isPaused ? (
                     <button
                       type="button"
                       onClick={handleResume}
-                      className="min-h-[48px] px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                      className="w-full sm:w-auto min-h-[48px] px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                     >
                       <Play className="w-4 h-4 fill-current" />
                       <span>Tiếp tục (Space)</span>
@@ -1194,49 +1194,51 @@ export function FocusView() {
                     <button
                       type="button"
                       onClick={handlePause}
-                      className="min-h-[48px] px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                      className="w-full sm:w-auto min-h-[48px] px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                     >
                       <Pause className="w-4 h-4 fill-current" />
                       <span>Tạm dừng (Space)</span>
                     </button>
                   )}
 
-                  {/* Emergency +5m extension during focus */}
-                  {phase !== 'BREAK' && (
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    {/* Emergency +5m extension during focus */}
+                    {phase !== 'BREAK' && (
+                      <button
+                        type="button"
+                        onClick={() => handleAddEmergencyMinutes(5)}
+                        className="flex-1 sm:flex-none min-h-[48px] px-3.5 py-2.5 bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/40 dark:hover:bg-orange-900/40 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800 font-bold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shadow-2xs"
+                        title="Cộng thêm 5 phút nếu bạn đang tập trung dở"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>+5 phút</span>
+                      </button>
+                    )}
+
+                    {/* Skip Break Button during Break Phase */}
+                    {phase === 'BREAK' && (
+                      <button
+                        type="button"
+                        onClick={handleSkipBreak}
+                        className="flex-1 sm:flex-none min-h-[48px] px-4 py-2.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-bold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                        title="Bỏ qua giờ nghỉ và bắt đầu hiệp học tiếp theo ngay"
+                      >
+                        <SkipForward className="w-4 h-4" />
+                        <span>Bỏ qua nghỉ</span>
+                      </button>
+                    )}
+
+                    {/* Cancel / Stop session */}
                     <button
                       type="button"
-                      onClick={() => handleAddEmergencyMinutes(5)}
-                      className="min-h-[48px] px-3.5 py-2.5 bg-orange-50 hover:bg-orange-100 dark:bg-orange-950/40 dark:hover:bg-orange-900/40 text-orange-700 dark:text-orange-300 border border-orange-200 dark:border-orange-800 font-bold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shadow-2xs"
-                      title="Cộng thêm 5 phút nếu bạn đang tập trung dở"
+                      onClick={handleCancelSession}
+                      className="flex-1 sm:flex-none min-h-[48px] px-4 py-2.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-bold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                      title="Dừng phiên học hiện tại"
                     >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>+5 phút</span>
+                      <Square className="w-3.5 h-3.5 fill-current" />
+                      <span>Hủy phiên</span>
                     </button>
-                  )}
-
-                  {/* Skip Break Button during Break Phase */}
-                  {phase === 'BREAK' && (
-                    <button
-                      type="button"
-                      onClick={handleSkipBreak}
-                      className="min-h-[48px] px-4 py-2.5 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-bold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-                      title="Bỏ qua giờ nghỉ và bắt đầu hiệp học tiếp theo ngay"
-                    >
-                      <SkipForward className="w-4 h-4" />
-                      <span>Bỏ qua nghỉ</span>
-                    </button>
-                  )}
-
-                  {/* Cancel / Stop session */}
-                  <button
-                    type="button"
-                    onClick={handleCancelSession}
-                    className="min-h-[48px] px-4 py-2.5 bg-slate-100 hover:bg-rose-50 hover:text-rose-600 dark:bg-slate-800 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 font-bold text-xs sm:text-sm rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
-                    title="Dừng phiên học hiện tại"
-                  >
-                    <Square className="w-3.5 h-3.5 fill-current" />
-                    <span>Hủy phiên</span>
-                  </button>
+                  </div>
                 </div>
               )}
 
@@ -1256,7 +1258,7 @@ export function FocusView() {
                           if (e.key === 'Escape') setIsQuickCreatingTask(false);
                         }}
                         placeholder="Nhập tên việc cần tập trung... (Enter để tạo)"
-                        className="flex-1 bg-transparent border-none outline-none text-xs font-semibold text-slate-800 dark:text-slate-200"
+                        className="flex-1 bg-transparent border-none outline-none text-base sm:text-xs font-semibold text-slate-800 dark:text-slate-200"
                       />
                       <button
                         type="button"
@@ -1282,7 +1284,7 @@ export function FocusView() {
                         <select
                           value={selectedTaskId}
                           onChange={e => setSelectedTaskId(e.target.value)}
-                          className="bg-transparent border-0 outline-none text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer truncate flex-1 min-w-0"
+                          className="bg-transparent border-0 outline-none text-base sm:text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer truncate flex-1 min-w-0"
                         >
                           <option value="" className="dark:bg-slate-900">-- Chọn bài tập / việc cần làm --</option>
                           {tasks.filter(t => t.status !== 'Hoàn thành' && t.status !== 'Hủy').map(t => (
@@ -1511,7 +1513,7 @@ export function FocusView() {
                       setShowSettingsDrawer(false);
                       toast.success('Đã lưu cấu hình Pomodoro thành công!', 'Cài Đặt');
                     }}
-                    className="px-5 py-2 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-xs cursor-pointer active:scale-95"
+                    className="w-full sm:w-auto px-5 py-2.5 min-h-[44px] justify-center rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-bold text-xs shadow-xs cursor-pointer active:scale-95 flex items-center"
                   >
                     Hoàn tất cài đặt
                   </button>

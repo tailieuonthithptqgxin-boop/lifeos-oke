@@ -991,7 +991,7 @@ export function CommandCenter() {
         </div>
 
         {/* Footer shortcuts helper */}
-        <div className="border-t border-slate-100 dark:border-white/[0.08] bg-slate-50/80 dark:bg-[#0B1120]/80 px-4 py-2.5 flex items-center justify-between text-[11px] text-slate-500">
+        <div className="border-t border-slate-100 dark:border-white/[0.08] bg-slate-50/80 dark:bg-[#0B1120]/80 px-4 py-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] flex items-center justify-between text-[11px] text-slate-500">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
               <kbd className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 font-mono text-[10px] font-bold">↑↓</kbd> {t('Di chuyển')}

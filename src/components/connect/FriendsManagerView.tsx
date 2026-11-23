@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { connectApi, SocialUser } from '../../lib/connectApiClient';
 import { toast } from '../../lib/toast';
+import { onFriendRequestReceived, onFriendRequestAccepted } from '../../lib/socketClient';
 
 interface FriendsManagerViewProps {
   currentUserId?: string;
@@ -48,6 +49,24 @@ export function FriendsManagerView({ currentUserId, onOpenProfile, onOpenChat }:
   useEffect(() => {
     loadData();
   }, [activeTab]);
+
+  // Real-time Friend Request & Acceptance Cross-Sync over Socket.io
+  useEffect(() => {
+    const unsubReq = onFriendRequestReceived((data) => {
+      toast.show(`Bạn có lời mời kết bạn mới từ ${data.senderName || 'một người dùng'}!`, 'info');
+      loadData();
+    });
+
+    const unsubAcc = onFriendRequestAccepted((data) => {
+      toast.show(`${data.friendName || 'Một người dùng'} đã chấp nhận lời mời kết bạn!`, 'success');
+      loadData();
+    });
+
+    return () => {
+      unsubReq();
+      unsubAcc();
+    };
+  }, []);
 
   const handleAccept = async (targetUserId: string) => {
     try {

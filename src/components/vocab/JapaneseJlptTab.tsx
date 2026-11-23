@@ -311,13 +311,13 @@ export function JapaneseJlptTab({
             value={search}
             onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
             placeholder="Tra cứu Kanji, Hiragana, Âm Hán Việt, Nghĩa tiếng Việt..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-base sm:text-sm min-h-[44px] sm:min-h-0 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500/50"
           />
           {search && (
             <button
               type="button"
               onClick={() => setSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white p-1 cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -329,7 +329,7 @@ export function JapaneseJlptTab({
           <select
             value={posFilter}
             onChange={(e) => { setPosFilter(e.target.value); setCurrentPage(1); }}
-            className="w-full px-3 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs sm:text-sm text-slate-300 focus:outline-none focus:border-emerald-500/50"
+            className="w-full px-3 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-base sm:text-sm min-h-[44px] sm:min-h-0 text-slate-300 focus:outline-none focus:border-emerald-500/50 cursor-pointer"
           >
             {POS_FILTERS.map(p => (
               <option key={p.value} value={p.value}>{p.label}</option>
@@ -342,7 +342,7 @@ export function JapaneseJlptTab({
           <select
             value={statusFilter}
             onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-            className="w-full px-3 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs sm:text-sm text-slate-300 focus:outline-none focus:border-emerald-500/50"
+            className="w-full px-3 py-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-base sm:text-sm min-h-[44px] sm:min-h-0 text-slate-300 focus:outline-none focus:border-emerald-500/50 cursor-pointer"
           >
             {STATUS_FILTERS.map(s => (
               <option key={s.value} value={s.value}>{s.label}</option>

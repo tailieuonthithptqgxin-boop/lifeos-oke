@@ -1,4 +1,5 @@
 import { getPrisma } from '../db';
+import { broadcastFeedPost, broadcastFriendRequest, broadcastFriendAccepted } from '../realtime/studyRoomSocket.js';
 
 export interface UpdateProfileDto {
   bio?: string;
@@ -413,8 +414,8 @@ export class ConnectService {
       });
     }
 
-    // Send in-app notification
-    const sender = await prisma.user.findUnique({ where: { id: requesterId }, select: { name: true } });
+    // Send in-app notification & Real-time Socket Dispatch
+    const sender = await prisma.user.findUnique({ where: { id: requesterId }, select: { id: true, name: true, username: true, avatar: true } });
     try {
       await prisma.notification.create({
         data: {
@@ -426,6 +427,14 @@ export class ConnectService {
         }
       });
     } catch {}
+
+    broadcastFriendRequest(targetUserId, {
+      type: 'FRIEND_REQUEST',
+      senderId: requesterId,
+      senderName: sender?.name || 'Một người dùng',
+      senderAvatar: sender?.avatar,
+      createdAt: new Date().toISOString()
+    });
 
     return { success: true, status: 'REQUEST_SENT', message: 'Đã gửi lời mời kết bạn.' };
   }
@@ -451,8 +460,8 @@ export class ConnectService {
       data: { status: 'ACCEPTED' }
     });
 
-    // Notify initiator
-    const currentUser = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
+    // Notify initiator & Real-time Socket Dispatch
+    const currentUser = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, name: true, username: true, avatar: true } });
     try {
       await prisma.notification.create({
         data: {
@@ -464,6 +473,14 @@ export class ConnectService {
         }
       });
     } catch {}
+
+    broadcastFriendAccepted(targetUserId, {
+      type: 'FRIEND_ACCEPTED',
+      friendId: userId,
+      friendName: currentUser?.name || 'Bạn mới',
+      friendAvatar: currentUser?.avatar,
+      updatedAt: new Date().toISOString()
+    });
 
     return { success: true, status: 'FRIENDS', message: 'Đã trở thành bạn bè thành công.' };
   }
@@ -809,11 +826,18 @@ export class ConnectService {
       });
     }
 
-    return {
+    const formattedPost = {
       ...post,
       myReaction: null,
       isPendingApproval: initialStatus === 'PENDING_APPROVAL'
     };
+
+    // Real-time broadcast to all online users (Social Feed live cross-sync)
+    if (initialStatus === 'PUBLISHED') {
+      broadcastFeedPost(formattedPost);
+    }
+
+    return formattedPost;
   }
 
   // Vote on a Poll

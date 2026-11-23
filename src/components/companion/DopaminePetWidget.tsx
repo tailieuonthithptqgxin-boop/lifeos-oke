@@ -13,6 +13,7 @@ import {
 } from '../../lib/companionEngine';
 import { soundEngine } from '../../lib/soundEngine';
 import { triggerConfetti } from '../../lib/confetti';
+import { apiCall } from '../../lib/apiClient';
 import { LiveMascotCharacter } from './LiveMascotCharacter';
 
 const GENZ_PET_QUOTES = [
@@ -97,16 +98,28 @@ export function DopaminePetWidget() {
   const [speechBubble, setSpeechBubble] = useState<string>('');
   const [isPoking, setIsPoking] = useState(false);
   const [showPicker, setShowPicker] = useState(false);
-  const [petName, setPetName] = useState(() => {
-    return localStorage.getItem(`lifeos_pet_name_${userId}`) || 'Bé Đồng Hành';
-  });
+  const [petName, setPetName] = useState('Bé Đồng Hành');
   const [isEditingName, setIsEditingName] = useState(false);
-  const [tempName, setTempName] = useState(petName);
+  const [tempName, setTempName] = useState('Bé Đồng Hành');
 
-  // Sync profile & mascot
+  // Sync profile & mascot and fetch real Pet from DB
   useEffect(() => {
     setProfile(retentionEngine.getProfile(userId));
     setMascotSettings(companionEngine.getSettings(userId));
+
+    let isMounted = true;
+    const fetchPet = async () => {
+      if (!userId) return;
+      try {
+        const res = await apiCall('/api/pet');
+        if (res?.success && res?.pet?.name && isMounted) {
+          setPetName(res.pet.name);
+          setTempName(res.pet.name);
+        }
+      } catch {}
+    };
+    fetchPet();
+    return () => { isMounted = false; };
   }, [userId]);
 
   const currentMascotId = mascotSettings.mascotId || 'lumi';
@@ -154,13 +167,16 @@ export function DopaminePetWidget() {
     setTimeout(() => setSpeechBubble(''), 4500);
   };
 
-  // Save Pet Nickname
-  const handleSaveName = () => {
+  // Save Pet Nickname to Database
+  const handleSaveName = async () => {
     const trimmed = tempName.trim() || 'Bé Đồng Hành';
     setPetName(trimmed);
-    localStorage.setItem(`lifeos_pet_name_${userId}`, trimmed);
     setIsEditingName(false);
     soundEngine.playPop();
+    try {
+      await apiCall('/api/pet/rename', 'POST', { name: trimmed });
+      try { localStorage.removeItem(`lifeos_pet_name_${userId}`); } catch {}
+    } catch {}
   };
 
   // Progress to next evolution

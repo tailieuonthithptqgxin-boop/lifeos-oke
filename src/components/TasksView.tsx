@@ -363,23 +363,23 @@ export function TasksView() {
   };
 
   return (
-    <div className="w-full min-w-0 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 flex flex-col overflow-x-hidden">
+    <div className="w-full min-w-0 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:pb-8 space-y-4 sm:space-y-6 flex flex-col overflow-x-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 w-full min-w-0">
-        <div className="min-w-0">
+      <div className="flex flex-row items-center justify-between gap-3 sm:gap-4 w-full min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <h2 className="text-xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight truncate">{t('Quản lý Công việc')}</h2>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1 font-medium break-words">{t('Lập kế hoạch, theo dõi tiến độ và tối ưu thời gian thực hiện tác vụ')}</p>
         </div>
-        <div className="hidden sm:flex items-center gap-3">
+        <div className="flex items-center gap-3 shrink-0">
           <button 
             type="button"
             onClick={openNewTask}
-            className="flex items-center justify-center gap-2 bg-[#10B981] hover:bg-[#059669] text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors shadow-xs cursor-pointer"
+            className="flex items-center justify-center gap-2 bg-[#10B981] hover:bg-[#059669] text-white px-3.5 sm:px-4 py-2 min-h-[44px] sm:min-h-0 rounded-xl text-xs sm:text-sm font-bold sm:font-medium transition-colors shadow-xs cursor-pointer active:scale-95"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
-            <span>{t('Thêm công việc')}</span>
+            <span className="hidden xs:inline">{t('Thêm công việc')}</span>
           </button>
         </div>
       </div>
@@ -487,7 +487,7 @@ export function TasksView() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t('Tìm kiếm công việc...')}
-              className="w-full pl-8 pr-7 py-1.5 bg-slate-50/80 dark:bg-white/[0.05] border border-slate-200/80 dark:border-white/[0.08] rounded-xl text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/50 transition-all"
+              className="w-full pl-8 pr-7 py-2 sm:py-1.5 min-h-[44px] sm:min-h-0 bg-slate-50/80 dark:bg-white/[0.05] border border-slate-200/80 dark:border-white/[0.08] rounded-xl text-base sm:text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/50 transition-all"
             />
             {searchQuery && (
               <button
@@ -874,7 +874,7 @@ function FilterButton({ active, count, alert, children, onClick }: any) {
     <button 
       type="button" 
       onClick={onClick}
-      className={`px-3 py-1.5 min-h-[36px] sm:min-h-[32px] text-xs font-bold rounded-xl whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5
+      className={`px-3 py-2 sm:py-1.5 min-h-[44px] sm:min-h-[32px] text-xs font-bold rounded-xl whitespace-nowrap transition-all cursor-pointer flex items-center gap-1.5
         ${active 
           ? 'bg-emerald-500 text-slate-950 font-black shadow-2xs' 
           : alert
@@ -1827,7 +1827,7 @@ export function TaskModal({ task, initialDate, initialTimeSlot, onClose, onSave,
                 <select 
                   value={formData.status} 
                   onChange={e => setFormData({ ...formData, status: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-sm"
+                  className="w-full px-3.5 py-2.5 min-h-[44px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-base sm:text-sm"
                 >
                   <option value="Chưa làm">{t('Chưa làm')}</option>
                   <option value="Đang làm">{t('Đang làm')}</option>
@@ -1843,7 +1843,7 @@ export function TaskModal({ task, initialDate, initialTimeSlot, onClose, onSave,
                 <select 
                   value={formData.priority} 
                   onChange={e => setFormData({ ...formData, priority: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-sm"
+                  className="w-full px-3.5 py-2.5 min-h-[44px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-base sm:text-sm"
                 >
                   <option value="Thấp">{t('Thấp')}</option>
                   <option value="Trung bình">{t('Trung bình')}</option>
@@ -1858,7 +1858,7 @@ export function TaskModal({ task, initialDate, initialTimeSlot, onClose, onSave,
                   type="date" 
                   value={formData.dueDate} 
                   onChange={e => setFormData({ ...formData, dueDate: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-sm"
+                  className="w-full px-3.5 py-2.5 min-h-[44px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-base sm:text-sm"
                 />
               </div>
 
@@ -1867,7 +1867,7 @@ export function TaskModal({ task, initialDate, initialTimeSlot, onClose, onSave,
                 <select 
                   value={formData.projectId} 
                   onChange={e => setFormData({ ...formData, projectId: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-sm"
+                  className="w-full px-3.5 py-2.5 min-h-[44px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-base sm:text-sm"
                 >
                   <option value="">{t('Không thuộc dự án nào')}</option>
                   {(projects || []).map((p: any) => (
@@ -1881,7 +1881,7 @@ export function TaskModal({ task, initialDate, initialTimeSlot, onClose, onSave,
                 <select 
                   value={formData.linkedGoalId} 
                   onChange={e => setFormData({ ...formData, linkedGoalId: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-sm"
+                  className="w-full px-3.5 py-2.5 min-h-[44px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-base sm:text-sm"
                 >
                   <option value="">{t('Không liên kết mục tiêu')}</option>
                   {(goals || []).map((g: any) => (
@@ -1896,7 +1896,7 @@ export function TaskModal({ task, initialDate, initialTimeSlot, onClose, onSave,
                   type="number" step="0.5" min="0"
                   value={formData.estimatedHours} 
                   onChange={e => setFormData({ ...formData, estimatedHours: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-sm"
+                  className="w-full px-3.5 py-2.5 min-h-[44px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-base sm:text-sm"
                   placeholder="VD: 2.5"
                 />
               </div>
@@ -1906,7 +1906,7 @@ export function TaskModal({ task, initialDate, initialTimeSlot, onClose, onSave,
                 <select 
                   value={formData.recurrence} 
                   onChange={e => setFormData({ ...formData, recurrence: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-sm"
+                  className="w-full px-3.5 py-2.5 min-h-[44px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-base sm:text-sm"
                 >
                   <option value="none">{t('Không lặp lại')}</option>
                   <option value="daily">{t('Hàng ngày')}</option>
@@ -1920,7 +1920,7 @@ export function TaskModal({ task, initialDate, initialTimeSlot, onClose, onSave,
                 <select
                   value={formData.timeSlot || ''}
                   onChange={e => setFormData({ ...formData, timeSlot: e.target.value })}
-                  className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-sm"
+                  className="w-full px-3.5 py-2.5 min-h-[44px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-base sm:text-sm"
                 >
                   <option value="">{t('Chưa xếp khung giờ')}</option>
                   {['07:00','08:00','09:00','10:00','11:00','12:00','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00','22:00'].map(h => (
@@ -1937,7 +1937,7 @@ export function TaskModal({ task, initialDate, initialTimeSlot, onClose, onSave,
                     type="text" 
                     value={formData.tags} 
                     onChange={e => setFormData({ ...formData, tags: e.target.value })}
-                    className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-sm"
+                    className="w-full pl-9 pr-4 py-2.5 min-h-[44px] bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-hidden focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white text-base sm:text-sm"
                     placeholder="VD: uutien, baocao, frontend"
                   />
                 </div>

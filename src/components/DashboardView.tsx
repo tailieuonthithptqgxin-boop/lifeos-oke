@@ -48,6 +48,7 @@ import { TodayFinanceModal } from './dashboard/TodayFinanceModal';
 import { LumiQuestsModal } from './dashboard/LumiQuestsModal';
 import { LifeHarmonyDetailModal } from './dashboard/LifeHarmonyDetailModal';
 import { SpatialBentoCard } from './spatial/SpatialBentoCard';
+import { MobileBottomSheet } from './common/MobileBottomSheet';
 
 const GENZ_PET_QUOTES = [
   "Cố lên bạn ơi, bạn đang gánh cả ngày hôm nay đấy! ✨",
@@ -344,8 +345,8 @@ export function DashboardView() {
 
   // Technique 5: Optimized Tasks Filtering (useMemo)
   const todayTasks = useMemo(() => (tasks || []).filter(t => t.dueDate && t.dueDate.startsWith(dateStr) && t.status !== 'Hủy' && t.status !== 'Cancelled'), [tasks, dateStr]);
-  const pendingTasks = useMemo(() => todayTasks.filter(t => t.status !== 'Hoàn thành' && t.status !== 'Completed'), [todayTasks]);
-  const completedTasks = useMemo(() => todayTasks.filter(t => t.status === 'Hoàn thành' || t.status === 'Completed'), [todayTasks]);
+  const pendingTasks = useMemo(() => todayTasks.filter(t => t.status !== 'Hoàn thành' && t.status !== 'Completed' && t.status !== 'Done'), [todayTasks]);
+  const completedTasks = useMemo(() => todayTasks.filter(t => t.status === 'Hoàn thành' || t.status === 'Completed' || t.status === 'Done'), [todayTasks]);
 
   // Overdue Tasks from previous days
   const overdueTasks = useMemo(() => {
@@ -752,7 +753,7 @@ export function DashboardView() {
   };
 
   return (
-    <div className="w-full min-w-0 max-w-7xl mx-auto px-4 py-4 sm:p-6 lg:p-8 space-y-4 md:space-y-6 pb-28 md:pb-12 overflow-x-hidden">
+    <div className="w-full min-w-0 max-w-7xl mx-auto px-4 py-4 sm:p-6 lg:p-8 space-y-4 md:space-y-6 pb-[max(7rem,calc(env(safe-area-inset-bottom)+5.5rem))] md:pb-12 overflow-x-hidden">
       
       {/* ========================================================================= */}
       {/* 1. COMPACT SUPER-APP HEADER BANNER (MB BANK / XANH SM STYLE)             */}
@@ -764,9 +765,9 @@ export function DashboardView() {
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-3">
           {/* Left: Date/Time + Mood Selector + Daily Quote */}
-          <div className="space-y-1.5 min-w-0">
+          <div className="space-y-2 min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-white text-xs font-semibold">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-white text-xs font-semibold">
                 <Calendar className="w-3.5 h-3.5 shrink-0" />
                 <span>{formatDate(selectedDate, language)} · {currentTime.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
               </div>
@@ -776,68 +777,61 @@ export function DashboardView() {
                 <button
                   type="button"
                   onClick={() => setShowMoodPicker(prev => !prev)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-bold transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-2xs ${MOOD_PRESETS[todayMood].badgeBg}`}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-full border text-xs font-bold transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-2xs ${MOOD_PRESETS[todayMood].badgeBg}`}
                 >
                   <span>{MOOD_PRESETS[todayMood].emoji}</span>
                   <span className="hidden sm:inline">{t(MOOD_PRESETS[todayMood].label)}</span>
                   <ChevronDown className="w-3 h-3 opacity-60 ml-0.5" />
                 </button>
 
+                {/* Desktop dropdown menu (hidden on mobile, uses MobileBottomSheet below) */}
                 {showMoodPicker && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs transition-opacity" 
-                      onClick={() => setShowMoodPicker(false)} 
-                    />
-                    <div 
-                      className="fixed inset-x-3 bottom-6 z-50 md:absolute md:inset-auto md:top-full md:left-0 md:mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-3xl md:rounded-2xl p-3 md:p-2 w-auto md:w-72 space-y-1 text-xs text-slate-800 dark:text-slate-200 animate-in slide-in-from-bottom-5 md:slide-in-from-top-2 duration-150"
-                    >
-                      <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-slate-100 dark:border-slate-800 mb-1">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
-                          Tâm trạng hôm nay
-                        </span>
-                        <button 
-                          type="button" 
-                          onClick={() => setShowMoodPicker(false)} 
-                          className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <div className="max-h-[60vh] md:max-h-72 overflow-y-auto space-y-1 pr-0.5">
-                        {(Object.keys(MOOD_PRESETS) as GenZMood[]).map(key => {
-                          const m = MOOD_PRESETS[key];
-                          const isSelected = todayMood === key;
-                          return (
-                            <button
-                              key={key}
-                              type="button"
-                              onClick={() => {
-                                soundEngine.playPop();
-                                setTodayMood(key);
-                                setTodayMoodState(key);
-                                setShowMoodPicker(false);
-                              }}
-                              className={`w-full flex items-center gap-2.5 p-2.5 md:p-2 rounded-xl text-left transition-colors cursor-pointer ${
-                                isSelected 
-                                  ? 'bg-emerald-600 text-white font-bold shadow-xs' 
-                                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
-                              }`}
-                            >
-                              <span className="text-xl md:text-base shrink-0">{m.emoji}</span>
-                              <div className="min-w-0 flex-1">
-                                <div className="font-bold text-xs">{t(m.label)}</div>
-                                <div className={`text-[10px] truncate ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
-                                  {m.vibe || m.quote}
-                                </div>
-                              </div>
-                              {isSelected && <Check className="w-3.5 h-3.5 stroke-[3] shrink-0" />}
-                            </button>
-                          );
-                        })}
-                      </div>
+                  <div className="hidden md:block absolute top-full left-0 mt-2 z-50 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl rounded-2xl p-2 w-72 space-y-1 text-xs text-slate-800 dark:text-slate-200 animate-in slide-in-from-top-2 duration-150">
+                    <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-slate-100 dark:border-slate-800 mb-1">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
+                        Tâm trạng hôm nay
+                      </span>
+                      <button 
+                        type="button" 
+                        onClick={() => setShowMoodPicker(false)} 
+                        className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-lg cursor-pointer"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </div>
-                  </>
+                    <div className="max-h-72 overflow-y-auto space-y-1 pr-0.5">
+                      {(Object.keys(MOOD_PRESETS) as GenZMood[]).map(key => {
+                        const m = MOOD_PRESETS[key];
+                        const isSelected = todayMood === key;
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => {
+                              soundEngine.playPop();
+                              setTodayMood(key);
+                              setTodayMoodState(key);
+                              setShowMoodPicker(false);
+                            }}
+                            className={`w-full flex items-center gap-2.5 p-2 rounded-xl text-left transition-colors cursor-pointer ${
+                              isSelected 
+                                ? 'bg-emerald-600 text-white font-bold shadow-xs' 
+                                : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                            }`}
+                          >
+                            <span className="text-base shrink-0">{m.emoji}</span>
+                            <div className="min-w-0 flex-1">
+                              <div className="font-bold text-xs">{t(m.label)}</div>
+                              <div className={`text-[10px] truncate ${isSelected ? 'text-white/80' : 'text-slate-400'}`}>
+                                {m.vibe || m.quote}
+                              </div>
+                            </div>
+                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[3] shrink-0" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -850,8 +844,8 @@ export function DashboardView() {
           </div>
 
           {/* Right: Quick Gamification Badges */}
-          <div className="flex items-center gap-2 shrink-0 self-end md:self-center">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-white font-black text-xs">
+          <div className="flex items-center gap-2 shrink-0 self-start md:self-center">
+            <div className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[36px] rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-white font-black text-xs">
               <Flame className="w-4 h-4 fill-amber-400 text-amber-400 animate-pulse" />
               <span>{currentStreak} ngày</span>
             </div>
@@ -862,7 +856,7 @@ export function DashboardView() {
                 soundEngine.playPop();
                 setShowEconomyShop(true);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400 text-slate-900 font-black text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 min-h-[36px] rounded-full bg-amber-400 text-slate-900 font-black text-xs shadow-sm hover:scale-105 active:scale-95 transition-all cursor-pointer"
               title="Mở Cửa hàng Đổi Thưởng Xu"
             >
               <span>🪙</span>
@@ -870,6 +864,49 @@ export function DashboardView() {
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Mobile Bottom Sheet for Mood Picker (< md) */}
+      <div className="md:hidden">
+        <MobileBottomSheet
+          isOpen={showMoodPicker}
+          onClose={() => setShowMoodPicker(false)}
+          title="Tâm trạng hôm nay"
+          subtitle="Chọn cảm xúc để cá nhân hóa lời động viên & gợi ý công việc"
+        >
+          <div className="space-y-2 pb-2">
+            {(Object.keys(MOOD_PRESETS) as GenZMood[]).map(key => {
+              const m = MOOD_PRESETS[key];
+              const isSelected = todayMood === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => {
+                    soundEngine.playPop();
+                    setTodayMood(key);
+                    setTodayMoodState(key);
+                    setShowMoodPicker(false);
+                  }}
+                  className={`w-full flex items-center gap-3 p-3 min-h-[52px] rounded-2xl text-left transition-all active:scale-[0.99] cursor-pointer ${
+                    isSelected 
+                      ? 'bg-emerald-600 text-white font-bold shadow-sm' 
+                      : 'text-slate-800 dark:text-slate-200 bg-slate-50 dark:bg-slate-800/70 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200/60 dark:border-slate-700/60'
+                  }`}
+                >
+                  <span className="text-2xl shrink-0">{m.emoji}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold text-sm leading-tight">{t(m.label)}</div>
+                    <div className={`text-xs truncate mt-0.5 ${isSelected ? 'text-white/80' : 'text-slate-500 dark:text-slate-400'}`}>
+                      {m.vibe || m.quote}
+                    </div>
+                  </div>
+                  {isSelected && <Check className="w-4 h-4 stroke-[3] shrink-0" />}
+                </button>
+              );
+            })}
+          </div>
+        </MobileBottomSheet>
       </div>
 
       {/* ========================================================================= */}
@@ -1010,14 +1047,14 @@ export function DashboardView() {
               Cùng học qua Google Meet / Jitsi, kết nối phòng học ảo, tích lũy giờ học tự động và vinh danh Quán Quân tuần mới!
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap shrink-0">
+          <div className="flex items-center gap-2 flex-wrap shrink-0 w-full sm:w-auto">
             <button
               type="button"
               onClick={() => {
                 soundEngine.playSuccess();
                 setCurrentView('connect');
               }}
-              className="px-4 py-2.5 rounded-2xl bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white font-black text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+              className="w-full sm:w-auto justify-center px-4 py-2.5 min-h-[44px] rounded-2xl bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white font-black text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
             >
               <Globe className="w-4 h-4" />
               <span>Bảng Tin Cộng Đồng</span>
@@ -1028,7 +1065,7 @@ export function DashboardView() {
                 soundEngine.playSuccess();
                 setCurrentView('study-space');
               }}
-              className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 text-white font-black text-xs sm:text-sm shadow-lg shadow-violet-500/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
+              className="w-full sm:w-auto justify-center px-4 py-2.5 min-h-[44px] rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 text-white font-black text-xs sm:text-sm shadow-lg shadow-violet-500/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
             >
               <Users className="w-4 h-4" />
               <span>Vào Sảnh Học Ngay</span>
@@ -1050,7 +1087,7 @@ export function DashboardView() {
           <span className="text-[11px] font-bold text-slate-400">Chạm để mở chi tiết</span>
         </div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-9 gap-2.5 sm:gap-3.5">
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-9 gap-2 sm:gap-3.5">
           {/* 1. Tam Hợp (Rule of 3) */}
           <button
             type="button"
@@ -1058,15 +1095,15 @@ export function DashboardView() {
               soundEngine.playPop();
               setShowTrifectaModal(true);
             }}
-            className="group flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-rose-300 dark:hover:border-rose-500/50 transition-all hover:scale-105 active:scale-95 cursor-pointer text-center relative"
+            className="group flex flex-col items-center justify-center p-2.5 sm:p-3 min-h-[96px] rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-rose-300 dark:hover:border-rose-500/50 transition-all hover:scale-105 active:scale-95 cursor-pointer text-center relative"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-rose-500 to-red-600 text-white flex items-center justify-center shadow-md shadow-rose-500/25 mb-2 group-hover:rotate-6 transition-transform">
-              <Target className="w-6 h-6 stroke-[2.2]" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-rose-500 to-red-600 text-white flex items-center justify-center shadow-md shadow-rose-500/25 mb-1.5 sm:mb-2 group-hover:rotate-6 transition-transform shrink-0">
+              <Target className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.2]" />
             </div>
-            <span className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">
+            <span className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors truncate max-w-full">
               Tam Hợp
             </span>
-            <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-1.5 py-0.5 rounded-full mt-1">
+            <span className="text-[10px] font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/60 px-1.5 py-0.5 rounded-full mt-1 truncate max-w-full">
               {completedTrifectaCount}/3 việc
             </span>
           </button>
@@ -1078,20 +1115,20 @@ export function DashboardView() {
               soundEngine.playPop();
               setShowTasksModal(true);
             }}
-            className="group flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-500/50 transition-all hover:scale-105 active:scale-95 cursor-pointer text-center relative"
+            className="group flex flex-col items-center justify-center p-2.5 sm:p-3 min-h-[96px] rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-emerald-300 dark:hover:border-emerald-500/50 transition-all hover:scale-105 active:scale-95 cursor-pointer text-center relative"
           >
             {overdueTasks.length > 0 && (
               <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[9px] font-black shadow-xs animate-pulse">
                 {overdueTasks.length} trễ
               </span>
             )}
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/25 mb-2 group-hover:rotate-6 transition-transform">
-              <CheckSquare className="w-6 h-6 stroke-[2.2]" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-emerald-500/25 mb-1.5 sm:mb-2 group-hover:rotate-6 transition-transform shrink-0">
+              <CheckSquare className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.2]" />
             </div>
-            <span className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+            <span className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors truncate max-w-full">
               Công Việc
             </span>
-            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-full mt-1">
+            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-full mt-1 truncate max-w-full">
               {completedTasks.length}/{todayTasks.length} việc
             </span>
           </button>
@@ -1103,15 +1140,15 @@ export function DashboardView() {
               soundEngine.playPop();
               setCurrentView('focus');
             }}
-            className="group flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-violet-300 dark:hover:border-violet-500/50 transition-all hover:scale-105 active:scale-95 cursor-pointer text-center relative"
+            className="group flex flex-col items-center justify-center p-2.5 sm:p-3 min-h-[96px] rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-violet-300 dark:hover:border-violet-500/50 transition-all hover:scale-105 active:scale-95 cursor-pointer text-center relative"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-violet-500 to-purple-600 text-white flex items-center justify-center shadow-md shadow-violet-500/25 mb-2 group-hover:rotate-6 transition-transform">
-              <Zap className="w-6 h-6 fill-white stroke-[2.2]" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-violet-500 to-purple-600 text-white flex items-center justify-center shadow-md shadow-violet-500/25 mb-1.5 sm:mb-2 group-hover:rotate-6 transition-transform shrink-0">
+              <Zap className="w-5 h-5 sm:w-6 sm:h-6 fill-white stroke-[2.2]" />
             </div>
-            <span className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+            <span className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors truncate max-w-full">
               Tập Trung
             </span>
-            <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/60 px-1.5 py-0.5 rounded-full mt-1">
+            <span className="text-[10px] font-bold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/60 px-1.5 py-0.5 rounded-full mt-1 truncate max-w-full">
               {studyDisplayValue}
             </span>
           </button>
@@ -1123,15 +1160,15 @@ export function DashboardView() {
               soundEngine.playPop();
               setShowHabitsModal(true);
             }}
-            className="group flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-amber-300 dark:hover:border-amber-500/50 transition-all hover:scale-105 active:scale-95 cursor-pointer text-center relative"
+            className="group flex flex-col items-center justify-center p-2.5 sm:p-3 min-h-[96px] rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-amber-300 dark:hover:border-amber-500/50 transition-all hover:scale-105 active:scale-95 cursor-pointer text-center relative"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/25 mb-2 group-hover:rotate-6 transition-transform">
-              <Flame className="w-6 h-6 fill-white stroke-[2.2]" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-500 text-white flex items-center justify-center shadow-md shadow-amber-500/25 mb-1.5 sm:mb-2 group-hover:rotate-6 transition-transform shrink-0">
+              <Flame className="w-5 h-5 sm:w-6 sm:h-6 fill-white stroke-[2.2]" />
             </div>
-            <span className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+            <span className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors truncate max-w-full">
               Thói Quen
             </span>
-            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded-full mt-1">
+            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/60 px-1.5 py-0.5 rounded-full mt-1 truncate max-w-full">
               {completedHabitsToday.length}/{habits.length}
             </span>
           </button>
@@ -1143,12 +1180,12 @@ export function DashboardView() {
               soundEngine.playPop();
               setShowFinanceModal(true);
             }}
-            className="group flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-cyan-300 dark:hover:border-cyan-500/50 transition-all hover:scale-105 active:scale-95 cursor-pointer text-center relative"
+            className="group flex flex-col items-center justify-center p-2.5 sm:p-3 min-h-[96px] rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-cyan-300 dark:hover:border-cyan-500/50 transition-all hover:scale-105 active:scale-95 cursor-pointer text-center relative"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-cyan-500/25 mb-2 group-hover:rotate-6 transition-transform">
-              <Wallet className="w-6 h-6 stroke-[2.2]" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-teal-600 text-white flex items-center justify-center shadow-md shadow-cyan-500/25 mb-1.5 sm:mb-2 group-hover:rotate-6 transition-transform shrink-0">
+              <Wallet className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.2]" />
             </div>
-            <span className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+            <span className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors truncate max-w-full">
               Chi Tiêu
             </span>
             <span className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-950/60 px-1.5 py-0.5 rounded-full mt-1 truncate max-w-full">
@@ -1163,15 +1200,15 @@ export function DashboardView() {
               soundEngine.playPop();
               setShowHarmonyModal(true);
             }}
-            className="group flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-pink-300 dark:hover:border-pink-500/50 transition-all hover:scale-105 active:scale-95 cursor-pointer text-center relative"
+            className="group flex flex-col items-center justify-center p-2.5 sm:p-3 min-h-[96px] rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-pink-300 dark:hover:border-pink-500/50 transition-all hover:scale-105 active:scale-95 cursor-pointer text-center relative"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-500 text-white flex items-center justify-center shadow-md shadow-pink-500/25 mb-2 group-hover:rotate-6 transition-transform">
-              <Star className="w-6 h-6 fill-white stroke-[2.2]" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-500 text-white flex items-center justify-center shadow-md shadow-pink-500/25 mb-1.5 sm:mb-2 group-hover:rotate-6 transition-transform shrink-0">
+              <Star className="w-5 h-5 sm:w-6 sm:h-6 fill-white stroke-[2.2]" />
             </div>
-            <span className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors">
+            <span className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors truncate max-w-full">
               Cân Bằng 5D
             </span>
-            <span className="text-[10px] font-bold text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/60 px-1.5 py-0.5 rounded-full mt-1">
+            <span className="text-[10px] font-bold text-pink-600 dark:text-pink-400 bg-pink-50 dark:bg-pink-950/60 px-1.5 py-0.5 rounded-full mt-1 truncate max-w-full">
               {Math.round(harmonyOverview?.overallScore ?? 0)} điểm
             </span>
           </button>
@@ -1183,15 +1220,15 @@ export function DashboardView() {
               soundEngine.playPop();
               setCurrentView('study');
             }}
-            className="group flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-all hover:scale-105 active:scale-95 cursor-pointer text-center relative"
+            className="group flex flex-col items-center justify-center p-2.5 sm:p-3 min-h-[96px] rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-indigo-300 dark:hover:border-indigo-500/50 transition-all hover:scale-105 active:scale-95 cursor-pointer text-center relative"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/25 mb-2 group-hover:rotate-6 transition-transform">
-              <BookOpen className="w-6 h-6 stroke-[2.2]" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/25 mb-1.5 sm:mb-2 group-hover:rotate-6 transition-transform shrink-0">
+              <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.2]" />
             </div>
-            <span className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+            <span className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate max-w-full">
               Học Tập
             </span>
-            <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded-full mt-1">
+            <span className="text-[10px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded-full mt-1 truncate max-w-full">
               Study OS
             </span>
           </button>
@@ -1203,15 +1240,15 @@ export function DashboardView() {
               soundEngine.playPop();
               setCurrentView('notes');
             }}
-            className="group flex flex-col items-center justify-center p-3 rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-sky-300 dark:hover:border-sky-500/50 transition-all hover:scale-105 active:scale-95 cursor-pointer text-center relative"
+            className="group flex flex-col items-center justify-center p-2.5 sm:p-3 min-h-[96px] rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs hover:shadow-md hover:border-sky-300 dark:hover:border-sky-500/50 transition-all hover:scale-105 active:scale-95 cursor-pointer text-center relative"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-md shadow-sky-500/25 mb-2 group-hover:rotate-6 transition-transform">
-              <FileEdit className="w-6 h-6 stroke-[2.2]" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-md shadow-sky-500/25 mb-1.5 sm:mb-2 group-hover:rotate-6 transition-transform shrink-0">
+              <FileEdit className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.2]" />
             </div>
-            <span className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">
+            <span className="text-xs font-black text-slate-800 dark:text-slate-100 group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors truncate max-w-full">
               Ghi Chú
             </span>
-            <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60 px-1.5 py-0.5 rounded-full mt-1">
+            <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/60 px-1.5 py-0.5 rounded-full mt-1 truncate max-w-full">
               {notes.length || 0} mục
             </span>
           </button>
@@ -1226,7 +1263,7 @@ export function DashboardView() {
       </div>
 
       {/* Quick Gen Z Action Bar */}
-      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1 pb-1">
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pt-1 pb-1 overscroll-x-contain touch-pan-x">
         <button
           type="button"
           onClick={() => {
@@ -1353,7 +1390,7 @@ export function DashboardView() {
                   value={quickTaskTitle}
                   onChange={(e) => setQuickTaskTitle(e.target.value)}
                   placeholder="VD: Soạn tài liệu tuần, gọi điện đối tác..."
-                  className="w-full px-3.5 py-2.5 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
+                  className="w-full px-3.5 py-2.5 text-base sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
                 />
               </div>
 
@@ -1365,7 +1402,7 @@ export function DashboardView() {
                   <select
                     value={quickTaskPriority}
                     onChange={(e) => setQuickTaskPriority(e.target.value)}
-                    className="w-full px-3.5 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
+                    className="w-full px-3.5 py-2 text-base sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
                   >
                     <option value="Thấp">Thấp</option>
                     <option value="Trung bình">Trung bình</option>
@@ -1384,7 +1421,7 @@ export function DashboardView() {
                     step="0.25"
                     value={quickTaskHours}
                     onChange={(e) => setQuickTaskHours(Math.max(0.25, Number(e.target.value) || 1))}
-                    className="w-full px-3.5 py-2 text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
+                    className="w-full px-3.5 py-2 text-base sm:text-sm bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 text-slate-900 dark:text-white"
                   />
                 </div>
               </div>
@@ -1394,14 +1431,14 @@ export function DashboardView() {
                   type="button"
                   disabled={isSubmittingQuickTask}
                   onClick={() => setShowQuickTaskModal(false)}
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  className="px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
                   type="submit"
                   disabled={!quickTaskTitle.trim() || isSubmittingQuickTask}
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white transition-all shadow-sm cursor-pointer flex items-center gap-1.5"
+                  className="px-5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white transition-all shadow-sm cursor-pointer flex items-center gap-1.5"
                 >
                   {isSubmittingQuickTask && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   <span>{isSubmittingQuickTask ? 'Đang tạo...' : 'Tạo công việc ngay'}</span>

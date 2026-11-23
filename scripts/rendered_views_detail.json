@@ -1,0 +1,132 @@
+[
+  {
+    "tab": "dashboard",
+    "line": 534,
+    "jsx": "case 'dashboard': return <DashboardView />; "
+  },
+  {
+    "tab": "schedule",
+    "line": 536,
+    "jsx": "case 'schedule': return <ScheduleAndTasksView initialTab=\"today\" />; "
+  },
+  {
+    "tab": "calendar",
+    "line": 537,
+    "jsx": "case 'calendar': return <ScheduleAndTasksView initialTab=\"calendar\" />; "
+  },
+  {
+    "tab": "finance",
+    "line": 538,
+    "jsx": "case 'finance': return <FinanceView />; "
+  },
+  {
+    "tab": "focus",
+    "line": 539,
+    "jsx": "case 'focus': return <FocusView />; "
+  },
+  {
+    "tab": "projects",
+    "line": 540,
+    "jsx": "case 'projects': return <ProjectsView />; "
+  },
+  {
+    "tab": "vocab",
+    "line": 542,
+    "jsx": "case 'vocab': return <StudyView />; "
+  },
+  {
+    "tab": "study-space",
+    "line": 543,
+    "jsx": "case 'study-space': return <StudySpaceView initialTab=\"rooms\" />; "
+  },
+  {
+    "tab": "classroom",
+    "line": 544,
+    "jsx": "case 'classroom': return <StudySpaceView initialTab=\"classroom\" />; "
+  },
+  {
+    "tab": "community",
+    "line": 548,
+    "jsx": "return <LifeOsConnectView />; "
+  },
+  {
+    "tab": "goals",
+    "line": 549,
+    "jsx": "case 'goals': return <GoalsView />; "
+  },
+  {
+    "tab": "notes",
+    "line": 550,
+    "jsx": "case 'notes': return <NotesView />; "
+  },
+  {
+    "tab": "habits",
+    "line": 551,
+    "jsx": "case 'habits': return <HabitsView />; "
+  },
+  {
+    "tab": "journey",
+    "line": 552,
+    "jsx": "case 'journey': return <JourneyView />; "
+  },
+  {
+    "tab": "affiliate",
+    "line": 554,
+    "jsx": "case 'affiliate': return <ReferralView />; "
+  },
+  {
+    "tab": "decision_engine",
+    "line": 557,
+    "jsx": "case 'decision_engine': return <DecisionEngineView />; "
+  },
+  {
+    "tab": "automation_engine",
+    "line": 560,
+    "jsx": "case 'automation_engine': return <AutomationEngineView />; "
+  },
+  {
+    "tab": "marketplace",
+    "line": 561,
+    "jsx": "case 'marketplace': return <MarketplaceView />; "
+  },
+  {
+    "tab": "cart",
+    "line": 562,
+    "jsx": "case 'cart': return <CartView />; "
+  },
+  {
+    "tab": "my_account",
+    "line": 565,
+    "jsx": "case 'my_account': return <MyAccountView />; "
+  },
+  {
+    "tab": "subscription",
+    "line": 566,
+    "jsx": "case 'subscription': return <SubscriptionManagementView />; "
+  },
+  {
+    "tab": "checkout",
+    "line": 567,
+    "jsx": "case 'checkout': return <CheckoutView onCancel={() => setCurrentView('subscription')} onSuccess={() => setCurrentView('subscription')} />; "
+  },
+  {
+    "tab": "privacy-policy",
+    "line": 569,
+    "jsx": "case 'privacy-policy': return <PrivacyPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />; "
+  },
+  {
+    "tab": "terms-of-service",
+    "line": 571,
+    "jsx": "case 'terms-of-service': return <TermsOfServiceView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />; "
+  },
+  {
+    "tab": "cookie-policy",
+    "line": 573,
+    "jsx": "case 'cookie-policy': return <CookiePolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />; "
+  },
+  {
+    "tab": "refund-policy",
+    "line": 575,
+    "jsx": "case 'refund-policy': return <RefundPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />; "
+  }
+]

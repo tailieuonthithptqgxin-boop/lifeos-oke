@@ -46,6 +46,7 @@ lifeos-awwwards.html
 serve_awwwards.js
 
 # Temporary test and audit files
+scratch/
 test-results/
 playwright-report/
 backups/

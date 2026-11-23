@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { getPrisma } from '../db.js';
-import { requireAuth } from '../auth.middleware.js';
+import { requireAuth, AuthRequest } from '../auth.middleware.js';
 import { emailQueueService } from '../services/emailQueue.service.js';
 import { gmailService, GmailSmtpConfig } from '../services/gmailNotification.service.js';
 import { buildBeautifulGmailHTML, BeautifulEmailData, SAMPLE_EMAIL_PREVIEWS, EmailCategoryType } from '../../lib/beautifulEmailTemplate.js';
@@ -11,7 +11,7 @@ export const notificationRouter = Router();
 /**
  * 1. Dispatch Notification (In-App DB record + Email Queue)
  */
-notificationRouter.post('/dispatch', async (req: Request, res: Response) => {
+notificationRouter.post('/dispatch', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const { recipient, subject, htmlBody, category = 'GENERAL', priority = 'NORMAL', metadata } = req.body;
 

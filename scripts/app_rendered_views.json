@@ -1,0 +1,207 @@
+[
+  {
+    "line": 534,
+    "code": "case 'dashboard': return <DashboardView />;",
+    "snippet": "      case 'dashboard': return <DashboardView />;\n      case 'tasks':\n      case 'schedule': return <ScheduleAndTasksView initialTab=\"today\" />;\n      case 'calendar': return <ScheduleAndTasksView initialTab=\"calendar\" />;\n      case 'finance': return <FinanceView />;\n      case 'focus': return <FocusView />;\n      case 'projects': return <ProjectsView />;\n      case 'study':\n      case 'vocab': return <StudyView />;\n      case 'study-space': return <StudySpaceView initialTab=\"rooms\" />;"
+  },
+  {
+    "line": 535,
+    "code": "case 'tasks':",
+    "snippet": "      case 'tasks':\n      case 'schedule': return <ScheduleAndTasksView initialTab=\"today\" />;\n      case 'calendar': return <ScheduleAndTasksView initialTab=\"calendar\" />;\n      case 'finance': return <FinanceView />;\n      case 'focus': return <FocusView />;\n      case 'projects': return <ProjectsView />;\n      case 'study':\n      case 'vocab': return <StudyView />;\n      case 'study-space': return <StudySpaceView initialTab=\"rooms\" />;\n      case 'classroom': return <StudySpaceView initialTab=\"classroom\" />;"
+  },
+  {
+    "line": 536,
+    "code": "case 'schedule': return <ScheduleAndTasksView initialTab=\"today\" />;",
+    "snippet": "      case 'schedule': return <ScheduleAndTasksView initialTab=\"today\" />;\n      case 'calendar': return <ScheduleAndTasksView initialTab=\"calendar\" />;\n      case 'finance': return <FinanceView />;\n      case 'focus': return <FocusView />;\n      case 'projects': return <ProjectsView />;\n      case 'study':\n      case 'vocab': return <StudyView />;\n      case 'study-space': return <StudySpaceView initialTab=\"rooms\" />;\n      case 'classroom': return <StudySpaceView initialTab=\"classroom\" />;\n      case 'connect':"
+  },
+  {
+    "line": 537,
+    "code": "case 'calendar': return <ScheduleAndTasksView initialTab=\"calendar\" />;",
+    "snippet": "      case 'calendar': return <ScheduleAndTasksView initialTab=\"calendar\" />;\n      case 'finance': return <FinanceView />;\n      case 'focus': return <FocusView />;\n      case 'projects': return <ProjectsView />;\n      case 'study':\n      case 'vocab': return <StudyView />;\n      case 'study-space': return <StudySpaceView initialTab=\"rooms\" />;\n      case 'classroom': return <StudySpaceView initialTab=\"classroom\" />;\n      case 'connect':\n      case 'feed':"
+  },
+  {
+    "line": 538,
+    "code": "case 'finance': return <FinanceView />;",
+    "snippet": "      case 'finance': return <FinanceView />;\n      case 'focus': return <FocusView />;\n      case 'projects': return <ProjectsView />;\n      case 'study':\n      case 'vocab': return <StudyView />;\n      case 'study-space': return <StudySpaceView initialTab=\"rooms\" />;\n      case 'classroom': return <StudySpaceView initialTab=\"classroom\" />;\n      case 'connect':\n      case 'feed':\n      case 'community':"
+  },
+  {
+    "line": 539,
+    "code": "case 'focus': return <FocusView />;",
+    "snippet": "      case 'focus': return <FocusView />;\n      case 'projects': return <ProjectsView />;\n      case 'study':\n      case 'vocab': return <StudyView />;\n      case 'study-space': return <StudySpaceView initialTab=\"rooms\" />;\n      case 'classroom': return <StudySpaceView initialTab=\"classroom\" />;\n      case 'connect':\n      case 'feed':\n      case 'community':\n        return <LifeOsConnectView />;"
+  },
+  {
+    "line": 540,
+    "code": "case 'projects': return <ProjectsView />;",
+    "snippet": "      case 'projects': return <ProjectsView />;\n      case 'study':\n      case 'vocab': return <StudyView />;\n      case 'study-space': return <StudySpaceView initialTab=\"rooms\" />;\n      case 'classroom': return <StudySpaceView initialTab=\"classroom\" />;\n      case 'connect':\n      case 'feed':\n      case 'community':\n        return <LifeOsConnectView />;\n      case 'goals': return <GoalsView />;"
+  },
+  {
+    "line": 541,
+    "code": "case 'study':",
+    "snippet": "      case 'study':\n      case 'vocab': return <StudyView />;\n      case 'study-space': return <StudySpaceView initialTab=\"rooms\" />;\n      case 'classroom': return <StudySpaceView initialTab=\"classroom\" />;\n      case 'connect':\n      case 'feed':\n      case 'community':\n        return <LifeOsConnectView />;\n      case 'goals': return <GoalsView />;\n      case 'notes': return <NotesView />;"
+  },
+  {
+    "line": 542,
+    "code": "case 'vocab': return <StudyView />;",
+    "snippet": "      case 'vocab': return <StudyView />;\n      case 'study-space': return <StudySpaceView initialTab=\"rooms\" />;\n      case 'classroom': return <StudySpaceView initialTab=\"classroom\" />;\n      case 'connect':\n      case 'feed':\n      case 'community':\n        return <LifeOsConnectView />;\n      case 'goals': return <GoalsView />;\n      case 'notes': return <NotesView />;\n      case 'habits': return <HabitsView />;"
+  },
+  {
+    "line": 543,
+    "code": "case 'study-space': return <StudySpaceView initialTab=\"rooms\" />;",
+    "snippet": "      case 'study-space': return <StudySpaceView initialTab=\"rooms\" />;\n      case 'classroom': return <StudySpaceView initialTab=\"classroom\" />;\n      case 'connect':\n      case 'feed':\n      case 'community':\n        return <LifeOsConnectView />;\n      case 'goals': return <GoalsView />;\n      case 'notes': return <NotesView />;\n      case 'habits': return <HabitsView />;\n      case 'journey': return <JourneyView />;"
+  },
+  {
+    "line": 544,
+    "code": "case 'classroom': return <StudySpaceView initialTab=\"classroom\" />;",
+    "snippet": "      case 'classroom': return <StudySpaceView initialTab=\"classroom\" />;\n      case 'connect':\n      case 'feed':\n      case 'community':\n        return <LifeOsConnectView />;\n      case 'goals': return <GoalsView />;\n      case 'notes': return <NotesView />;\n      case 'habits': return <HabitsView />;\n      case 'journey': return <JourneyView />;\n      case 'referral':"
+  },
+  {
+    "line": 545,
+    "code": "case 'connect':",
+    "snippet": "      case 'connect':\n      case 'feed':\n      case 'community':\n        return <LifeOsConnectView />;\n      case 'goals': return <GoalsView />;\n      case 'notes': return <NotesView />;\n      case 'habits': return <HabitsView />;\n      case 'journey': return <JourneyView />;\n      case 'referral':\n      case 'affiliate': return <ReferralView />;"
+  },
+  {
+    "line": 546,
+    "code": "case 'feed':",
+    "snippet": "      case 'feed':\n      case 'community':\n        return <LifeOsConnectView />;\n      case 'goals': return <GoalsView />;\n      case 'notes': return <NotesView />;\n      case 'habits': return <HabitsView />;\n      case 'journey': return <JourneyView />;\n      case 'referral':\n      case 'affiliate': return <ReferralView />;\n      case 'decision':"
+  },
+  {
+    "line": 547,
+    "code": "case 'community':",
+    "snippet": "      case 'community':\n        return <LifeOsConnectView />;\n      case 'goals': return <GoalsView />;\n      case 'notes': return <NotesView />;\n      case 'habits': return <HabitsView />;\n      case 'journey': return <JourneyView />;\n      case 'referral':\n      case 'affiliate': return <ReferralView />;\n      case 'decision':\n      case 'decision-engine':"
+  },
+  {
+    "line": 549,
+    "code": "case 'goals': return <GoalsView />;",
+    "snippet": "      case 'goals': return <GoalsView />;\n      case 'notes': return <NotesView />;\n      case 'habits': return <HabitsView />;\n      case 'journey': return <JourneyView />;\n      case 'referral':\n      case 'affiliate': return <ReferralView />;\n      case 'decision':\n      case 'decision-engine':\n      case 'decision_engine': return <DecisionEngineView />;\n      case 'automation':"
+  },
+  {
+    "line": 550,
+    "code": "case 'notes': return <NotesView />;",
+    "snippet": "      case 'notes': return <NotesView />;\n      case 'habits': return <HabitsView />;\n      case 'journey': return <JourneyView />;\n      case 'referral':\n      case 'affiliate': return <ReferralView />;\n      case 'decision':\n      case 'decision-engine':\n      case 'decision_engine': return <DecisionEngineView />;\n      case 'automation':\n      case 'automations':"
+  },
+  {
+    "line": 551,
+    "code": "case 'habits': return <HabitsView />;",
+    "snippet": "      case 'habits': return <HabitsView />;\n      case 'journey': return <JourneyView />;\n      case 'referral':\n      case 'affiliate': return <ReferralView />;\n      case 'decision':\n      case 'decision-engine':\n      case 'decision_engine': return <DecisionEngineView />;\n      case 'automation':\n      case 'automations':\n      case 'automation_engine': return <AutomationEngineView />;"
+  },
+  {
+    "line": 552,
+    "code": "case 'journey': return <JourneyView />;",
+    "snippet": "      case 'journey': return <JourneyView />;\n      case 'referral':\n      case 'affiliate': return <ReferralView />;\n      case 'decision':\n      case 'decision-engine':\n      case 'decision_engine': return <DecisionEngineView />;\n      case 'automation':\n      case 'automations':\n      case 'automation_engine': return <AutomationEngineView />;\n      case 'marketplace': return <MarketplaceView />;"
+  },
+  {
+    "line": 553,
+    "code": "case 'referral':",
+    "snippet": "      case 'referral':\n      case 'affiliate': return <ReferralView />;\n      case 'decision':\n      case 'decision-engine':\n      case 'decision_engine': return <DecisionEngineView />;\n      case 'automation':\n      case 'automations':\n      case 'automation_engine': return <AutomationEngineView />;\n      case 'marketplace': return <MarketplaceView />;\n      case 'cart': return <CartView />;"
+  },
+  {
+    "line": 554,
+    "code": "case 'affiliate': return <ReferralView />;",
+    "snippet": "      case 'affiliate': return <ReferralView />;\n      case 'decision':\n      case 'decision-engine':\n      case 'decision_engine': return <DecisionEngineView />;\n      case 'automation':\n      case 'automations':\n      case 'automation_engine': return <AutomationEngineView />;\n      case 'marketplace': return <MarketplaceView />;\n      case 'cart': return <CartView />;\n      case 'account':"
+  },
+  {
+    "line": 555,
+    "code": "case 'decision':",
+    "snippet": "      case 'decision':\n      case 'decision-engine':\n      case 'decision_engine': return <DecisionEngineView />;\n      case 'automation':\n      case 'automations':\n      case 'automation_engine': return <AutomationEngineView />;\n      case 'marketplace': return <MarketplaceView />;\n      case 'cart': return <CartView />;\n      case 'account':\n      case 'my-account':"
+  },
+  {
+    "line": 556,
+    "code": "case 'decision-engine':",
+    "snippet": "      case 'decision-engine':\n      case 'decision_engine': return <DecisionEngineView />;\n      case 'automation':\n      case 'automations':\n      case 'automation_engine': return <AutomationEngineView />;\n      case 'marketplace': return <MarketplaceView />;\n      case 'cart': return <CartView />;\n      case 'account':\n      case 'my-account':\n      case 'my_account': return <MyAccountView />;"
+  },
+  {
+    "line": 557,
+    "code": "case 'decision_engine': return <DecisionEngineView />;",
+    "snippet": "      case 'decision_engine': return <DecisionEngineView />;\n      case 'automation':\n      case 'automations':\n      case 'automation_engine': return <AutomationEngineView />;\n      case 'marketplace': return <MarketplaceView />;\n      case 'cart': return <CartView />;\n      case 'account':\n      case 'my-account':\n      case 'my_account': return <MyAccountView />;\n      case 'subscription': return <SubscriptionManagementView />;"
+  },
+  {
+    "line": 558,
+    "code": "case 'automation':",
+    "snippet": "      case 'automation':\n      case 'automations':\n      case 'automation_engine': return <AutomationEngineView />;\n      case 'marketplace': return <MarketplaceView />;\n      case 'cart': return <CartView />;\n      case 'account':\n      case 'my-account':\n      case 'my_account': return <MyAccountView />;\n      case 'subscription': return <SubscriptionManagementView />;\n      case 'checkout': return <CheckoutView onCancel={() => setCurrentView('subscription')} onSuccess={() => setCurrentView('subscription')} />;"
+  },
+  {
+    "line": 559,
+    "code": "case 'automations':",
+    "snippet": "      case 'automations':\n      case 'automation_engine': return <AutomationEngineView />;\n      case 'marketplace': return <MarketplaceView />;\n      case 'cart': return <CartView />;\n      case 'account':\n      case 'my-account':\n      case 'my_account': return <MyAccountView />;\n      case 'subscription': return <SubscriptionManagementView />;\n      case 'checkout': return <CheckoutView onCancel={() => setCurrentView('subscription')} onSuccess={() => setCurrentView('subscription')} />;\n      case 'privacy':"
+  },
+  {
+    "line": 560,
+    "code": "case 'automation_engine': return <AutomationEngineView />;",
+    "snippet": "      case 'automation_engine': return <AutomationEngineView />;\n      case 'marketplace': return <MarketplaceView />;\n      case 'cart': return <CartView />;\n      case 'account':\n      case 'my-account':\n      case 'my_account': return <MyAccountView />;\n      case 'subscription': return <SubscriptionManagementView />;\n      case 'checkout': return <CheckoutView onCancel={() => setCurrentView('subscription')} onSuccess={() => setCurrentView('subscription')} />;\n      case 'privacy':\n      case 'privacy-policy': return <PrivacyPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;"
+  },
+  {
+    "line": 561,
+    "code": "case 'marketplace': return <MarketplaceView />;",
+    "snippet": "      case 'marketplace': return <MarketplaceView />;\n      case 'cart': return <CartView />;\n      case 'account':\n      case 'my-account':\n      case 'my_account': return <MyAccountView />;\n      case 'subscription': return <SubscriptionManagementView />;\n      case 'checkout': return <CheckoutView onCancel={() => setCurrentView('subscription')} onSuccess={() => setCurrentView('subscription')} />;\n      case 'privacy':\n      case 'privacy-policy': return <PrivacyPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'terms':"
+  },
+  {
+    "line": 562,
+    "code": "case 'cart': return <CartView />;",
+    "snippet": "      case 'cart': return <CartView />;\n      case 'account':\n      case 'my-account':\n      case 'my_account': return <MyAccountView />;\n      case 'subscription': return <SubscriptionManagementView />;\n      case 'checkout': return <CheckoutView onCancel={() => setCurrentView('subscription')} onSuccess={() => setCurrentView('subscription')} />;\n      case 'privacy':\n      case 'privacy-policy': return <PrivacyPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'terms':\n      case 'terms-of-service': return <TermsOfServiceView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;"
+  },
+  {
+    "line": 563,
+    "code": "case 'account':",
+    "snippet": "      case 'account':\n      case 'my-account':\n      case 'my_account': return <MyAccountView />;\n      case 'subscription': return <SubscriptionManagementView />;\n      case 'checkout': return <CheckoutView onCancel={() => setCurrentView('subscription')} onSuccess={() => setCurrentView('subscription')} />;\n      case 'privacy':\n      case 'privacy-policy': return <PrivacyPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'terms':\n      case 'terms-of-service': return <TermsOfServiceView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'cookies':"
+  },
+  {
+    "line": 564,
+    "code": "case 'my-account':",
+    "snippet": "      case 'my-account':\n      case 'my_account': return <MyAccountView />;\n      case 'subscription': return <SubscriptionManagementView />;\n      case 'checkout': return <CheckoutView onCancel={() => setCurrentView('subscription')} onSuccess={() => setCurrentView('subscription')} />;\n      case 'privacy':\n      case 'privacy-policy': return <PrivacyPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'terms':\n      case 'terms-of-service': return <TermsOfServiceView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'cookies':\n      case 'cookie-policy': return <CookiePolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;"
+  },
+  {
+    "line": 565,
+    "code": "case 'my_account': return <MyAccountView />;",
+    "snippet": "      case 'my_account': return <MyAccountView />;\n      case 'subscription': return <SubscriptionManagementView />;\n      case 'checkout': return <CheckoutView onCancel={() => setCurrentView('subscription')} onSuccess={() => setCurrentView('subscription')} />;\n      case 'privacy':\n      case 'privacy-policy': return <PrivacyPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'terms':\n      case 'terms-of-service': return <TermsOfServiceView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'cookies':\n      case 'cookie-policy': return <CookiePolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'refund':"
+  },
+  {
+    "line": 566,
+    "code": "case 'subscription': return <SubscriptionManagementView />;",
+    "snippet": "      case 'subscription': return <SubscriptionManagementView />;\n      case 'checkout': return <CheckoutView onCancel={() => setCurrentView('subscription')} onSuccess={() => setCurrentView('subscription')} />;\n      case 'privacy':\n      case 'privacy-policy': return <PrivacyPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'terms':\n      case 'terms-of-service': return <TermsOfServiceView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'cookies':\n      case 'cookie-policy': return <CookiePolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'refund':\n      case 'refund-policy': return <RefundPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;"
+  },
+  {
+    "line": 567,
+    "code": "case 'checkout': return <CheckoutView onCancel={() => setCurrentView('subscription')} onSuccess={() => setCurrentView('subscription')} />;",
+    "snippet": "      case 'checkout': return <CheckoutView onCancel={() => setCurrentView('subscription')} onSuccess={() => setCurrentView('subscription')} />;\n      case 'privacy':\n      case 'privacy-policy': return <PrivacyPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'terms':\n      case 'terms-of-service': return <TermsOfServiceView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'cookies':\n      case 'cookie-policy': return <CookiePolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'refund':\n      case 'refund-policy': return <RefundPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      default: return ("
+  },
+  {
+    "line": 568,
+    "code": "case 'privacy':",
+    "snippet": "      case 'privacy':\n      case 'privacy-policy': return <PrivacyPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'terms':\n      case 'terms-of-service': return <TermsOfServiceView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'cookies':\n      case 'cookie-policy': return <CookiePolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'refund':\n      case 'refund-policy': return <RefundPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      default: return (\n        <div className=\"flex-1 flex flex-col items-center justify-center text-slate-500 p-8 text-center animate-fade-in\">"
+  },
+  {
+    "line": 569,
+    "code": "case 'privacy-policy': return <PrivacyPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;",
+    "snippet": "      case 'privacy-policy': return <PrivacyPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'terms':\n      case 'terms-of-service': return <TermsOfServiceView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'cookies':\n      case 'cookie-policy': return <CookiePolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'refund':\n      case 'refund-policy': return <RefundPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      default: return (\n        <div className=\"flex-1 flex flex-col items-center justify-center text-slate-500 p-8 text-center animate-fade-in\">\n          <div className=\"w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl mb-4 flex items-center justify-center text-2xl shadow-xs\">"
+  },
+  {
+    "line": 570,
+    "code": "case 'terms':",
+    "snippet": "      case 'terms':\n      case 'terms-of-service': return <TermsOfServiceView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'cookies':\n      case 'cookie-policy': return <CookiePolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'refund':\n      case 'refund-policy': return <RefundPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      default: return (\n        <div className=\"flex-1 flex flex-col items-center justify-center text-slate-500 p-8 text-center animate-fade-in\">\n          <div className=\"w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl mb-4 flex items-center justify-center text-2xl shadow-xs\">\n            🧭"
+  },
+  {
+    "line": 571,
+    "code": "case 'terms-of-service': return <TermsOfServiceView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;",
+    "snippet": "      case 'terms-of-service': return <TermsOfServiceView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'cookies':\n      case 'cookie-policy': return <CookiePolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'refund':\n      case 'refund-policy': return <RefundPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      default: return (\n        <div className=\"flex-1 flex flex-col items-center justify-center text-slate-500 p-8 text-center animate-fade-in\">\n          <div className=\"w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl mb-4 flex items-center justify-center text-2xl shadow-xs\">\n            🧭\n          </div>"
+  },
+  {
+    "line": 572,
+    "code": "case 'cookies':",
+    "snippet": "      case 'cookies':\n      case 'cookie-policy': return <CookiePolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'refund':\n      case 'refund-policy': return <RefundPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      default: return (\n        <div className=\"flex-1 flex flex-col items-center justify-center text-slate-500 p-8 text-center animate-fade-in\">\n          <div className=\"w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl mb-4 flex items-center justify-center text-2xl shadow-xs\">\n            🧭\n          </div>\n          <h2 className=\"text-xl font-bold text-slate-800 dark:text-white mb-1.5\">"
+  },
+  {
+    "line": 573,
+    "code": "case 'cookie-policy': return <CookiePolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;",
+    "snippet": "      case 'cookie-policy': return <CookiePolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      case 'refund':\n      case 'refund-policy': return <RefundPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      default: return (\n        <div className=\"flex-1 flex flex-col items-center justify-center text-slate-500 p-8 text-center animate-fade-in\">\n          <div className=\"w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl mb-4 flex items-center justify-center text-2xl shadow-xs\">\n            🧭\n          </div>\n          <h2 className=\"text-xl font-bold text-slate-800 dark:text-white mb-1.5\">\n            Không tìm thấy phân hệ yêu cầu"
+  },
+  {
+    "line": 574,
+    "code": "case 'refund':",
+    "snippet": "      case 'refund':\n      case 'refund-policy': return <RefundPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      default: return (\n        <div className=\"flex-1 flex flex-col items-center justify-center text-slate-500 p-8 text-center animate-fade-in\">\n          <div className=\"w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl mb-4 flex items-center justify-center text-2xl shadow-xs\">\n            🧭\n          </div>\n          <h2 className=\"text-xl font-bold text-slate-800 dark:text-white mb-1.5\">\n            Không tìm thấy phân hệ yêu cầu\n          </h2>"
+  },
+  {
+    "line": 575,
+    "code": "case 'refund-policy': return <RefundPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;",
+    "snippet": "      case 'refund-policy': return <RefundPolicyView onNavigate={(p) => p === 'home' ? setCurrentView('dashboard') : setCurrentView(p)} />;\n      default: return (\n        <div className=\"flex-1 flex flex-col items-center justify-center text-slate-500 p-8 text-center animate-fade-in\">\n          <div className=\"w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-2xl mb-4 flex items-center justify-center text-2xl shadow-xs\">\n            🧭\n          </div>\n          <h2 className=\"text-xl font-bold text-slate-800 dark:text-white mb-1.5\">\n            Không tìm thấy phân hệ yêu cầu\n          </h2>\n          <p className=\"text-sm text-slate-500 dark:text-slate-400 max-w-md mb-5 leading-relaxed\">"
+  }
+]

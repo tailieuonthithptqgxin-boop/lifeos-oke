@@ -1,0 +1,30 @@
+[
+  {
+    "file": "src/components/companion/DopaminePetWidget.tsx",
+    "line": 101,
+    "severity": "🟡 LOCALSTORAGE_UNSYNCED_STATE",
+    "code": "return localStorage.getItem(`lifeos_pet_name_${userId}`) || 'Bé Đồng Hành';",
+    "desc": "Đọc/ghi chỉ số tài khoản (coins, streak_freeze, xp, pet) chỉ ở localStorage mà không đồng bộ DB"
+  },
+  {
+    "file": "src/components/dashboard/FocusEconomyShopModal.tsx",
+    "line": 80,
+    "severity": "🟡 LOCALSTORAGE_UNSYNCED_STATE",
+    "code": "return parseInt(localStorage.getItem('lifeos_user_coins') || '120', 10);",
+    "desc": "Đọc/ghi chỉ số tài khoản (coins, streak_freeze, xp, pet) chỉ ở localStorage mà không đồng bộ DB"
+  },
+  {
+    "file": "src/components/dashboard/FocusEconomyShopModal.tsx",
+    "line": 118,
+    "severity": "🟡 LOCALSTORAGE_UNSYNCED_STATE",
+    "code": "const currentFreezes = parseInt(localStorage.getItem('lifeos_streak_freezes') || '0', 10);",
+    "desc": "Đọc/ghi chỉ số tài khoản (coins, streak_freeze, xp, pet) chỉ ở localStorage mà không đồng bộ DB"
+  },
+  {
+    "file": "src/components/study-space/StudyRoomView.tsx",
+    "line": 198,
+    "severity": "🟡 LOCALSTORAGE_UNSYNCED_STATE",
+    "code": "const saved = localStorage.getItem('lifeos_study_user_xp');",
+    "desc": "Đọc/ghi chỉ số tài khoản (coins, streak_freeze, xp, pet) chỉ ở localStorage mà không đồng bộ DB"
+  }
+]

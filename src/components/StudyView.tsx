@@ -299,7 +299,7 @@ export function StudyView() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 w-full min-w-0 max-w-full">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 w-full min-w-0 max-w-full touch-pan-x overscroll-x-contain py-1">
           <TabButton active={activeTab === 'vocabulary'} onClick={() => { setActiveTab('vocabulary'); soundEngine.playPop(); }} icon={<BookOpen className="w-4 h-4 text-emerald-500" />} label={isVi ? 'Từ vựng & Ngoại ngữ' : 'Vocabulary & Languages'} />
           <TabButton active={activeTab === 'overview'} onClick={() => { setActiveTab('overview'); soundEngine.playPop(); }} icon={<Activity className="w-4 h-4" />} label={isVi ? 'Tổng quan GPA' : 'GPA Overview'} />
           <TabButton active={activeTab === 'my-grades'} onClick={() => { setActiveTab('my-grades'); soundEngine.playPop(); }} icon={<Award className="w-4 h-4" />} label={isVi ? 'Bảng điểm' : 'Report Card'} count={subjects.length} />
@@ -311,7 +311,7 @@ export function StudyView() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 w-full min-w-0 max-w-full overflow-x-hidden">
+      <div className="flex-1 overflow-y-auto p-3.5 sm:p-6 w-full min-w-0 max-w-full overflow-x-hidden pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:pb-8">
         <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6 w-full min-w-0 max-w-full overflow-x-hidden">
           {activeTab === 'overview' && (
             <StudyOverviewTab 
@@ -537,8 +537,8 @@ export function StudyView() {
 
       {/* Floating 5-Second Undo Toast */}
       {undoItem && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-2xl shadow-2xl border border-slate-700/50 dark:border-slate-200 animate-slide-up text-xs font-semibold backdrop-blur-md">
-          <span>
+        <div className="fixed bottom-[max(5rem,calc(env(safe-area-inset-bottom)+4.5rem))] sm:bottom-6 right-4 sm:right-6 z-50 max-w-[calc(100vw-2rem)] flex items-center gap-3 px-4 py-3 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-2xl shadow-2xl border border-slate-700/50 dark:border-slate-200 animate-slide-up text-xs font-semibold backdrop-blur-md">
+          <span className="min-w-0 flex-1 truncate">
             {isVi 
               ? `Đã xóa ${undoItem.type === 'subject' ? 'môn học' : undoItem.type === 'assignment' ? 'bài tập' : 'kỳ thi'} "${undoItem.data.title || undoItem.data.name}"`
               : `Deleted ${undoItem.type}: "${undoItem.data.title || undoItem.data.name}"`}
@@ -546,7 +546,7 @@ export function StudyView() {
           <button
             type="button"
             onClick={handleRestoreStudyItem}
-            className="flex items-center gap-1 px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl text-xs font-bold transition-transform active:scale-95 cursor-pointer shadow-xs"
+            className="flex items-center gap-1 px-3.5 py-1.5 min-h-[38px] bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl text-xs font-bold transition-transform active:scale-95 cursor-pointer shadow-xs shrink-0"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>{isVi ? 'Hoàn tác (5s)' : 'Undo (5s)'}</span>
@@ -554,7 +554,7 @@ export function StudyView() {
           <button
             type="button"
             onClick={() => setUndoItem(null)}
-            className="p-1 text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer"
+            className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer rounded-lg shrink-0"
             title={isVi ? 'Đóng' : 'Close'}
           >
             <X className="w-3.5 h-3.5" />
@@ -564,15 +564,15 @@ export function StudyView() {
 
       {/* Floating Toast Notification */}
       {toastMessage && (
-        <div className={`fixed right-6 z-50 flex items-center gap-2.5 px-4 py-3 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 rounded-2xl shadow-2xl border border-slate-700/50 backdrop-blur-md animate-slide-up text-xs font-semibold max-w-sm ${
-          undoItem ? 'bottom-20' : 'bottom-6'
+        <div className={`fixed right-4 sm:right-6 z-50 max-w-[calc(100vw-2rem)] flex items-center gap-2.5 px-4 py-3 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 rounded-2xl shadow-2xl border border-slate-700/50 backdrop-blur-md animate-slide-up text-xs font-semibold ${
+          undoItem ? 'bottom-[max(8.5rem,calc(env(safe-area-inset-bottom)+8rem))] sm:bottom-20' : 'bottom-[max(5rem,calc(env(safe-area-inset-bottom)+4.5rem))] sm:bottom-6'
         }`}>
           <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span className="flex-1">{toastMessage}</span>
+          <span className="flex-1 min-w-0">{toastMessage}</span>
           <button
             type="button"
             onClick={() => setToastMessage(null)}
-            className="p-1 text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer"
+            className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer rounded-lg shrink-0"
           >
             <X className="w-3.5 h-3.5" />
           </button>

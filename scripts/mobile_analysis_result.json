@@ -1,0 +1,488 @@
+[
+  {
+    "id": "shell-navigation",
+    "name": "Khung Điều Hướng Tổng, Header & Bottom Bar",
+    "files": [
+      "src/App.tsx",
+      "src/components/Sidebar.tsx",
+      "src/components/TopBar.tsx",
+      "src/components/BottomNav.tsx",
+      "src/components/CommandCenter.tsx"
+    ],
+    "type": "Dạng 1 – Thanh điều hướng & Menu tổng",
+    "existingFiles": [
+      "src/App.tsx",
+      "src/components/Sidebar.tsx",
+      "src/components/TopBar.tsx",
+      "src/components/BottomNav.tsx",
+      "src/components/CommandCenter.tsx"
+    ],
+    "issues": {
+      "totalHover": 114,
+      "totalHScreen": 5,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 2,
+      "totalTables": 0
+    }
+  },
+  {
+    "id": "dashboard",
+    "name": "Bảng Điều Khiển Tổng Quan (Dashboard)",
+    "files": [
+      "src/components/DashboardView.tsx",
+      "src/components/dashboard/LifeHarmonyBento.tsx",
+      "src/components/dashboard/LifeHarmonyDetailModal.tsx",
+      "src/components/dashboard/FocusEconomyShopModal.tsx"
+    ],
+    "type": "Dạng 3 – Trang tổng quan, Thống kê, Biểu đồ",
+    "existingFiles": [
+      "src/components/DashboardView.tsx",
+      "src/components/dashboard/LifeHarmonyDetailModal.tsx",
+      "src/components/dashboard/FocusEconomyShopModal.tsx"
+    ],
+    "issues": {
+      "totalHover": 107,
+      "totalHScreen": 0,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 0,
+      "totalTables": 0
+    }
+  },
+  {
+    "id": "schedule-tasks",
+    "name": "Lịch Biểu & Quản Lý Công Việc (Schedule & Tasks)",
+    "files": [
+      "src/components/ScheduleAndTasksView.tsx",
+      "src/components/tasks/TaskListView.tsx",
+      "src/components/schedule/ScheduleTimelineView.tsx",
+      "src/components/calendar/CalendarMonthView.tsx"
+    ],
+    "type": "Dạng 2 – Bảng dữ liệu, Lịch biểu, Thời khóa biểu nhiều cột",
+    "existingFiles": [
+      "src/components/ScheduleAndTasksView.tsx"
+    ],
+    "issues": {
+      "totalHover": 70,
+      "totalHScreen": 0,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 1,
+      "totalTables": 0
+    }
+  },
+  {
+    "id": "finance",
+    "name": "Quản Lý Tài Chính & Ngân Sách (Finance)",
+    "files": [
+      "src/components/FinanceView.tsx",
+      "src/components/finance/AccountModal.tsx",
+      "src/components/finance/TransactionModal.tsx",
+      "src/components/finance/BudgetModal.tsx",
+      "src/components/finance/DebtModal.tsx"
+    ],
+    "type": "Dạng 3 – Trang tổng quan, Thống kê, Biểu đồ",
+    "existingFiles": [
+      "src/components/FinanceView.tsx",
+      "src/components/finance/AccountModal.tsx",
+      "src/components/finance/TransactionModal.tsx",
+      "src/components/finance/BudgetModal.tsx",
+      "src/components/finance/DebtModal.tsx"
+    ],
+    "issues": {
+      "totalHover": 62,
+      "totalHScreen": 0,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 0,
+      "totalTables": 0
+    }
+  },
+  {
+    "id": "focus",
+    "name": "Phòng Tập Trung Cá Nhân & Nhạc Focus (Focus & Zen)",
+    "files": [
+      "src/components/FocusView.tsx",
+      "src/components/focus/ZenFocusOverlay.tsx",
+      "src/components/focus/GlobalFocusMusicPlayer.tsx"
+    ],
+    "type": "Dạng 5 – Không gian tương tác trực tiếp / Tập trung",
+    "existingFiles": [
+      "src/components/FocusView.tsx",
+      "src/components/focus/ZenFocusOverlay.tsx"
+    ],
+    "issues": {
+      "totalHover": 64,
+      "totalHScreen": 1,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 2,
+      "totalTables": 0
+    }
+  },
+  {
+    "id": "projects",
+    "name": "Quản Lý Dự Án & Tiến Độ (Projects)",
+    "files": [
+      "src/components/ProjectsView.tsx",
+      "src/components/projects/ProjectDetailView.tsx"
+    ],
+    "type": "Dạng 4 – Danh sách có nhiều nút công cụ, tìm kiếm & bộ lọc",
+    "existingFiles": [
+      "src/components/ProjectsView.tsx"
+    ],
+    "issues": {
+      "totalHover": 70,
+      "totalHScreen": 0,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 0,
+      "totalTables": 0
+    }
+  },
+  {
+    "id": "study-vocab",
+    "name": "Trung Tâm Học Tập & Từ Vựng (Study & Vocab Master)",
+    "files": [
+      "src/components/StudyView.tsx",
+      "src/components/vocab/ChineseVocabMasterView.tsx",
+      "src/components/vocab/GenZVocabStudyModal.tsx",
+      "src/components/vocab/SpeedMatchGameModal.tsx"
+    ],
+    "type": "Dạng 4 – Danh sách có nhiều nút công cụ, tìm kiếm & bộ lọc",
+    "existingFiles": [
+      "src/components/StudyView.tsx",
+      "src/components/vocab/GenZVocabStudyModal.tsx",
+      "src/components/vocab/SpeedMatchGameModal.tsx"
+    ],
+    "issues": {
+      "totalHover": 41,
+      "totalHScreen": 0,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 0,
+      "totalTables": 0
+    }
+  },
+  {
+    "id": "study-space",
+    "name": "Phòng Học Chung Trực Tuyến 100+ Người (Study Space & Meet)",
+    "files": [
+      "src/components/study/StudySpaceView.tsx",
+      "src/components/study-space/LayoutSettingsModal.tsx",
+      "src/components/study-space/RoomSettingsModal.tsx",
+      "src/components/study-space/StudyCreateRoomModal.tsx"
+    ],
+    "type": "Dạng 5 – Không gian tương tác trực tiếp / Phòng đông người",
+    "existingFiles": [
+      "src/components/study/StudySpaceView.tsx",
+      "src/components/study-space/LayoutSettingsModal.tsx",
+      "src/components/study-space/RoomSettingsModal.tsx",
+      "src/components/study-space/StudyCreateRoomModal.tsx"
+    ],
+    "issues": {
+      "totalHover": 39,
+      "totalHScreen": 0,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 0,
+      "totalTables": 0
+    }
+  },
+  {
+    "id": "classroom",
+    "name": "Lớp Học Trực Tuyến & Google Calendar (Classroom)",
+    "files": [
+      "src/components/classroom/OnlineClassroomView.tsx",
+      "src/components/study/AssignmentModal.tsx",
+      "src/components/study/ExamModal.tsx"
+    ],
+    "type": "Dạng 5 – Không gian tương tác trực tiếp / Lớp học",
+    "existingFiles": [
+      "src/components/classroom/OnlineClassroomView.tsx",
+      "src/components/study/AssignmentModal.tsx",
+      "src/components/study/ExamModal.tsx"
+    ],
+    "issues": {
+      "totalHover": 57,
+      "totalHScreen": 1,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 0,
+      "totalTables": 0
+    }
+  },
+  {
+    "id": "connect",
+    "name": "Mạng Xã Hội, Bảng Tin & Trò Chuyện (Connect & Feed)",
+    "files": [
+      "src/components/connect/LifeOsConnectView.tsx",
+      "src/components/GlobalChatWidget.tsx",
+      "src/components/connect/UserProfileModal.tsx"
+    ],
+    "type": "Dạng 5 – Bảng tin, Chat, Mạng xã hội",
+    "existingFiles": [
+      "src/components/connect/LifeOsConnectView.tsx",
+      "src/components/connect/UserProfileModal.tsx"
+    ],
+    "issues": {
+      "totalHover": 25,
+      "totalHScreen": 1,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 0,
+      "totalTables": 0
+    }
+  },
+  {
+    "id": "goals",
+    "name": "Mục Tiêu Cuộc Đời & OKRs (Goals)",
+    "files": [
+      "src/components/GoalsView.tsx"
+    ],
+    "type": "Dạng 4 – Danh sách có nhiều nút công cụ & Tiến độ",
+    "existingFiles": [
+      "src/components/GoalsView.tsx"
+    ],
+    "issues": {
+      "totalHover": 104,
+      "totalHScreen": 0,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 0,
+      "totalTables": 1
+    }
+  },
+  {
+    "id": "notes",
+    "name": "Sổ Tay & Quản Trị Tri Thức (Notes & Knowledge)",
+    "files": [
+      "src/components/NotesView.tsx"
+    ],
+    "type": "Dạng 4 – Danh sách thẻ & Trình soạn thảo văn bản",
+    "existingFiles": [
+      "src/components/NotesView.tsx"
+    ],
+    "issues": {
+      "totalHover": 140,
+      "totalHScreen": 0,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 0,
+      "totalTables": 0
+    }
+  },
+  {
+    "id": "habits",
+    "name": "Theo Dõi Thói Quen & Chuỗi Kỷ Luật (Habits & Streaks)",
+    "files": [
+      "src/components/HabitsView.tsx"
+    ],
+    "type": "Dạng 2 – Bảng dữ liệu ma trận thói quen theo tuần/tháng",
+    "existingFiles": [
+      "src/components/HabitsView.tsx"
+    ],
+    "issues": {
+      "totalHover": 50,
+      "totalHScreen": 0,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 0,
+      "totalTables": 1
+    }
+  },
+  {
+    "id": "journey",
+    "name": "Hành Trình RPG & Đấu Trùm (Journey & Gamification)",
+    "files": [
+      "src/components/JourneyView.tsx",
+      "src/components/journey/MonsterCombatModal.tsx",
+      "src/components/journey/RPGSkillTreeModal.tsx"
+    ],
+    "type": "Dạng 3 – Thống kê, Bảng thành tích & Game hóa",
+    "existingFiles": [
+      "src/components/JourneyView.tsx",
+      "src/components/journey/MonsterCombatModal.tsx",
+      "src/components/journey/RPGSkillTreeModal.tsx"
+    ],
+    "issues": {
+      "totalHover": 90,
+      "totalHScreen": 0,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 0,
+      "totalTables": 0
+    }
+  },
+  {
+    "id": "referral",
+    "name": "Tiếp Thị Liên Kết & Hoa Hồng (Affiliate & Referral)",
+    "files": [
+      "src/components/ReferralView.tsx"
+    ],
+    "type": "Dạng 3 – Thống kê thu nhập, Bảng số liệu & Chia sẻ link",
+    "existingFiles": [
+      "src/components/ReferralView.tsx"
+    ],
+    "issues": {
+      "totalHover": 45,
+      "totalHScreen": 0,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 0,
+      "totalTables": 2
+    }
+  },
+  {
+    "id": "decision-engine",
+    "name": "Ma Trận Quyết Định Thông Minh (Decision Engine)",
+    "files": [
+      "src/components/DecisionEngineView.tsx"
+    ],
+    "type": "Dạng 6 – Biểu mẫu nhập tiêu chí & Bảng so sánh điểm số",
+    "existingFiles": [
+      "src/components/DecisionEngineView.tsx"
+    ],
+    "issues": {
+      "totalHover": 67,
+      "totalHScreen": 0,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 0,
+      "totalTables": 0
+    }
+  },
+  {
+    "id": "automation-engine",
+    "name": "Động Cơ Tự Động Hóa Tác Vụ (Automation Engine)",
+    "files": [
+      "src/components/AutomationEngineView.tsx"
+    ],
+    "type": "Dạng 6 – Cấu hình quy tắc Nếu-Thì (Trigger-Action)",
+    "existingFiles": [
+      "src/components/AutomationEngineView.tsx"
+    ],
+    "issues": {
+      "totalHover": 66,
+      "totalHScreen": 0,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 0,
+      "totalTables": 0
+    }
+  },
+  {
+    "id": "marketplace-cart",
+    "name": "Chợ Mẫu & Giỏ Hàng Mua Sắm (Marketplace & Cart)",
+    "files": [
+      "src/components/MarketplaceView.tsx",
+      "src/components/CartView.tsx"
+    ],
+    "type": "Dạng 4 – Lưới sản phẩm & Giỏ hàng thanh toán",
+    "existingFiles": [
+      "src/components/MarketplaceView.tsx",
+      "src/components/CartView.tsx"
+    ],
+    "issues": {
+      "totalHover": 14,
+      "totalHScreen": 0,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 0,
+      "totalTables": 0
+    }
+  },
+  {
+    "id": "account-subscription",
+    "name": "Hồ Sơ Cá Nhân & Quản Lý Gói Dịch Vụ (Account & Billing)",
+    "files": [
+      "src/components/MyAccountView.tsx",
+      "src/components/SubscriptionManagementView.tsx",
+      "src/components/CheckoutView.tsx"
+    ],
+    "type": "Dạng 6 – Biểu mẫu thông tin tài khoản & Bảng giá gói",
+    "existingFiles": [
+      "src/components/MyAccountView.tsx",
+      "src/components/SubscriptionManagementView.tsx",
+      "src/components/CheckoutView.tsx"
+    ],
+    "issues": {
+      "totalHover": 129,
+      "totalHScreen": 1,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 0,
+      "totalTables": 4
+    }
+  },
+  {
+    "id": "admin",
+    "name": "Bảng Điều Khiển Quản Trị Hệ Thống (Admin Control Panel)",
+    "files": [
+      "src/components/AdminView.tsx",
+      "src/components/AdminCustomModulesTab.tsx",
+      "src/components/admin/UserDetailModal.tsx"
+    ],
+    "type": "Dạng 4 – Bảng quản trị người dùng, doanh thu & cấu hình",
+    "existingFiles": [
+      "src/components/AdminView.tsx",
+      "src/components/AdminCustomModulesTab.tsx",
+      "src/components/admin/UserDetailModal.tsx"
+    ],
+    "issues": {
+      "totalHover": 72,
+      "totalHScreen": 0,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 0,
+      "totalTables": 2
+    }
+  },
+  {
+    "id": "custom-modules",
+    "name": "Module Tùy Biến Động (Dynamic Custom Modules)",
+    "files": [
+      "src/components/DynamicModuleView.tsx"
+    ],
+    "type": "Dạng 4 – Bảng dữ liệu động & Biểu mẫu linh hoạt",
+    "existingFiles": [
+      "src/components/DynamicModuleView.tsx"
+    ],
+    "issues": {
+      "totalHover": 18,
+      "totalHScreen": 0,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 0,
+      "totalTables": 1
+    }
+  },
+  {
+    "id": "spatial",
+    "name": "Không Gian 3D Đảo Nổi & Vũ Trụ (Spatial 3D & Universe)",
+    "files": [
+      "src/components/spatial/CyberCozyIslandSpace.tsx",
+      "src/components/spatial/Spatial3DUniverseView.tsx"
+    ],
+    "type": "Dạng 5 – Không gian 3D tương tác cảm ứng",
+    "existingFiles": [
+      "src/components/spatial/CyberCozyIslandSpace.tsx",
+      "src/components/spatial/Spatial3DUniverseView.tsx"
+    ],
+    "issues": {
+      "totalHover": 0,
+      "totalHScreen": 2,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 0,
+      "totalTables": 0
+    }
+  },
+  {
+    "id": "public-auth-legal",
+    "name": "Landing Page, Đăng Nhập, Khảo Sát & Pháp Lý (Public, Auth & Legal)",
+    "files": [
+      "src/components/PublicLandingView.tsx",
+      "src/components/LoginView.tsx",
+      "src/components/OnboardingView.tsx",
+      "src/components/legal/LegalLayout.tsx",
+      "src/components/legal/PrivacyPolicyView.tsx",
+      "src/components/legal/TermsOfServiceView.tsx"
+    ],
+    "type": "Dạng 6 – Trang đích giới thiệu, Form đăng nhập & Văn bản pháp lý",
+    "existingFiles": [
+      "src/components/PublicLandingView.tsx",
+      "src/components/LoginView.tsx",
+      "src/components/OnboardingView.tsx",
+      "src/components/legal/LegalLayout.tsx",
+      "src/components/legal/PrivacyPolicyView.tsx",
+      "src/components/legal/TermsOfServiceView.tsx"
+    ],
+    "issues": {
+      "totalHover": 91,
+      "totalHScreen": 4,
+      "totalSmallTextInputs": 0,
+      "totalWideWidths": 5,
+      "totalTables": 1
+    }
+  }
+]

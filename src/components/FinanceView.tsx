@@ -466,7 +466,7 @@ export function FinanceView() {
   }, [periodIncome, periodExpense, totalBudgetLimit, isVi]);
 
   return (
-    <div className="w-full min-w-0 max-w-7xl mx-auto p-3 sm:p-6 lg:p-8 flex flex-col space-y-4 sm:space-y-6 overflow-x-hidden">
+    <div className="w-full min-w-0 max-w-7xl mx-auto p-3 sm:p-6 lg:p-8 pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:pb-8 flex flex-col space-y-4 sm:space-y-6 overflow-x-hidden">
       {/* ========================================================= */}
       {/* HEADER BAR                                                */}
       {/* ========================================================= */}
@@ -498,7 +498,7 @@ export function FinanceView() {
             soundEngine.playPop();
             setShowTxModal(true);
           }}
-          className="flex items-center justify-center gap-2 bg-[#10B981] hover:bg-[#059669] text-white px-4 py-2 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all cursor-pointer shrink-0 active:scale-95"
+          className="flex items-center justify-center gap-2 bg-[#10B981] hover:bg-[#059669] text-white px-4 py-2.5 sm:py-2 min-h-[44px] sm:min-h-0 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition-all cursor-pointer shrink-0 active:scale-95"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" /> 
           <span>{isVi ? 'Thêm giao dịch' : 'Add Transaction'}</span>
@@ -535,7 +535,7 @@ export function FinanceView() {
           <button
             type="submit"
             disabled={!quickTxInput.trim() || isQuickSubmitting}
-            className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95 flex items-center justify-center gap-1.5 shrink-0"
+            className="px-4 py-2 min-h-[44px] bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95 flex items-center justify-center gap-1.5 shrink-0"
           >
             <Sparkles className="w-3.5 h-3.5" />
             <span>{isVi ? 'Ghi sổ' : 'Record'}</span>
@@ -546,7 +546,7 @@ export function FinanceView() {
       {/* ========================================================= */}
       {/* NAVIGATION TABS                                           */}
       {/* ========================================================= */}
-      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 shrink-0 w-full min-w-0 max-w-full">
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-pan-x overscroll-x-contain py-1 shrink-0 w-full min-w-0 max-w-full">
         <FinanceTabButton active={activeTab === 'overview'} onClick={() => { setActiveTab('overview'); soundEngine.playPop(); }} icon={<LayoutDashboard className="w-4 h-4" />} label={isVi ? 'Tổng quan' : 'Overview'} />
         <FinanceTabButton active={activeTab === 'analytics'} onClick={() => { setActiveTab('analytics'); soundEngine.playPop(); }} icon={<TrendingUp className="w-4 h-4" />} label={isVi ? 'Phân tích Thu Chi' : 'Analytics'} />
         <FinanceTabButton active={activeTab === 'accounts'} onClick={() => { setActiveTab('accounts'); soundEngine.playPop(); }} icon={<Wallet className="w-4 h-4" />} label={isVi ? 'Tài khoản' : 'Accounts'} />
@@ -882,28 +882,30 @@ export function FinanceView() {
       {/* 5-SECOND FLOATING UNDO NOTIFICATION (UNIVERSAL FOR FINANCE)*/}
       {/* ========================================================= */}
       {undoItem && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 rounded-2xl shadow-2xl border border-slate-700/50 dark:border-slate-300 text-xs font-semibold backdrop-blur-md animate-slide-up">
-          <span className="truncate max-w-[200px] sm:max-w-xs">
+        <div className="fixed bottom-[max(5rem,calc(env(safe-area-inset-bottom)+4.5rem))] sm:bottom-6 left-4 right-4 sm:left-auto sm:right-6 z-50 flex items-center justify-between gap-3 px-4 py-3 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 rounded-2xl shadow-2xl border border-slate-700/50 dark:border-slate-300 text-xs font-semibold backdrop-blur-md animate-slide-up max-w-sm sm:max-w-md">
+          <span className="truncate flex-1">
             {isVi ? `Đã xóa "${undoItem.title}"` : `Deleted "${undoItem.title}"`}
           </span>
-          <button
-            type="button"
-            onClick={handleUndo}
-            className="flex items-center gap-1 px-3 py-1 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold cursor-pointer transition-colors shadow-xs"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>{isVi ? 'Hoàn tác' : 'Undo'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-              setUndoItem(null);
-            }}
-            className="p-1 text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleUndo}
+              className="flex items-center gap-1 px-3.5 py-2 sm:py-1 min-h-[38px] sm:min-h-0 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold cursor-pointer transition-colors shadow-xs active:scale-95"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>{isVi ? 'Hoàn tác' : 'Undo'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+                setUndoItem(null);
+              }}
+              className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       )}
     </div>

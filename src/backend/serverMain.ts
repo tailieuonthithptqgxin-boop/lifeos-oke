@@ -59,6 +59,8 @@ import { studySpaceRouter } from './routes/studySpace.routes.js';
 import { analyticsRouter } from './routes/analytics.routes.js';
 import { notificationRouter } from './routes/notifications.routes.js';
 import { cronRouter } from './routes/cron.routes.js';
+import { storageAuditRouter } from './routes/storageAudit.routes.js';
+import { widgetRouter } from './routes/widget.routes.js';
 import { backendCronEngineService } from './services/cronEngine.service.js';
 import { startClassroomReminderLoop } from './services/classroom.service.js';
 import { checkDbConnection, dbService, getPrisma } from './db.js';
@@ -539,6 +541,8 @@ async function startServer() {
   app.use('/api/analytics', analyticsRouter);
   app.use('/api/notifications', notificationRouter);
   app.use('/api/cron', cronRouter);
+  app.use('/api/admin/storage-audit', storageAuditRouter);
+  app.use('/api/widget', widgetRouter);
   app.use('/api', apiRouter);
 
   // Return 404 JSON for unhandled /api/* routes instead of returning HTML SPA fallback

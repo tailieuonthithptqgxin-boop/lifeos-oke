@@ -10,6 +10,7 @@ import { toast } from '../../lib/toast';
 import { compressAndUploadImage, formatBytes, validateImageFile } from '../../lib/imageCompressor';
 import { useAppStore } from '../../lib/store';
 import { recordUserActivity } from '../../lib/globalUserSync';
+import { onFeedPostCreated } from '../../lib/socketClient';
 
 interface SocialFeedViewProps {
   currentUserId?: string;
@@ -104,6 +105,21 @@ export function SocialFeedView({ currentUserId, onOpenProfile, communityId }: So
   useEffect(() => {
     loadFeed();
   }, [filter, communityId]);
+
+  // Real-time Live Feed Sync over Socket.io (Zero-F5 instant cross-sync across windows/tabs)
+  useEffect(() => {
+    const unsubscribe = onFeedPostCreated((newPost: any) => {
+      if (!newPost || !newPost.id) return;
+      if (filter === 'mine' && newPost.userId !== currentUserId) return;
+      if (communityId && newPost.communityId !== communityId) return;
+
+      setPosts(prev => {
+        if (prev.some(p => p.id === newPost.id)) return prev;
+        return [newPost, ...prev];
+      });
+    });
+    return () => unsubscribe();
+  }, [filter, communityId, currentUserId]);
 
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -449,7 +465,7 @@ export function SocialFeedView({ currentUserId, onOpenProfile, communityId }: So
               value={pollQuestion}
               onChange={e => setPollQuestion(e.target.value)}
               placeholder="Câu hỏi bình chọn (ví dụ: Tối nay mấy giờ học nhóm?)..."
-              className="w-full text-xs p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-hidden"
+              className="w-full text-base sm:text-xs min-h-[44px] sm:min-h-0 p-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-hidden"
             />
             <div className="space-y-2">
               {pollOptions.map((opt, i) => (
@@ -464,7 +480,7 @@ export function SocialFeedView({ currentUserId, onOpenProfile, communityId }: So
                       setPollOptions(newOpts);
                     }}
                     placeholder={`Phương án ${i + 1}...`}
-                    className="flex-1 text-xs p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-hidden"
+                    className="flex-1 text-base sm:text-xs min-h-[44px] sm:min-h-0 p-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:outline-hidden"
                   />
                   {pollOptions.length > 2 && (
                     <button
@@ -607,7 +623,7 @@ export function SocialFeedView({ currentUserId, onOpenProfile, communityId }: So
             type="button"
             disabled={creating || isCompressingImage}
             onClick={handleCreatePost}
-            className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-md shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer ml-auto"
+            className="px-5 py-2.5 min-h-[44px] rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-500/20 active:scale-95 transition-all cursor-pointer ml-auto"
           >
             {creating ? 'Đang đăng...' : 'Đăng Bài'}
           </button>
@@ -932,12 +948,12 @@ export function SocialFeedView({ currentUserId, onOpenProfile, communityId }: So
                             if (e.key === 'Enter') handleAddComment(post.id);
                           }}
                           placeholder="Viết lời khích lệ hoặc thảo luận..."
-                          className="flex-1 min-h-[40px] bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
+                          className="flex-1 min-h-[44px] bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-base sm:text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-hidden focus:ring-1 focus:ring-emerald-500"
                         />
                         <button
                           type="button"
                           onClick={() => handleAddComment(post.id)}
-                          className="min-h-[40px] min-w-[40px] flex items-center justify-center p-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-xs transition-colors cursor-pointer"
+                          className="min-h-[44px] min-w-[44px] flex items-center justify-center p-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-xs transition-colors cursor-pointer shrink-0"
                         >
                           <Send className="w-4 h-4" />
                         </button>

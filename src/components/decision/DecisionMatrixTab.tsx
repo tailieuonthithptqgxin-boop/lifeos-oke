@@ -502,7 +502,7 @@ export const DecisionMatrixTab: React.FC<DecisionMatrixTabProps> = ({
               </div>
             </div>
 
-            <div className="overflow-x-auto rounded-2xl border border-slate-200/80 dark:border-slate-800">
+            <div className="overflow-x-auto rounded-2xl border border-slate-200/80 dark:border-slate-800 touch-pan-x overscroll-x-contain py-1">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-slate-800/80 border-b border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold">
@@ -580,7 +580,7 @@ export const DecisionMatrixTab: React.FC<DecisionMatrixTabProps> = ({
               </button>
             </div>
 
-            <div className="overflow-x-auto rounded-2xl border border-slate-200/80 dark:border-slate-800">
+            <div className="overflow-x-auto rounded-2xl border border-slate-200/80 dark:border-slate-800 touch-pan-x overscroll-x-contain py-1">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-slate-900 text-white font-bold">
@@ -1047,7 +1047,7 @@ export const DecisionMatrixTab: React.FC<DecisionMatrixTabProps> = ({
 
       {/* Floating Action Feedback Toast */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl shadow-2xl border border-slate-700/50 dark:border-slate-200 animate-slide-up">
+        <div className="fixed bottom-[max(5rem,calc(env(safe-area-inset-bottom)+4.5rem))] sm:bottom-6 right-4 sm:right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl shadow-2xl border border-slate-700/50 dark:border-slate-200 animate-slide-up">
           <Sparkles className="w-4 h-4 text-emerald-400 dark:text-emerald-600 shrink-0" />
           <span className="text-xs sm:text-sm font-medium">
             {toastMessage}
@@ -1055,7 +1055,7 @@ export const DecisionMatrixTab: React.FC<DecisionMatrixTabProps> = ({
           <button
             type="button"
             onClick={() => setToastMessage(null)}
-            className="text-slate-400 hover:text-white dark:hover:text-slate-900 p-1 cursor-pointer"
+            className="text-slate-400 hover:text-white dark:hover:text-slate-900 p-2 min-w-[36px] min-h-[36px] flex items-center justify-center cursor-pointer"
           >
             <X className="w-3.5 h-3.5" />
           </button>

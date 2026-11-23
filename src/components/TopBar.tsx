@@ -135,7 +135,13 @@ export function TopBar() {
   return (
     <header className="h-auto min-h-[3.75rem] md:h-16 pt-[max(0.75rem,env(safe-area-inset-top))] md:pt-0 pb-2 md:pb-0 bg-white/80 dark:bg-[#07070C]/80 backdrop-blur-2xl border-b border-slate-200/80 dark:border-white/[0.08] shadow-sm flex items-center justify-between px-3.5 sm:px-5 md:px-6 shrink-0 sticky top-0 z-30 transition-colors">
       {/* Mobile Brand Logo */}
-      <div className="flex md:hidden items-center gap-2 shrink-0">
+      <div 
+        onClick={() => {
+          try { soundEngine.playPop(); } catch {}
+          setCurrentView('dashboard');
+        }}
+        className="flex md:hidden items-center gap-2 shrink-0 cursor-pointer active:scale-95 transition-transform"
+      >
         <img 
           src="/logo.png" 
           alt="LifeOS - Hệ Điều Hành Cuộc Sống" 
@@ -156,22 +162,28 @@ export function TopBar() {
       ) : <div />}
 
       {/* Right Action Cluster */}
-      <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+      <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
         {/* Streak Flame Live Motivation Badge */}
         <div 
-          onClick={() => setCurrentView('journey')}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-400/30 text-amber-600 dark:text-amber-400 text-xs font-black shrink-0 cursor-pointer hover:bg-amber-500/20 active:scale-95 transition-all shadow-2xs"
+          onClick={() => {
+            try { soundEngine.playPop(); } catch {}
+            setCurrentView('journey');
+          }}
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-400/30 text-amber-600 dark:text-amber-400 text-xs font-black shrink-0 cursor-pointer hover:bg-amber-500/20 active:scale-95 transition-all shadow-2xs"
           title={`Chuỗi kỷ luật: ${realStreak} ngày liên tiếp 🔥`}
         >
           <Flame className="w-4 h-4 text-amber-500 animate-flame-glow shrink-0" />
           <span>{realStreak} <span className="hidden sm:inline font-bold text-[11px] opacity-80">ngày</span></span>
         </div>
 
-        {/* Quick Theme Toggle Button */}
+        {/* Quick Theme Toggle Button (Hidden on Mobile phone <640px, available in Bottom Sheet Menu) */}
         <button
           type="button"
-          onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-          className="inline-flex h-10 w-10 sm:h-9 sm:w-9 min-h-[44px] min-w-[44px] items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.08] rounded-full border border-[#E2E8F0] dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.05] transition-all cursor-pointer shadow-2xs active:scale-95"
+          onClick={() => {
+            try { soundEngine.playPop(); } catch {}
+            setTheme(theme === 'dark' ? 'light' : 'dark');
+          }}
+          className="hidden sm:inline-flex h-10 w-10 sm:h-9 sm:w-9 min-h-[44px] min-w-[44px] items-center justify-center text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.08] rounded-full border border-[#E2E8F0] dark:border-white/[0.08] bg-slate-50/70 dark:bg-white/[0.05] transition-all cursor-pointer shadow-2xs active:scale-95"
           title={theme === 'dark' ? t('Switch to Light Mode') : t('Switch to Dark Mode')}
           aria-label={t('Chuyển chế độ giao diện')}
         >

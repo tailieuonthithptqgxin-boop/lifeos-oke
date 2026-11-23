@@ -521,7 +521,7 @@ export function ProjectsView() {
   }, [projects, transactions]);
 
   return (
-    <div className="w-full min-w-0 max-w-7xl mx-auto p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 overflow-x-hidden">
+    <div className="w-full min-w-0 max-w-7xl mx-auto p-3 sm:p-6 lg:p-8 pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:pb-8 space-y-4 sm:space-y-6 overflow-x-hidden">
       {/* ========================================================= */}
       {/* HEADER BAR                                                */}
       {/* ========================================================= */}
@@ -555,7 +555,7 @@ export function ProjectsView() {
             soundEngine.playPop();
             setShowAddModal(true);
           }}
-          className="h-9 px-4 bg-[#10B981] hover:bg-[#059669] text-white text-xs font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-all self-start sm:self-auto cursor-pointer shrink-0 shadow-xs active:scale-95"
+          className="h-11 sm:h-9 min-h-[44px] sm:min-h-0 px-4 bg-[#10B981] hover:bg-[#059669] text-white text-xs sm:text-sm font-semibold rounded-xl flex items-center justify-center gap-1.5 transition-all self-stretch sm:self-auto cursor-pointer shrink-0 shadow-xs active:scale-95"
         >
           <Plus className="w-4 h-4 stroke-[2.5]" /> 
           <span>{isVi ? 'Thêm dự án mới' : 'Add New Project'}</span>
@@ -665,14 +665,14 @@ export function ProjectsView() {
       {/* ========================================================= */}
       <div className="space-y-3">
         {/* P.A.R.A 4-Pillar Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-pan-x overscroll-x-contain py-1">
           <button
             type="button"
             onClick={() => {
               setParaFilter('all');
               soundEngine.playPop();
             }}
-            className={`px-3 py-1.5 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+            className={`px-3.5 py-2.5 sm:py-1.5 min-h-[40px] sm:min-h-0 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
               paraFilter === 'all'
                 ? 'bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-xs font-bold'
                 : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:text-slate-900'
@@ -698,7 +698,7 @@ export function ProjectsView() {
                   setParaFilter(key);
                   soundEngine.playPop();
                 }}
-                className={`px-3 py-1.5 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
+                className={`px-3.5 py-2.5 sm:py-1.5 min-h-[40px] sm:min-h-0 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0 ${
                   isActive
                     ? 'bg-white dark:bg-slate-800 border-2 font-bold shadow-xs'
                     : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:text-slate-900'
@@ -723,7 +723,7 @@ export function ProjectsView() {
               <button
                 type="button"
                 onClick={() => { setViewMode('grid'); soundEngine.playPop(); }}
-                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3 py-2 sm:py-1 min-h-[38px] sm:min-h-0 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
                   viewMode === 'grid' 
                     ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs font-bold' 
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -736,7 +736,7 @@ export function ProjectsView() {
               <button
                 type="button"
                 onClick={() => { setViewMode('kanban'); soundEngine.playPop(); }}
-                className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`px-3 py-2 sm:py-1 min-h-[38px] sm:min-h-0 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
                   viewMode === 'kanban' 
                     ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs font-bold' 
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -750,7 +750,7 @@ export function ProjectsView() {
 
             {/* Status Segmented Control (active in grid view) */}
             {viewMode === 'grid' && (
-              <div className="flex bg-[#F1F5F9] dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold shrink-0 border border-slate-200/60 dark:border-slate-700/60">
+              <div className="flex bg-[#F1F5F9] dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold shrink-0 border border-slate-200/60 dark:border-slate-700/60 overflow-x-auto no-scrollbar">
                 {[
                   { id: 'All', label: isVi ? 'Tất cả' : 'All' },
                   { id: 'Đang làm', label: isVi ? 'Đang làm' : 'In Progress' },
@@ -764,7 +764,7 @@ export function ProjectsView() {
                       setStatusFilter(tab.id);
                       soundEngine.playPop();
                     }}
-                    className={`px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                    className={`px-3 py-2 sm:py-1 min-h-[38px] sm:min-h-0 rounded-lg transition-all cursor-pointer whitespace-nowrap ${
                       statusFilter === tab.id
                         ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-2xs font-bold'
                         : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -781,21 +781,22 @@ export function ProjectsView() {
           <div className="flex items-center gap-2 flex-1 justify-end">
             {/* Search Box */}
             <div className="relative flex-1 max-w-xs">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder={isVi ? 'Tìm kiếm dự án...' : 'Search projects...'}
-                className="w-full pl-8 pr-7 py-1.5 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                className="w-full pl-8 pr-7 py-2 sm:py-1.5 min-h-[44px] sm:min-h-0 text-base sm:text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 min-h-[36px] min-w-[36px] flex items-center justify-center cursor-pointer"
+                  title={isVi ? 'Xóa tìm kiếm' : 'Clear search'}
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-3.5 h-3.5" />
                 </button>
               )}
             </div>
@@ -1078,18 +1079,18 @@ export function ProjectsView() {
                           soundEngine.playPop();
                           setEditingProject(project);
                         }}
-                        className="text-slate-400 hover:text-emerald-600 p-1.5 transition-colors cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
+                        className="text-slate-400 hover:text-emerald-600 p-2 sm:p-1.5 min-h-[40px] min-w-[40px] sm:min-h-0 sm:min-w-0 flex items-center justify-center transition-colors cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg"
                         title={isVi ? 'Chỉnh sửa dự án' : 'Edit project'}
                       >
-                        <Edit2 className="w-3.5 h-3.5" />
+                        <Edit2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                       </button>
                       <button 
                         type="button"
                         onClick={() => handleDeleteProject(project)}
-                        className="text-slate-400 hover:text-rose-500 p-1.5 transition-colors cursor-pointer hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg"
+                        className="text-slate-400 hover:text-rose-500 p-2 sm:p-1.5 min-h-[40px] min-w-[40px] sm:min-h-0 sm:min-w-0 flex items-center justify-center transition-colors cursor-pointer hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg"
                         title={isVi ? 'Xóa dự án' : 'Delete project'}
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                       </button>
                     </div>
                   </div>
@@ -1217,11 +1218,11 @@ export function ProjectsView() {
                                   <button
                                     type="button"
                                     onClick={(e) => handleToggleProjectTask(task, e)}
-                                    className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 cursor-pointer ${
+                                    className={`w-6 h-6 sm:w-3.5 sm:h-3.5 min-h-[24px] min-w-[24px] sm:min-h-0 sm:min-w-0 rounded-md sm:rounded border flex items-center justify-center shrink-0 cursor-pointer ${
                                       isDone ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-400'
                                     }`}
                                   >
-                                    {isDone && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                                    {isDone && <Check className="w-3.5 h-3.5 sm:w-2.5 sm:h-2.5 stroke-[3]" />}
                                   </button>
                                   <span className={`truncate ${isDone ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-200'}`}>
                                     {task.title}
@@ -1236,10 +1237,10 @@ export function ProjectsView() {
                                   <button
                                     type="button"
                                     onClick={(e) => handleDeleteProjectTaskWithUndo(task, e)}
-                                    className="p-0.5 text-slate-400 hover:text-rose-500 cursor-pointer transition-colors"
+                                    className="p-2 sm:p-0.5 min-h-[32px] min-w-[32px] sm:min-h-0 sm:min-w-0 flex items-center justify-center text-slate-400 hover:text-rose-500 cursor-pointer transition-colors"
                                     title={isVi ? "Xóa việc này" : "Delete task"}
                                   >
-                                    <Trash2 className="w-3 h-3" />
+                                    <Trash2 className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                                   </button>
                                 </div>
                               </div>
@@ -1255,14 +1256,14 @@ export function ProjectsView() {
                           value={projectTaskInputs[project.id] || ''}
                           onChange={e => setProjectTaskInputs({ ...projectTaskInputs, [project.id]: e.target.value })}
                           placeholder={isVi ? '+ Thêm việc nhanh... [Enter]' : '+ Quick task... [Enter]'}
-                          className="flex-1 px-2.5 py-1 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          className="flex-1 px-3 py-2 sm:py-1 min-h-[40px] sm:min-h-0 text-base sm:text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
                         />
                         <button
                           type="submit"
                           disabled={!(projectTaskInputs[project.id] || '').trim()}
-                          className="px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95 shrink-0"
+                          className="px-3.5 py-2 sm:py-1 min-h-[40px] sm:min-h-0 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-40 text-white rounded-lg text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95 shrink-0 flex items-center justify-center"
                         >
-                          <Plus className="w-3 h-3" />
+                          <Plus className="w-4 h-4 sm:w-3 sm:h-3" />
                         </button>
                       </form>
                     </div>
@@ -1358,16 +1359,16 @@ export function ProjectsView() {
                     placeholder={isVi ? 'VD: Ra mắt ứng dụng di động, Thói quen tập gym hàng tuần' : 'e.g. Mobile App Launch, Weekly Gym Routine'}
                     value={newProject.name}
                     onChange={e => setNewProject({ ...newProject, name: e.target.value })}
-                    className="w-full px-3 py-2 pr-8 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                    className="w-full px-3.5 py-2.5 pr-8 text-base sm:text-sm min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                   />
                   {newProject.name && (
                     <button
                       type="button"
                       onClick={() => setNewProject({ ...newProject, name: '' })}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 min-h-[36px] min-w-[36px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                       title={isVi ? 'Xóa tên' : 'Clear name'}
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <X className="w-4 h-4" />
                     </button>
                   )}
                 </div>
@@ -1382,7 +1383,7 @@ export function ProjectsView() {
                   placeholder={isVi ? 'Mục tiêu trọng tâm và kết quả then chốt mong muốn...' : 'Key goals and desired outcomes...'}
                   value={newProject.description}
                   onChange={e => setNewProject({ ...newProject, description: e.target.value })}
-                  className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                  className="w-full px-3.5 py-2.5 text-base sm:text-sm min-h-[72px] rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                 />
               </div>
 
@@ -1398,7 +1399,7 @@ export function ProjectsView() {
                     placeholder="0"
                     value={newProject.budget || ''}
                     onChange={e => setNewProject({ ...newProject, budget: Number(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                    className="w-full px-3.5 py-2.5 text-base sm:text-sm min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                   />
                 </div>
                 <div>
@@ -1409,7 +1410,7 @@ export function ProjectsView() {
                     type="date"
                     value={newProject.deadline}
                     onChange={e => setNewProject({ ...newProject, deadline: e.target.value })}
-                    className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                    className="w-full px-3.5 py-2.5 text-base sm:text-sm min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                   />
                 </div>
               </div>
@@ -1421,7 +1422,7 @@ export function ProjectsView() {
                 <select
                   value={newProject.health}
                   onChange={e => setNewProject({ ...newProject, health: e.target.value })}
-                  className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer"
+                  className="w-full px-3.5 py-2.5 text-base sm:text-sm min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer"
                 >
                   <option value="Tốt">{isVi ? 'Tốt (Đúng kế hoạch)' : 'Healthy'}</option>
                   <option value="Rủi ro">{isVi ? 'Rủi ro (Cần theo dõi)' : 'At Risk'}</option>
@@ -1433,14 +1434,14 @@ export function ProjectsView() {
                 <button
                   type="button"
                   onClick={handleSafeDismissAdd}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
+                  className="px-4 py-2.5 min-h-[44px] text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
                 >
                   {isVi ? 'Hủy' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 text-xs font-bold bg-[#10B981] hover:bg-[#059669] disabled:opacity-50 text-white rounded-xl cursor-pointer shadow-xs active:scale-95"
+                  className="px-5 py-2.5 min-h-[44px] text-xs sm:text-sm font-bold bg-[#10B981] hover:bg-[#059669] disabled:opacity-50 text-white rounded-xl cursor-pointer shadow-xs active:scale-95"
                 >
                   {isSubmitting ? (isVi ? 'Đang tạo...' : 'Creating...') : (isVi ? 'Tạo Mục Mới' : 'Create Item')}
                 </button>
@@ -1530,16 +1531,16 @@ export function ProjectsView() {
                     required
                     value={editingProject.name}
                     onChange={e => setEditingProject({ ...editingProject, name: e.target.value })}
-                    className="w-full px-3 py-2 pr-8 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                    className="w-full px-3.5 py-2.5 pr-8 text-base sm:text-sm min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                   />
                   {editingProject.name && (
                     <button
                       type="button"
                       onClick={() => setEditingProject({ ...editingProject, name: '' })}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1.5 min-h-[36px] min-w-[36px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                       title={isVi ? 'Xóa tên' : 'Clear name'}
                     >
-                      <X className="w-3.5 h-3.5" />
+                      <X className="w-4 h-4" />
                     </button>
                   )}
                 </div>
@@ -1553,7 +1554,7 @@ export function ProjectsView() {
                   rows={2}
                   value={editingProject.description || ''}
                   onChange={e => setEditingProject({ ...editingProject, description: e.target.value })}
-                  className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                  className="w-full px-3.5 py-2.5 text-base sm:text-sm min-h-[72px] rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                 />
               </div>
 
@@ -1571,7 +1572,7 @@ export function ProjectsView() {
                   max="100"
                   value={editingProject.progress || 0}
                   onChange={e => setEditingProject({ ...editingProject, progress: Number(e.target.value) })}
-                  className="w-full accent-emerald-500 cursor-pointer"
+                  className="w-full accent-emerald-500 cursor-pointer h-7"
                 />
               </div>
 
@@ -1583,7 +1584,7 @@ export function ProjectsView() {
                   <select
                     value={editingProject.status || 'Đang làm'}
                     onChange={e => setEditingProject({ ...editingProject, status: e.target.value })}
-                    className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer"
+                    className="w-full px-3.5 py-2.5 text-base sm:text-sm min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer"
                   >
                     <option value="Đang làm">{isVi ? 'Đang thực hiện' : 'In Progress'}</option>
                     <option value="Hoàn thành">{isVi ? 'Đã hoàn thành' : 'Completed'}</option>
@@ -1597,7 +1598,7 @@ export function ProjectsView() {
                   <select
                     value={editingProject.health || 'Tốt'}
                     onChange={e => setEditingProject({ ...editingProject, health: e.target.value })}
-                    className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer"
+                    className="w-full px-3.5 py-2.5 text-base sm:text-sm min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 cursor-pointer"
                   >
                     <option value="Tốt">{isVi ? 'Tốt' : 'Healthy'}</option>
                     <option value="Rủi ro">{isVi ? 'Rủi ro' : 'At Risk'}</option>
@@ -1618,7 +1619,7 @@ export function ProjectsView() {
                     placeholder="0"
                     value={editingProject.budget || ''}
                     onChange={e => setEditingProject({ ...editingProject, budget: Number(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                    className="w-full px-3.5 py-2.5 text-base sm:text-sm min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                   />
                 </div>
                 <div>
@@ -1629,7 +1630,7 @@ export function ProjectsView() {
                     type="date"
                     value={editingProject.deadline || ''}
                     onChange={e => setEditingProject({ ...editingProject, deadline: e.target.value })}
-                    className="w-full px-3 py-2 text-xs sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                    className="w-full px-3.5 py-2.5 text-base sm:text-sm min-h-[44px] rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
                   />
                 </div>
               </div>
@@ -1638,14 +1639,14 @@ export function ProjectsView() {
                 <button
                   type="button"
                   onClick={handleSafeDismissEdit}
-                  className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
+                  className="px-4 py-2.5 min-h-[44px] text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl cursor-pointer"
                 >
                   {isVi ? 'Hủy' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="px-5 py-2 text-xs font-bold bg-[#10B981] hover:bg-[#059669] disabled:opacity-50 text-white rounded-xl cursor-pointer shadow-xs active:scale-95"
+                  className="px-5 py-2.5 min-h-[44px] text-xs sm:text-sm font-bold bg-[#10B981] hover:bg-[#059669] disabled:opacity-50 text-white rounded-xl cursor-pointer shadow-xs active:scale-95"
                 >
                   {isSubmitting ? (isVi ? 'Đang lưu...' : 'Saving...') : (isVi ? 'Lưu Thay Đổi' : 'Save Changes')}
                 </button>
@@ -1659,54 +1660,62 @@ export function ProjectsView() {
       {/* 5-SECOND FLOATING UNDO TOAST                              */}
       {/* ========================================================= */}
       {undoProject && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 rounded-2xl shadow-2xl animate-slide-up border border-slate-700/50 backdrop-blur-md">
-          <span className="text-xs font-semibold truncate max-w-[200px] sm:max-w-xs">
+        <div className="fixed bottom-[max(5rem,calc(env(safe-area-inset-bottom)+4.5rem))] sm:bottom-6 left-4 right-4 sm:left-auto sm:right-6 z-50 flex items-center justify-between gap-3 px-4 py-3 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 rounded-2xl shadow-2xl animate-slide-up border border-slate-700/50 backdrop-blur-md max-w-sm sm:max-w-md">
+          <span className="text-xs sm:text-sm font-semibold truncate flex-1">
             {isVi ? `Đã xóa "${undoProject.name}"` : `Deleted "${undoProject.name}"`}
           </span>
-          <button
-            type="button"
-            onClick={handleUndoDelete}
-            className="px-3 py-1 text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>{isVi ? 'Hoàn tác' : 'Undo'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
-              setUndoProject(null);
-            }}
-            className="p-1 text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleUndoDelete}
+              className="px-3.5 py-2 sm:py-1 min-h-[38px] sm:min-h-0 text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>{isVi ? 'Hoàn tác' : 'Undo'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+                setUndoProject(null);
+              }}
+              className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       )}
 
       {undoTaskItem && (
-        <div className="fixed bottom-20 sm:bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 rounded-2xl shadow-2xl animate-slide-up border border-slate-700/50 backdrop-blur-md">
-          <span className="text-xs font-semibold truncate max-w-[200px] sm:max-w-xs">
+        <div className={`fixed left-4 right-4 sm:left-auto sm:right-6 z-50 flex items-center justify-between gap-3 px-4 py-3 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 rounded-2xl shadow-2xl animate-slide-up border border-slate-700/50 backdrop-blur-md max-w-sm sm:max-w-md ${
+          undoProject 
+            ? 'bottom-[max(8.5rem,calc(env(safe-area-inset-bottom)+8rem))] sm:bottom-20' 
+            : 'bottom-[max(5rem,calc(env(safe-area-inset-bottom)+4.5rem))] sm:bottom-6'
+        }`}>
+          <span className="text-xs sm:text-sm font-semibold truncate flex-1">
             {isVi ? `Đã xóa việc "${undoTaskItem.title}"` : `Deleted task "${undoTaskItem.title}"`}
           </span>
-          <button
-            type="button"
-            onClick={handleUndoDeleteTask}
-            className="px-3 py-1 text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>{isVi ? 'Hoàn tác' : 'Undo'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (undoTaskTimerRef.current) clearTimeout(undoTaskTimerRef.current);
-              setUndoTaskItem(null);
-            }}
-            className="p-1 text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleUndoDeleteTask}
+              className="px-3.5 py-2 sm:py-1 min-h-[38px] sm:min-h-0 text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl flex items-center gap-1 cursor-pointer transition-colors shadow-xs"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>{isVi ? 'Hoàn tác' : 'Undo'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (undoTaskTimerRef.current) clearTimeout(undoTaskTimerRef.current);
+                setUndoTaskItem(null);
+              }}
+              className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       )}
     </div>

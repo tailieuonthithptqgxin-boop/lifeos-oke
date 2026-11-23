@@ -395,11 +395,11 @@ export function SubscriptionManagementView() {
         </div>
 
         {/* Navigation Tabs */}
-        <div className="max-w-6xl mx-auto flex items-center gap-2 mt-6 border-b border-slate-100 dark:border-slate-800">
+        <div className="max-w-6xl mx-auto flex items-center gap-2 mt-6 border-b border-slate-100 dark:border-slate-800 overflow-x-auto no-scrollbar touch-pan-x overscroll-x-contain py-1">
           <button
             type="button"
             onClick={() => setActiveTab('plans')}
-            className={`px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-4 py-2.5 min-h-[40px] sm:min-h-0 shrink-0 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'plans'
                 ? 'border-blue-600 text-blue-600 dark:text-blue-400'
                 : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
@@ -412,7 +412,7 @@ export function SubscriptionManagementView() {
           <button
             type="button"
             onClick={() => setActiveTab('team')}
-            className={`px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-4 py-2.5 min-h-[40px] sm:min-h-0 shrink-0 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'team'
                 ? 'border-blue-600 text-blue-600 dark:text-blue-400'
                 : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
@@ -430,7 +430,7 @@ export function SubscriptionManagementView() {
           <button
             type="button"
             onClick={() => setActiveTab('history')}
-            className={`px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
+            className={`px-4 py-2.5 min-h-[40px] sm:min-h-0 shrink-0 text-xs sm:text-sm font-bold border-b-2 transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'history'
                 ? 'border-blue-600 text-blue-600 dark:text-blue-400'
                 : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
@@ -443,7 +443,7 @@ export function SubscriptionManagementView() {
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 w-full min-w-0 max-w-6xl mx-auto p-4 sm:p-8 space-y-4 sm:space-y-6 overflow-x-hidden">
+      <div className="flex-1 w-full min-w-0 max-w-6xl mx-auto p-4 sm:p-8 space-y-4 sm:space-y-6 pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:pb-8 overflow-x-hidden">
 
         {/* Global Feedback Banner */}
         {statusMessage && (

@@ -164,7 +164,7 @@ export function CartView() {
 
         {/* Floating 5-Second Undo Toast */}
         {undoCartItem && (
-          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 px-4 py-3 rounded-2xl shadow-2xl border border-slate-700/50 dark:border-slate-300 text-xs font-semibold backdrop-blur-md animate-slide-up">
+          <div className="fixed bottom-[max(5rem,calc(env(safe-area-inset-bottom)+4.5rem))] sm:bottom-6 right-4 sm:right-6 z-50 flex items-center gap-3 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 px-4 py-3 rounded-2xl shadow-2xl border border-slate-700/50 dark:border-slate-300 text-xs font-semibold backdrop-blur-md animate-slide-up">
             <span className="truncate max-w-[200px] sm:max-w-[280px]">
               Đã xóa "{undoCartItem.product.title || undoCartItem.product.name}" khỏi giỏ hàng
             </span>
@@ -194,7 +194,7 @@ export function CartView() {
   }
 
   return (
-    <div className="w-full min-w-0 max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 font-sans overflow-x-hidden">
+    <div className="w-full min-w-0 max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 font-sans pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:pb-8 overflow-x-hidden">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full min-w-0">
         <div className="min-w-0">
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white truncate">Giỏ hàng bản quyền</h2>
@@ -302,13 +302,13 @@ export function CartView() {
                   value={couponCode}
                   onChange={e => setCouponCode(e.target.value.toUpperCase())}
                   placeholder="Mã giảm giá (ví dụ: LIFEOS20)..."
-                  className="flex-1 px-3 py-2 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl text-xs uppercase font-mono tracking-wider focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 min-h-[44px] sm:min-h-0 px-3 py-2 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 rounded-xl text-base sm:text-xs uppercase font-mono tracking-wider focus:outline-hidden focus:ring-2 focus:ring-blue-500"
                 />
                 <button
                   type="button"
                   onClick={applyCoupon}
                   disabled={isApplying || !couponCode.trim()}
-                  className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                  className="px-4 py-2 min-h-[44px] sm:min-h-0 bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition-colors cursor-pointer"
                 >
                   {isApplying ? '...' : 'Áp dụng'}
                 </button>
@@ -318,7 +318,7 @@ export function CartView() {
                 type="button"
                 onClick={handleCheckout}
                 disabled={isCheckingOut}
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full min-h-[48px] py-3.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-sm sm:text-xs rounded-xl shadow-md shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Zap className="w-4 h-4 fill-white" />
                 <span>{isCheckingOut ? 'Đang kích hoạt bản quyền...' : 'Thanh toán & Kích hoạt'}</span>
@@ -335,7 +335,7 @@ export function CartView() {
 
       {/* Floating 5-Second Undo Toast */}
       {undoCartItem && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 px-4 py-3 rounded-2xl shadow-2xl border border-slate-700/50 dark:border-slate-300 text-xs font-semibold backdrop-blur-md animate-slide-up">
+        <div className="fixed bottom-[max(5rem,calc(env(safe-area-inset-bottom)+4.5rem))] sm:bottom-6 right-4 sm:right-6 z-50 flex items-center gap-3 bg-slate-900/95 dark:bg-slate-100/95 text-white dark:text-slate-900 px-4 py-3 rounded-2xl shadow-2xl border border-slate-700/50 dark:border-slate-300 text-xs font-semibold backdrop-blur-md animate-slide-up">
           <span className="truncate max-w-[200px] sm:max-w-[280px]">
             Đã xóa "{undoCartItem.product.title || undoCartItem.product.name}" khỏi giỏ hàng
           </span>

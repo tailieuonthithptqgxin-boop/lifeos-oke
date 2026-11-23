@@ -233,24 +233,24 @@ export function Oxford3000Tab({
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Tìm kiếm theo từ tiếng Anh (abandon, resilient...) hoặc nghĩa tiếng Việt (bỏ rơi, khả năng...)"
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-base sm:text-xs min-h-[44px] sm:min-h-0 font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
             {search && (
               <button
                 type="button"
                 onClick={() => setSearch('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 hover:text-slate-600 p-1 cursor-pointer"
               >
                 ✕
               </button>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <select
               value={posFilter}
               onChange={e => setPosFilter(e.target.value)}
-              className="px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-300"
+              className="px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-base sm:text-xs min-h-[44px] sm:min-h-0 font-bold text-slate-700 dark:text-slate-300 cursor-pointer"
             >
               {POS_FILTERS.map(f => (
                 <option key={f.value} value={f.value}>{f.label}</option>
@@ -260,7 +260,7 @@ export function Oxford3000Tab({
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
-              className="px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-300"
+              className="px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-base sm:text-xs min-h-[44px] sm:min-h-0 font-bold text-slate-700 dark:text-slate-300 cursor-pointer"
             >
               {STATUS_FILTERS.map(s => (
                 <option key={s.value} value={s.value}>{s.label}</option>
@@ -271,7 +271,7 @@ export function Oxford3000Tab({
 
         {/* ALPHABET A-Z QUICK FILTER BAR */}
         <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1">
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-1 touch-pan-x overscroll-x-contain">
             <span className="text-[11px] font-bold text-slate-400 mr-2 shrink-0">Chữ cái:</span>
             {ALPHABET.map(letter => {
               const isActive = selectedLetter === letter;
@@ -280,7 +280,7 @@ export function Oxford3000Tab({
                   key={letter}
                   type="button"
                   onClick={() => setSelectedLetter(letter)}
-                  className={`px-2.5 py-1 rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
+                  className={`px-2.5 py-1 min-h-[36px] min-w-[36px] sm:min-h-0 sm:min-w-0 flex items-center justify-center rounded-xl text-xs font-bold transition shrink-0 cursor-pointer ${
                     isActive
                       ? 'bg-blue-600 text-white shadow-xs'
                       : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300'

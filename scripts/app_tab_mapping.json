@@ -1,0 +1,251 @@
+{
+  "lazyImports": [],
+  "tabMapping": [
+    {
+      "cases": [
+        "dashboard"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "tasks"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "schedule"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "calendar"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "finance"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "focus"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "projects"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "study"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "vocab"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "study-space"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "classroom"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "connect"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "feed"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "community"
+      ],
+      "jsxSnippet": "return <LifeOsConnectView />;"
+    },
+    {
+      "cases": [
+        "goals"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "notes"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "habits"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "journey"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "referral"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "affiliate"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "decision"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "decision-engine"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "decision_engine"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "automation"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "automations"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "automation_engine"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "marketplace"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "cart"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "account"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "my-account"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "my_account"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "subscription"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "checkout"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "privacy"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "privacy-policy"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "terms"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "terms-of-service"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "cookies"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "cookie-policy"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "refund"
+      ],
+      "jsxSnippet": ""
+    },
+    {
+      "cases": [
+        "refund-policy"
+      ],
+      "jsxSnippet": "default: return ("
+    }
+  ]
+}

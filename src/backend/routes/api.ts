@@ -1286,6 +1286,130 @@ apiRouter.get('/progression', async (req: AuthRequest, res: Response) => {
   }
 });
 
+apiRouter.post('/progression/study-xp', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const amount = Math.max(1, Math.min(500, Number(req.body?.amount) || 10));
+  try {
+    const result = await progressionService.awardXp(userId, {
+      amount,
+      source: 'learning',
+      reason: req.body?.reason || 'Hoàn thành phiên học tập phòng Meet'
+    });
+    res.json({
+      success: true,
+      message: `Đã cộng thành công ${amount} XP!`,
+      data: result
+    });
+  } catch (err: any) {
+    console.error('Error awarding study XP:', err);
+    res.status(500).json({ success: false, message: err.message || 'Lỗi cộng điểm kinh nghiệm.' });
+  }
+});
+
+apiRouter.get('/user/shop/status', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  try {
+    const prisma = getPrisma();
+    const prog = await prisma.userProgression.findUnique({ where: { userId } });
+    const userRewards = await prisma.userReward.findMany({ where: { userId } });
+    const purchasedIds = userRewards.map((r: any) => r.rewardKey);
+    res.json({
+      success: true,
+      data: {
+        coins: prog?.coins ?? 0,
+        purchasedIds
+      }
+    });
+  } catch (err: any) {
+    console.error('Error getting shop status:', err);
+    res.status(500).json({ success: false, message: err.message || 'Lỗi tải trạng thái cửa hàng.' });
+  }
+});
+
+apiRouter.post('/user/shop/purchase', async (req: AuthRequest, res: Response) => {
+  const userId = req.userId!;
+  const { itemId, price, name } = req.body;
+  if (!itemId || typeof price !== 'number') {
+    res.status(400).json({ success: false, message: 'Thiếu thông tin vật phẩm hoặc giá tiền hợp lệ.' });
+    return;
+  }
+  try {
+    const prisma = getPrisma();
+    const prog = await prisma.userProgression.findUnique({ where: { userId } });
+    const currentCoins = prog?.coins ?? 0;
+    if (currentCoins < price) {
+      res.status(400).json({
+        success: false,
+        message: `Bạn không đủ Coin! Cần ${price} Coins (hiện có ${currentCoins} Coins).`
+      });
+      return;
+    }
+
+    // Check if already purchased (except consumable like streak_freeze)
+    if (itemId !== 'streak_freeze') {
+      const existing = await prisma.userReward.findUnique({
+        where: { userId_rewardKey: { userId, rewardKey: itemId } }
+      });
+      if (existing) {
+        res.status(400).json({ success: false, message: 'Bạn đã sở hữu vật phẩm này rồi.' });
+        return;
+      }
+    }
+
+    await prisma.$transaction(async (tx: any) => {
+      // 1. Deduct coins
+      await tx.userProgression.update({
+        where: { userId },
+        data: { coins: { decrement: price } }
+      });
+
+      // 2. Create Coin Transaction
+      await tx.coinTransaction.create({
+        data: {
+          userId,
+          amount: -price,
+          type: 'spend',
+          source: 'shop_purchase',
+          sourceId: itemId,
+          description: `Đổi vật phẩm cửa hàng: ${name || itemId}`
+        }
+      });
+
+      // 3. Record in UserReward if not existing
+      const existingReward = await tx.userReward.findUnique({
+        where: { userId_rewardKey: { userId, rewardKey: itemId } }
+      });
+      if (!existingReward) {
+        await tx.userReward.create({
+          data: {
+            userId,
+            rewardType: 'shop_item',
+            rewardKey: itemId,
+            name: name || itemId,
+            description: `Vật phẩm mở khóa từ Cửa hàng Năng lượng`,
+            isEquipped: false
+          }
+        });
+      }
+    });
+
+    const updatedProg = await prisma.userProgression.findUnique({ where: { userId } });
+    const allRewards = await prisma.userReward.findMany({ where: { userId } });
+
+    res.json({
+      success: true,
+      message: `Đã đổi thành công "${name || itemId}"!`,
+      data: {
+        newCoins: updatedProg?.coins ?? 0,
+        purchasedIds: allRewards.map((r: any) => r.rewardKey)
+      }
+    });
+  } catch (err: any) {
+    console.error('Error purchasing shop item:', err);
+    res.status(500).json({ success: false, message: err.message || 'Lỗi xử lý giao dịch mua hàng.' });
+  }
+});
+
 apiRouter.post('/progression/quest/claim', async (req: AuthRequest, res: Response) => {
   const userId = req.userId!;
   const { questKey } = req.body;

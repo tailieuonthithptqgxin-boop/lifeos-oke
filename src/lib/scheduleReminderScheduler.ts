@@ -240,23 +240,23 @@ class ScheduleReminderScheduler {
   }
 
   /**
-   * Manual Simulation Trigger for Instant Verification (Nghiệm thu 1 chạm)
+   * Diagnostic Notification Milestone Trigger for Admin Verification (Kiểm thử hệ thống âm thanh & email)
    */
   triggerSimulation(
     milestone: '2h' | '1h' | '30m',
     customTitle?: string
   ): void {
     const minutesMap = { '2h': 120, '1h': 60, '30m': 30 };
-    const mockItem = {
-      id: `sim_${Date.now()}`,
+    const testItem = {
+      id: `diag_${Date.now()}`,
       title: customTitle || (milestone === '30m' ? 'Hạn nộp Đồ án & Báo cáo Tài chính' : 'Ca Học Giải Tích & Luyện Thi Nước Rút'),
       startTime: milestone === '30m' ? '23:59' : '15:00',
       date: new Date().toISOString().split('T')[0],
-      notes: 'Thử nghiệm giả lập chuông báo và gửi thư Gmail 1 chạm.',
+      notes: 'Kiểm thử hệ thống chuông báo và thông báo tức thì.',
       isTask: milestone === '30m'
     };
 
-    unifiedNotificationEngine.notifyScheduleMilestone(mockItem, milestone, minutesMap[milestone]);
+    unifiedNotificationEngine.notifyScheduleMilestone(testItem, milestone, minutesMap[milestone]);
   }
 }
 

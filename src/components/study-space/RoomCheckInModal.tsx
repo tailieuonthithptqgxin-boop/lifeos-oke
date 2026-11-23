@@ -72,10 +72,10 @@ export function RoomCheckInModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer disabled:opacity-50"
+              className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer disabled:opacity-50"
               title="Đóng"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -98,7 +98,7 @@ export function RoomCheckInModal({
                 placeholder="VD: Hoàn thành 10 câu bài tập Toán / Đọc xong chương 3..."
                 maxLength={90}
                 required
-                className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs sm:text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
+                className="w-full px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-base sm:text-sm min-h-[44px] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-500"
               />
               <span className="absolute right-3.5 bottom-3 text-[10px] text-slate-400 font-mono">
                 {goal.length}/90
@@ -120,7 +120,7 @@ export function RoomCheckInModal({
                     key={preset.label}
                     type="button"
                     onClick={() => setGoal(preset.label)}
-                    className={`p-2.5 rounded-xl text-left text-xs font-semibold border transition-all flex items-center gap-2 cursor-pointer ${
+                    className={`p-2.5 min-h-[40px] sm:min-h-0 rounded-xl text-left text-xs font-semibold border transition-all flex items-center gap-2 cursor-pointer ${
                       isSelected
                         ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-400 text-emerald-800 dark:text-emerald-300 shadow-xs'
                         : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200/80 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -140,7 +140,7 @@ export function RoomCheckInModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-50"
+              className="px-4 py-2.5 min-h-[44px] rounded-xl text-xs font-bold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer disabled:opacity-50"
             >
               Hủy
             </button>
@@ -148,7 +148,7 @@ export function RoomCheckInModal({
             <button
               type="submit"
               disabled={isSubmitting || !goal.trim()}
-              className="px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold shadow-lg shadow-emerald-600/25 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              className="px-6 py-2.5 min-h-[44px] rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs font-bold shadow-lg shadow-emerald-600/25 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
               {isSubmitting ? (
                 <span>Đang vào phòng...</span>

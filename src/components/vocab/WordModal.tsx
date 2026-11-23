@@ -105,7 +105,7 @@ export const WordModal: React.FC<WordModalProps> = ({
             <BookOpen className="w-5 h-5 text-blue-600" />
             {editingWord ? 'Chỉnh sửa từ vựng cá nhân' : `Thêm từ vựng mới (${activeLang.name})`}
           </h3>
-          <button type="button" onClick={handleSafeClose} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded cursor-pointer">
+          <button type="button" onClick={handleSafeClose} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -129,7 +129,7 @@ export const WordModal: React.FC<WordModalProps> = ({
                 value={term}
                 onChange={e => setTerm(e.target.value)}
                 placeholder="Ví dụ: Resilient, take action..."
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-sm"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-base sm:text-sm min-h-[44px] sm:min-h-0"
                 autoFocus
               />
             </div>
@@ -143,7 +143,7 @@ export const WordModal: React.FC<WordModalProps> = ({
                 value={phonetic}
                 onChange={e => setPhonetic(e.target.value)}
                 placeholder="/rɪˈzɪl.jənt/"
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-mono text-base sm:text-sm min-h-[44px] sm:min-h-0"
               />
             </div>
           </div>
@@ -156,7 +156,7 @@ export const WordModal: React.FC<WordModalProps> = ({
               <select
                 value={partOfSpeech}
                 onChange={e => setPartOfSpeech(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-base sm:text-sm min-h-[44px] sm:min-h-0 cursor-pointer"
               >
                 <option value="noun">Danh từ (n.)</option>
                 <option value="verb">Động từ (v.)</option>
@@ -175,7 +175,7 @@ export const WordModal: React.FC<WordModalProps> = ({
               <select
                 value={collectionId}
                 onChange={e => setCollectionId(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-base sm:text-sm min-h-[44px] sm:min-h-0 cursor-pointer"
               >
                 {collections.map(col => (
                   <option key={col.id} value={col.id}>{col.title}</option>
@@ -193,7 +193,7 @@ export const WordModal: React.FC<WordModalProps> = ({
               value={meaning}
               onChange={e => setMeaning(e.target.value)}
               placeholder="Giải thích nghĩa rõ ràng, tự nhiên..."
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-medium text-base sm:text-sm"
             />
           </div>
 
@@ -206,7 +206,7 @@ export const WordModal: React.FC<WordModalProps> = ({
               value={exampleSentence}
               onChange={e => setExampleSentence(e.target.value)}
               placeholder="She remained resilient in difficult times..."
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm min-h-[44px] sm:min-h-0"
             />
           </div>
 
@@ -219,7 +219,7 @@ export const WordModal: React.FC<WordModalProps> = ({
               value={exampleTranslation}
               onChange={e => setExampleTranslation(e.target.value)}
               placeholder="Bản dịch tiếng Việt của câu ví dụ..."
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm min-h-[44px] sm:min-h-0"
             />
           </div>
 
@@ -233,7 +233,7 @@ export const WordModal: React.FC<WordModalProps> = ({
                 value={collocations}
                 onChange={e => setCollocations(e.target.value)}
                 placeholder="phân cách bởi dấu phẩy"
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm min-h-[44px] sm:min-h-0"
               />
             </div>
 
@@ -246,7 +246,7 @@ export const WordModal: React.FC<WordModalProps> = ({
                 value={mnemonic}
                 onChange={e => setMnemonic(e.target.value)}
                 placeholder="Mẹo nhớ gợi ý..."
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm min-h-[44px] sm:min-h-0"
               />
             </div>
           </div>
@@ -260,7 +260,7 @@ export const WordModal: React.FC<WordModalProps> = ({
               value={notes}
               onChange={e => setNotes(e.target.value)}
               placeholder="Gặp trong đề thi thử hoặc sách..."
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm min-h-[44px] sm:min-h-0"
             />
           </div>
 
@@ -268,13 +268,13 @@ export const WordModal: React.FC<WordModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl font-bold"
+              className="px-4 py-2 min-h-[44px] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl font-bold cursor-pointer"
             >
               Hủy
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-xs cursor-pointer"
+              className="px-5 py-2.5 min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-xs cursor-pointer active:scale-95"
             >
               {editingWord ? 'Cập nhật từ vựng' : 'Lưu vào kho từ'}
             </button>

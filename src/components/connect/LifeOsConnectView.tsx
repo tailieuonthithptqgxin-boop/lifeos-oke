@@ -71,7 +71,7 @@ export function LifeOsConnectView() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50/70 dark:bg-slate-950 text-slate-800 dark:text-slate-100 p-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="min-h-screen bg-slate-50/70 dark:bg-slate-950 text-slate-800 dark:text-slate-100 p-4 sm:p-6 lg:p-8 space-y-6 pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:pb-8 overflow-x-hidden">
       {/* Top Banner & Header */}
       <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-700 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
         {/* Decorative 3D Ambient Blur */}
@@ -121,11 +121,11 @@ export function LifeOsConnectView() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-start md:self-center">
+          <div className="flex items-center gap-2 self-start md:self-center flex-wrap">
             <button
               type="button"
               onClick={() => setShowEditProfileModal(true)}
-              className="px-4 py-2.5 rounded-2xl bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
+              className="px-4 py-2.5 min-h-[44px] rounded-2xl bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer"
             >
               <Edit3 className="w-3.5 h-3.5" />
               <span>Chỉnh sửa hồ sơ</span>
@@ -135,7 +135,7 @@ export function LifeOsConnectView() {
               onClick={() => {
                 if (myProfile?.id) setSelectedProfileUserId(myProfile.id);
               }}
-              className="px-4 py-2.5 rounded-2xl bg-white text-emerald-800 hover:bg-emerald-50 font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+              className="px-4 py-2.5 min-h-[44px] rounded-2xl bg-white text-emerald-800 hover:bg-emerald-50 font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
             >
               <User className="w-3.5 h-3.5" />
               <span>Hồ sơ công khai</span>
@@ -145,14 +145,14 @@ export function LifeOsConnectView() {
       </div>
 
       {/* Navigation Pills Bar */}
-      <div className="flex items-center gap-1.5 p-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-sm overflow-x-auto scrollbar-none">
+      <div className="flex items-center gap-1.5 p-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800 rounded-3xl shadow-sm overflow-x-auto scrollbar-none touch-pan-x overscroll-x-contain py-2">
         <button
           type="button"
           onClick={() => {
             setSelectedCommunity(null);
             setActiveTab('feed');
           }}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold shrink-0 transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 min-h-[40px] sm:min-h-0 rounded-2xl text-xs font-bold shrink-0 transition-all cursor-pointer ${
             activeTab === 'feed' && !selectedCommunity
               ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -165,7 +165,7 @@ export function LifeOsConnectView() {
         <button
           type="button"
           onClick={() => setActiveTab('explore')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold shrink-0 transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 min-h-[40px] sm:min-h-0 rounded-2xl text-xs font-bold shrink-0 transition-all cursor-pointer ${
             activeTab === 'explore'
               ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -178,7 +178,7 @@ export function LifeOsConnectView() {
         <button
           type="button"
           onClick={() => setActiveTab('friends')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold shrink-0 transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 min-h-[40px] sm:min-h-0 rounded-2xl text-xs font-bold shrink-0 transition-all cursor-pointer ${
             activeTab === 'friends'
               ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -196,7 +196,7 @@ export function LifeOsConnectView() {
         <button
           type="button"
           onClick={() => setActiveTab('messages')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold shrink-0 transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 min-h-[40px] sm:min-h-0 rounded-2xl text-xs font-bold shrink-0 transition-all cursor-pointer ${
             activeTab === 'messages'
               ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -214,7 +214,7 @@ export function LifeOsConnectView() {
         <button
           type="button"
           onClick={() => setActiveTab('communities')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold shrink-0 transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 min-h-[40px] sm:min-h-0 rounded-2xl text-xs font-bold shrink-0 transition-all cursor-pointer ${
             activeTab === 'communities'
               ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'

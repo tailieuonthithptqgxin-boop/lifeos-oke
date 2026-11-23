@@ -537,7 +537,7 @@ export function NotesView() {
   };
 
   return (
-    <div className="w-full min-w-0 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 overflow-x-hidden">
+    <div className="w-full min-w-0 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 overflow-x-hidden pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:pb-8">
       {/* HEADER BAR */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 bg-white dark:bg-[#141E30] p-4 sm:p-5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs w-full min-w-0">
         <div className="min-w-0">
@@ -566,7 +566,7 @@ export function NotesView() {
         <div className="flex items-center gap-3 shrink-0">
           <button type="button"
             onClick={() => handleCreateNewNote('Normal')}
-            className="flex items-center gap-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold px-4 py-2.5 rounded-xl shadow-xs transition-colors text-xs sm:text-sm cursor-pointer active:scale-95"
+            className="flex items-center gap-2 bg-[#4F46E5] hover:bg-[#4338CA] text-white font-semibold px-4 py-2.5 min-h-[44px] rounded-xl shadow-xs transition-colors text-xs sm:text-sm cursor-pointer active:scale-95"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" /> {language === 'vi' ? '+ Tạo ghi chú mới' : t('Create New Note')}
           </button>
@@ -586,13 +586,13 @@ export function NotesView() {
                 ? "Ghi chú nhanh: 'Họp kế hoạch Q4 #meeting @Work', 'Ý tưởng app AI #idea', 'Mua sách giáo trình #checklist' (Enter để tạo)..."
                 : "Quick capture: 'Weekly sync #meeting @Work', 'AI project idea #idea', 'Buy textbook #checklist' (Press Enter)..."
               }
-              className="w-full pl-10 pr-9 py-2.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
+              className="w-full pl-10 pr-9 py-2.5 bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/80 rounded-xl text-base sm:text-sm min-h-[44px] sm:min-h-0 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all font-medium"
             />
             {quickInput && (
               <button
                 type="button"
                 onClick={() => setQuickInput('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                 title="Xóa nội dung"
               >
                 <X className="w-4 h-4" />
@@ -602,7 +602,7 @@ export function NotesView() {
           <button
             type="submit"
             disabled={!quickInput.trim()}
-            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-xs shrink-0 active:scale-95"
+            className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-xs shrink-0 active:scale-95"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>{language === 'vi' ? 'Tạo nhanh 0.2s' : 'Quick Add'}</span>
@@ -630,7 +630,7 @@ export function NotesView() {
       </div>
 
       {/* SUB-TABS NAVIGATION */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar border-b border-slate-200/80 dark:border-slate-800">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar border-b border-slate-200/80 dark:border-slate-800 touch-pan-x overscroll-x-contain py-1">
         {[
           { id: 'dashboard', label: language === 'vi' ? 'Bảng điều khiển' : 'Dashboard', icon: BarChart2 },
           { id: 'all', label: language === 'vi' ? 'Tất cả ghi chú' : 'All Notes', icon: FileText, count: activeNotes.length },
@@ -647,7 +647,7 @@ export function NotesView() {
             <button type="button"
               key={tab.id}
               onClick={() => setActiveTab(tab.id as ActiveTab)}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg font-medium text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-2.5 sm:py-2 min-h-[40px] sm:min-h-0 rounded-lg font-medium text-xs sm:text-sm transition-all whitespace-nowrap cursor-pointer ${
                 isActive 
                   ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs' 
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-slate-800/60'
@@ -772,16 +772,16 @@ export function NotesView() {
 
       {/* FLOATING 5-SECOND UNDO TOAST */}
       {undoItem && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700/80 flex items-center gap-3 animate-fade-in backdrop-blur-md">
+        <div className="fixed bottom-[max(5rem,calc(env(safe-area-inset-bottom)+4.5rem))] sm:bottom-6 right-4 sm:right-6 z-50 max-w-[calc(100vw-2rem)] bg-slate-900 text-white px-4 py-3 rounded-2xl shadow-2xl border border-slate-700/80 flex items-center gap-3 animate-fade-in backdrop-blur-md">
           <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
-          <div className="text-xs">
+          <div className="text-xs min-w-0 flex-1">
             <span>{undoItem.action === 'trash' ? 'Đã chuyển vào thùng rác: ' : 'Đã xóa vĩnh viễn: '}</span>
             <strong className="text-white max-w-[150px] inline-block truncate align-bottom">{undoItem.title}</strong>
           </div>
           <button
             type="button"
             onClick={handleUndo}
-            className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg text-xs transition cursor-pointer flex items-center gap-1 shrink-0"
+            className="px-3 py-1.5 min-h-[38px] bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-xl text-xs transition cursor-pointer flex items-center gap-1 shrink-0 active:scale-95"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Hoàn tác (5s)</span>
@@ -792,10 +792,10 @@ export function NotesView() {
               if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
               setUndoItem(null);
             }}
-            className="p-1 text-slate-400 hover:text-white cursor-pointer"
+            className="p-2 min-h-[38px] min-w-[38px] flex items-center justify-center text-slate-400 hover:text-white cursor-pointer rounded-lg"
             title="Đóng"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
       )}
@@ -1117,14 +1117,14 @@ function NoteCard({
           <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity shrink-0">
             <button type="button" 
               onClick={(e) => { e.stopPropagation(); onTogglePin(); }}
-              className={`p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 ${note.pinned ? 'text-amber-500' : 'text-slate-300 dark:text-slate-600'}`}
+              className={`p-2 sm:p-1 min-h-[36px] min-w-[36px] sm:min-h-0 sm:min-w-0 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer ${note.pinned ? 'text-amber-500' : 'text-slate-300 dark:text-slate-600'}`}
               title="Ghim ghi chú"
             >
               <Pin className="w-3.5 h-3.5 fill-current" />
             </button>
             <button type="button" 
               onClick={(e) => { e.stopPropagation(); onToggleFav(); }}
-              className={`p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 ${note.favorite ? 'text-rose-500' : 'text-slate-300 dark:text-slate-600'}`}
+              className={`p-2 sm:p-1 min-h-[36px] min-w-[36px] sm:min-h-0 sm:min-w-0 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer ${note.favorite ? 'text-rose-500' : 'text-slate-300 dark:text-slate-600'}`}
               title="Yêu thích"
             >
               <Star className="w-3.5 h-3.5 fill-current" />
@@ -1132,7 +1132,7 @@ function NoteCard({
             {onMoveTrash && (
               <button type="button" 
                 onClick={(e) => { e.stopPropagation(); onMoveTrash(); }}
-                className="p-1 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-300 dark:text-slate-600 hover:text-rose-500 transition-colors"
+                className="p-2 sm:p-1 min-h-[36px] min-w-[36px] sm:min-h-0 sm:min-w-0 flex items-center justify-center rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 text-slate-300 dark:text-slate-600 hover:text-rose-500 transition-colors cursor-pointer"
                 title="Chuyển vào thùng rác (Hoàn tác 5s)"
               >
                 <Trash2 className="w-3.5 h-3.5" />
@@ -1286,13 +1286,13 @@ function AllNotesView({
               placeholder="Tìm kiếm theo tiêu đề, nội dung, tag, liên kết..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-9 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
+              className="w-full pl-10 pr-9 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-sm min-h-[44px] sm:min-h-0 text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-2xs"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer"
                 title="Xóa tìm kiếm"
               >
                 <X className="w-3.5 h-3.5" />
@@ -1304,7 +1304,7 @@ function AllNotesView({
             <select 
               value={selectedCategory} 
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer"
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-xs min-h-[44px] sm:min-h-0 font-medium text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer"
             >
               {categories.map(c => <option key={c} value={c}>Danh mục: {c}</option>)}
             </select>
@@ -1312,7 +1312,7 @@ function AllNotesView({
             <select 
               value={selectedType} 
               onChange={(e) => setSelectedType(e.target.value)}
-              className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer"
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-xs min-h-[44px] sm:min-h-0 font-medium text-slate-700 dark:text-slate-300 focus:outline-none cursor-pointer"
             >
               <option value="All">Loại: Tất cả</option>
               {NOTE_TYPES.map(t => <option key={t.type} value={t.type}>{t.label}</option>)}
@@ -1321,13 +1321,13 @@ function AllNotesView({
             <div className="flex items-center bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
               <button type="button" 
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500'}`}
+                className={`p-1.5 min-h-[36px] sm:min-h-0 min-w-[36px] sm:min-w-0 rounded-lg text-xs font-bold transition-all cursor-pointer ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500'}`}
               >
                 Grid
               </button>
               <button type="button" 
                 onClick={() => setViewMode('list')}
-                className={`p-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500'}`}
+                className={`p-1.5 min-h-[36px] sm:min-h-0 min-w-[36px] sm:min-w-0 rounded-lg text-xs font-bold transition-all cursor-pointer ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-500'}`}
               >
                 List
               </button>
@@ -2781,7 +2781,7 @@ function NoteEditorModal({
                     }
                   }}
                   placeholder="Thêm việc cần làm (Enter để thêm)..."
-                  className="flex-1 px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="flex-1 px-3.5 py-2 min-h-[44px] sm:min-h-0 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
                 <button
                   type="button"
@@ -2795,7 +2795,7 @@ function NoteEditorModal({
                     setFormData(s => ({ ...s, checklists: [...(s.checklists || []), newItem] }));
                     setChecklistInput('');
                   }}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors active:scale-95 shrink-0"
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 min-h-[44px] rounded-xl text-xs font-bold cursor-pointer transition-colors active:scale-95 shrink-0"
                 >
                   + Thêm
                 </button>
@@ -2859,11 +2859,11 @@ function NoteEditorModal({
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   placeholder="Nhập tag rồi ấn +..."
-                  className="px-3.5 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="px-3.5 py-2 min-h-[44px] sm:min-h-0 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
                 <button type="button" 
                   onClick={handleAddTag} 
-                  className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-3.5 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors"
+                  className="bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-4 py-2 min-h-[44px] rounded-xl text-xs font-bold cursor-pointer transition-colors"
                 >
                   + Tag
                 </button>

@@ -192,15 +192,18 @@ export function StudyRoomView({
     return () => document.removeEventListener('fullscreenchange', handleFsChange);
   }, []);
 
-  // Gamification State (Real Zero-Start Data from currentUser)
+  // Gamification State (Real Zero-Start Data from currentUser - 100% Real from DB)
   const [userXP, setUserXP] = useState<number>(() => {
-    try {
-      const saved = localStorage.getItem('lifeos_study_user_xp');
-      return saved ? parseInt(saved, 10) : (currentUser?.xp || 0);
-    } catch {
-      return currentUser?.xp || 0;
-    }
+    // Purge any legacy stale mock localStorage
+    try { localStorage.removeItem('lifeos_study_user_xp'); } catch {}
+    return currentUser?.xp ?? 0;
   });
+
+  useEffect(() => {
+    if (currentUser?.xp !== undefined) {
+      setUserXP(currentUser.xp);
+    }
+  }, [currentUser?.xp]);
 
   const userStreak = currentUser?.streakDays ?? 0;
   const userLevel = currentUser?.level ?? (Math.floor(userXP / 100) + 1);
@@ -556,8 +559,7 @@ export function StudyRoomView({
       });
 
       socket.on('room:kicked', (data: { reason?: string }) => {
-        toast.error(data.reason || 'Bạn đã bị chủ phòng mời ra khỏi phòng học.');
-        alert(data.reason || 'Bạn đã bị chủ phòng mời ra khỏi phòng học.');
+        toast.error(data.reason || 'Bạn đã bị chủ phòng mời ra khỏi phòng học.', { duration: 5000 });
         onLeaveRoom();
       });
 
@@ -1091,12 +1093,12 @@ export function StudyRoomView({
     }
   };
 
-  const addXP = (amount: number) => {
-    setUserXP((prev) => {
-      const next = prev + amount;
-      try { localStorage.setItem('lifeos_study_user_xp', next.toString()); } catch {}
-      return next;
-    });
+  const addXP = async (amount: number) => {
+    setUserXP((prev) => prev + amount);
+    try {
+      await apiCall('/api/progression/study-xp', 'POST', { amount, reason: 'Hoàn thành mục tiêu học tập phòng Meet' });
+      window.dispatchEvent(new CustomEvent('lifeos-progression-updated'));
+    } catch {}
   };
 
   // Chat
@@ -1510,7 +1512,7 @@ export function StudyRoomView({
           )}
         </div>
         {/* ========================================================= */}
-        {/* 3. RIGHT DRAWER: MEMBERS (120+), CHAT, TASKS, RANK       */}
+        {/* 3. RIGHT DRAWER: REAL MEMBERS, CHAT, TASKS, RANK          */}
         {/* ========================================================= */}
         {isDrawerOpen && (
           <aside className={`w-80 md:w-88 h-full border-l flex flex-col overflow-hidden transition-all duration-300 z-30 shrink-0 shadow-2xl ${

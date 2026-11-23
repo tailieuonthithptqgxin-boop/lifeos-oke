@@ -746,7 +746,7 @@ export function AutomationEngineView() {
   }, [automationRules, selectedCategory, searchQuery, filterEnabledOnly]);
 
   return (
-    <div className="w-full min-w-0 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 pb-28 md:pb-16">
+    <div className="w-full min-w-0 max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-6 pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:pb-8 overflow-x-hidden">
       {/* Toast Feedback */}
       {toastMessage && (
         <div className="fixed top-5 right-5 z-[100] px-4 py-2.5 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-2xl shadow-xl text-xs font-bold flex items-center gap-2 animate-slide-up border border-slate-700/50 dark:border-slate-200">
@@ -821,14 +821,14 @@ export function AutomationEngineView() {
               placeholder="Nhập yêu cầu tự động (VD: Khi task còn dưới 24h thì đổi mức ưu tiên lên Cao)..."
               value={quickRuleText}
               onChange={e => setQuickRuleText(e.target.value)}
-              className="w-full h-11 pl-10 pr-4 text-xs sm:text-sm bg-slate-50/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white dark:focus:bg-slate-900 font-medium transition-all"
+              className="w-full min-h-[44px] h-11 pl-10 pr-4 text-base sm:text-sm bg-slate-50/80 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700 rounded-2xl text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:bg-white dark:focus:bg-slate-900 font-medium transition-all"
             />
           </div>
 
           <button
             type="submit"
             disabled={!quickRuleText.trim()}
-            className="h-11 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer shrink-0 active:scale-95"
+            className="min-h-[44px] h-11 px-5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer shrink-0 active:scale-95"
           >
             <Zap className="w-4 h-4 fill-current text-amber-300" />
             <span>Bật Tự Động Hóa</span>
@@ -860,14 +860,14 @@ export function AutomationEngineView() {
       </div>
 
       {/* STREAMLINED SEGMENTED CONTROL TABS */}
-      <div className="p-1 bg-slate-100/90 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex items-center gap-1 overflow-x-auto no-scrollbar">
+      <div className="p-1 bg-slate-100/90 dark:bg-slate-800/80 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex items-center gap-1 overflow-x-auto no-scrollbar touch-pan-x overscroll-x-contain py-1.5">
         <button
           type="button"
           onClick={() => {
             soundEngine.playPop();
             setActiveTab('rules');
           }}
-          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+          className={`px-4 py-2 min-h-[40px] sm:min-h-0 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
             activeTab === 'rules'
               ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/60 dark:border-slate-700'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
@@ -886,7 +886,7 @@ export function AutomationEngineView() {
             soundEngine.playPop();
             setActiveTab('templates');
           }}
-          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+          className={`px-4 py-2 min-h-[40px] sm:min-h-0 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
             activeTab === 'templates'
               ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/60 dark:border-slate-700'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
@@ -905,7 +905,7 @@ export function AutomationEngineView() {
             soundEngine.playPop();
             setActiveTab('history');
           }}
-          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
+          className={`px-4 py-2 min-h-[40px] sm:min-h-0 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ${
             activeTab === 'history'
               ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/60 dark:border-slate-700'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
@@ -925,7 +925,7 @@ export function AutomationEngineView() {
             resetBuilderForm();
             setActiveTab('builder');
           }}
-          className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ml-auto ${
+          className={`px-4 py-2 min-h-[40px] sm:min-h-0 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer ml-auto ${
             activeTab === 'builder'
               ? 'bg-white dark:bg-slate-900 text-indigo-600 dark:text-indigo-400 shadow-sm border border-slate-200/60 dark:border-slate-700'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
@@ -1411,7 +1411,7 @@ export function AutomationEngineView() {
                 value={builderTitle}
                 onChange={e => setBuilderTitle(e.target.value)}
                 placeholder="Ví dụ: Tự động nhắc nhở khi task quá hạn"
-                className="w-full h-10 px-3.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium"
+                className="w-full min-h-[44px] sm:min-h-0 h-10 px-3.5 text-base sm:text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium"
                 required
               />
             </div>
@@ -1424,7 +1424,7 @@ export function AutomationEngineView() {
                 <select
                   value={builderCategory}
                   onChange={e => setBuilderCategory(e.target.value as any)}
-                  className="w-full h-10 px-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium cursor-pointer"
+                  className="w-full min-h-[44px] sm:min-h-0 h-10 px-3 text-base sm:text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium cursor-pointer"
                 >
                   <option value="Task">Công việc (Task)</option>
                   <option value="Finance">Tài chính (Finance)</option>
@@ -1441,7 +1441,7 @@ export function AutomationEngineView() {
                 <select
                   value={builderTriggerType}
                   onChange={e => setBuilderTriggerType(e.target.value as any)}
-                  className="w-full h-10 px-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium cursor-pointer"
+                  className="w-full min-h-[44px] sm:min-h-0 h-10 px-3 text-base sm:text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white font-medium cursor-pointer"
                 >
                   <option value="Before deadline">Trước hạn chót (Deadline)</option>
                   <option value="Task overdue">Khi bị quá hạn (Overdue)</option>
@@ -1461,7 +1461,7 @@ export function AutomationEngineView() {
                 value={builderActionSummary}
                 onChange={e => setBuilderActionSummary(e.target.value)}
                 placeholder="Ví dụ: Đổi mức ưu tiên lên Cao & Gửi thông báo"
-                className="w-full h-10 px-3.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium"
+                className="w-full min-h-[44px] sm:min-h-0 h-10 px-3.5 text-base sm:text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 font-medium"
                 required
               />
             </div>
@@ -1475,7 +1475,7 @@ export function AutomationEngineView() {
                 onChange={e => setBuilderDescription(e.target.value)}
                 placeholder="Ghi chú thêm về quy tắc này..."
                 rows={2}
-                className="w-full p-3 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                className="w-full p-3 text-base sm:text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
               />
             </div>
 
@@ -1487,13 +1487,13 @@ export function AutomationEngineView() {
                   resetBuilderForm();
                   setActiveTab('rules');
                 }}
-                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                className="px-4 py-2 min-h-[40px] sm:min-h-0 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Hủy bỏ
               </button>
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                className="px-5 py-2.5 min-h-[44px] sm:min-h-0 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-xs transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
               >
                 <Check className="w-4 h-4" />
                 <span>{editingRuleId ? 'Lưu Thay Đổi' : 'Tạo & Bật Quy Tắc'}</span>
@@ -1505,14 +1505,14 @@ export function AutomationEngineView() {
 
       {/* Floating 5-Second Undo Toast */}
       {undoRule && (
-        <div className="fixed bottom-6 right-6 z-[90] flex items-center gap-3 px-4 py-3 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-2xl shadow-2xl animate-slide-up border border-slate-700 dark:border-slate-200 backdrop-blur-md">
+        <div className="fixed bottom-[max(5rem,calc(env(safe-area-inset-bottom)+4.5rem))] sm:bottom-6 right-4 sm:right-6 z-[90] flex items-center gap-3 px-4 py-3 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-2xl shadow-2xl animate-slide-up border border-slate-700 dark:border-slate-200 backdrop-blur-md">
           <span className="text-xs">
             Đã xóa quy tắc "{undoRule.title}"
           </span>
           <button
             type="button"
             onClick={handleUndoDeleteRule}
-            className="px-3 py-1 text-xs font-bold bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl flex items-center gap-1 cursor-pointer transition-colors shadow-xs active:scale-95"
+            className="px-3.5 py-1.5 min-h-[36px] text-xs font-bold bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl flex items-center gap-1 cursor-pointer transition-colors shadow-xs active:scale-95"
           >
             <RotateCcw className="w-3.5 h-3.5" />
             <span>Hoàn tác (5s)</span>
@@ -1520,7 +1520,7 @@ export function AutomationEngineView() {
           <button
             type="button"
             onClick={() => setUndoRule(null)}
-            className="p-1 text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer"
+            className="p-2 min-w-[36px] min-h-[36px] flex items-center justify-center text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer"
             title="Đóng"
           >
             <X className="w-3.5 h-3.5" />

@@ -412,7 +412,7 @@ export function GoalsView() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 pb-24 sm:pb-28 max-w-7xl mx-auto w-full min-w-0 max-w-full flex flex-col space-y-4 sm:space-y-6">
+    <div className="p-3 sm:p-6 lg:p-8 pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:pb-8 max-w-7xl mx-auto w-full min-w-0 max-w-full flex flex-col space-y-4 sm:space-y-6 overflow-x-hidden">
       {/* Header Bar */}
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shrink-0 bg-white dark:bg-[#141E30] p-4 sm:p-5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs w-full min-w-0">
         <div>
@@ -436,7 +436,7 @@ export function GoalsView() {
         <div className="flex items-center gap-3 w-full md:w-auto">
           <button type="button"
             onClick={openNewGoal}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[#10B981] hover:bg-[#059669] text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-colors shadow-xs cursor-pointer active:scale-95"
+            className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[#10B981] hover:bg-[#059669] text-white px-4 py-2.5 min-h-[44px] rounded-xl text-xs sm:text-sm font-semibold transition-colors shadow-xs cursor-pointer active:scale-95"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" /> {isVi ? '+ Tạo Mục tiêu mới' : '+ Create New Goal'}
           </button>
@@ -457,13 +457,13 @@ export function GoalsView() {
             placeholder="🎯 Nhập nhanh mục tiêu mới (VD: Tiết kiệm 50 triệu trước cuối năm hoặc Đạt IELTS 7.5)... [Enter]"
             value={quickGoalText}
             onChange={e => setQuickGoalText(e.target.value)}
-            className="w-full h-11 pl-10 pr-9 text-xs sm:text-sm bg-white dark:bg-slate-900 border border-emerald-200/90 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 font-medium"
+            className="w-full h-11 pl-10 pr-9 text-base sm:text-sm bg-white dark:bg-slate-900 border border-emerald-200/90 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 font-medium"
           />
           {quickGoalText && (
             <button
               type="button"
               onClick={() => setQuickGoalText('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 min-h-[36px] min-w-[36px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
               title="Xóa nội dung"
             >
               <X className="w-4 h-4" />
@@ -474,7 +474,7 @@ export function GoalsView() {
         <button
           type="submit"
           disabled={!quickGoalText.trim()}
-          className="h-11 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer shrink-0 active:scale-95"
+          className="h-11 min-h-[44px] px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer shrink-0 active:scale-95"
         >
           <Sparkles className="w-4 h-4" />
           <span>Tạo Mục Tiêu Ngay</span>
@@ -482,7 +482,7 @@ export function GoalsView() {
       </form>
 
       {/* Navigation Sub-Tabs */}
-      <div className="flex items-center gap-1 overflow-x-auto pb-2 no-scrollbar border-b border-slate-200 dark:border-slate-800 shrink-0 w-full max-w-full">
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-2 no-scrollbar touch-pan-x overscroll-x-contain border-b border-slate-200 dark:border-slate-800 shrink-0 w-full max-w-full py-1">
         <TabButton id="dashboard" active={activeTab} onClick={setActiveTab} icon={<Activity className="w-4 h-4" />} label={isVi ? 'Tổng quan' : 'Overview'} />
         <TabButton id="my_goals" active={activeTab} onClick={setActiveTab} icon={<Target className="w-4 h-4" />} label={isVi ? 'Mục tiêu của tôi' : 'My Goals'} badge={goals.length} />
         <TabButton id="execution" active={activeTab} onClick={setActiveTab} icon={<Zap className="w-4 h-4" />} label={isVi ? 'Thực thi hôm nay' : 'Today Execution'} />
@@ -649,29 +649,31 @@ export function GoalsView() {
 
       {/* Floating 5-Second Undo Toast */}
       {undoGoal && (
-        <div className="fixed bottom-6 right-6 z-[90] flex items-center gap-3 px-4 py-3 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-2xl shadow-2xl animate-slide-up border border-slate-700 dark:border-slate-200 backdrop-blur-md">
-          <span className="text-xs">
+        <div className="fixed bottom-[max(5rem,calc(env(safe-area-inset-bottom)+4.5rem))] sm:bottom-6 left-4 right-4 sm:left-auto sm:right-6 z-[90] flex items-center justify-between gap-3 px-4 py-3 bg-slate-900 text-white dark:bg-white dark:text-slate-900 rounded-2xl shadow-2xl animate-slide-up border border-slate-700 dark:border-slate-200 backdrop-blur-md max-w-sm sm:max-w-md">
+          <span className="text-xs sm:text-sm font-semibold truncate flex-1">
             Đã xóa mục tiêu "{undoGoal.title}"
           </span>
-          <button
-            type="button"
-            onClick={handleRestoreGoal}
-            className="px-3 py-1 text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl flex items-center gap-1 cursor-pointer transition-colors shadow-xs active:scale-95"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>Hoàn tác (5s)</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (undoGoalTimerRef.current) clearTimeout(undoGoalTimerRef.current);
-              setUndoGoal(null);
-            }}
-            className="p-1 text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer"
-            title="Đóng"
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleRestoreGoal}
+              className="px-3.5 py-2 sm:py-1 min-h-[38px] sm:min-h-0 text-xs font-bold bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl flex items-center gap-1 cursor-pointer transition-colors shadow-xs active:scale-95"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Hoàn tác (5s)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (undoGoalTimerRef.current) clearTimeout(undoGoalTimerRef.current);
+                setUndoGoal(null);
+              }}
+              className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer"
+              title="Đóng"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -684,7 +686,7 @@ function TabButton({ id, active, onClick, icon, label, badge }: any) {
   return (
     <button type="button"
       onClick={() => onClick(id)}
-      className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-medium transition-all shrink-0 cursor-pointer ${
+      className={`flex items-center gap-2 px-3.5 py-2.5 sm:py-2 min-h-[40px] sm:min-h-0 rounded-xl text-xs font-medium whitespace-nowrap transition-all shrink-0 cursor-pointer ${
         isSelected 
           ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs font-semibold' 
           : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -1958,7 +1960,7 @@ function TemplatesView({ addGoal, setActiveTab }: any) {
       color: '#3b82f6',
       milestones: [
         { id: 'ms1', title: 'Hoàn thành 3000 từ vựng cốt lõi', deadline: formatLocalDateKey(new Date(Date.now() + 30 * 86400000)), completed: false, progress: 0 },
-        { id: 'ms2', title: 'Mock test đạt 6.5', deadline: formatLocalDateKey(new Date(Date.now() + 60 * 86400000)), completed: false, progress: 0 },
+        { id: 'ms2', title: 'Thi thử IELTS đạt 6.5', deadline: formatLocalDateKey(new Date(Date.now() + 60 * 86400000)), completed: false, progress: 0 },
         { id: 'ms3', title: 'Thi chính thức đạt 7.5', deadline: formatLocalDateKey(new Date(Date.now() + 90 * 86400000)), completed: false, progress: 0 }
       ]
     },

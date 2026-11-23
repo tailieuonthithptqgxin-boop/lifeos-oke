@@ -541,7 +541,7 @@ export function MyAccountView() {
   const isCancelledAutoRenew = subData?.subscription?.status === 'Cancelled';
 
   return (
-    <div className="w-full min-w-0 max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 font-sans overflow-x-hidden">
+    <div className="w-full min-w-0 max-w-4xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 font-sans pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:pb-8 overflow-x-hidden">
       <div>
         <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white truncate">Tài khoản & Dịch vụ của tôi</h2>
         <p className="text-xs sm:text-sm text-slate-500 break-words">
@@ -747,7 +747,7 @@ export function MyAccountView() {
           <button
             type="submit"
             disabled={isSaving}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
+            className="min-h-[44px] px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold text-xs sm:text-sm rounded-xl shadow-xs transition-colors cursor-pointer"
           >
             {isSaving ? 'Đang lưu...' : 'Lưu Thay Đổi'}
           </button>

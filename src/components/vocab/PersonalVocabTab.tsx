@@ -129,7 +129,7 @@ export function PersonalVocabTab({
           <button
             type="button"
             onClick={onNewWord}
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+            className="px-4 py-2.5 min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
           >
             <Plus className="w-4 h-4" /> Thêm từ mới
           </button>
@@ -137,7 +137,7 @@ export function PersonalVocabTab({
           <button
             type="button"
             onClick={onOpenImport}
-            className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+            className="px-3.5 py-2.5 min-h-[44px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
             title="Nhập danh sách từ từ tệp CSV"
           >
             <Upload className="w-4 h-4 text-blue-600" /> Nhập CSV
@@ -147,7 +147,7 @@ export function PersonalVocabTab({
             <button
               type="button"
               onClick={() => setIsExportOpen(prev => !prev)}
-              className="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2.5 min-h-[44px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs rounded-xl transition flex items-center gap-1.5 cursor-pointer"
             >
               <Download className="w-4 h-4 text-emerald-600" /> Xuất dữ liệu
               <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isExportOpen ? 'rotate-180' : ''}`} />
@@ -188,7 +188,7 @@ export function PersonalVocabTab({
             <button
               type="button"
               onClick={() => onStartStudyPersonal(filteredWords)}
-              className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+              className="px-4 py-2.5 min-h-[44px] bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-xl shadow-xs transition flex items-center gap-1.5 cursor-pointer active:scale-95"
             >
               <Brain className="w-4 h-4" /> Học ngay ({filteredWords.length})
             </button>
@@ -208,7 +208,7 @@ export function PersonalVocabTab({
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Tìm kiếm từ vựng hoặc nghĩa tiếng Việt..."
-              className="w-full pl-10 pr-9 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              className="w-full pl-10 pr-9 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-base sm:text-xs min-h-[44px] sm:min-h-0 font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
             />
             {search && (
               <button
@@ -227,7 +227,7 @@ export function PersonalVocabTab({
             <select
               value={selectedCollectionId}
               onChange={e => onSelectCollection(e.target.value)}
-              className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-300"
+              className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-base sm:text-xs min-h-[44px] sm:min-h-0 font-bold text-slate-700 dark:text-slate-300 cursor-pointer"
             >
               <option value="all">Tất cả bộ sưu tập ({(words || []).length})</option>
               {(collections || []).map(c => {
@@ -246,7 +246,7 @@ export function PersonalVocabTab({
             <select
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-300"
+              className="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-base sm:text-xs min-h-[44px] sm:min-h-0 font-bold text-slate-700 dark:text-slate-300 cursor-pointer"
             >
               <option value="all">Tất cả trạng thái</option>
               <option value="new">🌱 Từ mới</option>

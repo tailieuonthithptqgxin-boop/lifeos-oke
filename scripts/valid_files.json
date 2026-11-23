@@ -1,0 +1,200 @@
+[
+  {
+    "name": "App Shell & Main Layout",
+    "file": "src/App.tsx",
+    "type": 1,
+    "exists": true
+  },
+  {
+    "name": "Sidebar / Mobile Navigation Bar",
+    "file": "src/components/Sidebar.tsx",
+    "type": 1,
+    "exists": true
+  },
+  {
+    "name": "Command Center & Quick Action Bar",
+    "file": "src/components/CommandCenter.tsx",
+    "type": 1,
+    "exists": true
+  },
+  {
+    "name": "Header / Top Navigation Bar",
+    "file": "src/components/Header.tsx",
+    "type": 1,
+    "exists": false
+  },
+  {
+    "name": "Dashboard Tổng Quan",
+    "file": "src/components/DashboardView.tsx",
+    "type": 3,
+    "exists": true
+  },
+  {
+    "name": "Lịch Biểu & Công Việc (Schedule & Tasks)",
+    "file": "src/components/ScheduleAndTasksView.tsx",
+    "type": 2,
+    "exists": true
+  },
+  {
+    "name": "Tài Chính Cá Nhân (Finance View)",
+    "file": "src/components/FinanceView.tsx",
+    "type": 3,
+    "exists": true
+  },
+  {
+    "name": "Phòng Tập Trung Cá Nhân (Focus View)",
+    "file": "src/components/FocusView.tsx",
+    "type": 5,
+    "exists": true
+  },
+  {
+    "name": "Quản Lý Dự Án (Projects View)",
+    "file": "src/components/ProjectsView.tsx",
+    "type": 4,
+    "exists": true
+  },
+  {
+    "name": "Học Tập & Quản Lý Môn Học (Study View)",
+    "file": "src/components/StudyView.tsx",
+    "type": 4,
+    "exists": true
+  },
+  {
+    "name": "Phòng Học Chung 100+ Người (Study Space & Meet)",
+    "file": "src/components/study/StudySpaceView.tsx",
+    "type": 5,
+    "exists": true
+  },
+  {
+    "name": "Lớp Học Trực Tuyến (Online Classroom View)",
+    "file": "src/components/classroom/OnlineClassroomView.tsx",
+    "type": 5,
+    "exists": true
+  },
+  {
+    "name": "Mạng Xã Hội & Cộng Đồng (Connect / Community Feed)",
+    "file": "src/components/connect/LifeOsConnectView.tsx",
+    "type": 5,
+    "exists": true
+  },
+  {
+    "name": "Mục Tiêu Cuộc Đời (Goals View)",
+    "file": "src/components/GoalsView.tsx",
+    "type": 4,
+    "exists": true
+  },
+  {
+    "name": "Sổ Tay & Tri Thức (Notes View)",
+    "file": "src/components/NotesView.tsx",
+    "type": 4,
+    "exists": true
+  },
+  {
+    "name": "Theo Dõi Thói Quen (Habits View)",
+    "file": "src/components/HabitsView.tsx",
+    "type": 2,
+    "exists": true
+  },
+  {
+    "name": "Hành Trình Game Hóa & Đấu Trùm (Journey / RPG View)",
+    "file": "src/components/JourneyView.tsx",
+    "type": 3,
+    "exists": true
+  },
+  {
+    "name": "Tiếp Thị Liên Kết & Thu Nhập (Affiliate & Referral View)",
+    "file": "src/components/ReferralView.tsx",
+    "type": 3,
+    "exists": true
+  },
+  {
+    "name": "Động Cơ Ra Quyết Định (Decision Engine View)",
+    "file": "src/components/DecisionEngineView.tsx",
+    "type": 6,
+    "exists": true
+  },
+  {
+    "name": "Tự Động Hóa Tác Vụ (Automation Engine View)",
+    "file": "src/components/AutomationEngineView.tsx",
+    "type": 6,
+    "exists": true
+  },
+  {
+    "name": "Chợ Mẫu & Tài Nguyên (Marketplace View)",
+    "file": "src/components/MarketplaceView.tsx",
+    "type": 4,
+    "exists": true
+  },
+  {
+    "name": "Giỏ Hàng & Mua Sắm (Cart View)",
+    "file": "src/components/CartView.tsx",
+    "type": 6,
+    "exists": true
+  },
+  {
+    "name": "Hồ Sơ & Bảo Mật Cá Nhân (My Account View)",
+    "file": "src/components/MyAccountView.tsx",
+    "type": 6,
+    "exists": true
+  },
+  {
+    "name": "Quản Lý Gói Dịch Vụ (Subscription Management View)",
+    "file": "src/components/SubscriptionManagementView.tsx",
+    "type": 6,
+    "exists": true
+  },
+  {
+    "name": "Cổng Thanh Toán QR Code (Checkout View)",
+    "file": "src/components/CheckoutView.tsx",
+    "type": 6,
+    "exists": true
+  },
+  {
+    "name": "Trang Quản Trị Hệ Thống (Admin View)",
+    "file": "src/components/AdminView.tsx",
+    "type": 4,
+    "exists": true
+  },
+  {
+    "name": "Module Tùy Biến Mở Rộng (Custom Module View)",
+    "file": "src/components/CustomModuleView.tsx",
+    "type": 4,
+    "exists": false
+  },
+  {
+    "name": "Không Gian 3D Đảo Nổi (Cyber Cozy Island Space)",
+    "file": "src/components/spatial/CyberCozyIslandSpace.tsx",
+    "type": 5,
+    "exists": true
+  },
+  {
+    "name": "Vũ Trụ Không Gian 3D (Spatial 3D Universe View)",
+    "file": "src/components/spatial/Spatial3DUniverseView.tsx",
+    "type": 5,
+    "exists": true
+  },
+  {
+    "name": "Trang Giới Thiệu Công Khai (Public Landing View)",
+    "file": "src/components/PublicLandingView.tsx",
+    "type": 3,
+    "exists": true
+  },
+  {
+    "name": "Màn Hình Đăng Nhập & Đăng Ký (Login View)",
+    "file": "src/components/LoginView.tsx",
+    "type": 6,
+    "exists": true
+  },
+  {
+    "name": "Quy Trình Khảo Sát Người Dùng Mới (Onboarding View)",
+    "file": "src/components/OnboardingView.tsx",
+    "type": 6,
+    "exists": true
+  },
+  {
+    "name": "Các Trang Chính Sách Pháp Lý (Privacy, Terms, Cookies, Refund)",
+    "file": "src/components/legal/LegalViews.tsx",
+    "type": 6,
+    "exists": false
+  }
+]

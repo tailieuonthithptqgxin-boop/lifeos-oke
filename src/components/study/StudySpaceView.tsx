@@ -709,7 +709,7 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-200">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-200 pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:pb-8 overflow-x-hidden">
       {/* Unified Learning Academy Hub Header */}
       {!activeRoomId && (
         <div className="space-y-4">
@@ -759,7 +759,7 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
                 <button
                   type="button"
                   onClick={toggleModeGuide}
-                  className="px-3 py-2 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-300 flex items-center gap-1.5 transition cursor-pointer"
+                  className="px-3 py-2 min-h-[40px] sm:min-h-0 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-semibold text-slate-300 flex items-center gap-1.5 transition cursor-pointer"
                   title="Xem phân biệt 2 chế độ"
                 >
                   <HelpCircle className="w-4 h-4 text-indigo-400" />
@@ -958,7 +958,7 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
                 <button
                   type="button"
                   onClick={() => setSessionSummary(null)}
-                  className="w-full py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-lg shadow-indigo-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3 min-h-[44px] rounded-2xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-lg shadow-indigo-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   <span>Tiếp tục ngày mới</span>
@@ -988,7 +988,7 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
                 <button
                   type="button"
                   onClick={() => setSessionSummary(null)}
-                  className="w-full py-3 rounded-2xl bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-3 min-h-[44px] rounded-2xl bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
                   <span>Đã hiểu</span>
                 </button>

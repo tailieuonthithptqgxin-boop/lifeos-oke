@@ -5,18 +5,18 @@ import { requireAdmin, requireAuth, AuthRequest } from '../auth.middleware.js';
 export const cronRouter = Router();
 
 /**
- * Middleware to allow Cloudflare Worker Cron (with custom header) or Admin session
+ * Middleware to allow Cloudflare Worker Cron (with secret token) or Admin session
  */
 const allowCronOrAdmin = (req: Request, res: Response, next: Function) => {
-  const cfCronHeader = req.headers['x-cloudflare-cron'];
   const cronSecret = req.headers['x-cron-secret'];
-  const expectedSecret = process.env.CRON_SECRET || 'lifeos_cron_secure_key_2026';
+  const expectedSecret = process.env.CRON_SECRET;
 
-  if (cfCronHeader === 'true' || cronSecret === expectedSecret) {
+  // If CRON_SECRET is configured in env, strictly require matching secret header
+  if (expectedSecret && cronSecret === expectedSecret) {
     return next();
   }
 
-  // Fallback to standard admin authentication
+  // Fallback to standard admin authentication (strict check)
   return (requireAuth as any)(req, res, () => {
     return (requireAdmin as any)(req, res, next);
   });

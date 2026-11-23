@@ -421,7 +421,7 @@ export function CheckoutView({
   };
 
   return (
-    <div className="min-h-full bg-slate-50 dark:bg-slate-950 py-6 sm:py-8 px-4 sm:px-6 lg:px-8 font-sans w-full min-w-0 max-w-full overflow-x-hidden">
+    <div className="min-h-full bg-slate-50 dark:bg-slate-950 py-6 sm:py-8 px-4 sm:px-6 lg:px-8 font-sans pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:pb-8 w-full min-w-0 max-w-full overflow-x-hidden">
       <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 w-full min-w-0">
         
         {/* Navigation & Tab Bar */}
@@ -439,11 +439,11 @@ export function CheckoutView({
           </button>
 
           {/* Tab Selector */}
-          <div className="flex items-center bg-slate-200/70 dark:bg-slate-800 p-1 rounded-2xl self-start sm:self-auto">
+          <div className="flex items-center bg-slate-200/70 dark:bg-slate-800 p-1 rounded-2xl self-start sm:self-auto overflow-x-auto no-scrollbar touch-pan-x overscroll-x-contain py-1">
             <button
               type="button"
               onClick={() => setActiveTab('checkout')}
-              className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-4 py-2 min-h-[40px] sm:min-h-0 shrink-0 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                 activeTab === 'checkout'
                   ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
@@ -455,7 +455,7 @@ export function CheckoutView({
             <button
               type="button"
               onClick={() => setActiveTab('my_requests')}
-              className={`px-4 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
+              className={`px-4 py-2 min-h-[40px] sm:min-h-0 shrink-0 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 ${
                 activeTab === 'my_requests'
                   ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'

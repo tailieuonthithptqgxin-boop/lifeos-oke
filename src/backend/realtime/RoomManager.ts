@@ -177,7 +177,7 @@ export class HighScaleRoomManager {
       presence: 'STUDYING',
       joinedAt: existing ? existing.joinedAt : now,
       lastActiveAt: now,
-      streakDays: userData.streakDays ?? existing?.streakDays ?? 1,
+      streakDays: userData.streakDays ?? existing?.streakDays ?? 0,
       totalSessionMinutes: existing?.totalSessionMinutes ?? 0,
     };
 

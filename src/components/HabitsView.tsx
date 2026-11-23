@@ -284,7 +284,7 @@ export function HabitsView() {
   }, [habits, activeFilter, searchQuery, today]);
 
   return (
-    <div className="w-full min-w-0 max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 overflow-x-hidden">
+    <div className="w-full min-w-0 max-w-5xl mx-auto p-4 sm:p-6 lg:p-8 pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:pb-8 space-y-4 sm:space-y-6 overflow-x-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 w-full min-w-0 bg-white dark:bg-[#141E30] p-4 sm:p-5 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs">
         <div className="min-w-0">
@@ -335,13 +335,13 @@ export function HabitsView() {
             placeholder={isVi ? "🔥 Nhập nhanh thói quen mới (VD: Uống 2L nước, Đọc 20 trang sách, Chạy bộ 30p)... [Enter]" : "🔥 Quick add habit (e.g. Drink 2L water, Read 20 pages)... [Enter]"}
             value={quickHabitText}
             onChange={e => setQuickHabitText(e.target.value)}
-            className="w-full h-11 pl-10 pr-9 text-xs sm:text-sm bg-white dark:bg-slate-900 border border-emerald-200/90 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 font-medium"
+            className="w-full h-11 pl-10 pr-9 text-base sm:text-sm bg-white dark:bg-slate-900 border border-emerald-200/90 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 font-medium"
           />
           {quickHabitText && (
             <button
               type="button"
               onClick={() => setQuickHabitText('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer"
               title={isVi ? 'Xóa nội dung' : 'Clear text'}
             >
               <X className="w-4 h-4" />
@@ -352,7 +352,7 @@ export function HabitsView() {
         <button
           type="submit"
           disabled={!quickHabitText.trim()}
-          className="h-11 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer shrink-0 active:scale-95"
+          className="h-11 min-h-[44px] px-5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer shrink-0 active:scale-95"
         >
           <Sparkles className="w-4 h-4" />
           <span>{isVi ? 'Thêm Thói Quen' : 'Add Habit'}</span>
@@ -445,12 +445,12 @@ export function HabitsView() {
 
       {/* Sub-Tabs & Category / Search Filters */}
       <div className="space-y-3 border-b border-slate-200 dark:border-slate-800 pb-3">
-        <div className="flex items-center justify-between gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-pan-x overscroll-x-contain py-0.5">
             <button
               type="button"
               onClick={() => setActiveTab('tracker')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-2.5 sm:py-2 min-h-[40px] sm:min-h-0 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
                 activeTab === 'tracker'
                   ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -463,7 +463,7 @@ export function HabitsView() {
             <button
               type="button"
               onClick={() => setActiveTab('matrix')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-2.5 sm:py-2 min-h-[40px] sm:min-h-0 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
                 activeTab === 'matrix'
                   ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -476,7 +476,7 @@ export function HabitsView() {
             <button
               type="button"
               onClick={() => setActiveTab('analytics')}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-3.5 py-2.5 sm:py-2 min-h-[40px] sm:min-h-0 rounded-xl text-xs font-semibold whitespace-nowrap transition-all cursor-pointer shrink-0 ${
                 activeTab === 'analytics'
                   ? 'bg-slate-900 text-white dark:bg-white dark:text-slate-900 shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -495,23 +495,23 @@ export function HabitsView() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder={isVi ? 'Tìm kiếm thói quen...' : 'Search habits...'}
-              className="w-full pl-8 pr-7 py-1.5 text-xs bg-white dark:bg-[#141E30] border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 shadow-2xs"
+              className="w-full pl-8 pr-7 py-2 sm:py-1.5 min-h-[44px] sm:min-h-0 text-base sm:text-xs bg-white dark:bg-[#141E30] border border-slate-200 dark:border-slate-700 rounded-xl text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 shadow-2xs font-normal"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
                 title={isVi ? 'Xóa tìm kiếm' : 'Clear search'}
               >
-                <X className="w-3 h-3" />
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
           </div>
         </div>
 
         {/* Category Filters Chips */}
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar touch-pan-x overscroll-x-contain py-1">
           {[
             { id: 'All', label: isVi ? 'Tất cả' : 'All' },
             { id: 'pending', label: isVi ? '⏳ Chưa làm' : '⏳ Pending' },
@@ -528,7 +528,7 @@ export function HabitsView() {
                 soundEngine.playPop();
                 setActiveFilter(chip.id);
               }}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all cursor-pointer ${
+              className={`px-3 py-2 sm:py-1.5 min-h-[38px] sm:min-h-0 rounded-lg text-xs font-medium whitespace-nowrap transition-all cursor-pointer shrink-0 flex items-center justify-center ${
                 activeFilter === chip.id
                   ? 'bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 font-bold'
                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -609,8 +609,8 @@ export function HabitsView() {
                   </div>
 
                   {/* 7-Day Quick Micro-Matrix on Habit Card */}
-                  <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800">
-                    <div className="flex items-center gap-1.5">
+                  <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-3 shrink-0 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-slate-100 dark:border-slate-800 flex-wrap sm:flex-nowrap">
+                    <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto no-scrollbar py-0.5">
                       {last7Days.map((day) => {
                         const isDone = isCompletedOnDate(habit, day.dateKey);
                         return (
@@ -619,7 +619,7 @@ export function HabitsView() {
                             key={day.dateKey}
                             onClick={() => handleToggleDate(habit, day.dateKey)}
                             title={`${day.label}: ${isDone ? (isVi ? 'Đã hoàn thành' : 'Done') : (isVi ? 'Chưa hoàn thành' : 'Incomplete')}`}
-                            className={`w-6 h-6 rounded-lg flex items-center justify-center text-[9px] font-bold transition-all cursor-pointer active:scale-90 ${
+                            className={`w-7 h-7 sm:w-6 sm:h-6 rounded-lg flex items-center justify-center text-[10px] sm:text-[9px] font-bold transition-all cursor-pointer active:scale-90 ${
                               isDone
                                 ? 'bg-emerald-500 text-white shadow-2xs'
                                 : day.isToday
@@ -633,34 +633,36 @@ export function HabitsView() {
                       })}
                     </div>
 
-                    {/* Streak Count */}
-                    <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-full border border-amber-200/60 dark:border-amber-800/60 shadow-2xs shrink-0">
-                      <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />
-                      <span className="font-mono tabular-nums">{habit.streak || 0}</span>
-                      <span className="text-[10px] sm:text-[11px]">{isVi ? 'ngày' : 'd'}</span>
-                    </div>
+                    <div className="flex items-center gap-2 shrink-0 ml-auto sm:ml-0">
+                      {/* Streak Count */}
+                      <div className="flex items-center gap-1 text-[11px] sm:text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-full border border-amber-200/60 dark:border-amber-800/60 shadow-2xs shrink-0">
+                        <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />
+                        <span className="font-mono tabular-nums">{habit.streak || 0}</span>
+                        <span className="text-[10px] sm:text-[11px]">{isVi ? 'ngày' : 'd'}</span>
+                      </div>
 
-                    {/* Edit & Delete Actions */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => setEditingHabit(habit)}
-                        className="w-9 h-9 min-h-[36px] min-w-[36px] flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-                        title={isVi ? 'Sửa thói quen' : 'Edit habit'}
-                        aria-label={`Edit habit ${habit.name}`}
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                      </button>
+                      {/* Edit & Delete Actions */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setEditingHabit(habit)}
+                          className="w-10 h-10 sm:w-9 sm:h-9 min-h-[44px] min-w-[44px] sm:min-h-[36px] sm:min-w-[36px] flex items-center justify-center text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                          title={isVi ? 'Sửa thói quen' : 'Edit habit'}
+                          aria-label={`Edit habit ${habit.name}`}
+                        >
+                          <Edit2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteHabit(habit)}
-                        className="w-9 h-9 min-h-[36px] min-w-[36px] flex items-center justify-center text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
-                        title={isVi ? 'Xóa thói quen' : 'Delete habit'}
-                        aria-label={`Delete habit ${habit.name}`}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteHabit(habit)}
+                          className="w-10 h-10 sm:w-9 sm:h-9 min-h-[44px] min-w-[44px] sm:min-h-[36px] sm:min-w-[36px] flex items-center justify-center text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded-xl hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                          title={isVi ? 'Xóa thói quen' : 'Delete habit'}
+                          aria-label={`Delete habit ${habit.name}`}
+                        >
+                          <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -672,7 +674,7 @@ export function HabitsView() {
 
       {/* TAB 2: 7-DAY MATRIX VIEW */}
       {activeTab === 'matrix' && (
-        <div className="bg-white dark:bg-[#141E30] p-4 sm:p-6 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs space-y-4 overflow-x-auto">
+        <div className="bg-white dark:bg-[#141E30] p-4 sm:p-6 rounded-2xl border border-[#E2E8F0] dark:border-white/[0.08] shadow-xs space-y-4 overflow-x-auto no-scrollbar touch-pan-x overscroll-x-contain">
           <div className="flex justify-between items-center pb-3 border-b border-slate-100 dark:border-slate-800">
             <div>
               <h3 className="font-bold text-slate-900 dark:text-white text-base flex items-center gap-2">
@@ -820,61 +822,67 @@ export function HabitsView() {
 
       {/* Floating Undo Toast for Deleted Habit (5 Seconds) */}
       {deletedHabitUndo && (
-        <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl shadow-xl border border-slate-700/50 dark:border-slate-200 animate-slide-up backdrop-blur-md">
-          <span className="text-xs sm:text-sm font-medium">
+        <div className="fixed bottom-[max(5rem,calc(env(safe-area-inset-bottom)+4.5rem))] sm:bottom-6 left-4 right-4 sm:left-auto sm:right-6 z-50 flex items-center justify-between gap-3 px-4 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl shadow-xl border border-slate-700/50 dark:border-slate-200 animate-slide-up backdrop-blur-md max-w-sm sm:max-w-md">
+          <span className="text-xs sm:text-sm font-medium truncate flex-1">
             {isVi ? `Đã xóa thói quen: "${deletedHabitUndo.name}"` : `Deleted habit: "${deletedHabitUndo.name}"`}
           </span>
-          <button
-            type="button"
-            onClick={handleUndoDeleteHabit}
-            className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl text-xs font-bold transition-transform active:scale-95 cursor-pointer shadow-xs"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>{isVi ? 'Hoàn tác (5s)' : 'Undo (5s)'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (deleteTimeoutRef.current) clearTimeout(deleteTimeoutRef.current);
-              setDeletedHabitUndo(null);
-            }}
-            className="p-1 text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer"
-            title={isVi ? 'Đóng' : 'Close'}
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleUndoDeleteHabit}
+              className="flex items-center gap-1.5 px-3 py-2 sm:py-1 min-h-[38px] sm:min-h-0 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl text-xs font-bold transition-transform active:scale-95 cursor-pointer shadow-xs"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>{isVi ? 'Hoàn tác (5s)' : 'Undo (5s)'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (deleteTimeoutRef.current) clearTimeout(deleteTimeoutRef.current);
+                setDeletedHabitUndo(null);
+              }}
+              className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer"
+              title={isVi ? 'Đóng' : 'Close'}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       )}
 
       {/* Floating Undo Toast for Check-in (5 Seconds) */}
       {undoToast && (
-        <div className={`fixed right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl shadow-xl border border-slate-700/50 dark:border-slate-200 animate-slide-up backdrop-blur-md ${
-          deletedHabitUndo ? 'bottom-20' : 'bottom-6'
+        <div className={`fixed left-4 right-4 sm:left-auto sm:right-6 z-50 flex items-center justify-between gap-3 px-4 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-2xl shadow-xl border border-slate-700/50 dark:border-slate-200 animate-slide-up backdrop-blur-md max-w-sm sm:max-w-md ${
+          deletedHabitUndo 
+            ? 'bottom-[max(8.5rem,calc(env(safe-area-inset-bottom)+8rem))] sm:bottom-20' 
+            : 'bottom-[max(5rem,calc(env(safe-area-inset-bottom)+4.5rem))] sm:bottom-6'
         }`}>
-          <span className="text-xs sm:text-sm font-medium">
+          <span className="text-xs sm:text-sm font-medium truncate flex-1">
             {undoToast.completedBefore 
               ? (isVi ? `Đã hủy hoàn thành: "${undoToast.habitName}"` : `Marked incomplete: "${undoToast.habitName}"`)
               : (isVi ? `Đã hoàn thành: "${undoToast.habitName}"` : `Checked in: "${undoToast.habitName}"`)}
           </span>
-          <button
-            type="button"
-            onClick={handleUndo}
-            className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl text-xs font-bold transition-transform active:scale-95 cursor-pointer shadow-xs"
-          >
-            <RotateCcw className="w-3.5 h-3.5" />
-            <span>{isVi ? 'Hoàn tác' : 'Undo'}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
-              setUndoToast(null);
-            }}
-            className="p-1 text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer"
-            title={isVi ? 'Đóng' : 'Close'}
-          >
-            <X className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={handleUndo}
+              className="flex items-center gap-1.5 px-3 py-2 sm:py-1 min-h-[38px] sm:min-h-0 bg-emerald-500 hover:bg-emerald-400 text-white rounded-xl text-xs font-bold transition-transform active:scale-95 cursor-pointer shadow-xs"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>{isVi ? 'Hoàn tác' : 'Undo'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current);
+                setUndoToast(null);
+              }}
+              className="p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-slate-400 hover:text-white dark:hover:text-slate-900 cursor-pointer"
+              title={isVi ? 'Đóng' : 'Close'}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       )}
 
@@ -1017,7 +1025,7 @@ function HabitModal({ habit, onClose, onSave, isVi }: any) {
             type="button"
             onClick={handleSafeDismiss}
             disabled={isSubmitting}
-            className="w-9 h-9 min-h-[40px] min-w-[40px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl cursor-pointer"
+            className="w-10 h-10 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl cursor-pointer"
             aria-label="Close"
           >
             <X className="w-5 h-5" />
@@ -1044,16 +1052,16 @@ function HabitModal({ habit, onClose, onSave, isVi }: any) {
                 placeholder={isVi ? 'VD: Đọc 20 trang sách, Chạy bộ 30p...' : 'e.g. Read 20 pages, 30m Run...'}
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full px-3.5 py-2.5 pr-8 text-base sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+                className="w-full px-3.5 py-2.5 pr-8 min-h-[44px] text-base sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
               />
               {name && (
                 <button
                   type="button"
                   onClick={() => setName('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 p-2 min-h-[36px] min-w-[36px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors cursor-pointer"
                   title={isVi ? 'Xóa tên' : 'Clear name'}
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-4 h-4" />
                 </button>
               )}
             </div>
@@ -1066,7 +1074,7 @@ function HabitModal({ habit, onClose, onSave, isVi }: any) {
             <select
               value={category}
               onChange={e => setCategory(e.target.value)}
-              className="w-full px-3.5 py-2.5 text-base sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
+              className="w-full px-3.5 py-2.5 min-h-[44px] text-base sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
             >
               <option value={isVi ? 'Cá nhân' : 'Personal'}>{isVi ? 'Cá nhân' : 'Personal'}</option>
               <option value={isVi ? 'Công việc' : 'Work'}>{isVi ? 'Công việc' : 'Work'}</option>
@@ -1085,7 +1093,7 @@ function HabitModal({ habit, onClose, onSave, isVi }: any) {
               max="50"
               value={target}
               onChange={e => setTarget(Math.max(1, Number(e.target.value) || 1))}
-              className="w-full px-3.5 py-2.5 text-base sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+              className="w-full px-3.5 py-2.5 min-h-[44px] text-base sm:text-sm rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
             />
           </div>
 

@@ -6,6 +6,7 @@ import { offlineSyncQueue } from './offlineSyncQueue';
 import { formatLocalDateKey } from './utils';
 import { normalizeUserStats, syncAllScreensUI, recordUserActivity, GLOBAL_SYNC_EVENT } from './globalUserSync';
 import { unifiedNotificationEngine } from './unifiedNotificationEngine';
+import { subscribeUserSocket } from './socketClient';
 
 // Multi-Tab Real-time Synchronization Bus via Web BroadcastChannel API
 const tabSyncChannel: BroadcastChannel | null = 
@@ -259,6 +260,11 @@ const getInitialState = (): AppState => {
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState<AppState>(getInitialState);
   const activeItemMutations = useRef(new Set<string>());
+
+  // Bind global Socket.io client to logged-in user for instant cross-tab & cross-window sync
+  useEffect(() => {
+    subscribeUserSocket(state.currentUser?.id);
+  }, [state.currentUser?.id]);
 
   useEffect(() => {
     let urlToken: string | null = null;

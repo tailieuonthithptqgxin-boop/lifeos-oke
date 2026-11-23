@@ -585,7 +585,7 @@ export function ScheduleAndTasksView({
   }, [selectedDate, calendarMode, weekDays, isVi]);
 
   return (
-    <div className="w-full min-w-0 max-w-7xl mx-auto p-3 sm:p-6 lg:p-8 flex flex-col space-y-4 sm:space-y-6 overflow-x-hidden">
+    <div className="w-full min-w-0 max-w-7xl mx-auto p-3 sm:p-6 lg:p-8 pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:pb-8 flex flex-col space-y-4 sm:space-y-6 overflow-x-hidden">
       {/* ========================================================= */}
       {/* UNIFIED HEADER BAR                                        */}
       {/* ========================================================= */}
@@ -607,7 +607,7 @@ export function ScheduleAndTasksView({
         </div>
 
         {/* Global Controls */}
-        <div className="flex items-center flex-wrap gap-2.5 w-full md:w-auto justify-between md:justify-end">
+        <div className="flex items-center flex-wrap gap-2 sm:gap-2.5 w-full md:w-auto justify-between md:justify-end">
           {/* Main Mode Segmented Control: Hôm nay | Lịch | Công việc */}
           <div className="flex bg-[#F1F5F9] dark:bg-slate-800 p-1 rounded-xl text-xs font-semibold shrink-0 border border-slate-200/60 dark:border-slate-700/60">
             <button
@@ -616,7 +616,7 @@ export function ScheduleAndTasksView({
                 setActiveTab('today');
                 soundEngine.playPop();
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-2 sm:py-1.5 min-h-[44px] sm:min-h-0 rounded-lg transition-all cursor-pointer ${
                 activeTab === 'today'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -631,7 +631,7 @@ export function ScheduleAndTasksView({
                 setActiveTab('calendar');
                 soundEngine.playPop();
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-2 sm:py-1.5 min-h-[44px] sm:min-h-0 rounded-lg transition-all cursor-pointer ${
                 activeTab === 'calendar'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -646,7 +646,7 @@ export function ScheduleAndTasksView({
                 setActiveTab('tasks');
                 soundEngine.playPop();
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-2 sm:py-1.5 min-h-[44px] sm:min-h-0 rounded-lg transition-all cursor-pointer ${
                 activeTab === 'tasks'
                   ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs font-bold'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
@@ -661,17 +661,18 @@ export function ScheduleAndTasksView({
           <button
             type="button"
             onClick={handleJumpToToday}
-            className="flex items-center gap-1.5 px-3 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer border border-slate-200/50 dark:border-slate-700/50 active:scale-95"
+            className="flex items-center gap-1.5 px-3 py-2 min-h-[44px] sm:min-h-0 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer border border-slate-200/50 dark:border-slate-700/50 active:scale-95"
             title={isVi ? 'Quay về ngày hôm nay' : 'Go to today'}
           >
-            <span>{isVi ? 'Hôm nay' : 'Today'}</span>
+            <RotateCcw className="w-3.5 h-3.5 text-slate-500" />
+            <span className="hidden xs:inline">{isVi ? 'Hôm nay' : 'Today'}</span>
           </button>
 
           {/* "+ Thêm công việc" Global Modal Button */}
           <button
             type="button"
             onClick={() => handleOpenCreateModal()}
-            className="flex items-center justify-center gap-1.5 bg-[#10B981] hover:bg-[#059669] text-white px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-colors shadow-xs cursor-pointer active:scale-95"
+            className="flex items-center justify-center gap-1.5 bg-[#10B981] hover:bg-[#059669] text-white px-3.5 py-2 min-h-[44px] sm:min-h-0 rounded-xl text-xs sm:text-sm font-semibold transition-colors shadow-xs cursor-pointer active:scale-95"
           >
             <Plus className="w-4 h-4 stroke-[2.5]" />
             <span>{isVi ? 'Thêm công việc' : 'Add Task'}</span>
@@ -851,13 +852,13 @@ export function ScheduleAndTasksView({
                         }
                       }}
                       placeholder={isVi ? "Thêm việc hôm nay... (vd: Họp 14:00 !cao #work)" : "Quick add task... (e.g. Meeting 14:00 !high)"}
-                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 pr-7"
+                      className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 py-2.5 sm:py-2 text-base sm:text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 pr-7"
                     />
                     {quickInputText && (
                       <button
                         type="button"
                         onClick={() => setQuickInputText('')}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer p-1"
                       >
                         <X className="w-3.5 h-3.5" />
                       </button>
@@ -867,7 +868,7 @@ export function ScheduleAndTasksView({
                     id="btn-quick-add-today"
                     type="submit"
                     disabled={!quickInputText.trim() || isSubmittingQuick}
-                    className="px-3 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white text-xs font-bold transition-all shrink-0 cursor-pointer active:scale-95 flex items-center gap-1 shadow-xs"
+                    className="px-3.5 py-2.5 sm:py-2 min-h-[44px] sm:min-h-0 rounded-xl bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white text-xs font-bold transition-all shrink-0 cursor-pointer active:scale-95 flex items-center justify-center gap-1 shadow-xs"
                     title={isVi ? "Lưu nhanh [Enter]" : "Quick add [Enter]"}
                   >
                     <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -883,7 +884,7 @@ export function ScheduleAndTasksView({
                       setTodayFilter('all');
                       soundEngine.playPop();
                     }}
-                    className={`flex-1 py-1 rounded-lg text-center transition-all cursor-pointer ${
+                    className={`flex-1 py-2 sm:py-1 min-h-[40px] sm:min-h-0 flex items-center justify-center rounded-lg text-center transition-all cursor-pointer ${
                       todayFilter === 'all'
                         ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold shadow-2xs'
                         : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
@@ -897,7 +898,7 @@ export function ScheduleAndTasksView({
                       setTodayFilter('todo');
                       soundEngine.playPop();
                     }}
-                    className={`flex-1 py-1 rounded-lg text-center transition-all cursor-pointer ${
+                    className={`flex-1 py-2 sm:py-1 min-h-[40px] sm:min-h-0 flex items-center justify-center rounded-lg text-center transition-all cursor-pointer ${
                       todayFilter === 'todo'
                         ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold shadow-2xs'
                         : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
@@ -911,7 +912,7 @@ export function ScheduleAndTasksView({
                       setTodayFilter('in_progress');
                       soundEngine.playPop();
                     }}
-                    className={`flex-1 py-1 rounded-lg text-center transition-all cursor-pointer ${
+                    className={`flex-1 py-2 sm:py-1 min-h-[40px] sm:min-h-0 flex items-center justify-center rounded-lg text-center transition-all cursor-pointer ${
                       todayFilter === 'in_progress'
                         ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold shadow-2xs'
                         : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
@@ -925,7 +926,7 @@ export function ScheduleAndTasksView({
                       setTodayFilter('done');
                       soundEngine.playPop();
                     }}
-                    className={`flex-1 py-1 rounded-lg text-center transition-all cursor-pointer ${
+                    className={`flex-1 py-2 sm:py-1 min-h-[40px] sm:min-h-0 flex items-center justify-center rounded-lg text-center transition-all cursor-pointer ${
                       todayFilter === 'done'
                         ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white font-bold shadow-2xs'
                         : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
@@ -1522,7 +1523,7 @@ export function ScheduleAndTasksView({
               <button 
                 type="button"
                 onClick={() => setQuickSlotTask(null)}
-                className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -1543,7 +1544,7 @@ export function ScheduleAndTasksView({
                     soundEngine.playPop();
                     setQuickSlotTask(null);
                   }}
-                  className="py-2 px-1 text-center font-mono text-xs font-bold rounded-xl bg-slate-100 hover:bg-emerald-500 hover:text-white dark:bg-slate-800 dark:hover:bg-emerald-500 text-slate-800 dark:text-slate-200 transition-all cursor-pointer active:scale-95"
+                  className="py-2.5 sm:py-2 px-1 min-h-[44px] flex items-center justify-center text-center font-mono text-xs font-bold rounded-xl bg-slate-100 hover:bg-emerald-500 hover:text-white dark:bg-slate-800 dark:hover:bg-emerald-500 text-slate-800 dark:text-slate-200 transition-all cursor-pointer active:scale-95"
                 >
                   {preset}
                 </button>
@@ -1562,7 +1563,7 @@ export function ScheduleAndTasksView({
                   soundEngine.playPop();
                   setQuickSlotTask(null);
                 }}
-                className="w-full py-2 rounded-xl border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-bold transition-colors cursor-pointer"
+                className="w-full py-3 sm:py-2 min-h-[44px] flex items-center justify-center rounded-xl border border-rose-200 dark:border-rose-900/50 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-bold transition-colors cursor-pointer"
               >
                 {isVi ? 'Gỡ khỏi timeline (Chuyển về chưa có giờ)' : 'Unschedule (Move back to tray)'}
               </button>

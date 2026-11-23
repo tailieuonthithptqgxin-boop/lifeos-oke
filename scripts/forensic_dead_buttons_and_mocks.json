@@ -1,0 +1,56 @@
+[
+  {
+    "file": "src/backend/security/fileSecurity.ts",
+    "line": 135,
+    "type": "🔴 MOCK_DATA_DECLARATION",
+    "code": "const sampleStr = buffer.slice(0, 1024).toString('utf-8').toLowerCase();"
+  },
+  {
+    "file": "src/components/admin/AdminBankConfigTab.tsx",
+    "line": 146,
+    "type": "🔴 MOCK_DATA_DECLARATION",
+    "code": "const sampleMemo = `${bankConfig.transferPrefix || 'DUOTECH'} ORD8899`;"
+  },
+  {
+    "file": "src/components/vocab/StudySessionScreen.tsx",
+    "line": 394,
+    "type": "🔴 MOCK_DATA_DECLARATION",
+    "code": "const sampleRate = this.ctx.sampleRate;"
+  },
+  {
+    "file": "src/lib/beautifulEmailTemplate.ts",
+    "line": 340,
+    "type": "🔴 MOCK_DATA_DECLARATION",
+    "code": "export const SAMPLE_EMAIL_PREVIEWS: Record<EmailCategoryType, (stats?: any) => BeautifulEmailData> = {"
+  },
+  {
+    "file": "src/lib/chineseVocab/__tests__/chineseVocabSuite.ts",
+    "line": 240,
+    "type": "🔴 MOCK_DATA_DECLARATION",
+    "code": "const sampleWords = ["
+  },
+  {
+    "file": "src/lib/chineseVocab/__tests__/chineseVocabSuite.ts",
+    "line": 256,
+    "type": "🔴 MOCK_DATA_DECLARATION",
+    "code": "const sampleWords = ["
+  },
+  {
+    "file": "src/lib/e2eTruthEngine.ts",
+    "line": 273,
+    "type": "🔴 MOCK_DATA_DECLARATION",
+    "code": "const mockFormState = { referralCode: 'aff_tester_auto' };"
+  },
+  {
+    "file": "src/lib/e2eTruthEngine.ts",
+    "line": 376,
+    "type": "🔴 MOCK_DATA_DECLARATION",
+    "code": "const mockLog = { id: 'pom_' + Date.now(), minutes: 25, type: 'FOCUS', timestamp: new Date().toISOString() };"
+  },
+  {
+    "file": "src/lib/scheduleReminderScheduler.ts",
+    "line": 250,
+    "type": "🔴 MOCK_DATA_DECLARATION",
+    "code": "const mockItem = {"
+  }
+]

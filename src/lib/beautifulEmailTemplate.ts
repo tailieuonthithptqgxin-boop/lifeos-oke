@@ -391,46 +391,46 @@ export const SAMPLE_EMAIL_PREVIEWS: Record<EmailCategoryType, (stats?: any) => B
     },
     message: 'Tài khoản LifeOS của bạn vừa được đăng nhập thành công. Nếu chính là bạn, hãy an tâm tiếp tục học tập. Nếu không phải bạn, hãy bấm đổi mật khẩu ngay bên dưới.',
     ctaLabel: '🔒 Quản Lý Bảo Mật & Đổi Mật Khẩu',
-    userStats: stats || { streakDays: 7, todayStudyMinutes: 0, badgeLevel: 'Chiến Binh' }
+    userStats: stats || { streakDays: 0, todayStudyMinutes: 0, badgeLevel: 'Tân Binh' }
   }),
 
   ACTIVITY_REPORT: (stats) => ({
     recipientName: 'Bạn',
     category: 'ACTIVITY_REPORT',
     headline: 'Báo Cáo Kỷ Luật & Hoạt Động Trong Ngày 📊',
-    title: 'Tổng kết ngày: 3 Nhiệm vụ hoàn thành • 120 phút tập trung',
+    title: 'Tổng kết ngày: Báo cáo năng suất cá nhân',
     timeText: 'Hôm nay',
-    notes: 'Bạn đã hoàn thành 100% mục tiêu cốt lõi hôm nay và giữ vững chuỗi kỷ luật!',
+    notes: 'Tiến độ hoàn thành mục tiêu cốt lõi hôm nay và chuỗi kỷ luật học tập.',
     paragraphs: [
-      'Hôm nay là một ngày năng suất tuyệt vời của bạn! Tất cả các nhiệm vụ quan trọng đều đã được xử lý gọn gàng.',
-      'Hãy tiếp tục duy trì nhịp độ này vào ngày mai nhé. Sự kiên trì mỗi ngày sẽ tạo nên kết quả phi thường!'
+      'Ghi nhận toàn bộ hoạt động tập trung và nhiệm vụ đã xử lý trong ngày.',
+      'Sự kiên trì mỗi ngày sẽ tạo nên kết quả phi thường!'
     ],
     ctaLabel: '📈 Xem Thống Kê Chi Tiết Trên LifeOS',
-    userStats: stats || { streakDays: 7, todayStudyMinutes: 120, badgeLevel: 'Chiến Binh' }
+    userStats: stats || { streakDays: 0, todayStudyMinutes: 0, badgeLevel: 'Tân Binh' }
   }),
 
   AFFILIATE: (stats) => ({
     recipientName: 'Bạn',
     category: 'AFFILIATE',
     headline: 'Chúc Mừng: Bạn Vừa Được Cộng Hoa Hồng Mới 💰',
-    title: 'Hoa hồng +100.000đ từ đơn hàng của bạn bè',
+    title: 'Hoa hồng ghi nhận từ tài khoản được giới thiệu',
     timeText: 'Vừa xong',
-    timeLeftText: 'Số dư khả dụng: 140.000đ',
-    notes: 'Người bạn được bạn giới thiệu vừa nâng cấp gói Pro. Hoa hồng 20% đã được tự động cộng vào tài khoản Cộng tác viên của bạn.',
+    timeLeftText: 'Kiểm tra số dư khả dụng trên hệ thống',
+    notes: 'Hoa hồng cộng tác viên đã được ghi nhận tự động vào tài khoản của bạn theo chính sách hiện hành.',
     ctaLabel: '💼 Mở Cổng Cộng Tác Viên & Rút Tiền',
-    userStats: stats || { streakDays: 7, todayStudyMinutes: 45, badgeLevel: 'Chiến Binh' }
+    userStats: stats || { streakDays: 0, todayStudyMinutes: 0, badgeLevel: 'Tân Binh' }
   }),
 
   COMMUNITY: (stats) => ({
     recipientName: 'Bạn',
     category: 'COMMUNITY',
-    headline: 'Bạn Bè Rủ Vào Phòng Học: "Cú Đêm Cày Deadline" 🦉',
-    title: 'Minh Thảo vừa gửi lời mời vào bàn học cùng',
+    headline: 'Lời Mời Vào Bàn Tự Học MeetStudy Space 🦉',
+    title: 'Bạn học vừa gửi lời mời cùng học tập tập trung',
     timeText: 'Đang diễn ra live',
-    locationOrTopic: '🌧️ Góc Cafe Mưa Đà Lạt (Lo-Fi & Chill)',
-    notes: 'Có 18 bạn đang ngồi học live, mở nhạc Lo-Fi và giữ kỷ luật.',
+    locationOrTopic: 'Không gian bàn tự học LifeOS',
+    notes: 'Tham gia học tập tập trung, giữ kỷ luật Pomodoro và nâng cao năng suất.',
     ctaLabel: '🎧 Vào Bàn Học Cùng Bạn Bè Ngay',
-    userStats: stats || { streakDays: 7, todayStudyMinutes: 30, badgeLevel: 'Chiến Binh' }
+    userStats: stats || { streakDays: 0, todayStudyMinutes: 0, badgeLevel: 'Tân Binh' }
   }),
 
   GENERAL: (stats) => ({
@@ -441,6 +441,6 @@ export const SAMPLE_EMAIL_PREVIEWS: Record<EmailCategoryType, (stats?: any) => B
     timeText: 'Hôm nay',
     notes: 'Hãy kiểm tra danh sách nhiệm vụ hôm nay để không bỏ lỡ công việc quan trọng.',
     ctaLabel: '🚀 Mở Trang Chủ LifeOS',
-    userStats: stats || { streakDays: 7, todayStudyMinutes: 0, badgeLevel: 'Tân Binh' }
+    userStats: stats || { streakDays: 0, todayStudyMinutes: 0, badgeLevel: 'Tân Binh' }
   })
 };

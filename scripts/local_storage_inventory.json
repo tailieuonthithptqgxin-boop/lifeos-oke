@@ -1,0 +1,2215 @@
+[
+  {
+    "key": "token",
+    "count": 21,
+    "examples": [
+      {
+        "file": "src/App.tsx",
+        "line": 299,
+        "code": "try { localStorage.setItem('token', token); } catch (e) {}"
+      },
+      {
+        "file": "src/components/AdminStorageAuditTab.tsx",
+        "line": 178,
+        "code": "const token = localStorage.getItem('token') || sessionStorage.getItem('token');"
+      },
+      {
+        "file": "src/components/AdminStorageAuditTab.tsx",
+        "line": 211,
+        "code": "const token = localStorage.getItem('token') || sessionStorage.getItem('token');"
+      },
+      {
+        "file": "src/components/LoginView.tsx",
+        "line": 311,
+        "code": "try { localStorage.setItem('token', res.token); } catch (e) {}"
+      },
+      {
+        "file": "src/components/LoginView.tsx",
+        "line": 365,
+        "code": "try { localStorage.setItem('token', res.token); } catch (e) {}"
+      },
+      {
+        "file": "src/components/LoginView.tsx",
+        "line": 421,
+        "code": "try { localStorage.setItem('token', res.token); } catch (e) {}"
+      },
+      {
+        "file": "src/components/PublicLandingView.tsx",
+        "line": 234,
+        "code": "try { localStorage.setItem('token', res.token); } catch {}"
+      },
+      {
+        "file": "src/components/PublicLandingView.tsx",
+        "line": 283,
+        "code": "try { localStorage.setItem('token', res.token); } catch {}"
+      },
+      {
+        "file": "src/components/PublicLandingView.tsx",
+        "line": 344,
+        "code": "try { localStorage.setItem('token', res.token); } catch {}"
+      },
+      {
+        "file": "src/lib/apiClient.ts",
+        "line": 187,
+        "code": "let token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;"
+      },
+      {
+        "file": "src/lib/apiClient.ts",
+        "line": 194,
+        "code": "try { localStorage.setItem('token', urlToken); } catch (e) {}"
+      },
+      {
+        "file": "src/lib/apiClient.ts",
+        "line": 367,
+        "code": "const hadToken = Boolean(localStorage.getItem('token') || localStorage.getItem('lifeos_swr_user'));"
+      },
+      {
+        "file": "src/lib/e2eTruthEngine.ts",
+        "line": 285,
+        "code": "const token = localStorage.getItem('token');"
+      },
+      {
+        "file": "src/lib/e2eTruthEngine.ts",
+        "line": 303,
+        "code": "const headers = { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || 'local_guest') };"
+      },
+      {
+        "file": "src/lib/e2eTruthEngine.ts",
+        "line": 1029,
+        "code": "'Authorization': 'Bearer ' + (localStorage.getItem('token') || '')"
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 191,
+        "code": "try { localStorage.setItem('token', urlToken); } catch (e) {}"
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 194,
+        "code": "token = localStorage.getItem('token');"
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 272,
+        "code": "try { localStorage.setItem('token', urlToken); } catch (e) {}"
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 276,
+        "code": "const token = typeof window !== 'undefined' ? (urlToken || localStorage.getItem('token')) : null;"
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 308,
+        "code": "try { localStorage.setItem('token', authRes.token); } catch (e) {}"
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 594,
+        "code": "localStorage.setItem('token', token);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_e2e_results",
+    "count": 3,
+    "examples": [
+      {
+        "file": "src/components/admin/AdminLiveTestLabTab.tsx",
+        "line": 62,
+        "code": "const cached = localStorage.getItem('lifeos_e2e_results');"
+      },
+      {
+        "file": "src/components/admin/AdminLiveTestLabTab.tsx",
+        "line": 99,
+        "code": "localStorage.setItem('lifeos_e2e_results', JSON.stringify(updated));"
+      },
+      {
+        "file": "src/components/admin/AdminLiveTestLabTab.tsx",
+        "line": 125,
+        "code": "localStorage.setItem('lifeos_e2e_results', JSON.stringify(updated));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_admin_active_tab",
+    "count": 3,
+    "examples": [
+      {
+        "file": "src/components/AdminView.tsx",
+        "line": 65,
+        "code": "const saved = localStorage.getItem('lifeos_admin_active_tab');"
+      },
+      {
+        "file": "src/components/AdminView.tsx",
+        "line": 75,
+        "code": "localStorage.setItem('lifeos_admin_active_tab', activeTab);"
+      },
+      {
+        "file": "src/components/ReferralView.tsx",
+        "line": 462,
+        "code": "localStorage.setItem('lifeos_admin_active_tab', 'referrals');"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_automation_active_tab",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/AutomationEngineView.tsx",
+        "line": 73,
+        "code": "const saved = localStorage.getItem('lifeos_automation_active_tab');"
+      },
+      {
+        "file": "src/components/AutomationEngineView.tsx",
+        "line": 92,
+        "code": "localStorage.setItem('lifeos_automation_active_tab', activeTab);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_automation_category",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/AutomationEngineView.tsx",
+        "line": 84,
+        "code": "const saved = localStorage.getItem('lifeos_automation_category');"
+      },
+      {
+        "file": "src/components/AutomationEngineView.tsx",
+        "line": 99,
+        "code": "localStorage.setItem('lifeos_automation_category', selectedCategory);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_automation_enabled_only",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/AutomationEngineView.tsx",
+        "line": 106,
+        "code": "const saved = localStorage.getItem('lifeos_automation_enabled_only');"
+      },
+      {
+        "file": "src/components/AutomationEngineView.tsx",
+        "line": 114,
+        "code": "localStorage.setItem('lifeos_automation_enabled_only', String(filterEnabledOnly));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_cart_coupon",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/CartView.tsx",
+        "line": 30,
+        "code": "return localStorage.getItem('lifeos_cart_coupon') || '';"
+      },
+      {
+        "file": "src/components/CartView.tsx",
+        "line": 39,
+        "code": "localStorage.setItem('lifeos_cart_coupon', couponCode);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_checkout_tab",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/CheckoutView.tsx",
+        "line": 58,
+        "code": "const saved = localStorage.getItem('lifeos_checkout_tab') as ViewTab;"
+      },
+      {
+        "file": "src/components/CheckoutView.tsx",
+        "line": 67,
+        "code": "localStorage.setItem('lifeos_checkout_tab', activeTab);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_checkout_plan",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/CheckoutView.tsx",
+        "line": 75,
+        "code": "const saved = localStorage.getItem('lifeos_checkout_plan');"
+      },
+      {
+        "file": "src/components/CheckoutView.tsx",
+        "line": 84,
+        "code": "localStorage.setItem('lifeos_checkout_plan', selectedPlan);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_checkout_coupon",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/CheckoutView.tsx",
+        "line": 95,
+        "code": "return localStorage.getItem('lifeos_checkout_coupon') || '';"
+      },
+      {
+        "file": "src/components/CheckoutView.tsx",
+        "line": 104,
+        "code": "localStorage.setItem('lifeos_checkout_coupon', couponCode);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_companion_settings",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/CommandCenter.tsx",
+        "line": 264,
+        "code": "const current = safeJsonParse<any>(localStorage.getItem('lifeos_companion_settings'), {});"
+      },
+      {
+        "file": "src/components/CommandCenter.tsx",
+        "line": 267,
+        "code": "localStorage.setItem('lifeos_companion_settings', JSON.stringify(updated));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_cookie_consent",
+    "count": 3,
+    "examples": [
+      {
+        "file": "src/components/common/CookieConsentBanner.tsx",
+        "line": 14,
+        "code": "const consent = localStorage.getItem('lifeos_cookie_consent');"
+      },
+      {
+        "file": "src/components/common/CookieConsentBanner.tsx",
+        "line": 40,
+        "code": "localStorage.setItem('lifeos_cookie_consent', 'all');"
+      },
+      {
+        "file": "src/components/common/CookieConsentBanner.tsx",
+        "line": 49,
+        "code": "localStorage.setItem('lifeos_cookie_consent', 'essential_only');"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_cookie_consent_date",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/common/CookieConsentBanner.tsx",
+        "line": 41,
+        "code": "localStorage.setItem('lifeos_cookie_consent_date', new Date().toISOString());"
+      },
+      {
+        "file": "src/components/common/CookieConsentBanner.tsx",
+        "line": 50,
+        "code": "localStorage.setItem('lifeos_cookie_consent_date', new Date().toISOString());"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_current_view",
+    "count": 6,
+    "examples": [
+      {
+        "file": "src/components/common/ErrorBoundary.tsx",
+        "line": 48,
+        "code": "localStorage.setItem('lifeos_current_view', 'dashboard');"
+      },
+      {
+        "file": "src/components/common/ErrorBoundary.tsx",
+        "line": 58,
+        "code": "localStorage.setItem('lifeos_current_view', 'dashboard');"
+      },
+      {
+        "file": "src/components/common/ErrorBoundary.tsx",
+        "line": 65,
+        "code": "localStorage.setItem('lifeos_current_view', 'dashboard');"
+      },
+      {
+        "file": "src/lib/e2eTruthEngine.ts",
+        "line": 314,
+        "code": "const lastView = localStorage.getItem('lifeos_current_view') || 'dashboard';"
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 198,
+        "code": "const storedView = localStorage.getItem('lifeos_current_view') as ViewState;"
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 737,
+        "code": "localStorage.setItem('lifeos_current_view', view);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_trifecta_${todayStr}",
+    "count": 9,
+    "examples": [
+      {
+        "file": "src/components/companion/AiLifeBuddyCopilotModal.tsx",
+        "line": 138,
+        "code": "localStorage.setItem(`lifeos_trifecta_${todayStr}`, JSON.stringify(selectedIds));"
+      },
+      {
+        "file": "src/components/dashboard/DailyTrifectaWidget.tsx",
+        "line": 26,
+        "code": "const saved = localStorage.getItem(`lifeos_trifecta_${todayStr}`);"
+      },
+      {
+        "file": "src/components/dashboard/DailyTrifectaWidget.tsx",
+        "line": 77,
+        "code": "localStorage.setItem(`lifeos_trifecta_${todayStr}`, JSON.stringify(current));"
+      },
+      {
+        "file": "src/components/dashboard/DailyTrifectaWidget.tsx",
+        "line": 89,
+        "code": "localStorage.setItem(`lifeos_trifecta_${todayStr}`, JSON.stringify(updated));"
+      },
+      {
+        "file": "src/components/DashboardView.tsx",
+        "line": 256,
+        "code": "const saved = localStorage.getItem(`lifeos_trifecta_${todayStr}`);"
+      },
+      {
+        "file": "src/components/DashboardView.tsx",
+        "line": 437,
+        "code": "localStorage.setItem(`lifeos_trifecta_${todayStr}`, JSON.stringify(current));"
+      },
+      {
+        "file": "src/components/DashboardView.tsx",
+        "line": 448,
+        "code": "localStorage.setItem(`lifeos_trifecta_${todayStr}`, JSON.stringify(next));"
+      },
+      {
+        "file": "src/components/DashboardView.tsx",
+        "line": 748,
+        "code": "localStorage.setItem(`lifeos_trifecta_${todayStr}`, JSON.stringify(next));"
+      },
+      {
+        "file": "src/components/onboarding/QuickPersonaQuizModal.tsx",
+        "line": 83,
+        "code": "localStorage.setItem(`lifeos_trifecta_${todayStr}`, JSON.stringify(taskIds.slice(0, 3)));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_pet_name_${userId}",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/companion/DopaminePetWidget.tsx",
+        "line": 101,
+        "code": "return localStorage.getItem(`lifeos_pet_name_${userId}`) || 'Bé Đồng Hành';"
+      },
+      {
+        "file": "src/components/companion/DopaminePetWidget.tsx",
+        "line": 161,
+        "code": "localStorage.setItem(`lifeos_pet_name_${userId}`, trimmed);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_trifecta_claimed_${todayStr}",
+    "count": 3,
+    "examples": [
+      {
+        "file": "src/components/companion/DopaminePetWidget.tsx",
+        "line": 118,
+        "code": "const isTrifectaClaimed = !!localStorage.getItem(`lifeos_trifecta_claimed_${todayStr}`);"
+      },
+      {
+        "file": "src/components/dashboard/DailyTrifectaWidget.tsx",
+        "line": 35,
+        "code": "return localStorage.getItem(`lifeos_trifecta_claimed_${todayStr}`) === 'true';"
+      },
+      {
+        "file": "src/components/dashboard/DailyTrifectaWidget.tsx",
+        "line": 147,
+        "code": "localStorage.setItem(`lifeos_trifecta_claimed_${todayStr}`, 'true');"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_draft_group_post_${communityId}",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/connect/GroupWorkspaceView.tsx",
+        "line": 361,
+        "code": "const [content, setContent] = useState(() => localStorage.getItem(`lifeos_draft_group_post_${communi"
+      },
+      {
+        "file": "src/components/connect/GroupWorkspaceView.tsx",
+        "line": 378,
+        "code": "localStorage.setItem(`lifeos_draft_group_post_${communityId}`, content);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_active_meet_${communityId}",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/connect/GroupWorkspaceView.tsx",
+        "line": 1359,
+        "code": "const [activeRoomCode, setActiveRoomCode] = useState<string | null>(() => localStorage.getItem(`life"
+      },
+      {
+        "file": "src/components/connect/GroupWorkspaceView.tsx",
+        "line": 1403,
+        "code": "localStorage.setItem(`lifeos_active_meet_${communityId}`, roomCode);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_feed_draft",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/connect/SocialFeedView.tsx",
+        "line": 41,
+        "code": "const [newPostContent, setNewPostContent] = useState(() => localStorage.getItem('lifeos_feed_draft')"
+      },
+      {
+        "file": "src/components/connect/SocialFeedView.tsx",
+        "line": 68,
+        "code": "localStorage.setItem('lifeos_feed_draft', newPostContent);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_fsrs_progress",
+    "count": 1,
+    "examples": [
+      {
+        "file": "src/components/dashboard/ContributionHeatmap365.tsx",
+        "line": 63,
+        "code": "const fsrsStored = JSON.parse(localStorage.getItem('lifeos_fsrs_progress') || '{}');"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_user_coins",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/dashboard/FocusEconomyShopModal.tsx",
+        "line": 80,
+        "code": "return parseInt(localStorage.getItem('lifeos_user_coins') || '120', 10);"
+      },
+      {
+        "file": "src/components/dashboard/FocusEconomyShopModal.tsx",
+        "line": 115,
+        "code": "localStorage.setItem('lifeos_user_coins', String(newCoins));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_purchased_shop_items",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/dashboard/FocusEconomyShopModal.tsx",
+        "line": 87,
+        "code": "return JSON.parse(localStorage.getItem('lifeos_purchased_shop_items') || '[]');"
+      },
+      {
+        "file": "src/components/dashboard/FocusEconomyShopModal.tsx",
+        "line": 116,
+        "code": "localStorage.setItem('lifeos_purchased_shop_items', JSON.stringify(newPurchased));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_streak_freezes",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/dashboard/FocusEconomyShopModal.tsx",
+        "line": 118,
+        "code": "const currentFreezes = parseInt(localStorage.getItem('lifeos_streak_freezes') || '0', 10);"
+      },
+      {
+        "file": "src/components/dashboard/FocusEconomyShopModal.tsx",
+        "line": 119,
+        "code": "localStorage.setItem('lifeos_streak_freezes', String(currentFreezes + 1));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_sunday_reset_${currentUser?.id}_${currentWeekYear}",
+    "count": 1,
+    "examples": [
+      {
+        "file": "src/components/dashboard/SundayWeeklyResetModal.tsx",
+        "line": 130,
+        "code": "localStorage.setItem(`lifeos_sunday_reset_${currentUser?.id}_${currentWeekYear}`, 'true');"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_decision_active_tab",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/DecisionEngineView.tsx",
+        "line": 37,
+        "code": "const saved = localStorage.getItem('lifeos_decision_active_tab');"
+      },
+      {
+        "file": "src/components/DecisionEngineView.tsx",
+        "line": 54,
+        "code": "localStorage.setItem('lifeos_decision_active_tab', activeSubTab);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_decision_selected_id",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/DecisionEngineView.tsx",
+        "line": 46,
+        "code": "const saved = localStorage.getItem('lifeos_decision_selected_id');"
+      },
+      {
+        "file": "src/components/DecisionEngineView.tsx",
+        "line": 61,
+        "code": "localStorage.setItem('lifeos_decision_selected_id', selectedDecisionId);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_decision_filter_cat",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/DecisionEngineView.tsx",
+        "line": 76,
+        "code": "return localStorage.getItem('lifeos_decision_filter_cat') || 'all';"
+      },
+      {
+        "file": "src/components/DecisionEngineView.tsx",
+        "line": 84,
+        "code": "localStorage.setItem('lifeos_decision_filter_cat', filterCategory);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_decision_status_filter",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/DecisionEngineView.tsx",
+        "line": 90,
+        "code": "const saved = localStorage.getItem('lifeos_decision_status_filter') as any;"
+      },
+      {
+        "file": "src/components/DecisionEngineView.tsx",
+        "line": 98,
+        "code": "localStorage.setItem('lifeos_decision_status_filter', statusFilter);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_feedback_active_tab",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/FeedbackView.tsx",
+        "line": 15,
+        "code": "const saved = localStorage.getItem('lifeos_feedback_active_tab');"
+      },
+      {
+        "file": "src/components/FeedbackView.tsx",
+        "line": 25,
+        "code": "localStorage.setItem('lifeos_feedback_active_tab', tab);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_feedback_draft",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/FeedbackView.tsx",
+        "line": 36,
+        "code": "const saved = localStorage.getItem('lifeos_feedback_draft');"
+      },
+      {
+        "file": "src/components/FeedbackView.tsx",
+        "line": 54,
+        "code": "localStorage.setItem('lifeos_feedback_draft', JSON.stringify({ title, content, type, rating }));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_feedback_filter_type",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/FeedbackView.tsx",
+        "line": 63,
+        "code": "const saved = localStorage.getItem('lifeos_feedback_filter_type');"
+      },
+      {
+        "file": "src/components/FeedbackView.tsx",
+        "line": 73,
+        "code": "localStorage.setItem('lifeos_feedback_filter_type', ft);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_finance_analytics_subview",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/finance/FinanceAnalyticsTab.tsx",
+        "line": 47,
+        "code": "const saved = localStorage.getItem('lifeos_finance_analytics_subview') as any;"
+      },
+      {
+        "file": "src/components/finance/FinanceAnalyticsTab.tsx",
+        "line": 56,
+        "code": "localStorage.setItem('lifeos_finance_analytics_subview', subView);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_finance_analytics_period",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/finance/FinanceAnalyticsTab.tsx",
+        "line": 64,
+        "code": "const saved = localStorage.getItem('lifeos_finance_analytics_period') as any;"
+      },
+      {
+        "file": "src/components/finance/FinanceAnalyticsTab.tsx",
+        "line": 73,
+        "code": "localStorage.setItem('lifeos_finance_analytics_period', selectedPeriod);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_finance_analytics_granularity",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/finance/FinanceAnalyticsTab.tsx",
+        "line": 81,
+        "code": "const saved = localStorage.getItem('lifeos_finance_analytics_granularity') as any;"
+      },
+      {
+        "file": "src/components/finance/FinanceAnalyticsTab.tsx",
+        "line": 90,
+        "code": "localStorage.setItem('lifeos_finance_analytics_granularity', chartGranularity);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_finance_analytics_chart_type",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/finance/FinanceAnalyticsTab.tsx",
+        "line": 97,
+        "code": "const saved = localStorage.getItem('lifeos_finance_analytics_chart_type') as any;"
+      },
+      {
+        "file": "src/components/finance/FinanceAnalyticsTab.tsx",
+        "line": 106,
+        "code": "localStorage.setItem('lifeos_finance_analytics_chart_type', chartType);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_finance_monthly_range",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/finance/FinanceMonthlyComparisonTab.tsx",
+        "line": 58,
+        "code": "const saved = localStorage.getItem('lifeos_finance_monthly_range') as any;"
+      },
+      {
+        "file": "src/components/finance/FinanceMonthlyComparisonTab.tsx",
+        "line": 67,
+        "code": "localStorage.setItem('lifeos_finance_monthly_range', rangeOption);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_finance_monthly_chart_mode",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/finance/FinanceMonthlyComparisonTab.tsx",
+        "line": 77,
+        "code": "const saved = localStorage.getItem('lifeos_finance_monthly_chart_mode') as any;"
+      },
+      {
+        "file": "src/components/finance/FinanceMonthlyComparisonTab.tsx",
+        "line": 86,
+        "code": "localStorage.setItem('lifeos_finance_monthly_chart_mode', chartMode);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_finance_monthly_cat",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/finance/FinanceMonthlyComparisonTab.tsx",
+        "line": 93,
+        "code": "return localStorage.getItem('lifeos_finance_monthly_cat') || 'all';"
+      },
+      {
+        "file": "src/components/finance/FinanceMonthlyComparisonTab.tsx",
+        "line": 101,
+        "code": "localStorage.setItem('lifeos_finance_monthly_cat', selectedCategory);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_finance_tx_type_filter",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/finance/FinanceTransactionsTab.tsx",
+        "line": 28,
+        "code": "const saved = localStorage.getItem('lifeos_finance_tx_type_filter') as any;"
+      },
+      {
+        "file": "src/components/finance/FinanceTransactionsTab.tsx",
+        "line": 37,
+        "code": "localStorage.setItem('lifeos_finance_tx_type_filter', typeFilter);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_finance_active_tab",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/FinanceView.tsx",
+        "line": 124,
+        "code": "const saved = localStorage.getItem('lifeos_finance_active_tab') as any;"
+      },
+      {
+        "file": "src/components/FinanceView.tsx",
+        "line": 135,
+        "code": "localStorage.setItem('lifeos_finance_active_tab', activeTab);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_finance_scenario_acc",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/FinanceView.tsx",
+        "line": 335,
+        "code": "return localStorage.getItem('lifeos_finance_scenario_acc') || '';"
+      },
+      {
+        "file": "src/components/FinanceView.tsx",
+        "line": 343,
+        "code": "if (scenarioAccId) localStorage.setItem('lifeos_finance_scenario_acc', scenarioAccId);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_finance_chart_period",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/FinanceView.tsx",
+        "line": 355,
+        "code": "const saved = localStorage.getItem('lifeos_finance_chart_period') as any;"
+      },
+      {
+        "file": "src/components/FinanceView.tsx",
+        "line": 366,
+        "code": "localStorage.setItem('lifeos_finance_chart_period', chartPeriod);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_focus_selected_task_id",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/FocusView.tsx",
+        "line": 117,
+        "code": "return localStorage.getItem('lifeos_focus_selected_task_id') || '';"
+      },
+      {
+        "file": "src/components/FocusView.tsx",
+        "line": 125,
+        "code": "localStorage.setItem('lifeos_focus_selected_task_id', selectedTaskId);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_focus_show_music",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/FocusView.tsx",
+        "line": 547,
+        "code": "const saved = localStorage.getItem('lifeos_focus_show_music');"
+      },
+      {
+        "file": "src/components/FocusView.tsx",
+        "line": 556,
+        "code": "localStorage.setItem('lifeos_focus_show_music', String(showMusicPanel));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_goals_active_tab",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/GoalsView.tsx",
+        "line": 29,
+        "code": "const saved = localStorage.getItem('lifeos_goals_active_tab');"
+      },
+      {
+        "file": "src/components/GoalsView.tsx",
+        "line": 37,
+        "code": "localStorage.setItem('lifeos_goals_active_tab', activeTab);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_goals_view_mode",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/GoalsView.tsx",
+        "line": 44,
+        "code": "const saved = localStorage.getItem('lifeos_goals_view_mode');"
+      },
+      {
+        "file": "src/components/GoalsView.tsx",
+        "line": 52,
+        "code": "localStorage.setItem('lifeos_goals_view_mode', viewMode);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_goals_category_filter",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/GoalsView.tsx",
+        "line": 59,
+        "code": "return localStorage.getItem('lifeos_goals_category_filter') || 'All';"
+      },
+      {
+        "file": "src/components/GoalsView.tsx",
+        "line": 67,
+        "code": "localStorage.setItem('lifeos_goals_category_filter', categoryFilter);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_goals_status_filter",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/GoalsView.tsx",
+        "line": 73,
+        "code": "return localStorage.getItem('lifeos_goals_status_filter') || 'All';"
+      },
+      {
+        "file": "src/components/GoalsView.tsx",
+        "line": 81,
+        "code": "localStorage.setItem('lifeos_goals_status_filter', statusFilter);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_goals_tier_filter",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/GoalsView.tsx",
+        "line": 87,
+        "code": "return localStorage.getItem('lifeos_goals_tier_filter') || 'All';"
+      },
+      {
+        "file": "src/components/GoalsView.tsx",
+        "line": 95,
+        "code": "localStorage.setItem('lifeos_goals_tier_filter', tierFilter);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_goals_selected_detail_id",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/GoalsView.tsx",
+        "line": 107,
+        "code": "return localStorage.getItem('lifeos_goals_selected_detail_id') || null;"
+      },
+      {
+        "file": "src/components/GoalsView.tsx",
+        "line": 116,
+        "code": "localStorage.setItem('lifeos_goals_selected_detail_id', selectedGoalDetailId);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_goals_scenario_id",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/GoalsView.tsx",
+        "line": 1679,
+        "code": "return localStorage.getItem('lifeos_goals_scenario_id') || goals?.[0]?.id || '';"
+      },
+      {
+        "file": "src/components/GoalsView.tsx",
+        "line": 1687,
+        "code": "if (selectedGoalId) localStorage.setItem('lifeos_goals_scenario_id', selectedGoalId);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_habits_active_tab",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/HabitsView.tsx",
+        "line": 22,
+        "code": "const saved = localStorage.getItem('lifeos_habits_active_tab');"
+      },
+      {
+        "file": "src/components/HabitsView.tsx",
+        "line": 30,
+        "code": "localStorage.setItem('lifeos_habits_active_tab', activeTab);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_habits_filter",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/HabitsView.tsx",
+        "line": 37,
+        "code": "const saved = localStorage.getItem('lifeos_habits_filter');"
+      },
+      {
+        "file": "src/components/HabitsView.tsx",
+        "line": 45,
+        "code": "localStorage.setItem('lifeos_habits_filter', activeFilter);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_rpg_char_slot",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/journey/RPGCharacterHub.tsx",
+        "line": 34,
+        "code": "const saved = localStorage.getItem('lifeos_rpg_char_slot') as any;"
+      },
+      {
+        "file": "src/components/journey/RPGCharacterHub.tsx",
+        "line": 43,
+        "code": "localStorage.setItem('lifeos_rpg_char_slot', filterSlot);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_rpg_selected_tree",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/journey/RPGSkillTreeModal.tsx",
+        "line": 28,
+        "code": "const saved = localStorage.getItem('lifeos_rpg_selected_tree');"
+      },
+      {
+        "file": "src/components/journey/RPGSkillTreeModal.tsx",
+        "line": 36,
+        "code": "localStorage.setItem('lifeos_rpg_selected_tree', selectedTreeId);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_rpg_world_chapter_idx",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/journey/RPGWorldMapView.tsx",
+        "line": 22,
+        "code": "const saved = localStorage.getItem('lifeos_rpg_world_chapter_idx');"
+      },
+      {
+        "file": "src/components/journey/RPGWorldMapView.tsx",
+        "line": 31,
+        "code": "localStorage.setItem('lifeos_rpg_world_chapter_idx', String(selectedChapterIdx));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_journey_active_tab",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/JourneyView.tsx",
+        "line": 94,
+        "code": "const saved = localStorage.getItem('lifeos_journey_active_tab') as any;"
+      },
+      {
+        "file": "src/components/JourneyView.tsx",
+        "line": 105,
+        "code": "localStorage.setItem('lifeos_journey_active_tab', activeTab);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_journey_armory_filter",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/JourneyView.tsx",
+        "line": 177,
+        "code": "const saved = localStorage.getItem('lifeos_journey_armory_filter') as any;"
+      },
+      {
+        "file": "src/components/JourneyView.tsx",
+        "line": 186,
+        "code": "localStorage.setItem('lifeos_journey_armory_filter', armoryFilter);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_journey_chapter_idx",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/JourneyView.tsx",
+        "line": 235,
+        "code": "const saved = localStorage.getItem('lifeos_journey_chapter_idx');"
+      },
+      {
+        "file": "src/components/JourneyView.tsx",
+        "line": 244,
+        "code": "localStorage.setItem('lifeos_journey_chapter_idx', String(selectedChapterIndex));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_journey_milestone_category",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/JourneyView.tsx",
+        "line": 252,
+        "code": "const saved = localStorage.getItem('lifeos_journey_milestone_category');"
+      },
+      {
+        "file": "src/components/JourneyView.tsx",
+        "line": 261,
+        "code": "localStorage.setItem('lifeos_journey_milestone_category', milestoneCategoryFilter);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_notes_active_tab",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/NotesView.tsx",
+        "line": 182,
+        "code": "const saved = localStorage.getItem('lifeos_notes_active_tab') as ActiveTab;"
+      },
+      {
+        "file": "src/components/NotesView.tsx",
+        "line": 193,
+        "code": "localStorage.setItem('lifeos_notes_active_tab', activeTab);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_notes_category",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/NotesView.tsx",
+        "line": 202,
+        "code": "return localStorage.getItem('lifeos_notes_category') || 'All';"
+      },
+      {
+        "file": "src/components/NotesView.tsx",
+        "line": 210,
+        "code": "localStorage.setItem('lifeos_notes_category', selectedCategory);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_notes_type",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/NotesView.tsx",
+        "line": 217,
+        "code": "return localStorage.getItem('lifeos_notes_type') || 'All';"
+      },
+      {
+        "file": "src/components/NotesView.tsx",
+        "line": 225,
+        "code": "localStorage.setItem('lifeos_notes_type', selectedType);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_notes_view_mode",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/NotesView.tsx",
+        "line": 234,
+        "code": "const saved = localStorage.getItem('lifeos_notes_view_mode') as 'grid' | 'list';"
+      },
+      {
+        "file": "src/components/NotesView.tsx",
+        "line": 243,
+        "code": "localStorage.setItem('lifeos_notes_view_mode', viewMode);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_notes_filter_mode",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/NotesView.tsx",
+        "line": 253,
+        "code": "const saved = localStorage.getItem('lifeos_notes_filter_mode') as any;"
+      },
+      {
+        "file": "src/components/NotesView.tsx",
+        "line": 264,
+        "code": "localStorage.setItem('lifeos_notes_filter_mode', activeFilterMode);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_notes_selected_id",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/NotesView.tsx",
+        "line": 302,
+        "code": "const savedId = localStorage.getItem('lifeos_notes_selected_id');"
+      },
+      {
+        "file": "src/components/NotesView.tsx",
+        "line": 315,
+        "code": "localStorage.setItem('lifeos_notes_selected_id', detailNote.id);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_new_note_draft",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/NotesView.tsx",
+        "line": 2415,
+        "code": "const saved = localStorage.getItem('lifeos_new_note_draft');"
+      },
+      {
+        "file": "src/components/NotesView.tsx",
+        "line": 2440,
+        "code": "localStorage.setItem('lifeos_new_note_draft', JSON.stringify({"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_read_announcements",
+    "count": 3,
+    "examples": [
+      {
+        "file": "src/components/notifications/LoginAnnouncementModal.tsx",
+        "line": 40,
+        "code": "const localReadIds: string[] = JSON.parse(localStorage.getItem('lifeos_read_announcements') || '[]')"
+      },
+      {
+        "file": "src/components/notifications/LoginAnnouncementModal.tsx",
+        "line": 67,
+        "code": "const localReadIds: string[] = JSON.parse(localStorage.getItem('lifeos_read_announcements') || '[]')"
+      },
+      {
+        "file": "src/components/notifications/LoginAnnouncementModal.tsx",
+        "line": 70,
+        "code": "localStorage.setItem('lifeos_read_announcements', JSON.stringify(localReadIds));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_persona_quiz_${userId}",
+    "count": 1,
+    "examples": [
+      {
+        "file": "src/components/onboarding/QuickPersonaQuizModal.tsx",
+        "line": 84,
+        "code": "localStorage.setItem(`lifeos_persona_quiz_${userId}`, 'true');"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_projects_view_mode",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/ProjectsView.tsx",
+        "line": 114,
+        "code": "const saved = localStorage.getItem('lifeos_projects_view_mode') as ViewMode;"
+      },
+      {
+        "file": "src/components/ProjectsView.tsx",
+        "line": 123,
+        "code": "localStorage.setItem('lifeos_projects_view_mode', viewMode);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_projects_para_filter",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/ProjectsView.tsx",
+        "line": 131,
+        "code": "const saved = localStorage.getItem('lifeos_projects_para_filter') as ParaCategory;"
+      },
+      {
+        "file": "src/components/ProjectsView.tsx",
+        "line": 142,
+        "code": "localStorage.setItem('lifeos_projects_para_filter', paraFilter);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_projects_status_filter",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/ProjectsView.tsx",
+        "line": 149,
+        "code": "const saved = localStorage.getItem('lifeos_projects_status_filter');"
+      },
+      {
+        "file": "src/components/ProjectsView.tsx",
+        "line": 160,
+        "code": "localStorage.setItem('lifeos_projects_status_filter', statusFilter);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_projects_health_filter",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/ProjectsView.tsx",
+        "line": 167,
+        "code": "const saved = localStorage.getItem('lifeos_projects_health_filter');"
+      },
+      {
+        "file": "src/components/ProjectsView.tsx",
+        "line": 178,
+        "code": "localStorage.setItem('lifeos_projects_health_filter', healthFilter);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_projects_expanded_id",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/ProjectsView.tsx",
+        "line": 199,
+        "code": "return localStorage.getItem('lifeos_projects_expanded_id');"
+      },
+      {
+        "file": "src/components/ProjectsView.tsx",
+        "line": 208,
+        "code": "localStorage.setItem('lifeos_projects_expanded_id', expandedProjectId);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_pwa_dismissed",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/PwaPromptBanner.tsx",
+        "line": 33,
+        "code": "localStorage.getItem('lifeos_pwa_dismissed') === 'true' ||"
+      },
+      {
+        "file": "src/components/PwaPromptBanner.tsx",
+        "line": 71,
+        "code": "localStorage.setItem('lifeos_pwa_dismissed', 'true');"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_affiliate_bank_info",
+    "count": 4,
+    "examples": [
+      {
+        "file": "src/components/ReferralView.tsx",
+        "line": 135,
+        "code": "const saved = localStorage.getItem('lifeos_affiliate_bank_info');"
+      },
+      {
+        "file": "src/components/ReferralView.tsx",
+        "line": 142,
+        "code": "const saved = localStorage.getItem('lifeos_affiliate_bank_info');"
+      },
+      {
+        "file": "src/components/ReferralView.tsx",
+        "line": 149,
+        "code": "const saved = localStorage.getItem('lifeos_affiliate_bank_info');"
+      },
+      {
+        "file": "src/components/ReferralView.tsx",
+        "line": 309,
+        "code": "localStorage.setItem('lifeos_affiliate_bank_info', JSON.stringify({"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_schedule_active_tab",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/ScheduleAndTasksView.tsx",
+        "line": 181,
+        "code": "const saved = localStorage.getItem('lifeos_schedule_active_tab') as any;"
+      },
+      {
+        "file": "src/components/ScheduleAndTasksView.tsx",
+        "line": 192,
+        "code": "localStorage.setItem('lifeos_schedule_active_tab', activeTab);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_schedule_calendar_mode",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/ScheduleAndTasksView.tsx",
+        "line": 200,
+        "code": "const saved = localStorage.getItem('lifeos_schedule_calendar_mode') as any;"
+      },
+      {
+        "file": "src/components/ScheduleAndTasksView.tsx",
+        "line": 211,
+        "code": "localStorage.setItem('lifeos_schedule_calendar_mode', calendarMode);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_schedule_today_filter",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/ScheduleAndTasksView.tsx",
+        "line": 226,
+        "code": "const saved = localStorage.getItem('lifeos_schedule_today_filter') as any;"
+      },
+      {
+        "file": "src/components/ScheduleAndTasksView.tsx",
+        "line": 237,
+        "code": "localStorage.setItem('lifeos_schedule_today_filter', todayFilter);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_visible_modules",
+    "count": 6,
+    "examples": [
+      {
+        "file": "src/components/SidebarCustomizerModal.tsx",
+        "line": 67,
+        "code": "const raw = localStorage.getItem('lifeos_visible_modules');"
+      },
+      {
+        "file": "src/components/SidebarCustomizerModal.tsx",
+        "line": 78,
+        "code": "localStorage.setItem('lifeos_visible_modules', JSON.stringify(filtered.length > 0 ? filtered : NAV_M"
+      },
+      {
+        "file": "src/components/SidebarCustomizerModal.tsx",
+        "line": 131,
+        "code": "localStorage.setItem('lifeos_visible_modules', JSON.stringify(selectedModules));"
+      },
+      {
+        "file": "src/components/SidebarCustomizerModal.tsx",
+        "line": 140,
+        "code": "localStorage.setItem('lifeos_visible_modules', JSON.stringify(all));"
+      },
+      {
+        "file": "src/main.tsx",
+        "line": 14,
+        "code": "const visible = localStorage.getItem('lifeos_visible_modules');"
+      },
+      {
+        "file": "src/main.tsx",
+        "line": 19,
+        "code": "localStorage.setItem('lifeos_visible_modules', JSON.stringify(cleaned));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos:focus_3d_model",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/spatial/SpatialFocusScene.tsx",
+        "line": 548,
+        "code": "return (localStorage.getItem('lifeos:focus_3d_model') as Focus3DModelType) || 'hourglass';"
+      },
+      {
+        "file": "src/components/spatial/SpatialFocusScene.tsx",
+        "line": 557,
+        "code": "localStorage.setItem('lifeos:focus_3d_model', model);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_grade_schema_${subjectId}",
+    "count": 1,
+    "examples": [
+      {
+        "file": "src/components/study/GradeForecastTab.tsx",
+        "line": 56,
+        "code": "const saved = localStorage.getItem(`lifeos_grade_schema_${subjectId}`);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_grade_schema_${sub.id}",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/study/GradeForecastTab.tsx",
+        "line": 93,
+        "code": "localStorage.setItem(`lifeos_grade_schema_${sub.id}`, JSON.stringify(next));"
+      },
+      {
+        "file": "src/components/StudyView.tsx",
+        "line": 207,
+        "code": "const savedSubSchema = localStorage.getItem(`lifeos_grade_schema_${sub.id}`);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_study_guide_dismissed",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/study/StudySpaceView.tsx",
+        "line": 137,
+        "code": "return localStorage.getItem('lifeos_study_guide_dismissed') !== 'true';"
+      },
+      {
+        "file": "src/components/study/StudySpaceView.tsx",
+        "line": 147,
+        "code": "localStorage.setItem('lifeos_study_guide_dismissed', next ? 'false' : 'true');"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_active_study_desk_v2",
+    "count": 4,
+    "examples": [
+      {
+        "file": "src/components/study/StudySpaceView.tsx",
+        "line": 278,
+        "code": "const localSaved = localStorage.getItem('lifeos_active_study_desk_v2');"
+      },
+      {
+        "file": "src/components/study/StudySpaceView.tsx",
+        "line": 383,
+        "code": "localStorage.setItem('lifeos_active_study_desk_v2', JSON.stringify(deskData));"
+      },
+      {
+        "file": "src/components/study/StudySpaceView.tsx",
+        "line": 462,
+        "code": "localStorage.setItem('lifeos_active_study_desk_v2', JSON.stringify(deskData));"
+      },
+      {
+        "file": "src/lib/learningAutoSave.ts",
+        "line": 88,
+        "code": "const deskRaw = localStorage.getItem('lifeos_active_study_desk_v2');"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_study_theme",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/study-space/StudyRoomView.tsx",
+        "line": 155,
+        "code": "const saved = localStorage.getItem('lifeos_study_theme');"
+      },
+      {
+        "file": "src/components/study-space/StudyRoomView.tsx",
+        "line": 168,
+        "code": "localStorage.setItem('lifeos_study_theme', next);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_study_user_xp",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/study-space/StudyRoomView.tsx",
+        "line": 198,
+        "code": "const saved = localStorage.getItem('lifeos_study_user_xp');"
+      },
+      {
+        "file": "src/components/study-space/StudyRoomView.tsx",
+        "line": 1097,
+        "code": "try { localStorage.setItem('lifeos_study_user_xp', next.toString()); } catch {}"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_study_user_frame",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/study-space/StudyRoomView.tsx",
+        "line": 230,
+        "code": "return localStorage.getItem('lifeos_study_user_frame') || 'frame-emerald';"
+      },
+      {
+        "file": "src/components/study-space/StudyRoomView.tsx",
+        "line": 1172,
+        "code": "try { localStorage.setItem('lifeos_study_user_frame', frameClass); } catch {}"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_study_active_tab",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/StudyView.tsx",
+        "line": 64,
+        "code": "const saved = localStorage.getItem('lifeos_study_active_tab') as any;"
+      },
+      {
+        "file": "src/components/StudyView.tsx",
+        "line": 75,
+        "code": "localStorage.setItem('lifeos_study_active_tab', activeTab);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_tasks_view_mode",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/TasksView.tsx",
+        "line": 96,
+        "code": "const saved = localStorage.getItem('lifeos_tasks_view_mode') as any;"
+      },
+      {
+        "file": "src/components/TasksView.tsx",
+        "line": 107,
+        "code": "localStorage.setItem('lifeos_tasks_view_mode', viewMode);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_tasks_filter_status",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/TasksView.tsx",
+        "line": 115,
+        "code": "const saved = localStorage.getItem('lifeos_tasks_filter_status');"
+      },
+      {
+        "file": "src/components/TasksView.tsx",
+        "line": 124,
+        "code": "localStorage.setItem('lifeos_tasks_filter_status', filterStatus);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_tasks_filter_energy",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/TasksView.tsx",
+        "line": 132,
+        "code": "const saved = localStorage.getItem('lifeos_tasks_filter_energy');"
+      },
+      {
+        "file": "src/components/TasksView.tsx",
+        "line": 141,
+        "code": "localStorage.setItem('lifeos_tasks_filter_energy', filterEnergy);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_marketplace_category",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/TemplateLibraryView.tsx",
+        "line": 253,
+        "code": "const saved = localStorage.getItem('lifeos_marketplace_category');"
+      },
+      {
+        "file": "src/components/TemplateLibraryView.tsx",
+        "line": 262,
+        "code": "localStorage.setItem('lifeos_marketplace_category', selectedCategory);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_vocab_active_tab",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/vocab/VocabMasterView.tsx",
+        "line": 95,
+        "code": "const saved = localStorage.getItem('lifeos_vocab_active_tab') as any;"
+      },
+      {
+        "file": "src/components/vocab/VocabMasterView.tsx",
+        "line": 106,
+        "code": "localStorage.setItem('lifeos_vocab_active_tab', activeTab);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_custom_vocab",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/vocab/ZeroEffortIngestionModal.tsx",
+        "line": 103,
+        "code": "const saved = JSON.parse(localStorage.getItem('lifeos_custom_vocab') || '[]');"
+      },
+      {
+        "file": "src/components/vocab/ZeroEffortIngestionModal.tsx",
+        "line": 105,
+        "code": "localStorage.setItem('lifeos_custom_vocab', JSON.stringify(saved));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_focus_music_tab",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/components/YouTubeFocusPlayer.tsx",
+        "line": 59,
+        "code": "const saved = localStorage.getItem('lifeos_focus_music_tab');"
+      },
+      {
+        "file": "src/components/YouTubeFocusPlayer.tsx",
+        "line": 69,
+        "code": "localStorage.setItem('lifeos_focus_music_tab', activeTab);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_vocab_session_state",
+    "count": 5,
+    "examples": [
+      {
+        "file": "src/lib/apiClient.ts",
+        "line": 379,
+        "code": "localStorage.getItem('lifeos_vocab_session_state') ||"
+      },
+      {
+        "file": "src/lib/lazyWithRetry.ts",
+        "line": 76,
+        "code": "localStorage.getItem('lifeos_vocab_session_state') ||"
+      },
+      {
+        "file": "src/lib/pwa.ts",
+        "line": 345,
+        "code": "localStorage.getItem('lifeos_vocab_session_state') ||"
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 390,
+        "code": "localStorage.getItem('lifeos_vocab_session_state') ||"
+      },
+      {
+        "file": "src/main.tsx",
+        "line": 31,
+        "code": "localStorage.getItem('lifeos_vocab_session_state') ||"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_pomodoro_active_session",
+    "count": 5,
+    "examples": [
+      {
+        "file": "src/lib/apiClient.ts",
+        "line": 380,
+        "code": "localStorage.getItem('lifeos_pomodoro_active_session') ||"
+      },
+      {
+        "file": "src/lib/lazyWithRetry.ts",
+        "line": 77,
+        "code": "localStorage.getItem('lifeos_pomodoro_active_session') ||"
+      },
+      {
+        "file": "src/lib/pwa.ts",
+        "line": 346,
+        "code": "localStorage.getItem('lifeos_pomodoro_active_session') ||"
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 391,
+        "code": "localStorage.getItem('lifeos_pomodoro_active_session') ||"
+      },
+      {
+        "file": "src/main.tsx",
+        "line": 32,
+        "code": "localStorage.getItem('lifeos_pomodoro_active_session') ||"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_client_cron_stats",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/lib/cronEngine.ts",
+        "line": 51,
+        "code": "const raw = localStorage.getItem('lifeos_client_cron_stats');"
+      },
+      {
+        "file": "src/lib/cronEngine.ts",
+        "line": 60,
+        "code": "localStorage.setItem('lifeos_client_cron_stats', JSON.stringify(this.localStats));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_swr_user",
+    "count": 6,
+    "examples": [
+      {
+        "file": "src/lib/e2eTruthEngine.ts",
+        "line": 291,
+        "code": "const swrCache = localStorage.getItem('lifeos_swr_user') || localStorage.getItem('lifeos_user');"
+      },
+      {
+        "file": "src/lib/scheduleReminderScheduler.ts",
+        "line": 164,
+        "code": "const rawUser = typeof window !== 'undefined' ? localStorage.getItem('lifeos_swr_user') : null;"
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 207,
+        "code": "cachedUser = safeJsonParse(localStorage.getItem('lifeos_swr_user'), null);"
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 311,
+        "code": "localStorage.setItem('lifeos_swr_user', JSON.stringify(user));"
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 596,
+        "code": "localStorage.setItem('lifeos_swr_user', JSON.stringify(unifiedUser));"
+      },
+      {
+        "file": "src/lib/unifiedNotificationEngine.ts",
+        "line": 165,
+        "code": "const rawStored = typeof window !== 'undefined' ? localStorage.getItem('lifeos_swr_user') : null;"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_user",
+    "count": 5,
+    "examples": [
+      {
+        "file": "src/lib/globalUserSync.ts",
+        "line": 182,
+        "code": "const raw = localStorage.getItem('lifeos_user');"
+      },
+      {
+        "file": "src/lib/globalUserSync.ts",
+        "line": 196,
+        "code": "localStorage.setItem('lifeos_user', JSON.stringify(merged));"
+      },
+      {
+        "file": "src/lib/globalUserSync.ts",
+        "line": 239,
+        "code": "const raw = localStorage.getItem('lifeos_user');"
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 328,
+        "code": "localStorage.setItem('lifeos_user', JSON.stringify(unifiedUser));"
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 597,
+        "code": "localStorage.setItem('lifeos_user', JSON.stringify(unifiedUser));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_unified_streak_days",
+    "count": 1,
+    "examples": [
+      {
+        "file": "src/lib/globalUserSync.ts",
+        "line": 197,
+        "code": "localStorage.setItem('lifeos_unified_streak_days', String(merged.streakDays || 0));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_study_streak_days",
+    "count": 1,
+    "examples": [
+      {
+        "file": "src/lib/globalUserSync.ts",
+        "line": 198,
+        "code": "localStorage.setItem('lifeos_study_streak_days', String(merged.streakDays || 0));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_haptic_enabled",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/lib/hapticEngine.ts",
+        "line": 13,
+        "code": "const saved = localStorage.getItem('lifeos_haptic_enabled');"
+      },
+      {
+        "file": "src/lib/hapticEngine.ts",
+        "line": 27,
+        "code": "localStorage.setItem('lifeos_haptic_enabled', String(val));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_lang",
+    "count": 3,
+    "examples": [
+      {
+        "file": "src/lib/i18n.ts",
+        "line": 1272,
+        "code": "const saved = localStorage.getItem('lifeos_lang');"
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 108,
+        "code": "language: (typeof window !== 'undefined' && localStorage.getItem('lifeos_lang')) || \"vi\","
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 1328,
+        "code": "try { localStorage.setItem('lifeos_lang', lang); } catch (e) {}"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_fallback_${storeName}",
+    "count": 3,
+    "examples": [
+      {
+        "file": "src/lib/indexedDbClient.ts",
+        "line": 89,
+        "code": "const raw = localStorage.getItem(`lifeos_fallback_${storeName}`);"
+      },
+      {
+        "file": "src/lib/indexedDbClient.ts",
+        "line": 129,
+        "code": "localStorage.setItem(`lifeos_fallback_${storeName}`, JSON.stringify(all));"
+      },
+      {
+        "file": "src/lib/indexedDbClient.ts",
+        "line": 148,
+        "code": "localStorage.setItem(`lifeos_fallback_${storeName}`, JSON.stringify(filtered));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_idb_${key}",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/lib/indexedDbStorage.ts",
+        "line": 43,
+        "code": "localStorage.setItem(`lifeos_idb_${key}`, JSON.stringify(value));"
+      },
+      {
+        "file": "src/lib/indexedDbStorage.ts",
+        "line": 65,
+        "code": "const raw = localStorage.getItem(`lifeos_idb_${key}`);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_pomodoro_runtime_v2",
+    "count": 1,
+    "examples": [
+      {
+        "file": "src/lib/learningAutoSave.ts",
+        "line": 79,
+        "code": "const pomoRaw = localStorage.getItem('lifeos_pomodoro_runtime_v2');"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_mood_${today}",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/lib/moodEngine.ts",
+        "line": 64,
+        "code": "const saved = localStorage.getItem(`lifeos_mood_${today}`);"
+      },
+      {
+        "file": "src/lib/moodEngine.ts",
+        "line": 75,
+        "code": "localStorage.setItem(`lifeos_mood_${today}`, mood);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_update_snooze_until",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/lib/pwa.ts",
+        "line": 83,
+        "code": "const snoozedUntilStr = localStorage.getItem('lifeos_update_snooze_until');"
+      },
+      {
+        "file": "src/lib/pwa.ts",
+        "line": 109,
+        "code": "localStorage.setItem('lifeos_update_snooze_until', String(until));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_update_snoozed_version",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/lib/pwa.ts",
+        "line": 84,
+        "code": "const snoozedVersion = localStorage.getItem('lifeos_update_snoozed_version');"
+      },
+      {
+        "file": "src/lib/pwa.ts",
+        "line": 110,
+        "code": "localStorage.setItem('lifeos_update_snoozed_version', versionToSnooze);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_pending_update_version",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/lib/pwa.ts",
+        "line": 139,
+        "code": "const pendingVersion = localStorage.getItem('lifeos_pending_update_version');"
+      },
+      {
+        "file": "src/lib/pwa.ts",
+        "line": 328,
+        "code": "localStorage.setItem('lifeos_pending_update_version', targetVersion);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_sfx_enabled",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/lib/soundEngine.ts",
+        "line": 50,
+        "code": "const saved = localStorage.getItem('lifeos_sfx_enabled');"
+      },
+      {
+        "file": "src/lib/soundEngine.ts",
+        "line": 100,
+        "code": "localStorage.setItem('lifeos_sfx_enabled', String(val));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_soundpack",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/lib/soundEngine.ts",
+        "line": 52,
+        "code": "const savedPack = localStorage.getItem('lifeos_soundpack') as SoundpackId;"
+      },
+      {
+        "file": "src/lib/soundEngine.ts",
+        "line": 112,
+        "code": "localStorage.setItem('lifeos_soundpack', pack);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_theme",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/lib/store.tsx",
+        "line": 105,
+        "code": "theme: (typeof window !== 'undefined' && (localStorage.getItem('lifeos_theme') as 'light' | 'dark'))"
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 1332,
+        "code": "try { localStorage.setItem('lifeos_theme', newTheme); } catch (e) {}"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_swr_collections",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/lib/store.tsx",
+        "line": 208,
+        "code": "cachedCollections = safeJsonParse(localStorage.getItem('lifeos_swr_collections'), {});"
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 543,
+        "code": "localStorage.setItem('lifeos_swr_collections', JSON.stringify(swrCache));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_swr_sub",
+    "count": 3,
+    "examples": [
+      {
+        "file": "src/lib/store.tsx",
+        "line": 209,
+        "code": "cachedSub = safeJsonParse(localStorage.getItem('lifeos_swr_sub'), null);"
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 620,
+        "code": "localStorage.setItem('lifeos_swr_sub', JSON.stringify(initialSub));"
+      },
+      {
+        "file": "src/lib/store.tsx",
+        "line": 1282,
+        "code": "localStorage.setItem('lifeos_swr_sub', JSON.stringify(res));"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_user_onboarding_prefs_${cachedUser.id}",
+    "count": 1,
+    "examples": [
+      {
+        "file": "src/lib/store.tsx",
+        "line": 237,
+        "code": "const raw = localStorage.getItem(`lifeos_user_onboarding_prefs_${cachedUser.id}`) || localStorage.ge"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_user_onboarding_prefs_${user.id}",
+    "count": 1,
+    "examples": [
+      {
+        "file": "src/lib/store.tsx",
+        "line": 316,
+        "code": "const raw = localStorage.getItem(`lifeos_user_onboarding_prefs_${user.id}`) || localStorage.getItem("
+      }
+    ]
+  },
+  {
+    "key": "lifeos_vibe_theme",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/lib/vibeThemeEngine.ts",
+        "line": 72,
+        "code": "const saved = localStorage.getItem('lifeos_vibe_theme') as VibeThemeId;"
+      },
+      {
+        "file": "src/lib/vibeThemeEngine.ts",
+        "line": 94,
+        "code": "localStorage.setItem('lifeos_vibe_theme', theme);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_gmail_webhook_url",
+    "count": 2,
+    "examples": [
+      {
+        "file": "src/lib/webGmailService.ts",
+        "line": 31,
+        "code": "this.webhookUrl = localStorage.getItem('lifeos_gmail_webhook_url') || '';"
+      },
+      {
+        "file": "src/lib/webGmailService.ts",
+        "line": 39,
+        "code": "localStorage.setItem('lifeos_gmail_webhook_url', this.webhookUrl);"
+      }
+    ]
+  },
+  {
+    "key": "lifeos_resend_api_key",
+    "count": 1,
+    "examples": [
+      {
+        "file": "src/lib/webGmailService.ts",
+        "line": 32,
+        "code": "this.resendApiKey = localStorage.getItem('lifeos_resend_api_key') || '';"
+      }
+    ]
+  }
+]

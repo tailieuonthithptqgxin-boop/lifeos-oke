@@ -30,6 +30,21 @@ export function initStudyRoomSocket(httpServer: HTTPServer): SocketIOServer {
 
   io.on('connection', (socket: Socket) => {
     // ----------------------------------------------------
+    // 0. EVENT: user:subscribe (Personal real-time notification channel)
+    // ----------------------------------------------------
+    socket.on('user:subscribe', (userId: string) => {
+      if (typeof userId === 'string' && userId.trim()) {
+        socket.join(`user_${userId.trim()}`);
+      }
+    });
+
+    socket.on('user:unsubscribe', (userId: string) => {
+      if (typeof userId === 'string' && userId.trim()) {
+        socket.leave(`user_${userId.trim()}`);
+      }
+    });
+
+    // ----------------------------------------------------
     // 1. EVENT: room:join
     // ----------------------------------------------------
     socket.on('room:join', (data: {
@@ -344,4 +359,26 @@ function startServerTimerChecker(io: SocketIOServer): void {
       }
     }
   }, 1000);
+}
+
+// ============================================================================
+// Real-time Cross-Client Broadcast Helpers (Social Feed & Connect Friends)
+// ============================================================================
+
+export function broadcastFeedPost(post: any): void {
+  if (ioInstance && post) {
+    ioInstance.emit('feed:post_created', post);
+  }
+}
+
+export function broadcastFriendRequest(targetUserId: string, payload: any): void {
+  if (ioInstance && targetUserId) {
+    ioInstance.to(`user_${targetUserId}`).emit('connect:friend_request', payload);
+  }
+}
+
+export function broadcastFriendAccepted(targetUserId: string, payload: any): void {
+  if (ioInstance && targetUserId) {
+    ioInstance.to(`user_${targetUserId}`).emit('connect:friend_accepted', payload);
+  }
 }

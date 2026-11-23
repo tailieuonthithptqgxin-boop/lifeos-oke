@@ -81,7 +81,7 @@ export const NewCollectionModal: React.FC<NewCollectionModalProps> = ({
             <Plus className="w-5 h-5 text-blue-600" />
             Tạo Bộ sưu tập mới
           </h3>
-          <button type="button" onClick={handleSafeDismiss} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded cursor-pointer">
+          <button type="button" onClick={handleSafeDismiss} className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 rounded-xl cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -105,7 +105,7 @@ export const NewCollectionModal: React.FC<NewCollectionModalProps> = ({
                   key={ic}
                   type="button"
                   onClick={() => setIcon(ic)}
-                  className={`p-2 rounded-xl text-lg transition ${
+                  className={`p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl text-lg transition cursor-pointer ${
                     icon === ic ? 'bg-blue-100 dark:bg-blue-900 border-2 border-blue-600' : 'bg-slate-50 dark:bg-slate-800'
                   }`}
                 >
@@ -124,7 +124,7 @@ export const NewCollectionModal: React.FC<NewCollectionModalProps> = ({
               value={title}
               onChange={e => setTitle(e.target.value)}
               placeholder="Ví dụ: IELTS Reading Vocab, Unit 1..."
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-base sm:text-xs min-h-[44px] sm:min-h-0"
               autoFocus
             />
           </div>
@@ -138,7 +138,7 @@ export const NewCollectionModal: React.FC<NewCollectionModalProps> = ({
               value={description}
               onChange={e => setDescription(e.target.value)}
               placeholder="Bộ từ theo giáo trình hoặc mục tiêu học..."
-              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl"
+              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-base sm:text-xs"
             />
           </div>
 
@@ -146,13 +146,13 @@ export const NewCollectionModal: React.FC<NewCollectionModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl font-bold"
+              className="px-4 py-2 min-h-[44px] text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl font-bold cursor-pointer"
             >
               Hủy
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-xs"
+              className="px-5 py-2.5 min-h-[44px] bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-xs cursor-pointer active:scale-95"
             >
               Tạo bộ sưu tập
             </button>

@@ -3,6 +3,7 @@ import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { useAppStore } from '../../lib/store';
 import { soundEngine } from '../../lib/soundEngine';
 import { triggerConfetti } from '../../lib/confetti';
+import { apiCall } from '../../lib/apiClient';
 import {
   ShoppingBag, X, Shield, Palette, Sparkles, Check, Coins, Zap
 } from 'lucide-react';
@@ -75,26 +76,45 @@ export function FocusEconomyShopModal({ isOpen, onClose }: FocusEconomyShopModal
   }, [isOpen, onClose]);
 
   const { currentUser } = useAppStore();
-  const [coins, setCoins] = useState<number>(() => {
-    try {
-      return parseInt(localStorage.getItem('lifeos_user_coins') || '120', 10);
-    } catch {
-      return 120;
-    }
-  });
-  const [purchasedIds, setPurchasedIds] = useState<string[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem('lifeos_purchased_shop_items') || '[]');
-    } catch {
-      return [];
-    }
-  });
+  const [coins, setCoins] = useState<number>(() => currentUser?.coins ?? 0);
+  const [purchasedIds, setPurchasedIds] = useState<string[]>([]);
   const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+  const [isBuying, setIsBuying] = useState(false);
+
+  // Load real shop & coins status from Database on open
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // Purge legacy mock keys
+    try {
+      localStorage.removeItem('lifeos_user_coins');
+      localStorage.removeItem('lifeos_purchased_shop_items');
+    } catch {}
+
+    let isMounted = true;
+    const fetchRealShopStatus = async () => {
+      try {
+        const res = await apiCall('/api/user/shop/status');
+        if (res?.success && res?.data && isMounted) {
+          setCoins(res.data.coins ?? 0);
+          setPurchasedIds(res.data.purchasedIds ?? []);
+        }
+      } catch {
+        // Fallback to authenticated currentUser coins
+        if (isMounted && currentUser?.coins !== undefined) {
+          setCoins(currentUser.coins);
+        }
+      }
+    };
+
+    fetchRealShopStatus();
+    return () => { isMounted = false; };
+  }, [isOpen, currentUser?.coins]);
 
   if (!isOpen) return null;
 
-  const handleBuy = (item: ShopItem) => {
-    if (purchasedIds.includes(item.id)) return;
+  const handleBuy = async (item: ShopItem) => {
+    if (purchasedIds.includes(item.id) || isBuying) return;
 
     if (coins < item.price) {
       soundEngine.playPop();
@@ -103,25 +123,32 @@ export function FocusEconomyShopModal({ isOpen, onClose }: FocusEconomyShopModal
       return;
     }
 
-    soundEngine.playCelebration();
-    triggerConfetti({ particleCount: 35 });
-
-    const newCoins = coins - item.price;
-    const newPurchased = [...purchasedIds, item.id];
-    setCoins(newCoins);
-    setPurchasedIds(newPurchased);
-
+    setIsBuying(true);
     try {
-      localStorage.setItem('lifeos_user_coins', String(newCoins));
-      localStorage.setItem('lifeos_purchased_shop_items', JSON.stringify(newPurchased));
-      if (item.id === 'streak_freeze') {
-        const currentFreezes = parseInt(localStorage.getItem('lifeos_streak_freezes') || '0', 10);
-        localStorage.setItem('lifeos_streak_freezes', String(currentFreezes + 1));
-      }
-    } catch {}
+      const res = await apiCall('/api/user/shop/purchase', 'POST', {
+        itemId: item.id,
+        price: item.price,
+        name: item.name
+      });
 
-    setFeedbackMsg(`Đã đổi thành công "${item.name}"!`);
-    setTimeout(() => setFeedbackMsg(null), 2500);
+      if (res?.success) {
+        soundEngine.playCelebration();
+        triggerConfetti({ particleCount: 35 });
+        setCoins(res.data?.newCoins ?? (coins - item.price));
+        setPurchasedIds(res.data?.purchasedIds ?? [...purchasedIds, item.id]);
+        setFeedbackMsg(`Đã đổi thành công "${item.name}"!`);
+        window.dispatchEvent(new CustomEvent('lifeos-progression-updated'));
+      } else {
+        soundEngine.playPop();
+        setFeedbackMsg(res?.message || 'Giao dịch không thành công.');
+      }
+    } catch (err: any) {
+      soundEngine.playPop();
+      setFeedbackMsg(err?.message || 'Lỗi kết nối khi mua vật phẩm.');
+    } finally {
+      setIsBuying(false);
+      setTimeout(() => setFeedbackMsg(null), 2500);
+    }
   };
 
   return (

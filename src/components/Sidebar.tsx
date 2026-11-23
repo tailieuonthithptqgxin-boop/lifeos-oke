@@ -225,20 +225,11 @@ export function Sidebar() {
 
   return (
     <>
-      {/* Mobile backdrop */}
-      {isMobileMenuOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-slate-950/50 md:hidden backdrop-blur-xs transition-opacity cursor-pointer"
-          onClick={toggleMobileMenu}
-        />
-      )}
-
+      {/* Desktop Persistent Sidebar (md: and up). Mobile navigation is seamlessly handled by BottomNav & MobileBottomSheet */}
       <aside
         ref={sidebarRef}
         id="app-sidebar"
-        className={`fixed md:static inset-y-0 left-0 z-50 flex flex-col w-[280px] max-w-[85vw] md:w-[76px] lg:w-[250px] h-screen h-[100dvh] max-h-[100dvh] shrink-0 bg-white/95 dark:bg-[#07070C]/95 backdrop-blur-2xl border-r border-slate-200/80 dark:border-white/[0.08] shadow-2xl transition-transform duration-200 ease-in-out ${
-          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-        }`}
+        className="hidden md:flex flex-col md:static inset-y-0 left-0 z-50 w-[76px] lg:w-[250px] h-screen h-[100dvh] max-h-[100dvh] shrink-0 bg-white/95 dark:bg-[#07070C]/95 backdrop-blur-2xl border-r border-slate-200/80 dark:border-white/[0.08] shadow-2xl transition-all duration-200 ease-in-out"
       >
         {/* Brand header with Logo */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-[#E2E8F0] dark:border-white/[0.08] shrink-0">

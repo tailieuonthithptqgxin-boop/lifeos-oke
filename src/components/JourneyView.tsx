@@ -751,7 +751,7 @@ export function JourneyView() {
   });
 
   return (
-    <div className="flex-1 p-3.5 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6 relative animate-in fade-in duration-200 w-full min-w-0 max-w-full overflow-x-hidden">
+    <div className="flex-1 p-3.5 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-4 sm:space-y-6 relative animate-in fade-in duration-200 w-full min-w-0 max-w-full overflow-x-hidden pb-[max(6.5rem,calc(env(safe-area-inset-bottom)+5.5rem))] sm:pb-8">
       
       {/* Floating XP Gain Animation Toast */}
       {floatingXp && (
@@ -983,10 +983,10 @@ export function JourneyView() {
       {/* ============================================================== */}
       {/* 2. NAVIGATION BAR (JOURNEY TABS - HERO PROFILE & MILESTONES 1ST) */}
       {/* ============================================================== */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-slate-200 dark:border-slate-800">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-slate-200 dark:border-slate-800 touch-pan-x overscroll-x-contain py-1">
         <button type="button"
           onClick={() => setActiveTab('profile')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 min-h-[40px] sm:min-h-0 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
             activeTab === 'profile'
               ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -998,7 +998,7 @@ export function JourneyView() {
 
         <button type="button"
           onClick={() => setActiveTab('map')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 min-h-[40px] sm:min-h-0 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
             activeTab === 'map'
               ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -1010,7 +1010,7 @@ export function JourneyView() {
 
         <button type="button"
           onClick={() => setSkillTreeModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/20"
+          className="flex items-center gap-2 px-4 py-2.5 min-h-[40px] sm:min-h-0 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer bg-amber-500/10 text-amber-500 hover:bg-amber-500/20 border border-amber-500/20"
         >
           <Sparkles className="w-4 h-4 text-amber-500" />
           <span>Cây Kỹ Năng {charStats?.availableSkillPoints > 0 ? `(${charStats.availableSkillPoints}⭐)` : ''}</span>
@@ -1018,7 +1018,7 @@ export function JourneyView() {
 
         <button type="button"
           onClick={() => setActiveTab('milestones')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 min-h-[40px] sm:min-h-0 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
             activeTab === 'milestones'
               ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -1030,7 +1030,7 @@ export function JourneyView() {
 
         <button type="button"
           onClick={() => setActiveTab('quests')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 min-h-[40px] sm:min-h-0 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
             activeTab === 'quests'
               ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -1045,7 +1045,7 @@ export function JourneyView() {
 
         <button type="button"
           onClick={() => setActiveTab('battlepass')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 min-h-[40px] sm:min-h-0 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
             activeTab === 'battlepass'
               ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -1057,7 +1057,7 @@ export function JourneyView() {
 
         <button type="button"
           onClick={() => setActiveTab('achievements')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 min-h-[40px] sm:min-h-0 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
             activeTab === 'achievements'
               ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -1069,7 +1069,7 @@ export function JourneyView() {
 
         <button type="button"
           onClick={() => setActiveTab('armory')}
-          className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 min-h-[40px] sm:min-h-0 rounded-2xl text-xs font-bold transition whitespace-nowrap cursor-pointer ${
             activeTab === 'armory'
               ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
               : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'

@@ -1,0 +1,3664 @@
+{
+  "total": 586,
+  "byType": {
+    "MATH_RANDOM_USAGE": 155,
+    "LOCAL_STORAGE_USAGE": 390,
+    "TODO_OR_COMING_SOON": 17,
+    "MOCK_KEYWORD": 24
+  },
+  "byFile": {
+    "src/App.tsx": 2,
+    "src/backend/db.ts": 2,
+    "src/backend/realtime/studyRoomSocket.ts": 1,
+    "src/backend/routes/ai.routes.ts": 2,
+    "src/backend/routes/api.ts": 4,
+    "src/backend/routes/auth.ts": 2,
+    "src/backend/services/classroom.service.ts": 1,
+    "src/backend/services/connectMeet.service.ts": 2,
+    "src/backend/services/journey.service.ts": 1,
+    "src/backend/services/lifeHarmony.service.ts": 1,
+    "src/backend/services/pet.service.ts": 2,
+    "src/backend/services/progression.service.ts": 3,
+    "src/backend/services/r2.service.ts": 1,
+    "src/backend/services/referral.service.ts": 1,
+    "src/backend/services/rpg.service.ts": 6,
+    "src/backend/services/studySpace.service.ts": 1,
+    "src/cloudflare/worker.ts": 2,
+    "src/components/admin/AdminLiveTestLabTab.tsx": 3,
+    "src/components/AdminStorageAuditTab.tsx": 2,
+    "src/components/AdminView.tsx": 2,
+    "src/components/AutomationEngineView.tsx": 8,
+    "src/components/CartView.tsx": 2,
+    "src/components/CheckoutView.tsx": 6,
+    "src/components/classroom/ClassroomSessionStage.tsx": 9,
+    "src/components/CommandCenter.tsx": 4,
+    "src/components/common/CookieConsentBanner.tsx": 5,
+    "src/components/common/ErrorBoundary.tsx": 3,
+    "src/components/companion/AiLifeBuddyCopilotModal.tsx": 1,
+    "src/components/companion/DopaminePetWidget.tsx": 4,
+    "src/components/companion/GlobalCompanionOverlay.tsx": 1,
+    "src/components/companion/LiveMascotCharacter.tsx": 8,
+    "src/components/companion/StudyCompanionWidget.tsx": 2,
+    "src/components/connect/GroupWorkspaceView.tsx": 5,
+    "src/components/connect/SocialFeedView.tsx": 2,
+    "src/components/dashboard/ContributionHeatmap365.tsx": 1,
+    "src/components/dashboard/DailyTrifectaWidget.tsx": 5,
+    "src/components/dashboard/FocusEconomyShopModal.tsx": 6,
+    "src/components/dashboard/SundayWeeklyResetModal.tsx": 1,
+    "src/components/DashboardView.tsx": 5,
+    "src/components/decision/DecisionMatrixTab.tsx": 2,
+    "src/components/DecisionEngineView.tsx": 10,
+    "src/components/FeedbackView.tsx": 6,
+    "src/components/finance/FinanceAnalyticsTab.tsx": 8,
+    "src/components/finance/FinanceMonthlyComparisonTab.tsx": 6,
+    "src/components/finance/FinanceTransactionsTab.tsx": 2,
+    "src/components/FinanceView.tsx": 6,
+    "src/components/focus/ZenFocusOverlay.tsx": 3,
+    "src/components/FocusView.tsx": 9,
+    "src/components/GoalsView.tsx": 20,
+    "src/components/HabitsView.tsx": 4,
+    "src/components/journey/RPGCharacterHub.tsx": 2,
+    "src/components/journey/RPGSkillTreeModal.tsx": 2,
+    "src/components/journey/RPGWorldMapView.tsx": 2,
+    "src/components/JourneyView.tsx": 8,
+    "src/components/LifeHarmonyRadarWidget.tsx": 1,
+    "src/components/LoginView.tsx": 3,
+    "src/components/MyAccountView.tsx": 1,
+    "src/components/NotesView.tsx": 17,
+    "src/components/notifications/GmailPreviewModal.tsx": 1,
+    "src/components/notifications/LoginAnnouncementModal.tsx": 3,
+    "src/components/onboarding/QuickPersonaQuizModal.tsx": 3,
+    "src/components/pet/FocusPetWidget.tsx": 3,
+    "src/components/ProjectsView.tsx": 10,
+    "src/components/PublicLandingView.tsx": 5,
+    "src/components/PwaPromptBanner.tsx": 2,
+    "src/components/ReferralView.tsx": 5,
+    "src/components/ScheduleAndTasksView.tsx": 11,
+    "src/components/ScratchpadWidget.tsx": 2,
+    "src/components/sharing/StoryShareModal.tsx": 2,
+    "src/components/SidebarCustomizerModal.tsx": 4,
+    "src/components/spatial/island/LumiCyberCompanion.tsx": 1,
+    "src/components/spatial/SpatialFocusScene.tsx": 2,
+    "src/components/spatial/universe/SpatialStarField.tsx": 10,
+    "src/components/study/GradeForecastTab.tsx": 2,
+    "src/components/study/StudySpaceView.tsx": 5,
+    "src/components/study-space/LayoutSettingsModal.tsx": 6,
+    "src/components/study-space/StudyLobby.tsx": 2,
+    "src/components/study-space/StudyOnboardingModal.tsx": 1,
+    "src/components/study-space/StudyRoomView.tsx": 14,
+    "src/components/StudyView.tsx": 6,
+    "src/components/TasksView.tsx": 9,
+    "src/components/TemplateLibraryView.tsx": 2,
+    "src/components/vocab/GenZVocabStudyModal.tsx": 3,
+    "src/components/vocab/PersonalizedLessonBuilder.tsx": 5,
+    "src/components/vocab/SpeedMatchGameModal.tsx": 4,
+    "src/components/vocab/StudySessionScreen.tsx": 10,
+    "src/components/vocab/VocabMasterView.tsx": 4,
+    "src/components/vocab/ZeroEffortIngestionModal.tsx": 2,
+    "src/components/YouTubeFocusPlayer.tsx": 2,
+    "src/lib/ambientSoundMixer.ts": 8,
+    "src/lib/analytics.ts": 6,
+    "src/lib/analyticsTracker.ts": 2,
+    "src/lib/apiClient.ts": 7,
+    "src/lib/celebrationEngine.ts": 8,
+    "src/lib/chineseVocab/chineseActiveRecallEngine.ts": 9,
+    "src/lib/companion/companionBrain.ts": 1,
+    "src/lib/companion/companionScopeGuard.ts": 1,
+    "src/lib/companion/companionTelemetry.ts": 5,
+    "src/lib/companion/knowledge/featureKnowledge.ts": 1,
+    "src/lib/companionEngine.ts": 2,
+    "src/lib/companionQuotes.ts": 4,
+    "src/lib/confetti.ts": 7,
+    "src/lib/cronEngine.ts": 2,
+    "src/lib/e2eTruthEngine.ts": 14,
+    "src/lib/financeCategories.ts": 3,
+    "src/lib/geminiClient.ts": 6,
+    "src/lib/globalUserSync.ts": 7,
+    "src/lib/globalVolumeManager.ts": 3,
+    "src/lib/hapticEngine.ts": 2,
+    "src/lib/i18n.ts": 1,
+    "src/lib/indexedDbClient.ts": 3,
+    "src/lib/indexedDbStorage.ts": 2,
+    "src/lib/lazyWithRetry.ts": 2,
+    "src/lib/learningAutoSave.ts": 12,
+    "src/lib/lifeHarmonyEngine.ts": 1,
+    "src/lib/moodEngine.ts": 2,
+    "src/lib/offlineSyncQueue.ts": 3,
+    "src/lib/pwa.ts": 8,
+    "src/lib/referralTracker.ts": 4,
+    "src/lib/retentionEngine.ts": 3,
+    "src/lib/scheduleReminderScheduler.ts": 3,
+    "src/lib/soundEngine.ts": 5,
+    "src/lib/spacedRepetitionScheduler.ts": 1,
+    "src/lib/store.tsx": 30,
+    "src/lib/streakFreezeEngine.ts": 9,
+    "src/lib/toast.ts": 1,
+    "src/lib/translations_dict.ts": 6,
+    "src/lib/unifiedNotificationEngine.ts": 4,
+    "src/lib/vibeThemeEngine.ts": 2,
+    "src/lib/vocabEngine.ts": 3,
+    "src/lib/vocabVerificationEngine.ts": 1,
+    "src/lib/webGmailService.ts": 3,
+    "src/lib/youtubeMusicEngine.ts": 2,
+    "src/lib/__tests__/companionTest.ts": 1,
+    "src/main.tsx": 4
+  },
+  "findings": [
+    {
+      "file": "src/App.tsx",
+      "line": 149,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: customEvt.detail.id || `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,"
+    },
+    {
+      "file": "src/App.tsx",
+      "line": 299,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "try { localStorage.setItem('token', token); } catch (e) {}"
+    },
+    {
+      "file": "src/backend/db.ts",
+      "line": 418,
+      "type": "TODO_OR_COMING_SOON",
+      "code": "} else if (['to do', 'todo', 'to-do', 'to_do', 'chưa làm', 'cần làm'].includes(s)) {"
+    },
+    {
+      "file": "src/backend/db.ts",
+      "line": 788,
+      "type": "TODO_OR_COMING_SOON",
+      "code": "} else if (['to do', 'todo', 'to-do', 'to_do', 'chưa làm', 'cần làm'].includes(s)) {"
+    },
+    {
+      "file": "src/backend/realtime/studyRoomSocket.ts",
+      "line": 153,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: `chat_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,"
+    },
+    {
+      "file": "src/backend/routes/ai.routes.ts",
+      "line": 51,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const jitter = Math.floor(Math.random() * jitterMs);"
+    },
+    {
+      "file": "src/backend/routes/ai.routes.ts",
+      "line": 64,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "`TRC-SRV-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;"
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "line": 295,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: (req as any).userId || 'guest_' + Math.random().toString(36).substring(2, 7),"
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "line": 2469,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const orderId = `ORD_${Date.now()}_${Math.random().toString(36).substring(2, 7).toUpperCase()}`;"
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "line": 3177,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const orderId = `ORD_${Date.now()}_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;"
+    },
+    {
+      "file": "src/backend/routes/api.ts",
+      "line": 4401,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const backupPin = Math.floor(100000 + Math.random() * 900000).toString();"
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "line": 1730,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const num = Math.floor(1000 + Math.random() * 9000);"
+    },
+    {
+      "file": "src/backend/routes/auth.ts",
+      "line": 1737,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "return `RST-${Math.floor(10000 + Math.random() * 90000)}`;"
+    },
+    {
+      "file": "src/backend/services/classroom.service.ts",
+      "line": 17,
+      "type": "MOCK_KEYWORD",
+      "code": "* If Google fails, NO fake meeting link is generated; the error is surfaced."
+    },
+    {
+      "file": "src/backend/services/connectMeet.service.ts",
+      "line": 19,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "for (let i = 0; i < 3; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));"
+    },
+    {
+      "file": "src/backend/services/connectMeet.service.ts",
+      "line": 21,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "for (let i = 0; i < 3; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));"
+    },
+    {
+      "file": "src/backend/services/journey.service.ts",
+      "line": 44,
+      "type": "MOCK_KEYWORD",
+      "code": "* từ 100% dữ liệu thực tế (Không dùng fake data / math.random)"
+    },
+    {
+      "file": "src/backend/services/lifeHarmony.service.ts",
+      "line": 7,
+      "type": "MOCK_KEYWORD",
+      "code": "* STRICT PRINCIPLE: REAL DATA ONLY (No mock, no random, no fake defaults)."
+    },
+    {
+      "file": "src/backend/services/pet.service.ts",
+      "line": 53,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "return list[Math.floor(Math.random() * list.length)];"
+    },
+    {
+      "file": "src/backend/services/pet.service.ts",
+      "line": 257,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "dialogue: cuteReplies[Math.floor(Math.random() * cuteReplies.length)]"
+    },
+    {
+      "file": "src/backend/services/progression.service.ts",
+      "line": 123,
+      "type": "MOCK_KEYWORD",
+      "code": "* Khởi tạo hoặc đồng bộ tiến độ thực tế (Zero fake data)"
+    },
+    {
+      "file": "src/backend/services/progression.service.ts",
+      "line": 514,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const rand = Math.random() * 100;"
+    },
+    {
+      "file": "src/backend/services/progression.service.ts",
+      "line": 1339,
+      "type": "MOCK_KEYWORD",
+      "code": "* Zero mock data."
+    },
+    {
+      "file": "src/backend/services/r2.service.ts",
+      "line": 133,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const randomStr = Math.random().toString(36).substring(2, 8);"
+    },
+    {
+      "file": "src/backend/services/referral.service.ts",
+      "line": 94,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "code += chars.charAt(Math.floor(Math.random() * chars.length));"
+    },
+    {
+      "file": "src/backend/services/rpg.service.ts",
+      "line": 986,
+      "type": "MOCK_KEYWORD",
+      "code": "* Zero Math.random(). Zero fake data."
+    },
+    {
+      "file": "src/backend/services/rpg.service.ts",
+      "line": 986,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "* Zero Math.random(). Zero fake data."
+    },
+    {
+      "file": "src/backend/services/rpg.service.ts",
+      "line": 1418,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const isCrit = Math.random() < critChance;"
+    },
+    {
+      "file": "src/backend/services/rpg.service.ts",
+      "line": 1438,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "if (monsterHp > 0 && doubleStrikeChance > 0 && Math.random() < doubleStrikeChance) {"
+    },
+    {
+      "file": "src/backend/services/rpg.service.ts",
+      "line": 1504,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const battleRecordId = `battle_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;"
+    },
+    {
+      "file": "src/backend/services/rpg.service.ts",
+      "line": 1529,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const roll = Math.random() * 100;"
+    },
+    {
+      "file": "src/backend/services/studySpace.service.ts",
+      "line": 437,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const id = `room_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;"
+    },
+    {
+      "file": "src/cloudflare/worker.ts",
+      "line": 1462,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const id = `room_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;"
+    },
+    {
+      "file": "src/cloudflare/worker.ts",
+      "line": 1996,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const jitter = Math.floor(Math.random() * 250);"
+    },
+    {
+      "file": "src/components/admin/AdminLiveTestLabTab.tsx",
+      "line": 62,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const cached = localStorage.getItem('lifeos_e2e_results');"
+    },
+    {
+      "file": "src/components/admin/AdminLiveTestLabTab.tsx",
+      "line": 99,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_e2e_results', JSON.stringify(updated));"
+    },
+    {
+      "file": "src/components/admin/AdminLiveTestLabTab.tsx",
+      "line": 125,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_e2e_results', JSON.stringify(updated));"
+    },
+    {
+      "file": "src/components/AdminStorageAuditTab.tsx",
+      "line": 178,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const token = localStorage.getItem('token') || sessionStorage.getItem('token');"
+    },
+    {
+      "file": "src/components/AdminStorageAuditTab.tsx",
+      "line": 211,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const token = localStorage.getItem('token') || sessionStorage.getItem('token');"
+    },
+    {
+      "file": "src/components/AdminView.tsx",
+      "line": 65,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_admin_active_tab');"
+    },
+    {
+      "file": "src/components/AdminView.tsx",
+      "line": 75,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_admin_active_tab', activeTab);"
+    },
+    {
+      "file": "src/components/AutomationEngineView.tsx",
+      "line": 73,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_automation_active_tab');"
+    },
+    {
+      "file": "src/components/AutomationEngineView.tsx",
+      "line": 84,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_automation_category');"
+    },
+    {
+      "file": "src/components/AutomationEngineView.tsx",
+      "line": 92,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_automation_active_tab', activeTab);"
+    },
+    {
+      "file": "src/components/AutomationEngineView.tsx",
+      "line": 99,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_automation_category', selectedCategory);"
+    },
+    {
+      "file": "src/components/AutomationEngineView.tsx",
+      "line": 106,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_automation_enabled_only');"
+    },
+    {
+      "file": "src/components/AutomationEngineView.tsx",
+      "line": 114,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_automation_enabled_only', String(filterEnabledOnly));"
+    },
+    {
+      "file": "src/components/AutomationEngineView.tsx",
+      "line": 389,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: 'hist_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),"
+    },
+    {
+      "file": "src/components/AutomationEngineView.tsx",
+      "line": 551,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: 'hist_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),"
+    },
+    {
+      "file": "src/components/CartView.tsx",
+      "line": 30,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem('lifeos_cart_coupon') || '';"
+    },
+    {
+      "file": "src/components/CartView.tsx",
+      "line": 39,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_cart_coupon', couponCode);"
+    },
+    {
+      "file": "src/components/CheckoutView.tsx",
+      "line": 58,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_checkout_tab') as ViewTab;"
+    },
+    {
+      "file": "src/components/CheckoutView.tsx",
+      "line": 67,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_checkout_tab', activeTab);"
+    },
+    {
+      "file": "src/components/CheckoutView.tsx",
+      "line": 75,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_checkout_plan');"
+    },
+    {
+      "file": "src/components/CheckoutView.tsx",
+      "line": 84,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_checkout_plan', selectedPlan);"
+    },
+    {
+      "file": "src/components/CheckoutView.tsx",
+      "line": 95,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem('lifeos_checkout_coupon') || '';"
+    },
+    {
+      "file": "src/components/CheckoutView.tsx",
+      "line": 104,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_checkout_coupon', couponCode);"
+    },
+    {
+      "file": "src/components/classroom/ClassroomSessionStage.tsx",
+      "line": 97,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem(notesStorageKey) || '';"
+    },
+    {
+      "file": "src/components/classroom/ClassroomSessionStage.tsx",
+      "line": 104,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem(goalsStorageKey);"
+    },
+    {
+      "file": "src/components/classroom/ClassroomSessionStage.tsx",
+      "line": 120,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem(storageKey);"
+    },
+    {
+      "file": "src/components/classroom/ClassroomSessionStage.tsx",
+      "line": 180,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(storageKey, JSON.stringify(state));"
+    },
+    {
+      "file": "src/components/classroom/ClassroomSessionStage.tsx",
+      "line": 245,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(storageKey, JSON.stringify(state));"
+    },
+    {
+      "file": "src/components/classroom/ClassroomSessionStage.tsx",
+      "line": 264,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(storageKey, JSON.stringify(state));"
+    },
+    {
+      "file": "src/components/classroom/ClassroomSessionStage.tsx",
+      "line": 396,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(notesStorageKey, val);"
+    },
+    {
+      "file": "src/components/classroom/ClassroomSessionStage.tsx",
+      "line": 407,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(goalsStorageKey, JSON.stringify(next));"
+    },
+    {
+      "file": "src/components/classroom/ClassroomSessionStage.tsx",
+      "line": 415,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(goalsStorageKey, JSON.stringify(next));"
+    },
+    {
+      "file": "src/components/CommandCenter.tsx",
+      "line": 264,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const current = safeJsonParse<any>(localStorage.getItem('lifeos_companion_settings'), {});"
+    },
+    {
+      "file": "src/components/CommandCenter.tsx",
+      "line": 267,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_companion_settings', JSON.stringify(updated));"
+    },
+    {
+      "file": "src/components/CommandCenter.tsx",
+      "line": 636,
+      "type": "TODO_OR_COMING_SOON",
+      "code": "const isTaskKeyword = /^(task|việc|todo)\\s+/i.test(q);"
+    },
+    {
+      "file": "src/components/CommandCenter.tsx",
+      "line": 645,
+      "type": "TODO_OR_COMING_SOON",
+      "code": "const cleanTitle = q.replace(/^(task|việc|todo)\\s+/i, '').replace(/!(cao|gap|p1|uutu|thap|low|p3)/gi, '').trim();"
+    },
+    {
+      "file": "src/components/common/CookieConsentBanner.tsx",
+      "line": 14,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const consent = localStorage.getItem('lifeos_cookie_consent');"
+    },
+    {
+      "file": "src/components/common/CookieConsentBanner.tsx",
+      "line": 40,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_cookie_consent', 'all');"
+    },
+    {
+      "file": "src/components/common/CookieConsentBanner.tsx",
+      "line": 41,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_cookie_consent_date', new Date().toISOString());"
+    },
+    {
+      "file": "src/components/common/CookieConsentBanner.tsx",
+      "line": 49,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_cookie_consent', 'essential_only');"
+    },
+    {
+      "file": "src/components/common/CookieConsentBanner.tsx",
+      "line": 50,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_cookie_consent_date', new Date().toISOString());"
+    },
+    {
+      "file": "src/components/common/ErrorBoundary.tsx",
+      "line": 48,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_current_view', 'dashboard');"
+    },
+    {
+      "file": "src/components/common/ErrorBoundary.tsx",
+      "line": 58,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_current_view', 'dashboard');"
+    },
+    {
+      "file": "src/components/common/ErrorBoundary.tsx",
+      "line": 65,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_current_view', 'dashboard');"
+    },
+    {
+      "file": "src/components/companion/AiLifeBuddyCopilotModal.tsx",
+      "line": 138,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(`lifeos_trifecta_${todayStr}`, JSON.stringify(selectedIds));"
+    },
+    {
+      "file": "src/components/companion/DopaminePetWidget.tsx",
+      "line": 101,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem(`lifeos_pet_name_${userId}`) || 'Bé Đồng Hành';"
+    },
+    {
+      "file": "src/components/companion/DopaminePetWidget.tsx",
+      "line": 118,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const isTrifectaClaimed = !!localStorage.getItem(`lifeos_trifecta_claimed_${todayStr}`);"
+    },
+    {
+      "file": "src/components/companion/DopaminePetWidget.tsx",
+      "line": 137,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const randomQuote = GENZ_PET_QUOTES[Math.floor(Math.random() * GENZ_PET_QUOTES.length)];"
+    },
+    {
+      "file": "src/components/companion/DopaminePetWidget.tsx",
+      "line": 161,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(`lifeos_pet_name_${userId}`, trimmed);"
+    },
+    {
+      "file": "src/components/companion/GlobalCompanionOverlay.tsx",
+      "line": 143,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const nextDelay = Math.floor(Math.random() * range) + baseMin;"
+    },
+    {
+      "file": "src/components/companion/LiveMascotCharacter.tsx",
+      "line": 45,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const delay = Math.random() * 2600 + 3200;"
+    },
+    {
+      "file": "src/components/companion/LiveMascotCharacter.tsx",
+      "line": 48,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const isDouble = Math.random() > 0.75;"
+    },
+    {
+      "file": "src/components/companion/LiveMascotCharacter.tsx",
+      "line": 70,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const delay = Math.random() * 4000 + 4000;"
+    },
+    {
+      "file": "src/components/companion/LiveMascotCharacter.tsx",
+      "line": 74,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const nextGaze = gazes[Math.floor(Math.random() * gazes.length)];"
+    },
+    {
+      "file": "src/components/companion/LiveMascotCharacter.tsx",
+      "line": 89,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const delay = Math.random() * 3000 + 3500;"
+    },
+    {
+      "file": "src/components/companion/LiveMascotCharacter.tsx",
+      "line": 93,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "setHeadTilt(tilts[Math.floor(Math.random() * tilts.length)]);"
+    },
+    {
+      "file": "src/components/companion/LiveMascotCharacter.tsx",
+      "line": 94,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "setBodySway(Math.random() > 0.5 ? 1 : -1);"
+    },
+    {
+      "file": "src/components/companion/LiveMascotCharacter.tsx",
+      "line": 108,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const delay = Math.random() * 20000 + 25000;"
+    },
+    {
+      "file": "src/components/companion/StudyCompanionWidget.tsx",
+      "line": 116,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const nextDelay = Math.floor(Math.random() * range) + baseMin;"
+    },
+    {
+      "file": "src/components/companion/StudyCompanionWidget.tsx",
+      "line": 151,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const randomGreet = greetings[Math.floor(Math.random() * greetings.length)];"
+    },
+    {
+      "file": "src/components/connect/GroupWorkspaceView.tsx",
+      "line": 361,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const [content, setContent] = useState(() => localStorage.getItem(`lifeos_draft_group_post_${communityId}`) || '');"
+    },
+    {
+      "file": "src/components/connect/GroupWorkspaceView.tsx",
+      "line": 378,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(`lifeos_draft_group_post_${communityId}`, content);"
+    },
+    {
+      "file": "src/components/connect/GroupWorkspaceView.tsx",
+      "line": 450,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "anonymousNickname: isAnonymous ? `Capybara Ẩn Danh #${Math.floor(Math.random() * 900 + 100)}` : undefined,"
+    },
+    {
+      "file": "src/components/connect/GroupWorkspaceView.tsx",
+      "line": 1359,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const [activeRoomCode, setActiveRoomCode] = useState<string | null>(() => localStorage.getItem(`lifeos_active_meet_${communityId}`));"
+    },
+    {
+      "file": "src/components/connect/GroupWorkspaceView.tsx",
+      "line": 1403,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(`lifeos_active_meet_${communityId}`, roomCode);"
+    },
+    {
+      "file": "src/components/connect/SocialFeedView.tsx",
+      "line": 41,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const [newPostContent, setNewPostContent] = useState(() => localStorage.getItem('lifeos_feed_draft') || '');"
+    },
+    {
+      "file": "src/components/connect/SocialFeedView.tsx",
+      "line": 68,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_feed_draft', newPostContent);"
+    },
+    {
+      "file": "src/components/dashboard/ContributionHeatmap365.tsx",
+      "line": 63,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const fsrsStored = JSON.parse(localStorage.getItem('lifeos_fsrs_progress') || '{}');"
+    },
+    {
+      "file": "src/components/dashboard/DailyTrifectaWidget.tsx",
+      "line": 26,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem(`lifeos_trifecta_${todayStr}`);"
+    },
+    {
+      "file": "src/components/dashboard/DailyTrifectaWidget.tsx",
+      "line": 35,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem(`lifeos_trifecta_claimed_${todayStr}`) === 'true';"
+    },
+    {
+      "file": "src/components/dashboard/DailyTrifectaWidget.tsx",
+      "line": 77,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(`lifeos_trifecta_${todayStr}`, JSON.stringify(current));"
+    },
+    {
+      "file": "src/components/dashboard/DailyTrifectaWidget.tsx",
+      "line": 89,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(`lifeos_trifecta_${todayStr}`, JSON.stringify(updated));"
+    },
+    {
+      "file": "src/components/dashboard/DailyTrifectaWidget.tsx",
+      "line": 147,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(`lifeos_trifecta_claimed_${todayStr}`, 'true');"
+    },
+    {
+      "file": "src/components/dashboard/FocusEconomyShopModal.tsx",
+      "line": 80,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return parseInt(localStorage.getItem('lifeos_user_coins') || '120', 10);"
+    },
+    {
+      "file": "src/components/dashboard/FocusEconomyShopModal.tsx",
+      "line": 87,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return JSON.parse(localStorage.getItem('lifeos_purchased_shop_items') || '[]');"
+    },
+    {
+      "file": "src/components/dashboard/FocusEconomyShopModal.tsx",
+      "line": 115,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_user_coins', String(newCoins));"
+    },
+    {
+      "file": "src/components/dashboard/FocusEconomyShopModal.tsx",
+      "line": 116,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_purchased_shop_items', JSON.stringify(newPurchased));"
+    },
+    {
+      "file": "src/components/dashboard/FocusEconomyShopModal.tsx",
+      "line": 118,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const currentFreezes = parseInt(localStorage.getItem('lifeos_streak_freezes') || '0', 10);"
+    },
+    {
+      "file": "src/components/dashboard/FocusEconomyShopModal.tsx",
+      "line": 119,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_streak_freezes', String(currentFreezes + 1));"
+    },
+    {
+      "file": "src/components/dashboard/SundayWeeklyResetModal.tsx",
+      "line": 130,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(`lifeos_sunday_reset_${currentUser?.id}_${currentWeekYear}`, 'true');"
+    },
+    {
+      "file": "src/components/DashboardView.tsx",
+      "line": 256,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem(`lifeos_trifecta_${todayStr}`);"
+    },
+    {
+      "file": "src/components/DashboardView.tsx",
+      "line": 437,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(`lifeos_trifecta_${todayStr}`, JSON.stringify(current));"
+    },
+    {
+      "file": "src/components/DashboardView.tsx",
+      "line": 448,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(`lifeos_trifecta_${todayStr}`, JSON.stringify(next));"
+    },
+    {
+      "file": "src/components/DashboardView.tsx",
+      "line": 643,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const randomQuote = GENZ_PET_QUOTES[Math.floor(Math.random() * GENZ_PET_QUOTES.length)];"
+    },
+    {
+      "file": "src/components/DashboardView.tsx",
+      "line": 748,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(`lifeos_trifecta_${todayStr}`, JSON.stringify(next));"
+    },
+    {
+      "file": "src/components/decision/DecisionMatrixTab.tsx",
+      "line": 261,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: `crit_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,"
+    },
+    {
+      "file": "src/components/decision/DecisionMatrixTab.tsx",
+      "line": 327,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: `opt_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,"
+    },
+    {
+      "file": "src/components/DecisionEngineView.tsx",
+      "line": 37,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_decision_active_tab');"
+    },
+    {
+      "file": "src/components/DecisionEngineView.tsx",
+      "line": 46,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_decision_selected_id');"
+    },
+    {
+      "file": "src/components/DecisionEngineView.tsx",
+      "line": 54,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_decision_active_tab', activeSubTab);"
+    },
+    {
+      "file": "src/components/DecisionEngineView.tsx",
+      "line": 61,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_decision_selected_id', selectedDecisionId);"
+    },
+    {
+      "file": "src/components/DecisionEngineView.tsx",
+      "line": 76,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem('lifeos_decision_filter_cat') || 'all';"
+    },
+    {
+      "file": "src/components/DecisionEngineView.tsx",
+      "line": 84,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_decision_filter_cat', filterCategory);"
+    },
+    {
+      "file": "src/components/DecisionEngineView.tsx",
+      "line": 90,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_decision_status_filter') as any;"
+    },
+    {
+      "file": "src/components/DecisionEngineView.tsx",
+      "line": 98,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_decision_status_filter', statusFilter);"
+    },
+    {
+      "file": "src/components/DecisionEngineView.tsx",
+      "line": 209,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: `dec_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,"
+    },
+    {
+      "file": "src/components/DecisionEngineView.tsx",
+      "line": 291,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: `dec_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,"
+    },
+    {
+      "file": "src/components/FeedbackView.tsx",
+      "line": 15,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_feedback_active_tab');"
+    },
+    {
+      "file": "src/components/FeedbackView.tsx",
+      "line": 25,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_feedback_active_tab', tab);"
+    },
+    {
+      "file": "src/components/FeedbackView.tsx",
+      "line": 36,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_feedback_draft');"
+    },
+    {
+      "file": "src/components/FeedbackView.tsx",
+      "line": 54,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_feedback_draft', JSON.stringify({ title, content, type, rating }));"
+    },
+    {
+      "file": "src/components/FeedbackView.tsx",
+      "line": 63,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_feedback_filter_type');"
+    },
+    {
+      "file": "src/components/FeedbackView.tsx",
+      "line": 73,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_feedback_filter_type', ft);"
+    },
+    {
+      "file": "src/components/finance/FinanceAnalyticsTab.tsx",
+      "line": 47,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_finance_analytics_subview') as any;"
+    },
+    {
+      "file": "src/components/finance/FinanceAnalyticsTab.tsx",
+      "line": 56,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_finance_analytics_subview', subView);"
+    },
+    {
+      "file": "src/components/finance/FinanceAnalyticsTab.tsx",
+      "line": 64,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_finance_analytics_period') as any;"
+    },
+    {
+      "file": "src/components/finance/FinanceAnalyticsTab.tsx",
+      "line": 73,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_finance_analytics_period', selectedPeriod);"
+    },
+    {
+      "file": "src/components/finance/FinanceAnalyticsTab.tsx",
+      "line": 81,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_finance_analytics_granularity') as any;"
+    },
+    {
+      "file": "src/components/finance/FinanceAnalyticsTab.tsx",
+      "line": 90,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_finance_analytics_granularity', chartGranularity);"
+    },
+    {
+      "file": "src/components/finance/FinanceAnalyticsTab.tsx",
+      "line": 97,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_finance_analytics_chart_type') as any;"
+    },
+    {
+      "file": "src/components/finance/FinanceAnalyticsTab.tsx",
+      "line": 106,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_finance_analytics_chart_type', chartType);"
+    },
+    {
+      "file": "src/components/finance/FinanceMonthlyComparisonTab.tsx",
+      "line": 58,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_finance_monthly_range') as any;"
+    },
+    {
+      "file": "src/components/finance/FinanceMonthlyComparisonTab.tsx",
+      "line": 67,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_finance_monthly_range', rangeOption);"
+    },
+    {
+      "file": "src/components/finance/FinanceMonthlyComparisonTab.tsx",
+      "line": 77,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_finance_monthly_chart_mode') as any;"
+    },
+    {
+      "file": "src/components/finance/FinanceMonthlyComparisonTab.tsx",
+      "line": 86,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_finance_monthly_chart_mode', chartMode);"
+    },
+    {
+      "file": "src/components/finance/FinanceMonthlyComparisonTab.tsx",
+      "line": 93,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem('lifeos_finance_monthly_cat') || 'all';"
+    },
+    {
+      "file": "src/components/finance/FinanceMonthlyComparisonTab.tsx",
+      "line": 101,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_finance_monthly_cat', selectedCategory);"
+    },
+    {
+      "file": "src/components/finance/FinanceTransactionsTab.tsx",
+      "line": 28,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_finance_tx_type_filter') as any;"
+    },
+    {
+      "file": "src/components/finance/FinanceTransactionsTab.tsx",
+      "line": 37,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_finance_tx_type_filter', typeFilter);"
+    },
+    {
+      "file": "src/components/FinanceView.tsx",
+      "line": 124,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_finance_active_tab') as any;"
+    },
+    {
+      "file": "src/components/FinanceView.tsx",
+      "line": 135,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_finance_active_tab', activeTab);"
+    },
+    {
+      "file": "src/components/FinanceView.tsx",
+      "line": 335,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem('lifeos_finance_scenario_acc') || '';"
+    },
+    {
+      "file": "src/components/FinanceView.tsx",
+      "line": 343,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "if (scenarioAccId) localStorage.setItem('lifeos_finance_scenario_acc', scenarioAccId);"
+    },
+    {
+      "file": "src/components/FinanceView.tsx",
+      "line": 355,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_finance_chart_period') as any;"
+    },
+    {
+      "file": "src/components/FinanceView.tsx",
+      "line": 366,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_finance_chart_period', chartPeriod);"
+    },
+    {
+      "file": "src/components/focus/ZenFocusOverlay.tsx",
+      "line": 84,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const idx = Math.floor(Math.random() * MINDFUL_FOCUS_TIPS.length);"
+    },
+    {
+      "file": "src/components/focus/ZenFocusOverlay.tsx",
+      "line": 173,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const white = Math.random() * 2 - 1;"
+    },
+    {
+      "file": "src/components/focus/ZenFocusOverlay.tsx",
+      "line": 237,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const white = Math.random() * 2 - 1;"
+    },
+    {
+      "file": "src/components/FocusView.tsx",
+      "line": 76,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem(SETTINGS_STORAGE_KEY);"
+    },
+    {
+      "file": "src/components/FocusView.tsx",
+      "line": 97,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));"
+    },
+    {
+      "file": "src/components/FocusView.tsx",
+      "line": 117,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem('lifeos_focus_selected_task_id') || '';"
+    },
+    {
+      "file": "src/components/FocusView.tsx",
+      "line": 125,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_focus_selected_task_id', selectedTaskId);"
+    },
+    {
+      "file": "src/components/FocusView.tsx",
+      "line": 139,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const savedRuntime = localStorage.getItem(RUNTIME_STORAGE_KEY);"
+    },
+    {
+      "file": "src/components/FocusView.tsx",
+      "line": 168,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(RUNTIME_STORAGE_KEY, JSON.stringify({"
+    },
+    {
+      "file": "src/components/FocusView.tsx",
+      "line": 323,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const sessionId = `foc_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;"
+    },
+    {
+      "file": "src/components/FocusView.tsx",
+      "line": 547,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_focus_show_music');"
+    },
+    {
+      "file": "src/components/FocusView.tsx",
+      "line": 556,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_focus_show_music', String(showMusicPanel));"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 29,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_goals_active_tab');"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 37,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_goals_active_tab', activeTab);"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 44,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_goals_view_mode');"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 52,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_goals_view_mode', viewMode);"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 59,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem('lifeos_goals_category_filter') || 'All';"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 67,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_goals_category_filter', categoryFilter);"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 73,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem('lifeos_goals_status_filter') || 'All';"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 81,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_goals_status_filter', statusFilter);"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 87,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem('lifeos_goals_tier_filter') || 'All';"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 95,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_goals_tier_filter', tierFilter);"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 107,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem('lifeos_goals_selected_detail_id') || null;"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 116,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_goals_selected_detail_id', selectedGoalDetailId);"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 130,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: 'ms_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 198,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: 'act_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 220,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: 'rev_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 317,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: 'goal_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 1679,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem('lifeos_goals_scenario_id') || goals?.[0]?.id || '';"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 1687,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "if (selectedGoalId) localStorage.setItem('lifeos_goals_scenario_id', selectedGoalId);"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 1961,
+      "type": "MOCK_KEYWORD",
+      "code": "{ id: 'ms2', title: 'Mock test đạt 6.5', deadline: formatLocalDateKey(new Date(Date.now() + 60 * 86400000)), completed: false, progress: 0 },"
+    },
+    {
+      "file": "src/components/GoalsView.tsx",
+      "line": 2010,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: 'goal_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),"
+    },
+    {
+      "file": "src/components/HabitsView.tsx",
+      "line": 22,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_habits_active_tab');"
+    },
+    {
+      "file": "src/components/HabitsView.tsx",
+      "line": 30,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_habits_active_tab', activeTab);"
+    },
+    {
+      "file": "src/components/HabitsView.tsx",
+      "line": 37,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_habits_filter');"
+    },
+    {
+      "file": "src/components/HabitsView.tsx",
+      "line": 45,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_habits_filter', activeFilter);"
+    },
+    {
+      "file": "src/components/journey/RPGCharacterHub.tsx",
+      "line": 34,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_rpg_char_slot') as any;"
+    },
+    {
+      "file": "src/components/journey/RPGCharacterHub.tsx",
+      "line": 43,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_rpg_char_slot', filterSlot);"
+    },
+    {
+      "file": "src/components/journey/RPGSkillTreeModal.tsx",
+      "line": 28,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_rpg_selected_tree');"
+    },
+    {
+      "file": "src/components/journey/RPGSkillTreeModal.tsx",
+      "line": 36,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_rpg_selected_tree', selectedTreeId);"
+    },
+    {
+      "file": "src/components/journey/RPGWorldMapView.tsx",
+      "line": 22,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_rpg_world_chapter_idx');"
+    },
+    {
+      "file": "src/components/journey/RPGWorldMapView.tsx",
+      "line": 31,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_rpg_world_chapter_idx', String(selectedChapterIdx));"
+    },
+    {
+      "file": "src/components/JourneyView.tsx",
+      "line": 94,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_journey_active_tab') as any;"
+    },
+    {
+      "file": "src/components/JourneyView.tsx",
+      "line": 105,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_journey_active_tab', activeTab);"
+    },
+    {
+      "file": "src/components/JourneyView.tsx",
+      "line": 177,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_journey_armory_filter') as any;"
+    },
+    {
+      "file": "src/components/JourneyView.tsx",
+      "line": 186,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_journey_armory_filter', armoryFilter);"
+    },
+    {
+      "file": "src/components/JourneyView.tsx",
+      "line": 235,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_journey_chapter_idx');"
+    },
+    {
+      "file": "src/components/JourneyView.tsx",
+      "line": 244,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_journey_chapter_idx', String(selectedChapterIndex));"
+    },
+    {
+      "file": "src/components/JourneyView.tsx",
+      "line": 252,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_journey_milestone_category');"
+    },
+    {
+      "file": "src/components/JourneyView.tsx",
+      "line": 261,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_journey_milestone_category', milestoneCategoryFilter);"
+    },
+    {
+      "file": "src/components/LifeHarmonyRadarWidget.tsx",
+      "line": 338,
+      "type": "MOCK_KEYWORD",
+      "code": "Mọi điểm số trên biểu đồ 5D Harmony đều được tính toán trực tiếp từ dữ liệu hoạt động của chính tài khoản của bạn (không sử dụng mock, demo hay random number). "
+    },
+    {
+      "file": "src/components/LoginView.tsx",
+      "line": 311,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "try { localStorage.setItem('token', res.token); } catch (e) {}"
+    },
+    {
+      "file": "src/components/LoginView.tsx",
+      "line": 365,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "try { localStorage.setItem('token', res.token); } catch (e) {}"
+    },
+    {
+      "file": "src/components/LoginView.tsx",
+      "line": 421,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "try { localStorage.setItem('token', res.token); } catch (e) {}"
+    },
+    {
+      "file": "src/components/MyAccountView.tsx",
+      "line": 618,
+      "type": "MOCK_KEYWORD",
+      "code": "{/* Unified Real Stats Card (Zero Mock) */}"
+    },
+    {
+      "file": "src/components/NotesView.tsx",
+      "line": 182,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_notes_active_tab') as ActiveTab;"
+    },
+    {
+      "file": "src/components/NotesView.tsx",
+      "line": 193,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_notes_active_tab', activeTab);"
+    },
+    {
+      "file": "src/components/NotesView.tsx",
+      "line": 202,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem('lifeos_notes_category') || 'All';"
+    },
+    {
+      "file": "src/components/NotesView.tsx",
+      "line": 210,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_notes_category', selectedCategory);"
+    },
+    {
+      "file": "src/components/NotesView.tsx",
+      "line": 217,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem('lifeos_notes_type') || 'All';"
+    },
+    {
+      "file": "src/components/NotesView.tsx",
+      "line": 225,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_notes_type', selectedType);"
+    },
+    {
+      "file": "src/components/NotesView.tsx",
+      "line": 234,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_notes_view_mode') as 'grid' | 'list';"
+    },
+    {
+      "file": "src/components/NotesView.tsx",
+      "line": 243,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_notes_view_mode', viewMode);"
+    },
+    {
+      "file": "src/components/NotesView.tsx",
+      "line": 253,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_notes_filter_mode') as any;"
+    },
+    {
+      "file": "src/components/NotesView.tsx",
+      "line": 264,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_notes_filter_mode', activeFilterMode);"
+    },
+    {
+      "file": "src/components/NotesView.tsx",
+      "line": 302,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const savedId = localStorage.getItem('lifeos_notes_selected_id');"
+    },
+    {
+      "file": "src/components/NotesView.tsx",
+      "line": 315,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_notes_selected_id', detailNote.id);"
+    },
+    {
+      "file": "src/components/NotesView.tsx",
+      "line": 380,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: Math.random().toString(36).substring(2, 11),"
+    },
+    {
+      "file": "src/components/NotesView.tsx",
+      "line": 467,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: 'note_' + Math.random().toString(36).substring(2, 11),"
+    },
+    {
+      "file": "src/components/NotesView.tsx",
+      "line": 2415,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_new_note_draft');"
+    },
+    {
+      "file": "src/components/NotesView.tsx",
+      "line": 2440,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_new_note_draft', JSON.stringify({"
+    },
+    {
+      "file": "src/components/NotesView.tsx",
+      "line": 2547,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: Math.random().toString(36).substring(2, 11),"
+    },
+    {
+      "file": "src/components/notifications/GmailPreviewModal.tsx",
+      "line": 198,
+      "type": "MOCK_KEYWORD",
+      "code": "{/* Fake Gmail Top Bar */}"
+    },
+    {
+      "file": "src/components/notifications/LoginAnnouncementModal.tsx",
+      "line": 40,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const localReadIds: string[] = JSON.parse(localStorage.getItem('lifeos_read_announcements') || '[]');"
+    },
+    {
+      "file": "src/components/notifications/LoginAnnouncementModal.tsx",
+      "line": 67,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const localReadIds: string[] = JSON.parse(localStorage.getItem('lifeos_read_announcements') || '[]');"
+    },
+    {
+      "file": "src/components/notifications/LoginAnnouncementModal.tsx",
+      "line": 70,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_read_announcements', JSON.stringify(localReadIds));"
+    },
+    {
+      "file": "src/components/onboarding/QuickPersonaQuizModal.tsx",
+      "line": 67,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const id = 'task_' + Math.random().toString(36).substring(2, 9);"
+    },
+    {
+      "file": "src/components/onboarding/QuickPersonaQuizModal.tsx",
+      "line": 83,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(`lifeos_trifecta_${todayStr}`, JSON.stringify(taskIds.slice(0, 3)));"
+    },
+    {
+      "file": "src/components/onboarding/QuickPersonaQuizModal.tsx",
+      "line": 84,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(`lifeos_persona_quiz_${userId}`, 'true');"
+    },
+    {
+      "file": "src/components/pet/FocusPetWidget.tsx",
+      "line": 69,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "return CHEER_QUOTES_COMPLETED[Math.floor(Math.random() * CHEER_QUOTES_COMPLETED.length)];"
+    },
+    {
+      "file": "src/components/pet/FocusPetWidget.tsx",
+      "line": 72,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "return CHEER_QUOTES_PAUSED[Math.floor(Math.random() * CHEER_QUOTES_PAUSED.length)];"
+    },
+    {
+      "file": "src/components/pet/FocusPetWidget.tsx",
+      "line": 75,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "return CHEER_QUOTES_RUNNING[Math.floor(Math.random() * CHEER_QUOTES_RUNNING.length)];"
+    },
+    {
+      "file": "src/components/ProjectsView.tsx",
+      "line": 114,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_projects_view_mode') as ViewMode;"
+    },
+    {
+      "file": "src/components/ProjectsView.tsx",
+      "line": 123,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_projects_view_mode', viewMode);"
+    },
+    {
+      "file": "src/components/ProjectsView.tsx",
+      "line": 131,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_projects_para_filter') as ParaCategory;"
+    },
+    {
+      "file": "src/components/ProjectsView.tsx",
+      "line": 142,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_projects_para_filter', paraFilter);"
+    },
+    {
+      "file": "src/components/ProjectsView.tsx",
+      "line": 149,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_projects_status_filter');"
+    },
+    {
+      "file": "src/components/ProjectsView.tsx",
+      "line": 160,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_projects_status_filter', statusFilter);"
+    },
+    {
+      "file": "src/components/ProjectsView.tsx",
+      "line": 167,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_projects_health_filter');"
+    },
+    {
+      "file": "src/components/ProjectsView.tsx",
+      "line": 178,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_projects_health_filter', healthFilter);"
+    },
+    {
+      "file": "src/components/ProjectsView.tsx",
+      "line": 199,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem('lifeos_projects_expanded_id');"
+    },
+    {
+      "file": "src/components/ProjectsView.tsx",
+      "line": 208,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_projects_expanded_id', expandedProjectId);"
+    },
+    {
+      "file": "src/components/PublicLandingView.tsx",
+      "line": 234,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "try { localStorage.setItem('token', res.token); } catch {}"
+    },
+    {
+      "file": "src/components/PublicLandingView.tsx",
+      "line": 283,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "try { localStorage.setItem('token', res.token); } catch {}"
+    },
+    {
+      "file": "src/components/PublicLandingView.tsx",
+      "line": 326,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const demoRand = Math.random().toString(36).substring(2, 7);"
+    },
+    {
+      "file": "src/components/PublicLandingView.tsx",
+      "line": 344,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "try { localStorage.setItem('token', res.token); } catch {}"
+    },
+    {
+      "file": "src/components/PublicLandingView.tsx",
+      "line": 355,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const localRand = Math.random().toString(36).substring(2, 7);"
+    },
+    {
+      "file": "src/components/PwaPromptBanner.tsx",
+      "line": 33,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.getItem('lifeos_pwa_dismissed') === 'true' ||"
+    },
+    {
+      "file": "src/components/PwaPromptBanner.tsx",
+      "line": 71,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_pwa_dismissed', 'true');"
+    },
+    {
+      "file": "src/components/ReferralView.tsx",
+      "line": 135,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_affiliate_bank_info');"
+    },
+    {
+      "file": "src/components/ReferralView.tsx",
+      "line": 142,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_affiliate_bank_info');"
+    },
+    {
+      "file": "src/components/ReferralView.tsx",
+      "line": 149,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_affiliate_bank_info');"
+    },
+    {
+      "file": "src/components/ReferralView.tsx",
+      "line": 309,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_affiliate_bank_info', JSON.stringify({"
+    },
+    {
+      "file": "src/components/ReferralView.tsx",
+      "line": 462,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_admin_active_tab', 'referrals');"
+    },
+    {
+      "file": "src/components/ScheduleAndTasksView.tsx",
+      "line": 181,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_schedule_active_tab') as any;"
+    },
+    {
+      "file": "src/components/ScheduleAndTasksView.tsx",
+      "line": 192,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_schedule_active_tab', activeTab);"
+    },
+    {
+      "file": "src/components/ScheduleAndTasksView.tsx",
+      "line": 200,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_schedule_calendar_mode') as any;"
+    },
+    {
+      "file": "src/components/ScheduleAndTasksView.tsx",
+      "line": 211,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_schedule_calendar_mode', calendarMode);"
+    },
+    {
+      "file": "src/components/ScheduleAndTasksView.tsx",
+      "line": 223,
+      "type": "TODO_OR_COMING_SOON",
+      "code": "const [todayFilter, setTodayFilter] = useState<'all' | 'todo' | 'in_progress' | 'done'>(() => {"
+    },
+    {
+      "file": "src/components/ScheduleAndTasksView.tsx",
+      "line": 226,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_schedule_today_filter') as any;"
+    },
+    {
+      "file": "src/components/ScheduleAndTasksView.tsx",
+      "line": 227,
+      "type": "TODO_OR_COMING_SOON",
+      "code": "if (saved && ['all', 'todo', 'in_progress', 'done'].includes(saved)) {"
+    },
+    {
+      "file": "src/components/ScheduleAndTasksView.tsx",
+      "line": 237,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_schedule_today_filter', todayFilter);"
+    },
+    {
+      "file": "src/components/ScheduleAndTasksView.tsx",
+      "line": 435,
+      "type": "TODO_OR_COMING_SOON",
+      "code": "if (todayFilter === 'todo') {"
+    },
+    {
+      "file": "src/components/ScheduleAndTasksView.tsx",
+      "line": 897,
+      "type": "TODO_OR_COMING_SOON",
+      "code": "setTodayFilter('todo');"
+    },
+    {
+      "file": "src/components/ScheduleAndTasksView.tsx",
+      "line": 901,
+      "type": "TODO_OR_COMING_SOON",
+      "code": "todayFilter === 'todo'"
+    },
+    {
+      "file": "src/components/ScratchpadWidget.tsx",
+      "line": 65,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem(STORAGE_KEY);"
+    },
+    {
+      "file": "src/components/ScratchpadWidget.tsx",
+      "line": 116,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(STORAGE_KEY, JSON.stringify({ content: val, createdAt: newCreatedAt }));"
+    },
+    {
+      "file": "src/components/sharing/StoryShareModal.tsx",
+      "line": 393,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const bw = (Math.random() > 0.5 ? 4 : 8);"
+    },
+    {
+      "file": "src/components/sharing/StoryShareModal.tsx",
+      "line": 394,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const gap = (Math.random() > 0.5 ? 4 : 6);"
+    },
+    {
+      "file": "src/components/SidebarCustomizerModal.tsx",
+      "line": 67,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem('lifeos_visible_modules');"
+    },
+    {
+      "file": "src/components/SidebarCustomizerModal.tsx",
+      "line": 78,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_visible_modules', JSON.stringify(filtered.length > 0 ? filtered : NAV_MODULE_METADATA.map(m => m.id)));"
+    },
+    {
+      "file": "src/components/SidebarCustomizerModal.tsx",
+      "line": 131,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_visible_modules', JSON.stringify(selectedModules));"
+    },
+    {
+      "file": "src/components/SidebarCustomizerModal.tsx",
+      "line": 140,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_visible_modules', JSON.stringify(all));"
+    },
+    {
+      "file": "src/components/spatial/island/LumiCyberCompanion.tsx",
+      "line": 37,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const nextMsg = dialogues[Math.floor(Math.random() * dialogues.length)];"
+    },
+    {
+      "file": "src/components/spatial/SpatialFocusScene.tsx",
+      "line": 548,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return (localStorage.getItem('lifeos:focus_3d_model') as Focus3DModelType) || 'hourglass';"
+    },
+    {
+      "file": "src/components/spatial/SpatialFocusScene.tsx",
+      "line": 557,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos:focus_3d_model', model);"
+    },
+    {
+      "file": "src/components/spatial/universe/SpatialStarField.tsx",
+      "line": 15,
+      "type": "MOCK_KEYWORD",
+      "code": "const dummy = useMemo(() => new THREE.Object3D(), []);"
+    },
+    {
+      "file": "src/components/spatial/universe/SpatialStarField.tsx",
+      "line": 21,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const x = (Math.random() - 0.5) * 80;"
+    },
+    {
+      "file": "src/components/spatial/universe/SpatialStarField.tsx",
+      "line": 22,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const y = (Math.random() - 0.5) * 60;"
+    },
+    {
+      "file": "src/components/spatial/universe/SpatialStarField.tsx",
+      "line": 23,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const z = -Math.random() * 90 + 15; // Spread from front to deep z"
+    },
+    {
+      "file": "src/components/spatial/universe/SpatialStarField.tsx",
+      "line": 24,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const speed = Math.random() * 0.2 + 0.05;"
+    },
+    {
+      "file": "src/components/spatial/universe/SpatialStarField.tsx",
+      "line": 25,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const scale = Math.random() * 0.08 + 0.02;"
+    },
+    {
+      "file": "src/components/spatial/universe/SpatialStarField.tsx",
+      "line": 42,
+      "type": "MOCK_KEYWORD",
+      "code": "dummy.position.set(p.x, p.y, p.z);"
+    },
+    {
+      "file": "src/components/spatial/universe/SpatialStarField.tsx",
+      "line": 43,
+      "type": "MOCK_KEYWORD",
+      "code": "dummy.scale.set(p.scale, p.scale, p.scale);"
+    },
+    {
+      "file": "src/components/spatial/universe/SpatialStarField.tsx",
+      "line": 44,
+      "type": "MOCK_KEYWORD",
+      "code": "dummy.updateMatrix();"
+    },
+    {
+      "file": "src/components/spatial/universe/SpatialStarField.tsx",
+      "line": 45,
+      "type": "MOCK_KEYWORD",
+      "code": "meshRef.current.setMatrixAt(i, dummy.matrix);"
+    },
+    {
+      "file": "src/components/study/GradeForecastTab.tsx",
+      "line": 56,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem(`lifeos_grade_schema_${subjectId}`);"
+    },
+    {
+      "file": "src/components/study/GradeForecastTab.tsx",
+      "line": 93,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(`lifeos_grade_schema_${sub.id}`, JSON.stringify(next));"
+    },
+    {
+      "file": "src/components/study/StudySpaceView.tsx",
+      "line": 137,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem('lifeos_study_guide_dismissed') !== 'true';"
+    },
+    {
+      "file": "src/components/study/StudySpaceView.tsx",
+      "line": 147,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_study_guide_dismissed', next ? 'false' : 'true');"
+    },
+    {
+      "file": "src/components/study/StudySpaceView.tsx",
+      "line": 278,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const localSaved = localStorage.getItem('lifeos_active_study_desk_v2');"
+    },
+    {
+      "file": "src/components/study/StudySpaceView.tsx",
+      "line": 383,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_active_study_desk_v2', JSON.stringify(deskData));"
+    },
+    {
+      "file": "src/components/study/StudySpaceView.tsx",
+      "line": 462,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_active_study_desk_v2', JSON.stringify(deskData));"
+    },
+    {
+      "file": "src/components/study-space/LayoutSettingsModal.tsx",
+      "line": 38,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const savedMode = (localStorage.getItem(STORAGE_KEYS.MODE) as MeetLayoutMode) || 'auto';"
+    },
+    {
+      "file": "src/components/study-space/LayoutSettingsModal.tsx",
+      "line": 39,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const savedTiles = parseInt(localStorage.getItem(STORAGE_KEYS.MAX_TILES) || '16', 10);"
+    },
+    {
+      "file": "src/components/study-space/LayoutSettingsModal.tsx",
+      "line": 40,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const savedHideSelf = localStorage.getItem(STORAGE_KEYS.HIDE_SELF) === 'true';"
+    },
+    {
+      "file": "src/components/study-space/LayoutSettingsModal.tsx",
+      "line": 80,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(STORAGE_KEYS.MODE, mode);"
+    },
+    {
+      "file": "src/components/study-space/LayoutSettingsModal.tsx",
+      "line": 81,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(STORAGE_KEYS.MAX_TILES, maxTiles.toString());"
+    },
+    {
+      "file": "src/components/study-space/LayoutSettingsModal.tsx",
+      "line": 82,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(STORAGE_KEYS.HIDE_SELF, hideSelf.toString());"
+    },
+    {
+      "file": "src/components/study-space/StudyLobby.tsx",
+      "line": 103,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const seen = localStorage.getItem(STUDY_ONBOARDING_STORAGE_KEY);"
+    },
+    {
+      "file": "src/components/study-space/StudyLobby.tsx",
+      "line": 238,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const randomIndex = Math.floor(Math.random() * candidateList.length);"
+    },
+    {
+      "file": "src/components/study-space/StudyOnboardingModal.tsx",
+      "line": 37,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(STUDY_ONBOARDING_STORAGE_KEY, 'true');"
+    },
+    {
+      "file": "src/components/study-space/StudyRoomView.tsx",
+      "line": 155,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_study_theme');"
+    },
+    {
+      "file": "src/components/study-space/StudyRoomView.tsx",
+      "line": 168,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_study_theme', next);"
+    },
+    {
+      "file": "src/components/study-space/StudyRoomView.tsx",
+      "line": 198,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_study_user_xp');"
+    },
+    {
+      "file": "src/components/study-space/StudyRoomView.tsx",
+      "line": 230,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem('lifeos_study_user_frame') || 'frame-emerald';"
+    },
+    {
+      "file": "src/components/study-space/StudyRoomView.tsx",
+      "line": 474,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: `kudos_${Date.now()}_${Math.random()}`,"
+    },
+    {
+      "file": "src/components/study-space/StudyRoomView.tsx",
+      "line": 476,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "x: Math.random() * 80 + 10,"
+    },
+    {
+      "file": "src/components/study-space/StudyRoomView.tsx",
+      "line": 783,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;"
+    },
+    {
+      "file": "src/components/study-space/StudyRoomView.tsx",
+      "line": 817,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "osc.frequency.setValueAtTime(1100 + Math.random() * 500, c.currentTime);"
+    },
+    {
+      "file": "src/components/study-space/StudyRoomView.tsx",
+      "line": 832,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const white = Math.random() * 2 - 1;"
+    },
+    {
+      "file": "src/components/study-space/StudyRoomView.tsx",
+      "line": 1009,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: Math.random().toString(),"
+    },
+    {
+      "file": "src/components/study-space/StudyRoomView.tsx",
+      "line": 1011,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "x: 15 + Math.random() * 70"
+    },
+    {
+      "file": "src/components/study-space/StudyRoomView.tsx",
+      "line": 1097,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "try { localStorage.setItem('lifeos_study_user_xp', next.toString()); } catch {}"
+    },
+    {
+      "file": "src/components/study-space/StudyRoomView.tsx",
+      "line": 1105,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "setLocalMessages((prev) => [...prev, { id: Math.random().toString(), author, text, time, isSystem }]);"
+    },
+    {
+      "file": "src/components/study-space/StudyRoomView.tsx",
+      "line": 1172,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "try { localStorage.setItem('lifeos_study_user_frame', frameClass); } catch {}"
+    },
+    {
+      "file": "src/components/StudyView.tsx",
+      "line": 64,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_study_active_tab') as any;"
+    },
+    {
+      "file": "src/components/StudyView.tsx",
+      "line": 75,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_study_active_tab', activeTab);"
+    },
+    {
+      "file": "src/components/StudyView.tsx",
+      "line": 148,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem(profileKey);"
+    },
+    {
+      "file": "src/components/StudyView.tsx",
+      "line": 207,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const savedSubSchema = localStorage.getItem(`lifeos_grade_schema_${sub.id}`);"
+    },
+    {
+      "file": "src/components/StudyView.tsx",
+      "line": 228,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(profileKey, JSON.stringify(nextProfile));"
+    },
+    {
+      "file": "src/components/StudyView.tsx",
+      "line": 240,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(profileKey, JSON.stringify(next));"
+    },
+    {
+      "file": "src/components/TasksView.tsx",
+      "line": 96,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_tasks_view_mode') as any;"
+    },
+    {
+      "file": "src/components/TasksView.tsx",
+      "line": 107,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_tasks_view_mode', viewMode);"
+    },
+    {
+      "file": "src/components/TasksView.tsx",
+      "line": 115,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_tasks_filter_status');"
+    },
+    {
+      "file": "src/components/TasksView.tsx",
+      "line": 124,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_tasks_filter_status', filterStatus);"
+    },
+    {
+      "file": "src/components/TasksView.tsx",
+      "line": 132,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_tasks_filter_energy');"
+    },
+    {
+      "file": "src/components/TasksView.tsx",
+      "line": 141,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_tasks_filter_energy', filterEnergy);"
+    },
+    {
+      "file": "src/components/TasksView.tsx",
+      "line": 204,
+      "type": "TODO_OR_COMING_SOON",
+      "code": "todo: list.filter(t => normalizeTaskStatus(t.status) === 'Chưa làm').length,"
+    },
+    {
+      "file": "src/components/TasksView.tsx",
+      "line": 438,
+      "type": "TODO_OR_COMING_SOON",
+      "code": "<FilterButton active={filterStatus === 'Chưa làm'} count={counts.todo} onClick={() => handleSelectFilter('Chưa làm')}>"
+    },
+    {
+      "file": "src/components/TasksView.tsx",
+      "line": 1555,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "setSubtasks(prev => [...prev, { id: `st_${Date.now()}_${Math.random()}`, title, completed: false }]);"
+    },
+    {
+      "file": "src/components/TemplateLibraryView.tsx",
+      "line": 253,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_marketplace_category');"
+    },
+    {
+      "file": "src/components/TemplateLibraryView.tsx",
+      "line": 262,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_marketplace_category', selectedCategory);"
+    },
+    {
+      "file": "src/components/vocab/GenZVocabStudyModal.tsx",
+      "line": 55,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const shuffled = [...OXFORD_3000_WORDS].sort(() => 0.5 - Math.random());"
+    },
+    {
+      "file": "src/components/vocab/GenZVocabStudyModal.tsx",
+      "line": 105,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const stored = JSON.parse(localStorage.getItem(progressKey) || '{}');"
+    },
+    {
+      "file": "src/components/vocab/GenZVocabStudyModal.tsx",
+      "line": 107,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(progressKey, JSON.stringify(stored));"
+    },
+    {
+      "file": "src/components/vocab/PersonalizedLessonBuilder.tsx",
+      "line": 167,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const shuffled = [...filteredWords].sort(() => Math.random() - 0.5);"
+    },
+    {
+      "file": "src/components/vocab/PersonalizedLessonBuilder.tsx",
+      "line": 185,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "smartPick = [...weakPool].sort(() => Math.random() - 0.5).slice(0, selectedWordCount);"
+    },
+    {
+      "file": "src/components/vocab/PersonalizedLessonBuilder.tsx",
+      "line": 190,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "smartPick = [...duePool].sort(() => Math.random() - 0.5).slice(0, selectedWordCount);"
+    },
+    {
+      "file": "src/components/vocab/PersonalizedLessonBuilder.tsx",
+      "line": 195,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "smartPick = [...favPool].sort(() => Math.random() - 0.5).slice(0, selectedWordCount);"
+    },
+    {
+      "file": "src/components/vocab/PersonalizedLessonBuilder.tsx",
+      "line": 200,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "smartPick = [...newPool, ...allWords].sort(() => Math.random() - 0.5).slice(0, selectedWordCount);"
+    },
+    {
+      "file": "src/components/vocab/SpeedMatchGameModal.tsx",
+      "line": 54,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const idx = Math.floor(Math.random() * available.length);"
+    },
+    {
+      "file": "src/components/vocab/SpeedMatchGameModal.tsx",
+      "line": 79,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const j = Math.floor(Math.random() * (i + 1));"
+    },
+    {
+      "file": "src/components/vocab/SpeedMatchGameModal.tsx",
+      "line": 170,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const idx = Math.floor(Math.random() * available.length);"
+    },
+    {
+      "file": "src/components/vocab/SpeedMatchGameModal.tsx",
+      "line": 192,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const j = Math.floor(Math.random() * (i + 1));"
+    },
+    {
+      "file": "src/components/vocab/StudySessionScreen.tsx",
+      "line": 310,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.25));"
+    },
+    {
+      "file": "src/components/vocab/StudySessionScreen.tsx",
+      "line": 402,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const white = Math.random() * 2 - 1;"
+    },
+    {
+      "file": "src/components/vocab/StudySessionScreen.tsx",
+      "line": 411,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const white = Math.random() * 2 - 1;"
+    },
+    {
+      "file": "src/components/vocab/StudySessionScreen.tsx",
+      "line": 513,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "x: Math.random() * width,"
+    },
+    {
+      "file": "src/components/vocab/StudySessionScreen.tsx",
+      "line": 514,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "y: Math.random() * height,"
+    },
+    {
+      "file": "src/components/vocab/StudySessionScreen.tsx",
+      "line": 515,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "z: Math.random() * 2 + 0.5,"
+    },
+    {
+      "file": "src/components/vocab/StudySessionScreen.tsx",
+      "line": 516,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "size: Math.random() * 1.8 + 0.5,"
+    },
+    {
+      "file": "src/components/vocab/StudySessionScreen.tsx",
+      "line": 517,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "alpha: Math.random() * 0.5 + 0.15,"
+    },
+    {
+      "file": "src/components/vocab/StudySessionScreen.tsx",
+      "line": 518,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "vx: (Math.random() - 0.5) * 0.25,"
+    },
+    {
+      "file": "src/components/vocab/StudySessionScreen.tsx",
+      "line": 519,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "vy: -Math.random() * 0.35 - 0.1"
+    },
+    {
+      "file": "src/components/vocab/VocabMasterView.tsx",
+      "line": 95,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_vocab_active_tab') as any;"
+    },
+    {
+      "file": "src/components/vocab/VocabMasterView.tsx",
+      "line": 106,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_vocab_active_tab', activeTab);"
+    },
+    {
+      "file": "src/components/vocab/VocabMasterView.tsx",
+      "line": 627,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: 'word_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),"
+    },
+    {
+      "file": "src/components/vocab/VocabMasterView.tsx",
+      "line": 1425,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: 'word_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),"
+    },
+    {
+      "file": "src/components/vocab/ZeroEffortIngestionModal.tsx",
+      "line": 103,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = JSON.parse(localStorage.getItem('lifeos_custom_vocab') || '[]');"
+    },
+    {
+      "file": "src/components/vocab/ZeroEffortIngestionModal.tsx",
+      "line": 105,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_custom_vocab', JSON.stringify(saved));"
+    },
+    {
+      "file": "src/components/YouTubeFocusPlayer.tsx",
+      "line": 59,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_focus_music_tab');"
+    },
+    {
+      "file": "src/components/YouTubeFocusPlayer.tsx",
+      "line": 69,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_focus_music_tab', activeTab);"
+    },
+    {
+      "file": "src/lib/ambientSoundMixer.ts",
+      "line": 118,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const white = Math.random() * 2 - 1;"
+    },
+    {
+      "file": "src/lib/ambientSoundMixer.ts",
+      "line": 164,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "output[i] = (Math.random() * 2 - 1) * 0.08;"
+    },
+    {
+      "file": "src/lib/ambientSoundMixer.ts",
+      "line": 204,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "output[i] = (Math.random() * 2 - 1) * 0.06;"
+    },
+    {
+      "file": "src/lib/ambientSoundMixer.ts",
+      "line": 231,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "osc.frequency.setValueAtTime(400 + Math.random() * 1200, this.ctx.currentTime);"
+    },
+    {
+      "file": "src/lib/ambientSoundMixer.ts",
+      "line": 232,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "popGain.gain.setValueAtTime(0.18 + Math.random() * 0.15, this.ctx.currentTime);"
+    },
+    {
+      "file": "src/lib/ambientSoundMixer.ts",
+      "line": 240,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const nextPopDelay = 150 + Math.random() * 500;"
+    },
+    {
+      "file": "src/lib/ambientSoundMixer.ts",
+      "line": 324,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const pitch = 220 + Math.random() * 60; // Thocky pitch"
+    },
+    {
+      "file": "src/lib/ambientSoundMixer.ts",
+      "line": 338,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const nextDelay = 120 + Math.random() * 260;"
+    },
+    {
+      "file": "src/lib/analytics.ts",
+      "line": 50,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: `evt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,"
+    },
+    {
+      "file": "src/lib/analytics.ts",
+      "line": 59,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const existingStr = localStorage.getItem(STORAGE_KEY);"
+    },
+    {
+      "file": "src/lib/analytics.ts",
+      "line": 65,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(STORAGE_KEY, JSON.stringify(list));"
+    },
+    {
+      "file": "src/lib/analytics.ts",
+      "line": 78,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const str = localStorage.getItem(STORAGE_KEY);"
+    },
+    {
+      "file": "src/lib/analytics.ts",
+      "line": 87,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const str = localStorage.getItem(METRICS_KEY);"
+    },
+    {
+      "file": "src/lib/analytics.ts",
+      "line": 124,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(METRICS_KEY, JSON.stringify(metrics));"
+    },
+    {
+      "file": "src/lib/analyticsTracker.ts",
+      "line": 64,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem(STORAGE_BUFFER_KEY);"
+    },
+    {
+      "file": "src/lib/analyticsTracker.ts",
+      "line": 82,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(STORAGE_BUFFER_KEY, JSON.stringify(obj));"
+    },
+    {
+      "file": "src/lib/apiClient.ts",
+      "line": 187,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "let token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;"
+    },
+    {
+      "file": "src/lib/apiClient.ts",
+      "line": 194,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "try { localStorage.setItem('token', urlToken); } catch (e) {}"
+    },
+    {
+      "file": "src/lib/apiClient.ts",
+      "line": 239,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const jitter = Math.floor(Math.random() * 250);"
+    },
+    {
+      "file": "src/lib/apiClient.ts",
+      "line": 313,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "await new Promise(r => setTimeout(r, waitTime + Math.floor(Math.random() * 200)));"
+    },
+    {
+      "file": "src/lib/apiClient.ts",
+      "line": 367,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const hadToken = Boolean(localStorage.getItem('token') || localStorage.getItem('lifeos_swr_user'));"
+    },
+    {
+      "file": "src/lib/apiClient.ts",
+      "line": 379,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.getItem('lifeos_vocab_session_state') ||"
+    },
+    {
+      "file": "src/lib/apiClient.ts",
+      "line": 380,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.getItem('lifeos_pomodoro_active_session') ||"
+    },
+    {
+      "file": "src/lib/celebrationEngine.ts",
+      "line": 33,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const angle = (Math.PI * 2 * i) / particleCount + (Math.random() * 0.4 - 0.2);"
+    },
+    {
+      "file": "src/lib/celebrationEngine.ts",
+      "line": 34,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const distance = 80 + Math.random() * 120;"
+    },
+    {
+      "file": "src/lib/celebrationEngine.ts",
+      "line": 36,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const destY = Math.sin(angle) * distance - (40 + Math.random() * 40); // upward bias"
+    },
+    {
+      "file": "src/lib/celebrationEngine.ts",
+      "line": 37,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const rot = (Math.random() - 0.5) * 480;"
+    },
+    {
+      "file": "src/lib/celebrationEngine.ts",
+      "line": 38,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const scale = 0.7 + Math.random() * 0.6;"
+    },
+    {
+      "file": "src/lib/celebrationEngine.ts",
+      "line": 51,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "el.textContent = emojis[Math.floor(Math.random() * emojis.length)];"
+    },
+    {
+      "file": "src/lib/celebrationEngine.ts",
+      "line": 57,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "el.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];"
+    },
+    {
+      "file": "src/lib/celebrationEngine.ts",
+      "line": 58,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "el.style.borderRadius = Math.random() > 0.5 ? '50%' : '3px';"
+    },
+    {
+      "file": "src/lib/chineseVocab/chineseActiveRecallEngine.ts",
+      "line": 27,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const shuffledTargets = [...targetWords].sort(() => Math.random() - 0.5).slice(0, questionCount);"
+    },
+    {
+      "file": "src/lib/chineseVocab/chineseActiveRecallEngine.ts",
+      "line": 33,
+      "type": "MATH_RANDOM_USAGE",
+      "code": ".sort(() => Math.random() - 0.5)"
+    },
+    {
+      "file": "src/lib/chineseVocab/chineseActiveRecallEngine.ts",
+      "line": 50,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const options = [target.term, ...distractors.map(d => d.term)].sort(() => Math.random() - 0.5);"
+    },
+    {
+      "file": "src/lib/chineseVocab/chineseActiveRecallEngine.ts",
+      "line": 67,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const options = [target.term, ...distractors.map(d => d.term)].sort(() => Math.random() - 0.5);"
+    },
+    {
+      "file": "src/lib/chineseVocab/chineseActiveRecallEngine.ts",
+      "line": 84,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const options = [target.pinyin, ...distractors.map(d => d.pinyin)].sort(() => Math.random() - 0.5);"
+    },
+    {
+      "file": "src/lib/chineseVocab/chineseActiveRecallEngine.ts",
+      "line": 101,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const options = [target.term, ...distractors.map(d => d.term)].sort(() => Math.random() - 0.5);"
+    },
+    {
+      "file": "src/lib/chineseVocab/chineseActiveRecallEngine.ts",
+      "line": 120,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const options = [target.term, ...distractors.map(d => d.term)].sort(() => Math.random() - 0.5);"
+    },
+    {
+      "file": "src/lib/chineseVocab/chineseActiveRecallEngine.ts",
+      "line": 137,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const options = [target.term, ...distractors.map(d => d.term)].sort(() => Math.random() - 0.5);"
+    },
+    {
+      "file": "src/lib/chineseVocab/chineseActiveRecallEngine.ts",
+      "line": 155,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const options = [target.meaning, ...distractors.map(d => d.meaning)].sort(() => Math.random() - 0.5);"
+    },
+    {
+      "file": "src/lib/companion/companionBrain.ts",
+      "line": 327,
+      "type": "MOCK_KEYWORD",
+      "code": "1. Hệ thống sẽ lấy dữ liệu mẫu giả định (mock event payload) để kiểm tra xem Trigger có bắt đúng sự kiện hay không."
+    },
+    {
+      "file": "src/lib/companion/companionScopeGuard.ts",
+      "line": 19,
+      "type": "MOCK_KEYWORD",
+      "code": "| 'NON_EXISTENT_FEATURE'; // Questions asking for fake features LifeOS doesn't have"
+    },
+    {
+      "file": "src/lib/companion/companionTelemetry.ts",
+      "line": 53,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const storedFeedback = localStorage.getItem(STORAGE_KEY_FEEDBACK);"
+    },
+    {
+      "file": "src/lib/companion/companionTelemetry.ts",
+      "line": 58,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const storedUnknown = localStorage.getItem(STORAGE_KEY_UNKNOWN);"
+    },
+    {
+      "file": "src/lib/companion/companionTelemetry.ts",
+      "line": 71,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(STORAGE_KEY_FEEDBACK, JSON.stringify(this.feedbackList.slice(-50)));"
+    },
+    {
+      "file": "src/lib/companion/companionTelemetry.ts",
+      "line": 72,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(STORAGE_KEY_UNKNOWN, JSON.stringify(this.unknownQuestions.slice(-50)));"
+    },
+    {
+      "file": "src/lib/companion/companionTelemetry.ts",
+      "line": 123,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: `unk_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,"
+    },
+    {
+      "file": "src/lib/companion/knowledge/featureKnowledge.ts",
+      "line": 74,
+      "type": "MOCK_KEYWORD",
+      "code": "description: 'Môi trường kiểm thử Dry-run với dữ liệu giả lập (mock payload) mà không ảnh hưởng đến dữ liệu thật.',"
+    },
+    {
+      "file": "src/lib/companionEngine.ts",
+      "line": 227,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem(this.getSettingsKey(userId));"
+    },
+    {
+      "file": "src/lib/companionEngine.ts",
+      "line": 242,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(this.getSettingsKey(userId), JSON.stringify(updated));"
+    },
+    {
+      "file": "src/lib/companionQuotes.ts",
+      "line": 232,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "selected = freshCandidates[Math.floor(Math.random() * freshCandidates.length)];"
+    },
+    {
+      "file": "src/lib/companionQuotes.ts",
+      "line": 237,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "? nonConsecutive[Math.floor(Math.random() * nonConsecutive.length)]"
+    },
+    {
+      "file": "src/lib/companionQuotes.ts",
+      "line": 276,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const chosenCategory = pool[Math.floor(Math.random() * pool.length)];"
+    },
+    {
+      "file": "src/lib/companionQuotes.ts",
+      "line": 281,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const chosenCategory = pool[Math.floor(Math.random() * pool.length)];"
+    },
+    {
+      "file": "src/lib/confetti.ts",
+      "line": 65,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const angle = Math.random() * Math.PI * 2;"
+    },
+    {
+      "file": "src/lib/confetti.ts",
+      "line": 66,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const velocity = Math.random() * 8 + 3;"
+    },
+    {
+      "file": "src/lib/confetti.ts",
+      "line": 72,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "size: Math.random() * 7 + 4,"
+    },
+    {
+      "file": "src/lib/confetti.ts",
+      "line": 73,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "color: PASTEL_PALETTE[Math.floor(Math.random() * PASTEL_PALETTE.length)],"
+    },
+    {
+      "file": "src/lib/confetti.ts",
+      "line": 74,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "rotation: Math.random() * 360,"
+    },
+    {
+      "file": "src/lib/confetti.ts",
+      "line": 75,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "rotationSpeed: (Math.random() - 0.5) * 12,"
+    },
+    {
+      "file": "src/lib/confetti.ts",
+      "line": 77,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "decay: Math.random() * 0.018 + 0.012,"
+    },
+    {
+      "file": "src/lib/cronEngine.ts",
+      "line": 51,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem('lifeos_client_cron_stats');"
+    },
+    {
+      "file": "src/lib/cronEngine.ts",
+      "line": 60,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_client_cron_stats', JSON.stringify(this.localStats));"
+    },
+    {
+      "file": "src/lib/e2eTruthEngine.ts",
+      "line": 50,
+      "type": "MOCK_KEYWORD",
+      "code": "{ id: 'TEST-05', name: 'Xác thực tài khoản thật qua API me', description: 'Kiểm tra session trả về đúng User ID và Role, không có mock giả' },"
+    },
+    {
+      "file": "src/lib/e2eTruthEngine.ts",
+      "line": 261,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(key, 'aff_test_agent');"
+    },
+    {
+      "file": "src/lib/e2eTruthEngine.ts",
+      "line": 262,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(expiryKey, (now + thirtyDaysMs).toString());"
+    },
+    {
+      "file": "src/lib/e2eTruthEngine.ts",
+      "line": 263,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const stored = localStorage.getItem(key);"
+    },
+    {
+      "file": "src/lib/e2eTruthEngine.ts",
+      "line": 264,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const storedExp = parseInt(localStorage.getItem(expiryKey) || '0', 10);"
+    },
+    {
+      "file": "src/lib/e2eTruthEngine.ts",
+      "line": 285,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const token = localStorage.getItem('token');"
+    },
+    {
+      "file": "src/lib/e2eTruthEngine.ts",
+      "line": 291,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const swrCache = localStorage.getItem('lifeos_swr_user') || localStorage.getItem('lifeos_user');"
+    },
+    {
+      "file": "src/lib/e2eTruthEngine.ts",
+      "line": 303,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const headers = { 'Authorization': 'Bearer ' + (localStorage.getItem('token') || 'local_guest') };"
+    },
+    {
+      "file": "src/lib/e2eTruthEngine.ts",
+      "line": 314,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const lastView = localStorage.getItem('lifeos_current_view') || 'dashboard';"
+    },
+    {
+      "file": "src/lib/e2eTruthEngine.ts",
+      "line": 425,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const j = Math.floor(Math.random() * (i + 1));"
+    },
+    {
+      "file": "src/lib/e2eTruthEngine.ts",
+      "line": 505,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(draftKey, 'Nội dung bản nháp kiểm tra...');"
+    },
+    {
+      "file": "src/lib/e2eTruthEngine.ts",
+      "line": 506,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const readDraft = localStorage.getItem(draftKey);"
+    },
+    {
+      "file": "src/lib/e2eTruthEngine.ts",
+      "line": 788,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const v = localStorage.getItem(k) || '';"
+    },
+    {
+      "file": "src/lib/e2eTruthEngine.ts",
+      "line": 1029,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "'Authorization': 'Bearer ' + (localStorage.getItem('token') || '')"
+    },
+    {
+      "file": "src/lib/financeCategories.ts",
+      "line": 45,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem(STORAGE_KEY);"
+    },
+    {
+      "file": "src/lib/financeCategories.ts",
+      "line": 65,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(STORAGE_KEY, JSON.stringify(categories));"
+    },
+    {
+      "file": "src/lib/financeCategories.ts",
+      "line": 76,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: `custom-cat-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,"
+    },
+    {
+      "file": "src/lib/geminiClient.ts",
+      "line": 14,
+      "type": "MOCK_KEYWORD",
+      "code": "* 9. Zero fake AI content masking on error."
+    },
+    {
+      "file": "src/lib/geminiClient.ts",
+      "line": 97,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const randomPart = Math.random().toString(36).substring(2, 10).toUpperCase();"
+    },
+    {
+      "file": "src/lib/geminiClient.ts",
+      "line": 283,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const randomJitter = Math.floor(Math.random() * jitterMs);"
+    },
+    {
+      "file": "src/lib/geminiClient.ts",
+      "line": 298,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const existingRaw = localStorage.getItem(TELEMETRY_STORAGE_KEY);"
+    },
+    {
+      "file": "src/lib/geminiClient.ts",
+      "line": 304,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(TELEMETRY_STORAGE_KEY, JSON.stringify(list));"
+    },
+    {
+      "file": "src/lib/geminiClient.ts",
+      "line": 314,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem(TELEMETRY_STORAGE_KEY);"
+    },
+    {
+      "file": "src/lib/globalUserSync.ts",
+      "line": 7,
+      "type": "MOCK_KEYWORD",
+      "code": "* 1. Zero hardcoded UI - Mọi số liệu bắt đầu từ 0 thật sự."
+    },
+    {
+      "file": "src/lib/globalUserSync.ts",
+      "line": 116,
+      "type": "MOCK_KEYWORD",
+      "code": "* Trả về đối tượng người dùng chuẩn với đầy đủ chỉ số thật (Zero fake data)"
+    },
+    {
+      "file": "src/lib/globalUserSync.ts",
+      "line": 182,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem('lifeos_user');"
+    },
+    {
+      "file": "src/lib/globalUserSync.ts",
+      "line": 196,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_user', JSON.stringify(merged));"
+    },
+    {
+      "file": "src/lib/globalUserSync.ts",
+      "line": 197,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_unified_streak_days', String(merged.streakDays || 0));"
+    },
+    {
+      "file": "src/lib/globalUserSync.ts",
+      "line": 198,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_study_streak_days', String(merged.streakDays || 0));"
+    },
+    {
+      "file": "src/lib/globalUserSync.ts",
+      "line": 239,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem('lifeos_user');"
+    },
+    {
+      "file": "src/lib/globalVolumeManager.ts",
+      "line": 37,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem(key);"
+    },
+    {
+      "file": "src/lib/globalVolumeManager.ts",
+      "line": 49,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem(key);"
+    },
+    {
+      "file": "src/lib/globalVolumeManager.ts",
+      "line": 58,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(key, val);"
+    },
+    {
+      "file": "src/lib/hapticEngine.ts",
+      "line": 13,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_haptic_enabled');"
+    },
+    {
+      "file": "src/lib/hapticEngine.ts",
+      "line": 27,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_haptic_enabled', String(val));"
+    },
+    {
+      "file": "src/lib/i18n.ts",
+      "line": 1272,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_lang');"
+    },
+    {
+      "file": "src/lib/indexedDbClient.ts",
+      "line": 89,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem(`lifeos_fallback_${storeName}`);"
+    },
+    {
+      "file": "src/lib/indexedDbClient.ts",
+      "line": 129,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(`lifeos_fallback_${storeName}`, JSON.stringify(all));"
+    },
+    {
+      "file": "src/lib/indexedDbClient.ts",
+      "line": 148,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(`lifeos_fallback_${storeName}`, JSON.stringify(filtered));"
+    },
+    {
+      "file": "src/lib/indexedDbStorage.ts",
+      "line": 43,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(`lifeos_idb_${key}`, JSON.stringify(value));"
+    },
+    {
+      "file": "src/lib/indexedDbStorage.ts",
+      "line": 65,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem(`lifeos_idb_${key}`);"
+    },
+    {
+      "file": "src/lib/lazyWithRetry.ts",
+      "line": 76,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.getItem('lifeos_vocab_session_state') ||"
+    },
+    {
+      "file": "src/lib/lazyWithRetry.ts",
+      "line": 77,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.getItem('lifeos_pomodoro_active_session') ||"
+    },
+    {
+      "file": "src/lib/learningAutoSave.ts",
+      "line": 61,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const vocabRaw = localStorage.getItem(STORAGE_KEYS.VOCAB_SESSION);"
+    },
+    {
+      "file": "src/lib/learningAutoSave.ts",
+      "line": 70,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const noteRaw = localStorage.getItem(STORAGE_KEYS.NOTE_DRAFT);"
+    },
+    {
+      "file": "src/lib/learningAutoSave.ts",
+      "line": 79,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const pomoRaw = localStorage.getItem('lifeos_pomodoro_runtime_v2');"
+    },
+    {
+      "file": "src/lib/learningAutoSave.ts",
+      "line": 88,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const deskRaw = localStorage.getItem('lifeos_active_study_desk_v2');"
+    },
+    {
+      "file": "src/lib/learningAutoSave.ts",
+      "line": 120,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(STORAGE_KEYS.VOCAB_SESSION, JSON.stringify(payload));"
+    },
+    {
+      "file": "src/lib/learningAutoSave.ts",
+      "line": 129,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem(STORAGE_KEYS.VOCAB_SESSION);"
+    },
+    {
+      "file": "src/lib/learningAutoSave.ts",
+      "line": 172,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(STORAGE_KEYS.NOTE_DRAFT, JSON.stringify(payload));"
+    },
+    {
+      "file": "src/lib/learningAutoSave.ts",
+      "line": 181,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem(STORAGE_KEYS.NOTE_DRAFT);"
+    },
+    {
+      "file": "src/lib/learningAutoSave.ts",
+      "line": 220,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(STORAGE_KEYS.EXAM_DRAFT, JSON.stringify(payload));"
+    },
+    {
+      "file": "src/lib/learningAutoSave.ts",
+      "line": 229,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem(STORAGE_KEYS.EXAM_DRAFT);"
+    },
+    {
+      "file": "src/lib/learningAutoSave.ts",
+      "line": 255,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem(STORAGE_KEYS.CURRENT_VIEW);"
+    },
+    {
+      "file": "src/lib/learningAutoSave.ts",
+      "line": 264,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(STORAGE_KEYS.CURRENT_VIEW, view);"
+    },
+    {
+      "file": "src/lib/lifeHarmonyEngine.ts",
+      "line": 18,
+      "type": "MOCK_KEYWORD",
+      "code": "score: number | null; // NULL if insufficient_data! NEVER fake score!"
+    },
+    {
+      "file": "src/lib/moodEngine.ts",
+      "line": 64,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem(`lifeos_mood_${today}`);"
+    },
+    {
+      "file": "src/lib/moodEngine.ts",
+      "line": 75,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(`lifeos_mood_${today}`, mood);"
+    },
+    {
+      "file": "src/lib/offlineSyncQueue.ts",
+      "line": 17,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem(OUTBOX_STORAGE_KEY);"
+    },
+    {
+      "file": "src/lib/offlineSyncQueue.ts",
+      "line": 26,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(OUTBOX_STORAGE_KEY, JSON.stringify(items));"
+    },
+    {
+      "file": "src/lib/offlineSyncQueue.ts",
+      "line": 49,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: `mut_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,"
+    },
+    {
+      "file": "src/lib/pwa.ts",
+      "line": 83,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const snoozedUntilStr = localStorage.getItem('lifeos_update_snooze_until');"
+    },
+    {
+      "file": "src/lib/pwa.ts",
+      "line": 84,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const snoozedVersion = localStorage.getItem('lifeos_update_snoozed_version');"
+    },
+    {
+      "file": "src/lib/pwa.ts",
+      "line": 109,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_update_snooze_until', String(until));"
+    },
+    {
+      "file": "src/lib/pwa.ts",
+      "line": 110,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_update_snoozed_version', versionToSnooze);"
+    },
+    {
+      "file": "src/lib/pwa.ts",
+      "line": 139,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const pendingVersion = localStorage.getItem('lifeos_pending_update_version');"
+    },
+    {
+      "file": "src/lib/pwa.ts",
+      "line": 328,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_pending_update_version', targetVersion);"
+    },
+    {
+      "file": "src/lib/pwa.ts",
+      "line": 345,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.getItem('lifeos_vocab_session_state') ||"
+    },
+    {
+      "file": "src/lib/pwa.ts",
+      "line": 346,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.getItem('lifeos_pomodoro_active_session') ||"
+    },
+    {
+      "file": "src/lib/referralTracker.ts",
+      "line": 24,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(REFERRAL_CODE_KEY, code);"
+    },
+    {
+      "file": "src/lib/referralTracker.ts",
+      "line": 25,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(REFERRAL_EXP_KEY, String(expiresAt));"
+    },
+    {
+      "file": "src/lib/referralTracker.ts",
+      "line": 36,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const code = localStorage.getItem(REFERRAL_CODE_KEY);"
+    },
+    {
+      "file": "src/lib/referralTracker.ts",
+      "line": 37,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const expStr = localStorage.getItem(REFERRAL_EXP_KEY);"
+    },
+    {
+      "file": "src/lib/retentionEngine.ts",
+      "line": 108,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem(key);"
+    },
+    {
+      "file": "src/lib/retentionEngine.ts",
+      "line": 185,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const existing = localStorage.getItem(key);"
+    },
+    {
+      "file": "src/lib/retentionEngine.ts",
+      "line": 189,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(key, serialized);"
+    },
+    {
+      "file": "src/lib/scheduleReminderScheduler.ts",
+      "line": 29,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem(STORAGE_FLAGS_KEY);"
+    },
+    {
+      "file": "src/lib/scheduleReminderScheduler.ts",
+      "line": 41,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(STORAGE_FLAGS_KEY, JSON.stringify(this.flags));"
+    },
+    {
+      "file": "src/lib/scheduleReminderScheduler.ts",
+      "line": 164,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const rawUser = typeof window !== 'undefined' ? localStorage.getItem('lifeos_swr_user') : null;"
+    },
+    {
+      "file": "src/lib/soundEngine.ts",
+      "line": 50,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_sfx_enabled');"
+    },
+    {
+      "file": "src/lib/soundEngine.ts",
+      "line": 52,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const savedPack = localStorage.getItem('lifeos_soundpack') as SoundpackId;"
+    },
+    {
+      "file": "src/lib/soundEngine.ts",
+      "line": 100,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_sfx_enabled', String(val));"
+    },
+    {
+      "file": "src/lib/soundEngine.ts",
+      "line": 112,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_soundpack', pack);"
+    },
+    {
+      "file": "src/lib/soundEngine.ts",
+      "line": 426,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const startTime = now + i * 0.05 + Math.random() * 0.02;"
+    },
+    {
+      "file": "src/lib/spacedRepetitionScheduler.ts",
+      "line": 257,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: 'log_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 105,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "theme: (typeof window !== 'undefined' && (localStorage.getItem('lifeos_theme') as 'light' | 'dark')) || \"light\","
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 108,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "language: (typeof window !== 'undefined' && localStorage.getItem('lifeos_lang')) || \"vi\","
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 191,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "try { localStorage.setItem('token', urlToken); } catch (e) {}"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 194,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "token = localStorage.getItem('token');"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 198,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const storedView = localStorage.getItem('lifeos_current_view') as ViewState;"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 207,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "cachedUser = safeJsonParse(localStorage.getItem('lifeos_swr_user'), null);"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 208,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "cachedCollections = safeJsonParse(localStorage.getItem('lifeos_swr_collections'), {});"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 209,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "cachedSub = safeJsonParse(localStorage.getItem('lifeos_swr_sub'), null);"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 237,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem(`lifeos_user_onboarding_prefs_${cachedUser.id}`) || localStorage.getItem('lifeos_user_onboarding_prefs_current');"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 272,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "try { localStorage.setItem('token', urlToken); } catch (e) {}"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 276,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const token = typeof window !== 'undefined' ? (urlToken || localStorage.getItem('token')) : null;"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 308,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "try { localStorage.setItem('token', authRes.token); } catch (e) {}"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 311,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_swr_user', JSON.stringify(user));"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 316,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem(`lifeos_user_onboarding_prefs_${user.id}`) || localStorage.getItem('lifeos_user_onboarding_prefs_current');"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 328,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_user', JSON.stringify(unifiedUser));"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 390,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.getItem('lifeos_vocab_session_state') ||"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 391,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.getItem('lifeos_pomodoro_active_session') ||"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 543,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_swr_collections', JSON.stringify(swrCache));"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 594,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('token', token);"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 596,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_swr_user', JSON.stringify(unifiedUser));"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 597,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_user', JSON.stringify(unifiedUser));"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 620,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_swr_sub', JSON.stringify(initialSub));"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 673,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(key, JSON.stringify(nextPrefs));"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 691,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(key, JSON.stringify(selections));"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 737,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_current_view', view);"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 781,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const tempId = item.id || `tmp_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 1149,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: item.id || `notif_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 1282,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_swr_sub', JSON.stringify(res));"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 1328,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "try { localStorage.setItem('lifeos_lang', lang); } catch (e) {}"
+    },
+    {
+      "file": "src/lib/store.tsx",
+      "line": 1332,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "try { localStorage.setItem('lifeos_theme', newTheme); } catch (e) {}"
+    },
+    {
+      "file": "src/lib/streakFreezeEngine.ts",
+      "line": 36,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem(this.getStorageKey(userId));"
+    },
+    {
+      "file": "src/lib/streakFreezeEngine.ts",
+      "line": 48,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(this.getStorageKey(userId), String(updated));"
+    },
+    {
+      "file": "src/lib/streakFreezeEngine.ts",
+      "line": 60,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(this.getStorageKey(userId), String(updated));"
+    },
+    {
+      "file": "src/lib/streakFreezeEngine.ts",
+      "line": 69,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem(this.getRestDayKey(userId, dateStr)) === 'true';"
+    },
+    {
+      "file": "src/lib/streakFreezeEngine.ts",
+      "line": 80,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(this.getRestDayKey(userId, dateStr), String(updated));"
+    },
+    {
+      "file": "src/lib/streakFreezeEngine.ts",
+      "line": 102,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem(this.getResurrectionKey(userId));"
+    },
+    {
+      "file": "src/lib/streakFreezeEngine.ts",
+      "line": 123,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(this.getResurrectionKey(userId), JSON.stringify(status));"
+    },
+    {
+      "file": "src/lib/streakFreezeEngine.ts",
+      "line": 134,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem(retKey);"
+    },
+    {
+      "file": "src/lib/streakFreezeEngine.ts",
+      "line": 141,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(retKey, JSON.stringify(parsed));"
+    },
+    {
+      "file": "src/lib/toast.ts",
+      "line": 34,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const id = `toast_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;"
+    },
+    {
+      "file": "src/lib/translations_dict.ts",
+      "line": 282,
+      "type": "TODO_OR_COMING_SOON",
+      "code": "\"Chưa làm (Todo\": \"To Do\","
+    },
+    {
+      "file": "src/lib/translations_dict.ts",
+      "line": 283,
+      "type": "TODO_OR_COMING_SOON",
+      "code": "\"Chưa làm (Todo)\": \"To Do\","
+    },
+    {
+      "file": "src/lib/translations_dict.ts",
+      "line": 409,
+      "type": "MOCK_KEYWORD",
+      "code": "\"Cấu hình tài khoản nhận tiền chuyển khoản của khách hàng khi nâng cấp gói trực tuyến. Không cần hardcode trong mã nguồn.\": \"Configure customer transfer recipie"
+    },
+    {
+      "file": "src/lib/translations_dict.ts",
+      "line": 1174,
+      "type": "TODO_OR_COMING_SOON",
+      "code": "\"Nhấn Enter để thêm ngay vào danh sách việc cần làm\": \"Press Enter to add immediately to your todo list\","
+    },
+    {
+      "file": "src/lib/translations_dict.ts",
+      "line": 1301,
+      "type": "TODO_OR_COMING_SOON",
+      "code": "\"Quản lý Công việc & Nhiệm vụ (Tasks\": \"Tasks & Todo Management\","
+    },
+    {
+      "file": "src/lib/translations_dict.ts",
+      "line": 1302,
+      "type": "TODO_OR_COMING_SOON",
+      "code": "\"Quản lý Công việc & Nhiệm vụ (Tasks)\": \"Tasks & Todo Management\","
+    },
+    {
+      "file": "src/lib/unifiedNotificationEngine.ts",
+      "line": 44,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem(GMAIL_WEBHOOK_CONFIG_STORAGE_KEY);"
+    },
+    {
+      "file": "src/lib/unifiedNotificationEngine.ts",
+      "line": 57,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(GMAIL_WEBHOOK_CONFIG_STORAGE_KEY, JSON.stringify(updated));"
+    },
+    {
+      "file": "src/lib/unifiedNotificationEngine.ts",
+      "line": 99,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "id: 'notif_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),"
+    },
+    {
+      "file": "src/lib/unifiedNotificationEngine.ts",
+      "line": 165,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const rawStored = typeof window !== 'undefined' ? localStorage.getItem('lifeos_swr_user') : null;"
+    },
+    {
+      "file": "src/lib/vibeThemeEngine.ts",
+      "line": 72,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const saved = localStorage.getItem('lifeos_vibe_theme') as VibeThemeId;"
+    },
+    {
+      "file": "src/lib/vibeThemeEngine.ts",
+      "line": 94,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_vibe_theme', theme);"
+    },
+    {
+      "file": "src/lib/vocabEngine.ts",
+      "line": 953,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const raw = localStorage.getItem(storageKey);"
+    },
+    {
+      "file": "src/lib/vocabEngine.ts",
+      "line": 1056,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(storageKey, JSON.stringify(defaultData));"
+    },
+    {
+      "file": "src/lib/vocabEngine.ts",
+      "line": 1066,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(storageKey, JSON.stringify(data));"
+    },
+    {
+      "file": "src/lib/vocabVerificationEngine.ts",
+      "line": 658,
+      "type": "TODO_OR_COMING_SOON",
+      "code": "if (/\\[insert\\]|<word>|TODO|N\\/A|example:|ví dụ:/i.test(cleanEx)) {"
+    },
+    {
+      "file": "src/lib/webGmailService.ts",
+      "line": 31,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "this.webhookUrl = localStorage.getItem('lifeos_gmail_webhook_url') || '';"
+    },
+    {
+      "file": "src/lib/webGmailService.ts",
+      "line": 32,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "this.resendApiKey = localStorage.getItem('lifeos_resend_api_key') || '';"
+    },
+    {
+      "file": "src/lib/webGmailService.ts",
+      "line": 39,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_gmail_webhook_url', this.webhookUrl);"
+    },
+    {
+      "file": "src/lib/youtubeMusicEngine.ts",
+      "line": 129,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "return localStorage.getItem(key);"
+    },
+    {
+      "file": "src/lib/youtubeMusicEngine.ts",
+      "line": 138,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem(key, val);"
+    },
+    {
+      "file": "src/lib/__tests__/companionTest.ts",
+      "line": 118,
+      "type": "MATH_RANDOM_USAGE",
+      "code": "const calculateDelay = () => Math.floor(Math.random() * 60000) + 120000;"
+    },
+    {
+      "file": "src/main.tsx",
+      "line": 14,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "const visible = localStorage.getItem('lifeos_visible_modules');"
+    },
+    {
+      "file": "src/main.tsx",
+      "line": 19,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.setItem('lifeos_visible_modules', JSON.stringify(cleaned));"
+    },
+    {
+      "file": "src/main.tsx",
+      "line": 31,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.getItem('lifeos_vocab_session_state') ||"
+    },
+    {
+      "file": "src/main.tsx",
+      "line": 32,
+      "type": "LOCAL_STORAGE_USAGE",
+      "code": "localStorage.getItem('lifeos_pomodoro_active_session') ||"
+    }
+  ]
+}
