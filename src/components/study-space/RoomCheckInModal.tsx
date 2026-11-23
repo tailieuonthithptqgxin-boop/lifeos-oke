@@ -211,7 +211,7 @@ export function RoomCheckInModal({
   const modalContent = (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
       <div
-        className="w-full max-w-xl bg-white dark:bg-[#181a1d] border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 my-auto max-h-[92vh] flex flex-col"
+        className="w-full max-w-xl bg-white dark:bg-[#181a1d] border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[88vh] flex flex-col"
         role="dialog"
         aria-modal="true"
       >

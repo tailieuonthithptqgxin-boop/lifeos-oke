@@ -273,16 +273,16 @@ const getInitialState = (): AppState => {
   const effectiveSub: UserSubscriptionStatus = {
     hasAccess: true,
     lifecycleStatus: 'ACTIVE',
-    planId: 'FREE_FULL_ACCESS',
-    planType: 'PERSONAL',
-    planName: 'Trải nghiệm Miễn phí (Full Access)',
+    planId: isAdmin ? 'ADMIN_FULL_ACCESS' : 'FREE_FULL_ACCESS',
+    planType: isAdmin ? 'SYSTEM' : 'PERSONAL',
+    planName: isAdmin ? 'Quản Trị Viên (Full Access)' : 'Trải nghiệm Miễn phí (Full Access)',
     status: 'ACTIVE',
     remainingDays: 99999,
     role: cachedUser?.role,
     isTrial: false,
     isTrialActive: false,
     isTrialExpired: false,
-    isGlobalFreeMode: true
+    isGlobalFreeMode: !isAdmin
   };
 
   let initialMode: WorkspaceMode = 'Advanced';
@@ -662,16 +662,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const initialSub: UserSubscriptionStatus = {
       hasAccess: true,
       lifecycleStatus: 'ACTIVE',
-      planId: 'FREE_FULL_ACCESS',
-      planType: 'PERSONAL',
-      planName: 'Trải nghiệm Miễn phí (Full Access)',
+      planId: isAdmin ? 'ADMIN_FULL_ACCESS' : 'FREE_FULL_ACCESS',
+      planType: isAdmin ? 'SYSTEM' : 'PERSONAL',
+      planName: isAdmin ? 'Quản Trị Viên (Full Access)' : 'Trải nghiệm Miễn phí (Full Access)',
       status: 'ACTIVE',
       remainingDays: 99999,
       role: unifiedUser.role,
       isTrial: false,
       isTrialActive: false,
       isTrialExpired: false,
-      isGlobalFreeMode: true
+      isGlobalFreeMode: !isAdmin
     };
 
     if (initialSub) {
@@ -680,8 +680,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch (e) {}
     }
 
-    // Authenticate user immediately and transition UI directly to study hall / target view
-    const destinationView = targetView || (isGoogleCallback ? 'study' : 'study');
+    // Authenticate user immediately and transition UI directly to target view (admin view for Admin, study hall for Users)
+    const destinationView = targetView || (isAdmin ? 'admin' : (isGoogleCallback ? 'study' : 'study'));
     try {
       localStorage.setItem('lifeos_current_view', destinationView);
     } catch (e) {}

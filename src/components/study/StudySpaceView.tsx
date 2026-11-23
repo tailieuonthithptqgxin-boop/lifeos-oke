@@ -925,7 +925,7 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
       {sessionSummary && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
           <div
-            className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-7 text-center space-y-5 animate-in zoom-in-95 duration-200 my-auto max-h-[92vh] overflow-y-auto"
+            className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-7 text-center space-y-5 animate-in zoom-in-95 duration-200 max-h-[88vh] overflow-y-auto"
             role="dialog"
             aria-modal="true"
           >

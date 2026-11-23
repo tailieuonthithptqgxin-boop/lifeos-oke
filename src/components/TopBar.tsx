@@ -153,8 +153,13 @@ export function TopBar() {
         <span className="font-bold text-sm tracking-tight text-slate-900 dark:text-white">LifeOS</span>
       </div>
 
-      {/* Global Free Full Access Active Indicator */}
-      {subscriptionStatus?.isGlobalFreeMode ? (
+      {/* Status / Plan Badge */}
+      {isAdmin ? (
+        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-400/30 text-purple-600 dark:text-purple-400 text-xs font-bold shrink-0">
+          <Shield className="w-3.5 h-3.5 text-purple-500" />
+          <span>Quản Trị Viên (Full Access)</span>
+        </div>
+      ) : subscriptionStatus?.isGlobalFreeMode ? (
         <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-400/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold shrink-0">
           <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
           <span>Trải nghiệm Miễn phí (Full Access)</span>
