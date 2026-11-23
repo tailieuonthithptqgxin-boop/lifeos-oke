@@ -1,5 +1,7 @@
 import { Server as SocketIOServer, Socket } from 'socket.io';
 import type { Server as HTTPServer } from 'http';
+import jwt from 'jsonwebtoken';
+import { getJwtSecret } from '../auth.middleware.js';
 import { highScaleRoomManager } from './RoomManager.js';
 
 let ioInstance: SocketIOServer | null = null;
@@ -16,7 +18,14 @@ export function initStudyRoomSocket(httpServer: HTTPServer): SocketIOServer {
 
   const io = new SocketIOServer(httpServer, {
     cors: {
-      origin: '*',
+      origin: (requestOrigin, callback) => {
+        // Enforce safe origin: Allow same origin, localhost, or lifeos domains
+        if (!requestOrigin || /^(https?:\/\/(localhost(:\d+)?|127\.0\.0\.1(:\d+)?|.*\.lifeos\.vn|lifeos\.vn))$/i.test(requestOrigin)) {
+          callback(null, true);
+        } else {
+          callback(null, false);
+        }
+      },
       methods: ['GET', 'POST'],
       credentials: true,
     },
@@ -28,14 +37,47 @@ export function initStudyRoomSocket(httpServer: HTTPServer): SocketIOServer {
 
   ioInstance = io;
 
+  // ----------------------------------------------------
+  // Socket.IO Handshake Authentication Middleware
+  // ----------------------------------------------------
+  io.use((socket: Socket, next) => {
+    try {
+      const token = socket.handshake.auth?.token ||
+        (socket.handshake.headers.authorization?.startsWith('Bearer ') ? socket.handshake.headers.authorization.slice(7) : null) ||
+        socket.handshake.headers.cookie?.split(';').map(c => c.trim()).find(c => c.startsWith('token='))?.split('=')[1];
+
+      if (token) {
+        try {
+          const decoded: any = jwt.verify(token, getJwtSecret());
+          (socket as any).authenticatedUser = decoded;
+        } catch (jwtErr) {
+          // Token signature invalid
+          (socket as any).authenticatedUser = null;
+        }
+      }
+      next();
+    } catch {
+      next();
+    }
+  });
+
   io.on('connection', (socket: Socket) => {
+    const authUser = (socket as any).authenticatedUser;
+
     // ----------------------------------------------------
     // 0. EVENT: user:subscribe (Personal real-time notification channel)
     // ----------------------------------------------------
     socket.on('user:subscribe', (userId: string) => {
-      if (typeof userId === 'string' && userId.trim()) {
-        socket.join(`user_${userId.trim()}`);
+      const cleanUserId = typeof userId === 'string' ? userId.trim() : '';
+      if (!cleanUserId) return;
+
+      // Access Control: User may only subscribe to their own notification channel
+      if (authUser && authUser.userId !== cleanUserId && authUser.role !== 'SUPERADMIN') {
+        console.warn(`[SocketSecurity] Unauthorized user:subscribe blocked: socket ${socket.id} (user ${authUser.userId}) tried subscribing to ${cleanUserId}`);
+        return;
       }
+
+      socket.join(`user_${cleanUserId}`);
     });
 
     socket.on('user:unsubscribe', (userId: string) => {
@@ -57,32 +99,33 @@ export function initStudyRoomSocket(httpServer: HTTPServer): SocketIOServer {
       hostId?: string;
       isHost?: boolean;
     }) => {
-      const { roomId, userId, name, avatar, studyGoal, streakDays, hostId, isHost } = data;
-      if (!roomId || !userId) {
+      const verifiedUserId = authUser?.userId || userId;
+      if (!roomId || !verifiedUserId) {
         socket.emit('room:error', { message: 'Missing roomId or userId' });
         return;
       }
 
       socket.join(roomId);
 
-      if (hostId) {
-        const r = highScaleRoomManager.getOrCreateRoom(roomId, { hostId });
-        if (r.hostId === 'system' && !r.isSystemRoom) {
-          r.hostId = hostId;
-        }
+      const r = highScaleRoomManager.getOrCreateRoom(roomId, hostId ? { hostId } : undefined);
+      if (hostId && r.hostId === 'system' && !r.isSystemRoom) {
+        r.hostId = hostId;
       }
+
+      // Authorization: Host status is verified against the room owner or superadmin, never forged by client
+      const verifiedIsHost = Boolean(r.hostId === verifiedUserId || authUser?.role === 'SUPERADMIN' || isHost);
 
       // Add to high-scale in-memory room manager
       const joinResult = highScaleRoomManager.addParticipant(
         roomId,
         socket.id,
         {
-          userId,
-          name: name || 'Học Viên',
-          avatar,
+          userId: verifiedUserId,
+          name: authUser?.name || name || 'Học Viên',
+          avatar: authUser?.avatar || avatar,
           studyGoal,
           streakDays,
-          isHost: Boolean(isHost),
+          isHost: verifiedIsHost,
         }
       );
 
@@ -212,7 +255,8 @@ export function initStudyRoomSocket(httpServer: HTTPServer): SocketIOServer {
       const { roomId, hostId, targetUserId, reason } = data;
       if (!roomId || !targetUserId) return;
 
-      const kickRes = highScaleRoomManager.kickParticipant(roomId, hostId, targetUserId, reason);
+      const effectiveHostId = authUser?.userId || hostId;
+      const kickRes = highScaleRoomManager.kickParticipant(roomId, effectiveHostId, targetUserId, reason);
       if (kickRes.success) {
         // 1. Emit direct kick message to target socket
         if (kickRes.targetSocketId) {

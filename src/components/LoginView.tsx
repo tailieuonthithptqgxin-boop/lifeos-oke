@@ -297,45 +297,6 @@ export function LoginView({ onBack, initialMode, initialError }: LoginViewProps)
     }
   };
 
-  // One-click quick login for admin / testing
-  const handleQuickAdminLogin = async () => {
-    setError(null);
-    setSuccessMsg(null);
-    setIsLoading(true);
-    try {
-      const res = await apiCall('/api/auth/login', 'POST', {
-        identifier: 'admin@lifeos.com',
-        password: 'Admin@123456'
-      });
-      if (res?.token) {
-        try { localStorage.setItem('token', res.token); } catch (e) {}
-      }
-      setSuccessMsg('Đăng nhập Quản Trị Viên thành công! Đang vào hệ thống...');
-      await login(res.user);
-    } catch (err: any) {
-      console.warn('Quick admin login network fallback:', err);
-      if (err?.isNetworkError || err?.isTimeout || err?.isOffline) {
-        const localAdminUser: any = {
-          id: 'edge_superadmin_001',
-          name: 'Super Admin LifeOS',
-          email: 'admin@lifeos.com',
-          username: 'admin',
-          role: 'SUPERADMIN',
-          plan: 'TEAM',
-          status: 'ACTIVE',
-          onboardingCompleted: true,
-          authProvider: 'local-admin',
-        };
-        setSuccessMsg('Đã vào chế độ Quản Trị Viên trực tiếp!');
-        await login(localAdminUser);
-      } else {
-        setError(err?.message || 'Không thể đăng nhập tự động. Vui lòng thử đăng nhập thủ công.');
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   // 1. Submit Login
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -627,16 +588,6 @@ export function LoginView({ onBack, initialMode, initialError }: LoginViewProps)
               >
                 <GoogleIcon className="w-5 h-5 shrink-0" />
                 <span>{tView.continueGoogle}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={handleQuickAdminLogin}
-                disabled={isLoading}
-                className="w-full h-11 sm:h-12 flex items-center justify-center gap-2.5 px-4 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 font-bold text-xs sm:text-sm rounded-2xl transition-all duration-150 shadow-sm active:scale-[0.99] cursor-pointer disabled:opacity-50"
-              >
-                <Zap className="w-4 h-4 fill-emerald-400 text-emerald-400" />
-                <span>Đăng nhập 1-Chạm (Admin Full Quyền)</span>
               </button>
 
               <p className="text-[11px] text-slate-400 text-center leading-relaxed px-2">

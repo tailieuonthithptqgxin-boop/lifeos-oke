@@ -29,22 +29,15 @@ export interface Env {
   NODE_ENV?: string;
 }
 
-const EDGE_FALLBACK_JWT_SECRET = 'lifeos_enterprise_permanent_secure_jwt_secret_key_2026_salt_9988_robust';
-
-// Edge Request Coalescing Map for public GET endpoints (prevents 10,000 simultaneous requests hitting backend)
-const inFlightEdgeGets = new Map<string, Promise<{ status: number; statusText: string; headers: [string, string][]; body: ArrayBuffer }>>();
-
-function hasExternalBackend(env: Env): boolean {
-  const url = (env.API_BACKEND_URL || '').trim();
-  if (!url) return false;
-  if (/^https?:\/\/(localhost|127\.0\.0\.1|0\.0\.0\.0)(:\d+)?(\/|$)/i.test(url)) {
-    return false;
-  }
-  return /^https?:\/\//i.test(url);
-}
-
 function getEdgeJwtSecret(env: Env): string {
-  return (env.JWT_SECRET || '').trim() || EDGE_FALLBACK_JWT_SECRET;
+  const secret = (env.JWT_SECRET || '').trim();
+  if (!secret) {
+    if (env.NODE_ENV === 'production') {
+      throw new Error('[Security Exception] JWT_SECRET must be configured via Cloudflare Secrets.');
+    }
+    return 'lifeos_dev_local_secret_must_be_set_in_production_min32chars';
+  }
+  return secret;
 }
 
 function base64UrlEncode(input: Uint8Array | string): string {
@@ -164,24 +157,12 @@ function buildErrorRedirect(origin: string, code: string, reason?: string): Resp
   return Response.redirect(target.toString(), 302);
 }
 
-const EDGE_DEFAULT_GOOGLE_CLIENT_ID_CHARS = [
-  54, 48, 55, 55, 56, 48, 50, 56, 53, 53, 52, 52, 45, 112, 118, 107, 57, 51, 103, 109, 97, 110, 115, 102, 111, 115, 98, 99, 50, 52, 56, 106, 55, 112, 51, 48, 112, 112, 117, 54, 112, 112, 114, 56, 111, 46, 97, 112, 112, 115, 46, 103, 111, 111, 103, 108, 101, 117, 115, 101, 114, 99, 111, 110, 116, 101, 110, 116, 46, 99, 111, 109
-];
-
-const EDGE_DEFAULT_GOOGLE_CLIENT_SECRET_CHARS = [
-  71, 79, 67, 83, 80, 88, 45, 106, 66, 50, 90, 82, 119, 99, 68, 104, 111, 74, 79, 116, 49, 79, 65, 108, 77, 70, 105, 49, 118, 67, 106, 116, 49, 121, 49
-];
-
 function resolveEdgeGoogleClientId(env: Env): string {
-  const envVal = (env.GOOGLE_CLIENT_ID || '').trim();
-  if (envVal) return envVal;
-  return String.fromCharCode(...EDGE_DEFAULT_GOOGLE_CLIENT_ID_CHARS);
+  return (env.GOOGLE_CLIENT_ID || '').trim();
 }
 
 function resolveEdgeGoogleClientSecret(env: Env): string {
-  const envVal = (env.GOOGLE_CLIENT_SECRET || '').trim();
-  if (envVal) return envVal;
-  return String.fromCharCode(...EDGE_DEFAULT_GOOGLE_CLIENT_SECRET_CHARS);
+  return (env.GOOGLE_CLIENT_SECRET || '').trim();
 }
 
 /**
@@ -520,7 +501,7 @@ async function handleEdgeAuthRoute(request: Request, env: Env): Promise<Response
       ].join('; ');
 
       const targetOrigin = parsedState.origin || origin;
-      const successUrl = `${targetOrigin}/?login=google_success&token=${encodeURIComponent(jwtToken)}`;
+      const successUrl = `${targetOrigin}/?login=google_success`;
 
       const headers = new Headers({
         Location: successUrl,
@@ -686,64 +667,6 @@ async function handleEdgeAuthRoute(request: Request, env: Env): Promise<Response
     );
   }
 
-  // 5.6. POST /api/auth/admin-login (1-Tap Admin Login)
-  if (pathname === '/api/auth/admin-login' && request.method === 'POST') {
-    const user = {
-      id: 'edge_superadmin_001',
-      name: 'Super Admin LifeOS',
-      email: 'admin@lifeos.com',
-      username: 'admin',
-      avatar: null,
-      role: 'SUPERADMIN',
-      plan: 'TEAM',
-      status: 'ACTIVE',
-      onboardingCompleted: true,
-      authProvider: 'cloudflare-edge-admin',
-    };
-
-    const jwtToken = await signEdgeJwt(
-      {
-        userId: user.id,
-        role: user.role,
-        email: user.email,
-        name: user.name,
-        avatar: user.avatar,
-        plan: user.plan,
-        onboardingCompleted: true,
-        authProvider: user.authProvider,
-        jti: crypto.randomUUID(),
-      },
-      secret,
-      14 * 24 * 60 * 60
-    );
-
-    const sessionCookie = [
-      `token=${encodeURIComponent(jwtToken)}`,
-      'HttpOnly',
-      'SameSite=Lax',
-      'Path=/',
-      `Max-Age=${14 * 24 * 60 * 60}`,
-      ...(isHttps ? ['Secure'] : []),
-    ].join('; ');
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        message: 'Đăng nhập Quản Trị Viên thành công!',
-        user,
-        token: jwtToken,
-      }),
-      {
-        status: 200,
-        headers: {
-          'Content-Type': 'application/json',
-          'Set-Cookie': sessionCookie,
-          'Cache-Control': 'no-store',
-        },
-      }
-    );
-  }
-
   // 6. POST /api/auth/register (Quick 1-Tap Trial & Self-Registration on Cloudflare Edge)
   if (pathname === '/api/auth/register' && request.method === 'POST') {
     let body: any = {};
@@ -856,10 +779,11 @@ async function handleEdgeAuthRoute(request: Request, env: Env): Promise<Response
       );
     }
 
-    const initialAdminEmail = (env.INITIAL_ADMIN_EMAIL || 'admin@lifeos.com').toLowerCase().trim();
-    const isAdminLogin =
-      (identifier === initialAdminEmail || identifier === 'admin@lifeos.com' || identifier === 'admin') &&
-      (rawPassword === 'Admin@123456' || rawPassword === 'password123' || rawPassword === 'admin' || rawPassword.length >= 6);
+    const initialAdminEmail = (env.INITIAL_ADMIN_EMAIL || '').toLowerCase().trim();
+    const configuredAdminPassword = (env.INITIAL_ADMIN_PASSWORD || '').trim();
+    const isAdminIdentifier = initialAdminEmail && (identifier === initialAdminEmail || identifier === 'admin');
+    const isAdminPasswordValid = configuredAdminPassword && constantTimeEqual(rawPassword, configuredAdminPassword);
+    const isAdminLogin = Boolean(isAdminIdentifier && isAdminPasswordValid);
 
     const cleanEmail = identifier.includes('@') ? identifier : `${identifier}@lifeos.vn`;
     const displayName = isAdminLogin

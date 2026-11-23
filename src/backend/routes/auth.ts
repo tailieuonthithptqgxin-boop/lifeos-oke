@@ -312,13 +312,17 @@ authRouter.post('/login', authRateLimiter, validateBody(LoginSchema), async (req
       return;
     }
 
+    // Dummy hash for constant-time comparison when user does not exist (NIST SP 800-63B-4 anti-enumeration)
+    const DUMMY_HASH = '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy';
+
     if (!user) {
+      await bcrypt.compare(rawPassword, DUMMY_HASH);
       console.warn(`[AuthAudit][user_not_found] Đăng nhập thất bại: Tài khoản không tồn tại ("${cleanInput}") từ IP: ${clientIp}`);
       await dbService.recordLoginAttempt(cleanInput, false, 'user_not_found', clientIp).catch(() => {});
       res.status(401).json({
         success: false,
-        error: { code: 'INVALID_CREDENTIALS', message: 'Email/Tên đăng nhập hoặc mật khẩu không chính xác' },
-        message: 'Email/Tên đăng nhập hoặc mật khẩu không chính xác'
+        error: { code: 'INVALID_CREDENTIALS', message: 'Tài khoản hoặc mật khẩu không chính xác' },
+        message: 'Tài khoản hoặc mật khẩu không chính xác'
       });
       return;
     }
@@ -349,28 +353,12 @@ authRouter.post('/login', authRateLimiter, validateBody(LoginSchema), async (req
     const isValidPassword = await bcrypt.compare(rawPassword, user.passwordHash);
 
     if (!isValidPassword) {
-      // Check if this account was created via Google OAuth and has not set an email password
-      const isGoogleOnly = Boolean(user.googleId) && Boolean(user.passwordHash);
-      if (isGoogleOnly) {
-        console.warn(`[AuthAudit][oauth_account] Người dùng ${user.email} được tạo bằng Google OAuth; nhập mật khẩu trực tiếp không khớp.`);
-        await dbService.recordLoginAttempt(cleanInput, false, 'oauth_account', clientIp, user.id);
-        res.status(401).json({
-          success: false,
-          error: {
-            code: 'OAUTH_ACCOUNT',
-            message: 'Tài khoản này được đăng ký thông qua Google. Vui lòng bấm "Đăng nhập bằng Google", hoặc sử dụng chức năng "Quên mật khẩu" để thiết lập mật khẩu trực tiếp.'
-          },
-          message: 'Tài khoản này được đăng ký thông qua Google. Vui lòng bấm "Đăng nhập bằng Google", hoặc sử dụng chức năng "Quên mật khẩu" để thiết lập mật khẩu trực tiếp.'
-        });
-        return;
-      }
-
       console.warn(`[AuthAudit][invalid_password] Mật khẩu không chính xác cho tài khoản: ${user.email}`);
       await dbService.recordLoginAttempt(cleanInput, false, 'invalid_password', clientIp, user.id);
       res.status(401).json({
         success: false,
-        error: { code: 'INVALID_CREDENTIALS', message: 'Email/Tên đăng nhập hoặc mật khẩu không chính xác' },
-        message: 'Email/Tên đăng nhập hoặc mật khẩu không chính xác'
+        error: { code: 'INVALID_CREDENTIALS', message: 'Tài khoản hoặc mật khẩu không chính xác' },
+        message: 'Tài khoản hoặc mật khẩu không chính xác'
       });
       return;
     }

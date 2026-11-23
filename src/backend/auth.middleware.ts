@@ -12,10 +12,15 @@ export interface AuthRequest extends Request {
   subscription?: any;
 }
 
-// Stable, permanent fallback secret ensures node restarts/rebuilds never invalidate client JWT tokens
-const PERMANENT_FALLBACK_JWT_SECRET = 'lifeos_enterprise_permanent_secure_jwt_secret_key_2026_salt_9988_robust';
 export function getJwtSecret(): string {
-  return process.env.JWT_SECRET || PERMANENT_FALLBACK_JWT_SECRET;
+  const secret = (process.env.JWT_SECRET || '').trim();
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('[Security Exception] JWT_SECRET environment variable is missing in production!');
+    }
+    return 'lifeos_dev_local_secret_must_be_set_in_production_min32chars';
+  }
+  return secret;
 }
 
 /**

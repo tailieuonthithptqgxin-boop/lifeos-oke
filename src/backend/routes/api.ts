@@ -2015,9 +2015,9 @@ apiRouter.put('/data/:collection/:id', async (req: AuthRequest, res: Response) =
       delete updates.status; // For system user status only
     }
     if (collection === 'financeAccounts') {
-      if (updates.balance !== undefined) {
-        updates.balance = parseFloat(updates.balance) || 0;
-      }
+      // Strict Financial Protection: Account balance cannot be updated via generic PUT!
+      // Balance is strictly maintained via double-entry transactions (/api/finance/transaction).
+      delete updates.balance;
     }
 
     const updated = await dbService.updateUserCollectionItem(collection, userId, id, updates, req.userRole);
@@ -4786,7 +4786,33 @@ apiRouter.post('/focus/complete', async (req: AuthRequest, res: Response) => {
   const prisma = getPrisma();
 
   try {
-    const durationMins = parseFloat(actualDuration) || parseFloat(plannedDuration) || 25;
+    const requestedMins = parseFloat(actualDuration) || parseFloat(plannedDuration) || 25;
+
+    // Anti-Cheat & Business Integrity: Cap single session to 180 mins & enforce valid range
+    if (isNaN(requestedMins) || requestedMins <= 0 || requestedMins > 180) {
+      res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_DURATION', message: 'Thời lượng tập trung không hợp lệ (tối thiểu 1 phút, tối đa 180 phút).' },
+        message: 'Thời lượng tập trung không hợp lệ (tối thiểu 1 phút, tối đa 180 phút).'
+      });
+      return;
+    }
+
+    // Anti-Cheat Frequency Guard: Minimum 30s elapsed between completed focus sessions
+    const recentSession = await prisma.focusSession.findFirst({
+      where: { userId, status: 'Completed' },
+      orderBy: { createdAt: 'desc' }
+    });
+    if (recentSession && (Date.now() - new Date(recentSession.createdAt).getTime()) < 30000) {
+      res.status(429).json({
+        success: false,
+        error: { code: 'TOO_FREQUENT', message: 'Bạn đang ghi nhận phiên tập trung quá nhanh. Vui lòng hoàn thành phiên thực tế trước khi gửi.' },
+        message: 'Bạn đang ghi nhận phiên tập trung quá nhanh. Vui lòng hoàn thành phiên thực tế trước khi gửi.'
+      });
+      return;
+    }
+
+    const durationMins = requestedMins;
     const durationHours = durationMins / 60;
 
     // 1. Create focus session

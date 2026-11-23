@@ -1,21 +1,43 @@
 import { Request, Response, NextFunction } from 'express';
 
 /**
- * Sanitize a string against dangerous HTML/script tags and event handlers.
+ * Sanitize a string against dangerous HTML/script tags, pseudo-protocols, and event handlers.
+ * Employs iterative parsing to prevent nested bypass vectors (e.g., <scr<script>ipt>).
  */
 export function sanitizeString(val: string): string {
   if (typeof val !== 'string') return val;
   
-  return val
+  let cleaned = val
     // Remove null bytes
     .replace(/\0/g, '')
-    // Strip <script>...</script>
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    // Strip javascript: pseudo protocol
-    .replace(/javascript:/gi, '')
-    // Strip common dangerous event handlers (onerror, onload, onclick, onmouseover)
-    .replace(/on\w+\s*=/gi, '')
-    .trim();
+    // Strip dangerous pseudo-protocols
+    .replace(/javascript\s*:/gi, '')
+    .replace(/vbscript\s*:/gi, '')
+    .replace(/data\s*:\s*text\/html/gi, '');
+
+  // Iteratively strip dangerous tags & their inner contents for executable containers (<script>, <iframe>, <style>)
+  let prev: string;
+  let iterations = 0;
+  do {
+    prev = cleaned;
+    // Strip script blocks and their executable content entirely
+    cleaned = cleaned.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+    // Strip iframe blocks and their content
+    cleaned = cleaned.replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '');
+    // Strip style blocks and their content
+    cleaned = cleaned.replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '');
+    // Strip dangerous tags (including unclosed tags or isolated tags)
+    cleaned = cleaned.replace(/<\/?(script|iframe|object|embed|applet|meta|link|style|base|form|input|button)\b[^>]*>/gi, '');
+    // Strip tags with inline event handlers
+    cleaned = cleaned.replace(/<[a-z0-9_-]+\b[^>]*?\bon\w+\s*=[^>]*>/gi, '');
+    // Strip dangling event handler attributes
+    cleaned = cleaned.replace(/on\w+\s*=\s*(?:'[^']*'|"[^"]*"|[^\s>]+)/gi, '');
+    // Strip incomplete or dangling tag fragments (e.g., <scr from nested script evasion)
+    cleaned = cleaned.replace(/<\/?(scr|script|iframe|style|object|embed|applet)?$/gi, '');
+    iterations++;
+  } while (cleaned !== prev && iterations < 10);
+
+  return cleaned.trim();
 }
 
 /**
