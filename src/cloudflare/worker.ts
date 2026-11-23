@@ -488,7 +488,7 @@ async function handleEdgeAuthRoute(request: Request, env: Env): Promise<Response
         role: isAdmin ? 'SUPERADMIN' : 'USER',
         plan: isAdmin ? 'TEAM' : 'PRO',
         status: 'ACTIVE',
-        onboardingCompleted: false,
+        onboardingCompleted: true,
         authProvider: 'google-edge',
       };
 
@@ -501,6 +501,7 @@ async function handleEdgeAuthRoute(request: Request, env: Env): Promise<Response
           avatar: edgeUser.avatar,
           googleId: edgeUser.googleId,
           plan: edgeUser.plan,
+          onboardingCompleted: true,
           authProvider: 'google-edge',
           jti: crypto.randomUUID(),
         },
@@ -518,7 +519,7 @@ async function handleEdgeAuthRoute(request: Request, env: Env): Promise<Response
       ].join('; ');
 
       const targetOrigin = parsedState.origin || origin;
-      const successUrl = `${targetOrigin}/?login=google_success`;
+      const successUrl = `${targetOrigin}/?login=google_success&token=${encodeURIComponent(jwtToken)}`;
 
       const headers = new Headers({
         Location: successUrl,

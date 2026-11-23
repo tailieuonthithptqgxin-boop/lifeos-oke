@@ -295,7 +295,7 @@ function AppContent() {
       const params = new URLSearchParams(window.location.search);
       const loginStatus = params.get('login');
       const reason = params.get('reason');
-      const token = params.get('token');
+      const token = params.get('token') || (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
       if (token && token.length > 20) {
         try { localStorage.setItem('token', token); } catch (e) {}
       }
