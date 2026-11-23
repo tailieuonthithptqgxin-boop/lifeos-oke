@@ -754,6 +754,31 @@ async function handleEdgeAuthRoute(request: Request, env: Env): Promise<Response
     const isGuest = cleanEmail.startsWith('guest_');
     const userId = `edge_${crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
 
+    // Store in KV if available
+    if (env.KV) {
+      try {
+        const existing = await env.KV.get(`user:${cleanEmail}`, 'json');
+        if (existing) {
+          return new Response(
+            JSON.stringify({ success: false, message: 'Email này đã tồn tại trong hệ thống. Vui lòng đăng nhập.' }),
+            { status: 400, headers: { 'Content-Type': 'application/json' } }
+          );
+        }
+        const pwdHash = await hmacSha256Base64Url(`pwd_${rawPassword}`, secret);
+        await env.KV.put(`user:${cleanEmail}`, JSON.stringify({
+          id: userId,
+          name: cleanName,
+          email: cleanEmail,
+          passwordHash: pwdHash,
+          role: isAdmin ? 'SUPERADMIN' : 'USER',
+          plan: isAdmin ? 'TEAM' : 'PRO',
+          createdAt: new Date().toISOString()
+        }));
+      } catch (kvErr) {
+        console.warn('KV user registration warning:', kvErr);
+      }
+    }
+
     const user = {
       id: userId,
       name: cleanName,
@@ -763,7 +788,7 @@ async function handleEdgeAuthRoute(request: Request, env: Env): Promise<Response
       role: isAdmin ? 'SUPERADMIN' : 'USER',
       plan: isAdmin ? 'TEAM' : 'PRO',
       status: 'ACTIVE',
-      onboardingCompleted: isGuest,
+      onboardingCompleted: true,
       authProvider: 'cloudflare-edge',
     };
 
@@ -822,7 +847,7 @@ async function handleEdgeAuthRoute(request: Request, env: Env): Promise<Response
       );
     }
 
-    const identifier = String(body?.identifier || body?.emailOrUsername || body?.email || '').trim().toLowerCase();
+    const identifier = String(body?.identifier || body?.emailOrUsername || body?.email || body?.username || '').trim().toLowerCase();
     const rawPassword = String(body?.password || '');
 
     if (!identifier || !rawPassword) {
@@ -839,22 +864,42 @@ async function handleEdgeAuthRoute(request: Request, env: Env): Promise<Response
     const isAdminLogin = Boolean(isAdminIdentifier && isAdminPasswordValid);
 
     const cleanEmail = identifier.includes('@') ? identifier : `${identifier}@lifeos.vn`;
-    const displayName = isAdminLogin
-      ? 'Super Admin LifeOS'
-      : cleanEmail.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
-    const userId = isAdminLogin
+    // Check stored user in KV if KV is available
+    let storedUser: any = null;
+    if (env.KV) {
+      try {
+        storedUser = await env.KV.get(`user:${cleanEmail}`, 'json');
+        if (storedUser && storedUser.passwordHash) {
+          const inputHash = await hmacSha256Base64Url(`pwd_${rawPassword}`, secret);
+          if (!constantTimeEqual(inputHash, storedUser.passwordHash) && !isAdminLogin) {
+            return new Response(
+              JSON.stringify({ success: false, message: 'Tài khoản hoặc mật khẩu không chính xác.' }),
+              { status: 401, headers: { 'Content-Type': 'application/json' } }
+            );
+          }
+        }
+      } catch (kvErr) {
+        console.warn('KV user read warning:', kvErr);
+      }
+    }
+
+    const displayName = storedUser?.name || (isAdminLogin
+      ? 'Super Admin LifeOS'
+      : cleanEmail.split('@')[0].replace(/[._-]+/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()));
+
+    const userId = storedUser?.id || (isAdminLogin
       ? 'edge_superadmin_001'
-      : `edge_user_${await hmacSha256Base64Url(cleanEmail, secret).then((s) => s.slice(0, 14))}`;
+      : `edge_user_${await hmacSha256Base64Url(cleanEmail, secret).then((s) => s.slice(0, 14))}`);
 
     const user = {
       id: userId,
       name: displayName,
       email: cleanEmail,
       username: cleanEmail.split('@')[0],
-      avatar: null,
-      role: isAdminLogin ? 'SUPERADMIN' : 'USER',
-      plan: isAdminLogin ? 'TEAM' : 'PRO',
+      avatar: storedUser?.avatar || null,
+      role: isAdminLogin ? 'SUPERADMIN' : (storedUser?.role || 'USER'),
+      plan: isAdminLogin ? 'TEAM' : (storedUser?.plan || 'PRO'),
       status: 'ACTIVE',
       onboardingCompleted: true,
       authProvider: 'cloudflare-edge',

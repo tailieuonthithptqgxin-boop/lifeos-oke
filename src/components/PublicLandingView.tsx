@@ -236,7 +236,7 @@ export function PublicLandingView({ onLoginClick, onNavigateLegal, initialError 
           toast.show(`Chào mừng bạn trở lại, ${res.user.name || 'bạn'}!`, 'success', 'Đăng nhập thành công');
           notifyAuthSecurity('LOGIN_SUCCESS', res.user.email || emailOrUsername.trim(), res.user.name).catch(() => {});
           analyticsTracker.trackFeatureView('auth_login_success');
-          await login(res.user, res.token);
+          await login(res.user, res.token, 'study');
           setIsAuthModalOpen(false);
         } else {
           setAuthError(res.message || 'Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại!');
@@ -285,7 +285,7 @@ export function PublicLandingView({ onLoginClick, onNavigateLegal, initialError 
           toast.show('Chúc mừng bạn đã tạo tài khoản thành công! Không gian LifeOS của bạn đã sẵn sàng.', 'success', 'Đăng ký thành công');
           notifyAuthSecurity('REGISTER_SUCCESS', res.user.email || emailOrUsername.trim(), res.user.name).catch(() => {});
           analyticsTracker.trackFeatureView('auth_register_success');
-          await login(res.user, res.token);
+          await login(res.user, res.token, 'study');
           setIsAuthModalOpen(false);
         } else {
           setAuthError(res.message || 'Không thể tạo tài khoản. Vui lòng thử lại!');

@@ -316,18 +316,29 @@ export function LoginView({ onBack, initialMode, initialError }: LoginViewProps)
     setIsLoading(true);
     try {
       const storedRef = getStoredReferralCode();
-      const res = await apiCall('/api/auth/login', 'POST', {
+      const res = await apiCall<{
+        success: boolean;
+        user?: any;
+        token?: string;
+        message?: string;
+      }>('/api/auth/login', 'POST', {
         identifier: cleanInput,
+        emailOrUsername: cleanInput,
+        email: cleanInput,
         password: String(loginPassword),
         referralCode: storedRef || undefined
       });
+
+      if (!res || !res.user) {
+        throw new Error(res?.message || 'Email hoặc mật khẩu không chính xác.');
+      }
 
       if (res?.token) {
         try { localStorage.setItem('token', res.token); } catch (e) {}
       }
 
       if (storedRef) clearStoredReferralCode();
-      await login(res.user);
+      await login(res.user, res.token, 'study');
     } catch (err: any) {
       console.error('Login error:', err);
       let msg = 'Email/Tên đăng nhập hoặc mật khẩu không chính xác.';
@@ -371,12 +382,21 @@ export function LoginView({ onBack, initialMode, initialError }: LoginViewProps)
 
     setIsLoading(true);
     try {
-      const res = await apiCall('/api/auth/register', 'POST', {
+      const res = await apiCall<{
+        success: boolean;
+        user?: any;
+        token?: string;
+        message?: string;
+      }>('/api/auth/register', 'POST', {
         name: regName.trim(),
         email: regEmail.trim(),
         password: String(regPassword),
         referralCode: regReferralCode.trim() || undefined
       });
+
+      if (!res || !res.user) {
+        throw new Error(res?.message || 'Không thể tạo tài khoản. Vui lòng thử lại.');
+      }
 
       if (res?.token) {
         try { localStorage.setItem('token', res.token); } catch (e) {}
@@ -387,7 +407,7 @@ export function LoginView({ onBack, initialMode, initialError }: LoginViewProps)
       try {
         notifyAuthSecurity('REGISTER_SUCCESS', res.user?.email || regEmail.trim(), res.user?.name || regName.trim()).catch(() => {});
       } catch (e) {}
-      await login(res.user);
+      await login(res.user, res.token, 'study');
     } catch (err: any) {
       console.error('Registration error:', err);
       setError(err?.message || 'Không thể tạo tài khoản. Vui lòng thử lại.');
