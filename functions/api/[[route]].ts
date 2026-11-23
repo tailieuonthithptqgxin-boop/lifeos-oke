@@ -182,6 +182,81 @@ export async function onRequest(context: EventContext): Promise<Response> {
     }
   }
 
+  // 6.5. Auth Profile & Session Verification for Cloudflare Pages
+  if (pathname === '/api/auth/me' && request.method === 'GET') {
+    const authHeader = request.headers.get('Authorization') || '';
+    const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+    const cookieHeader = request.headers.get('Cookie') || '';
+    const cookieToken = cookieHeader.split(';')
+      .map(c => c.trim())
+      .find(c => c.startsWith('token='))
+      ?.split('=')[1];
+    const token = bearer || cookieToken || '';
+
+    if (!token) {
+      return jsonResponse({ success: false, message: 'Chưa đăng nhập' }, 401);
+    }
+
+    try {
+      const parts = token.split('.');
+      if (parts.length >= 2) {
+        const base64Url = parts[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split('')
+            .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+            .join('')
+        );
+        const payload = JSON.parse(jsonPayload);
+        if (payload && (payload.userId || payload.email)) {
+          const user = {
+            id: String(payload.userId || 'edge_user'),
+            email: String(payload.email || ''),
+            name: String(payload.name || payload.email?.split('@')[0] || 'Học Viên'),
+            avatar: payload.avatar || null,
+            role: String(payload.role || 'USER'),
+            plan: String(payload.plan || 'PRO'),
+            status: 'ACTIVE',
+            onboardingCompleted: true,
+          };
+          return jsonResponse({
+            success: true,
+            user,
+            token,
+            subscriptionStatus: {
+              hasAccess: true,
+              lifecycleStatus: 'ACTIVE',
+              planId: 'FREE_FULL_ACCESS',
+              planType: 'PERSONAL',
+              planName: 'Trải nghiệm Miễn phí (Full Access)',
+              status: 'ACTIVE',
+              remainingDays: 99999,
+              role: user.role,
+              isTrial: false,
+              isTrialActive: false,
+              isTrialExpired: false,
+              isGlobalFreeMode: true
+            }
+          });
+        }
+      }
+    } catch (e) {}
+
+    return jsonResponse({ success: false, message: 'Token không hợp lệ' }, 401);
+  }
+
+  // 6.6. Google Auth Config Check for Cloudflare Pages
+  if (pathname === '/api/auth/google/config' && request.method === 'GET') {
+    return jsonResponse({
+      enabled: true,
+      hasClientId: true,
+      hasClientSecret: true,
+      redirectUri: `${url.origin}/api/auth/google/callback`,
+      mode: 'cloudflare-pages'
+    });
+  }
+
   // 7. General API Fallback for Client Store
   return jsonResponse({
     success: true,

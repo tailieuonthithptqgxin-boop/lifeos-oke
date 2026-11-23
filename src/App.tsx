@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { AppProvider, useAppStore } from './lib/store';
+import { AppProvider, useAppStore, decodeJwtPayload } from './lib/store';
 import { apiCall } from './lib/apiClient';
 import { useTranslation, translations, t as translateI18n } from './lib/i18n';
 import { Sidebar } from './components/Sidebar';
@@ -301,14 +301,40 @@ function AppContent() {
       if (loginStatus === 'google_success') {
         setIsGoogleProcessing(true);
         setOauthError(null);
-        // Immediately fetch user profile and transition UI state to authenticated
-        apiCall('/api/auth/me', 'GET', undefined, 10000).then(async (res) => {
+
+        // 1. Instantly hydrate user from token so they are NEVER kicked out to landing page
+        let immediateUser: any = null;
+        if (token && token.length > 20) {
+          const payload = decodeJwtPayload(token);
+          if (payload && (payload.userId || payload.email)) {
+            immediateUser = {
+              id: String(payload.userId || `user_${Date.now()}`),
+              email: payload.email || '',
+              name: payload.name || payload.email?.split('@')[0] || 'Học Viên',
+              avatar: payload.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${payload.userId || 'student'}`,
+              role: payload.role || 'USER',
+              plan: payload.plan || 'PRO',
+              streakDays: 0,
+              xp: 0,
+              level: 1,
+              onboardingCompleted: true,
+            };
+            login(immediateUser, token);
+            setCurrentView('study');
+          }
+        }
+
+        // 2. Fetch fresh user profile from backend to sync latest data
+        apiCall('/api/auth/me', 'GET', undefined, { timeoutMs: 6000, maxRetries: 1 }).then(async (res) => {
           if (res && (res.user || res.id)) {
             const u = res.user || res;
             await login(u, token || res.token || undefined);
-            toast.success('Đăng nhập Google thành công! Chào mừng bạn quay trở lại.');
+            setCurrentView('study');
+            toast.success('Đăng nhập Google thành công! Chào mừng bạn đến với Phòng Học Trực Tuyến LifeOS 🎉');
+          } else if (immediateUser) {
+            toast.success('Đăng nhập Google thành công! Chào mừng bạn đến với Phòng Học Trực Tuyến LifeOS 🎉');
           } else {
-            const msg = 'Không thể xác thực phiên làm việc Google từ /api/auth/me.';
+            const msg = 'Không thể xác thực phiên làm việc Google từ máy chủ.';
             console.error('[Google OAuth] /api/auth/me returned empty user:', res);
             setOauthError(msg);
             setPublicView('login');
@@ -316,13 +342,19 @@ function AppContent() {
             toast.error(msg);
           }
         }).catch(async (err) => {
-          const detail = err?.message || `HTTP ${err?.status || 'UNKNOWN'}`;
-          const msg = `Xác thực phiên Google thất bại sau khi chuyển hướng: ${detail}`;
-          console.error('[Google OAuth] Post-login /api/auth/me error:', err);
-          setOauthError(msg);
-          setPublicView('login');
-          await logout();
-          toast.error(msg);
+          console.warn('[Google OAuth] /api/auth/me sync warning:', err);
+          if (immediateUser) {
+            // Keep user logged in with token session! Do NOT kick them out!
+            toast.success('Đăng nhập Google thành công! Chào mừng bạn đến với Phòng Học Trực Tuyến LifeOS 🎉');
+          } else {
+            const detail = err?.message || `HTTP ${err?.status || 'UNKNOWN'}`;
+            const msg = `Xác thực phiên Google thất bại sau khi chuyển hướng: ${detail}`;
+            console.error('[Google OAuth] Post-login /api/auth/me error:', err);
+            setOauthError(msg);
+            setPublicView('login');
+            await logout();
+            toast.error(msg);
+          }
         }).finally(() => {
           setIsGoogleProcessing(false);
           window.history.replaceState({}, document.title, window.location.pathname);

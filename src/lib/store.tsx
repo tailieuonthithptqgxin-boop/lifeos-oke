@@ -173,6 +173,24 @@ function safeJsonParse<T>(value: string | null, fallback: T): T {
   }
 }
 
+export function decodeJwtPayload(jwtToken: string): any {
+  try {
+    const parts = jwtToken.split('.');
+    if (parts.length < 2) return null;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch {
+    return null;
+  }
+}
+
 // Technique 3: SWR (Stale-While-Revalidate) Synchronous Instant Hydration
 const getInitialState = (): AppState => {
   if (typeof window === 'undefined') return { ...defaultState, isAppLoaded: true };
@@ -199,6 +217,8 @@ const getInitialState = (): AppState => {
     const storedView = localStorage.getItem('lifeos_current_view') as ViewState;
     if (tabParam && (VALID_VIEWS.has(tabParam) || tabParam.startsWith('custom_module_'))) {
       initialView = tabParam;
+    } else if (isGoogleCallback) {
+      initialView = 'study'; // Navigate straight into Study Hall / Space upon Google OAuth
     } else if (storedView && (VALID_VIEWS.has(storedView) || storedView.startsWith('custom_module_'))) {
       initialView = storedView;
     } else {
@@ -206,6 +226,30 @@ const getInitialState = (): AppState => {
     }
 
     cachedUser = safeJsonParse(localStorage.getItem('lifeos_swr_user'), null);
+
+    // Self-healing: Extract user payload directly from Google OAuth JWT if SWR cache is empty
+    if (!cachedUser && token && token.length > 20) {
+      const payload = decodeJwtPayload(token);
+      if (payload && (payload.userId || payload.email)) {
+        cachedUser = {
+          id: String(payload.userId || `user_${Date.now()}`),
+          email: payload.email || '',
+          name: payload.name || payload.email?.split('@')[0] || 'Học Viên',
+          avatar: payload.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${payload.userId || 'student'}`,
+          role: payload.role || 'USER',
+          plan: payload.plan || 'PRO',
+          streakDays: 0,
+          xp: 0,
+          level: 1,
+          onboardingCompleted: true,
+        };
+        try {
+          localStorage.setItem('lifeos_swr_user', JSON.stringify(cachedUser));
+          localStorage.setItem('lifeos_user', JSON.stringify(cachedUser));
+        } catch {}
+      }
+    }
+
     cachedCollections = safeJsonParse(localStorage.getItem('lifeos_swr_collections'), {});
     cachedSub = safeJsonParse(localStorage.getItem('lifeos_swr_sub'), null);
   } catch (e) {}

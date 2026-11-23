@@ -1437,7 +1437,15 @@ const handleGoogleCallback = async (req: Request, res: Response) => {
 
     // Issue standard JWT Token (14 days validity) matching standard authentication
     const token = jwt.sign(
-      { userId: user.id, role: user.role, email: user.email, jti: crypto.randomUUID() },
+      {
+        userId: user.id,
+        role: user.role,
+        email: user.email,
+        name: user.name,
+        avatar: user.avatar,
+        plan: user.plan,
+        jti: crypto.randomUUID(),
+      },
       getJwtSecret(),
       { expiresIn: '14d' }
     );
@@ -1564,7 +1572,15 @@ authRouter.post('/google/credential', authRateLimiter, async (req: Request, res:
 
     // Issue standard JWT Token (14 days validity) matching standard authentication
     const token = jwt.sign(
-      { userId: user.id, role: user.role, email: user.email, jti: crypto.randomUUID() },
+      {
+        userId: user.id,
+        role: user.role,
+        email: user.email,
+        name: user.name,
+        avatar: user.avatar,
+        plan: user.plan,
+        jti: crypto.randomUUID(),
+      },
       getJwtSecret(),
       { expiresIn: '14d' }
     );
