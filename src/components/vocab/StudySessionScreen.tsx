@@ -54,6 +54,7 @@ import {
   CharDiffItem
 } from '../../lib/listeningEngine';
 import { 
+  enrichVocabWord,
   getEnrichedExample, 
   getEnrichedTranslation, 
   getEnrichedExplanation, 

@@ -180,9 +180,7 @@ function AppContent() {
   React.useEffect(() => {
     if (
       (currentView as string) === 'notifications' ||
-      (currentView as string) === 'notification_settings' ||
-      (currentView as string) === 'decision' ||
-      (currentView as string) === 'decision_engine'
+      (currentView as string) === 'notification_settings'
     ) {
       setCurrentView('dashboard');
     }
@@ -492,7 +490,7 @@ function AppContent() {
       return <DashboardView />;
     }
 
-    if (currentView === 'account') {
+    if (currentView === 'account' || currentView === 'my-account' || currentView === 'my_account') {
       return <MyAccountView />;
     }
 
@@ -534,16 +532,19 @@ function AppContent() {
 
     switch (currentView) {
       case 'dashboard': return <DashboardView />;
-      case 'tasks': return <ScheduleAndTasksView initialTab="today" />;
+      case 'tasks':
+      case 'schedule': return <ScheduleAndTasksView initialTab="today" />;
       case 'calendar': return <ScheduleAndTasksView initialTab="calendar" />;
       case 'finance': return <FinanceView />;
       case 'focus': return <FocusView />;
       case 'projects': return <ProjectsView />;
-      case 'study': return <StudyView />;
+      case 'study':
+      case 'vocab': return <StudyView />;
       case 'study-space': return <StudySpaceView initialTab="rooms" />;
       case 'classroom': return <StudySpaceView initialTab="classroom" />;
       case 'connect':
       case 'feed':
+      case 'community':
         return <LifeOsConnectView />;
       case 'goals': return <GoalsView />;
       case 'notes': return <NotesView />;
@@ -552,12 +553,15 @@ function AppContent() {
       case 'referral':
       case 'affiliate': return <ReferralView />;
       case 'decision':
-      case 'decision_engine': return <DashboardView />;
+      case 'decision-engine':
+      case 'decision_engine': return <DecisionEngineView />;
       case 'automation':
+      case 'automations':
       case 'automation_engine': return <AutomationEngineView />;
       case 'marketplace': return <MarketplaceView />;
       case 'cart': return <CartView />;
       case 'account':
+      case 'my-account':
       case 'my_account': return <MyAccountView />;
       case 'subscription': return <SubscriptionManagementView />;
       case 'checkout': return <CheckoutView onCancel={() => setCurrentView('subscription')} onSuccess={() => setCurrentView('subscription')} />;

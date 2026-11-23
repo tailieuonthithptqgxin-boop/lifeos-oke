@@ -27,6 +27,7 @@ import {
   cancelEntityReminders,
   rescheduleEntityReminders
 } from '../services/notification/eventReminderEngine.js';
+import { globalChatService } from '../services/globalChat.service.js';
 import { paymentRateLimiter, couponRateLimiter } from '../security/rateLimiter.js';
 import { emailQueueService } from '../services/emailQueue.service.js';
 import { SystemNotificationHelper } from '../services/systemNotification.helper.js';
@@ -269,6 +270,63 @@ apiRouter.get('/auth/google', (req, res) => res.redirect('/api/auth/google'));
 apiRouter.get('/auth/google/callback', (req, res) => {
   const qs = new URLSearchParams(req.query as any).toString();
   res.redirect(qs ? ('/api/auth/google/callback?' + qs) : '/api/auth/google/callback');
+});
+
+// System: Version API (Public for PWA update verifier & client cache headers)
+apiRouter.get('/version', (req, res) => {
+  res.json({
+    success: true,
+    version: '2.0.2',
+    build: '20261114.2',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Realtime: Global Chat In-Memory Stream & Messages (Public community room)
+apiRouter.get('/global-chat/messages', (req, res) => {
+  const { beforeId, limit } = req.query;
+  const result = globalChatService.getMessages(beforeId as string | undefined, Number(limit) || 50);
+  res.json({ success: true, ...result });
+});
+
+apiRouter.post('/global-chat/messages', (req, res) => {
+  const { content } = req.body;
+  const user = (req as any).user || {
+    id: (req as any).userId || 'guest_' + Math.random().toString(36).substring(2, 7),
+    name: (req as any).userName || 'Học viên',
+  };
+  const result = globalChatService.postMessage(user, content);
+  if (!result.success) {
+    res.status(400).json(result);
+    return;
+  }
+  res.json(result);
+});
+
+apiRouter.get('/global-chat/stream', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+  if (typeof (res as any).flushHeaders === 'function') {
+    (res as any).flushHeaders();
+  }
+
+  // Initial event
+  res.write(`event: online_count\ndata: ${JSON.stringify({ count: globalChatService.getOnlineCount() })}\n\n`);
+
+  const unsubscribe = globalChatService.subscribe((data) => {
+    try {
+      res.write(`event: ${data.event}\ndata: ${JSON.stringify(data.payload)}\n\n`);
+    } catch {
+      // client disconnected
+    }
+  });
+
+  req.on('close', () => {
+    unsubscribe();
+    res.end();
+  });
 });
 
 // Protect all /api endpoints with authentication

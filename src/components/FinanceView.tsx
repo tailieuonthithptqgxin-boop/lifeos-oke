@@ -9,6 +9,7 @@ import {
 import { formatCurrency, formatCompactCurrency, formatLocalDateKey } from '../lib/utils';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { soundEngine } from '../lib/soundEngine';
+import { toast } from '../lib/toast';
 
 // Subcomponents and Modals
 import { FinanceTabButton } from './finance/FinanceTabButton';
@@ -290,17 +291,38 @@ export function FinanceView() {
     const trimmed = quickTxInput.trim();
     if (!trimmed || isQuickSubmitting) return;
 
-    const defaultAcc = financeAccounts.length > 0 ? financeAccounts[0] : null;
-    const defaultAccId = defaultAcc ? defaultAcc.id : '';
-
     try {
       setIsQuickSubmitting(true);
-      const parsed = parseQuickTransaction(trimmed, defaultAccId);
+
+      let targetAccId = financeAccounts.length > 0 ? financeAccounts[0]?.id : '';
+
+      // Auto-provision default cash wallet if none exists yet
+      if (!targetAccId) {
+        try {
+          const defaultAcc = await addFinanceAccount({
+            name: 'Ví tiền mặt',
+            type: 'Tiền mặt',
+            balance: 0,
+            currency: 'VND'
+          });
+          targetAccId = defaultAcc?.id || (useAppStore.getState?.()?.financeAccounts?.[0]?.id ?? '');
+        } catch {}
+      }
+
+      if (!targetAccId) {
+        toast.info('Vui lòng tạo một Tài khoản hoặc Ví trước khi ghi chép.');
+        setActiveTab('accounts');
+        return;
+      }
+
+      const parsed = parseQuickTransaction(trimmed, targetAccId);
       await addTransaction(parsed);
       soundEngine.playSuccess();
       setQuickTxInput('');
-    } catch (err) {
+      toast.success(`Đã ghi nhận giao dịch: ${parsed.description || 'Chi tiêu'} (${parsed.amount.toLocaleString()}đ)`);
+    } catch (err: any) {
       console.error('Failed to quick add transaction:', err);
+      toast.error(err?.message || 'Không thể thêm giao dịch nhanh.');
     } finally {
       setIsQuickSubmitting(false);
     }
