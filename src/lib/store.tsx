@@ -74,7 +74,7 @@ interface AppState {
 
 // Generate context generic action types
 interface AppContextType extends AppState {
-  login: (user: User, token?: string) => Promise<void> | void;
+  login: (user: User, token?: string, targetView?: AppView) => Promise<void> | void;
   logout: () => void;
   completeOnboarding: (selections?: any) => Promise<void>;
   resetOnboarding: () => Promise<void>;
@@ -646,7 +646,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const login = async (user: User, token?: string) => {
+  const login = async (user: User, token?: string, targetView?: AppView) => {
     const unifiedUser = normalizeUserStats(user);
     try {
       if (token && token.length > 10) {
@@ -680,13 +680,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch (e) {}
     }
 
+    // Authenticate user immediately and transition UI directly to study hall / target view
+    const destinationView = targetView || (isGoogleCallback ? 'study' : 'study');
+    try {
+      localStorage.setItem('lifeos_current_view', destinationView);
+    } catch (e) {}
+
     // Authenticate user immediately and transition UI without delay
     setState(s => ({
       ...defaultState,
       isAuthenticated: true,
       currentUser: unifiedUser,
+      currentView: destinationView,
       subscriptionStatus: initialSub || s.subscriptionStatus,
-      hasCompletedOnboarding: !!user.onboardingCompleted,
+      hasCompletedOnboarding: true,
       theme: s.theme,
       language: s.language,
       isAppLoaded: true

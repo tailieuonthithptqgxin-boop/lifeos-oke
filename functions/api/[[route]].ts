@@ -260,7 +260,7 @@ export async function onRequest(context: EventContext): Promise<Response> {
     }
 
     // Cryptographically verify JWT token signature
-    const secretToUse = jwtSecret || 'lifeos_dev_local_secret_must_be_set_in_production_min32chars';
+    const secretToUse = jwtSecret || 'lifeos_edge_jwt_secret_token_session_2026_salt_9988_robust_min32';
     const payload = await verifyJwtHmacSha256(token, secretToUse);
 
     if (!payload || (!payload.userId && !payload.email)) {

@@ -220,7 +220,7 @@ export async function scheduleEntityReminders(
   }
 
   const safeTitle = (entity.title || (isTask ? 'Nhiệm vụ' : 'Sự kiện')).trim();
-  const appBaseUrl = (process.env.APP_URL || 'https://www.quanlicanhan.online').replace(/\/$/, '');
+  const appBaseUrl = (process.env.APP_URL || 'https://quanlicanhan.online').replace(/\/$/, '');
   const actionUrl = isTask ? `${appBaseUrl}/?view=tasks` : `${appBaseUrl}/?view=calendar`;
   const actionLabel = isTask ? 'Xem nhiệm vụ' : 'Mở lịch biểu';
   const startIso = startUtc.toISOString();

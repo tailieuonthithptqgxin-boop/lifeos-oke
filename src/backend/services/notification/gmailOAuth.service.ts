@@ -311,7 +311,7 @@ export class GmailOAuthService {
     const recipient = targetEmail || user.email;
     const authResult = await this.createOAuthTransporter(userId);
 
-    const appUrl = (process.env.APP_URL || 'https://www.quanlicanhan.online').replace(/\/$/, '');
+    const appUrl = (process.env.APP_URL || 'https://quanlicanhan.online').replace(/\/$/, '');
 
     const testHtml = buildNotificationEmailHtml({
       recipientName: user.name || 'Thành viên LifeOS',

@@ -1766,6 +1766,19 @@ export default {
     try {
       const url = new URL(request.url);
 
+      // 0. Auto-redirect www to apex domain (e.g. www.quanlicanhan.online -> quanlicanhan.online)
+      if (url.hostname.startsWith('www.')) {
+        const canonicalUrl = new URL(request.url);
+        canonicalUrl.hostname = canonicalUrl.hostname.slice(4);
+        return new Response(null, {
+          status: 301,
+          headers: {
+            Location: canonicalUrl.toString(),
+            'Cache-Control': 'public, max-age=86400',
+          },
+        });
+      }
+
       // 1. Handle CORS Preflight for API routes
       if (request.method === 'OPTIONS' && url.pathname.startsWith('/api')) {
         const origin = request.headers.get('Origin') || '*';

@@ -76,7 +76,7 @@ export function getAppBaseUrl(): string {
     return process.env.APP_URL.trim().replace(/\/$/, '');
   }
   if (process.env.NODE_ENV === 'production') {
-    return 'https://www.quanlicanhan.online';
+    return 'https://quanlicanhan.online';
   }
   return 'http://localhost:5173';
 }

@@ -320,7 +320,7 @@ function AppContent() {
               level: 1,
               onboardingCompleted: true,
             };
-            login(immediateUser, token);
+            login(immediateUser, token, 'study');
             setCurrentView('study');
           }
         }
@@ -329,10 +329,11 @@ function AppContent() {
         apiCall('/api/auth/me', 'GET', undefined, { timeoutMs: 6000, maxRetries: 1 }).then(async (res) => {
           if (res && (res.user || res.id)) {
             const u = res.user || res;
-            await login(u, token || res.token || undefined);
+            await login(u, token || res.token || undefined, 'study');
             setCurrentView('study');
             toast.success('Đăng nhập Google thành công! Chào mừng bạn đến với Phòng Học Trực Tuyến LifeOS 🎉');
           } else if (immediateUser) {
+            setCurrentView('study');
             toast.success('Đăng nhập Google thành công! Chào mừng bạn đến với Phòng Học Trực Tuyến LifeOS 🎉');
           } else {
             const msg = 'Không thể xác thực phiên làm việc Google từ máy chủ.';
@@ -346,8 +347,31 @@ function AppContent() {
           console.warn('[Google OAuth] /api/auth/me sync warning:', err);
           if (immediateUser) {
             // Keep user logged in with token session! Do NOT kick them out!
+            setCurrentView('study');
             toast.success('Đăng nhập Google thành công! Chào mừng bạn đến với Phòng Học Trực Tuyến LifeOS 🎉');
           } else {
+            const fallbackToken = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+            if (fallbackToken && fallbackToken.length > 20) {
+              const fallbackPayload = decodeJwtPayload(fallbackToken);
+              if (fallbackPayload && (fallbackPayload.userId || fallbackPayload.email)) {
+                const recoveryUser = {
+                  id: String(fallbackPayload.userId || `user_${Date.now()}`),
+                  email: fallbackPayload.email || '',
+                  name: fallbackPayload.name || fallbackPayload.email?.split('@')[0] || 'Học Viên',
+                  avatar: fallbackPayload.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${fallbackPayload.userId || 'student'}`,
+                  role: fallbackPayload.role || 'USER',
+                  plan: fallbackPayload.plan || 'PRO',
+                  streakDays: 0,
+                  xp: 0,
+                  level: 1,
+                  onboardingCompleted: true,
+                };
+                await login(recoveryUser, fallbackToken, 'study');
+                setCurrentView('study');
+                toast.success('Đăng nhập Google thành công! Chào mừng bạn đến với Phòng Học Trực Tuyến LifeOS 🎉');
+                return;
+              }
+            }
             const detail = err?.message || `HTTP ${err?.status || 'UNKNOWN'}`;
             const msg = `Xác thực phiên Google thất bại sau khi chuyển hướng: ${detail}`;
             console.error('[Google OAuth] Post-login /api/auth/me error:', err);

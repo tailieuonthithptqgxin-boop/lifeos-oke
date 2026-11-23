@@ -42,7 +42,7 @@ export class EmailNotificationProvider implements NotificationProvider {
       }
     } catch (e) {}
 
-    const appUrl = (process.env.APP_URL || 'https://www.quanlicanhan.online').replace(/\/$/, '');
+    const appUrl = (process.env.APP_URL || 'https://quanlicanhan.online').replace(/\/$/, '');
 
     // Format metadata rows for clean display in email
     const metadataItems: { label: string; value: string; isBold?: boolean }[] = [];

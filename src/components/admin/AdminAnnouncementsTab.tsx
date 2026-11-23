@@ -329,7 +329,7 @@ export function AdminAnnouncementsTab({ onShowMessage }: AdminAnnouncementsTabPr
           priority: type === 'CRITICAL' ? 'CRITICAL' : 'NORMAL',
           imageUrl,
           actionLabel: finalActionUrl ? (actionLabel.trim() || 'Xem chi tiết') : null,
-          actionUrl: finalActionUrl || 'https://www.quanlicanhan.online'
+          actionUrl: finalActionUrl || 'https://quanlicanhan.online'
         })
       });
       if (res && res.success) {

@@ -115,7 +115,7 @@ export class NotificationSchedulerService {
             message: `Sự kiện <strong>"${event.title}"</strong> sẽ bắt đầu sau khoảng <strong>${diffMinutes} phút</strong> (lúc <strong>${event.startTime}</strong>).`,
             priority: (rule?.priority as any) || 'HIGH',
             category: 'CALENDAR',
-            actionUrl: `${(process.env.APP_URL || 'https://www.quanlicanhan.online').replace(/\/$/, '')}/?view=calendar`,
+            actionUrl: `${(process.env.APP_URL || 'https://quanlicanhan.online').replace(/\/$/, '')}/?view=calendar`,
             actionLabel: 'Mở Lịch biểu',
             triggerBucket,
             metadata: {
@@ -141,7 +141,7 @@ export class NotificationSchedulerService {
               message: `Sự kiện <strong>"${event.title}"</strong> đã chính thức bắt đầu. Hãy tập trung và hoàn thành tốt kế hoạch!`,
               priority: (startRule?.priority as any) || 'HIGH',
               category: 'CALENDAR',
-              actionUrl: `${(process.env.APP_URL || 'https://www.quanlicanhan.online').replace(/\/$/, '')}/?view=calendar`,
+              actionUrl: `${(process.env.APP_URL || 'https://quanlicanhan.online').replace(/\/$/, '')}/?view=calendar`,
               actionLabel: 'Vào sự kiện ngay',
               triggerBucket,
               metadata: {
@@ -200,7 +200,7 @@ export class NotificationSchedulerService {
               message: `Nhiệm vụ <strong>"${safeTitle}"</strong> đã quá hạn chót vào ngày <strong>${dueDateStr}</strong> nhưng hiện vẫn chưa hoàn thành. Hãy cập nhật tiến độ ngay!`,
               priority: 'CRITICAL',
               category: 'TASK',
-              actionUrl: `${(process.env.APP_URL || 'https://www.quanlicanhan.online').replace(/\/$/, '')}/?view=tasks`,
+              actionUrl: `${(process.env.APP_URL || 'https://quanlicanhan.online').replace(/\/$/, '')}/?view=tasks`,
               actionLabel: 'Xử lý công việc ngay',
               triggerBucket,
               metadata: {
@@ -227,7 +227,7 @@ export class NotificationSchedulerService {
               message: `Nhiệm vụ <strong>"${safeTitle}"</strong> có hạn chót vào hôm nay (<strong>${todayStr}</strong>). Đừng quên hoàn thành trong ngày!`,
               priority: 'HIGH',
               category: 'TASK',
-              actionUrl: `${(process.env.APP_URL || 'https://www.quanlicanhan.online').replace(/\/$/, '')}/?view=tasks`,
+              actionUrl: `${(process.env.APP_URL || 'https://quanlicanhan.online').replace(/\/$/, '')}/?view=tasks`,
               actionLabel: 'Mở danh sách việc',
               triggerBucket,
               metadata: {
@@ -257,7 +257,7 @@ export class NotificationSchedulerService {
               message: `Nhiệm vụ <strong>"${safeTitle}"</strong> sẽ đến hạn vào ngày mai (<strong>${dueDateStr}</strong>). Hãy sắp xếp thời gian để hoàn tất đúng lịch.`,
               priority: 'HIGH',
               category: 'TASK',
-              actionUrl: `${(process.env.APP_URL || 'https://www.quanlicanhan.online').replace(/\/$/, '')}/?view=tasks`,
+              actionUrl: `${(process.env.APP_URL || 'https://quanlicanhan.online').replace(/\/$/, '')}/?view=tasks`,
               actionLabel: 'Xem chi tiết việc',
               triggerBucket,
               metadata: {

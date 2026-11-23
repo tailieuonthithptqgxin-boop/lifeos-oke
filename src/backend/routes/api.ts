@@ -6795,7 +6795,7 @@ apiRouter.post('/admin/announcements/preview-email', requireAdmin, async (req: A
       priority: req.body.priority || 'NORMAL',
       imageUrl: req.body.imageUrl || null,
       actionLabel: req.body.actionLabel || 'Xem trên LifeOS',
-      actionUrl: req.body.actionUrl || 'https://www.quanlicanhan.online',
+      actionUrl: req.body.actionUrl || 'https://quanlicanhan.online',
       recipientName: req.user?.name || 'Nguyễn Văn A',
       recipientEmail: req.user?.email || 'user@example.com'
     });

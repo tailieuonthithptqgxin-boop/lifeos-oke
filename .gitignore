@@ -4,7 +4,7 @@ node_modules/
 .pnp.js
 
 # Production & Build outputs
-dist/
+# dist/ (tracked for Cloudflare Workers Static Assets & Git-based CI)
 /build
 out/
 .vite/

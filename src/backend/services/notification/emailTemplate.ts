@@ -26,7 +26,7 @@ export function buildNotificationEmailHtml(options: EmailTemplateOptions): strin
     actionUrl,
     actionLabel = 'Xem chi tiết trên LifeOS',
     metadataItems = [],
-    appBaseUrl = 'https://www.quanlicanhan.online'
+    appBaseUrl = 'https://quanlicanhan.online'
   } = options;
 
   const currentYear = new Date().getFullYear();

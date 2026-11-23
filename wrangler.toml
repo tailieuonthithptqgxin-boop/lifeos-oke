@@ -8,10 +8,13 @@ directory = "./dist"
 binding = "ASSETS"
 not_found_handling = "single-page-application"
 
+[build]
+command = "npm run build"
+
 [triggers]
 crons = ["*/5 * * * *", "0 0,7,21 * * *"]
 
 [vars]
 NODE_ENV = "production"
-APP_URL = "https://lifeos.vn"
+APP_URL = "https://quanlicanhan.online"
 API_BACKEND_URL = "http://localhost:3000"
