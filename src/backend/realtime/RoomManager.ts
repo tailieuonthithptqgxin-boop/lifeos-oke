@@ -392,8 +392,7 @@ export class HighScaleRoomManager {
 
   /**
    * Checks whether a user can chat:
-   * 1. Hard drop in FOCUS mode
-   * 2. Slow Mode 5s in BREAK mode
+   * Chat is always open 24/7 across all phases (Focus, Break, Paused)
    */
   public validateChatMessage(
     roomId: string,
@@ -405,33 +404,24 @@ export class HighScaleRoomManager {
       return { allowed: false, code: 'ROOM_NOT_FOUND', message: 'Phòng không tồn tại' };
     }
 
-    // 1. FOCUS SHIELD: Lock chat completely
-    if (room.timer.phase === 'FOCUS') {
-      return {
-        allowed: false,
-        code: 'FOCUS_MODE_LOCKED',
-        message: 'Khung chat được khóa trong giờ Deep Focus để giữ yên tĩnh. Hãy trò chuyện vào giờ Nghỉ!',
-      };
+    if (!text || text.trim().length === 0) {
+      return { allowed: false, code: 'EMPTY_TEXT', message: 'Nội dung tin nhắn không được để trống' };
     }
 
-    // 2. BREAK MODE: Enforce 5s Slow Mode per user
+    // 2s soft anti-spam cooldown per user
     const now = Date.now();
     const lastSent = room.chatRateLimitMap.get(userId) || 0;
     const diff = now - lastSent;
-    const COOLDOWN_MS = 5000;
+    const COOLDOWN_MS = 2000;
 
     if (diff < COOLDOWN_MS) {
       const waitSeconds = Math.ceil((COOLDOWN_MS - diff) / 1000);
       return {
         allowed: false,
         code: 'RATE_LIMITED',
-        message: `Chế độ Slow Mode: Vui lòng đợi ${waitSeconds}s trước khi gửi tiếp`,
+        message: `Vui lòng đợi ${waitSeconds}s trước khi gửi tiếp`,
         waitSeconds,
       };
-    }
-
-    if (!text || text.trim().length === 0) {
-      return { allowed: false, code: 'EMPTY_TEXT', message: 'Nội dung tin nhắn không được để trống' };
     }
 
     // Update rate limit timestamp

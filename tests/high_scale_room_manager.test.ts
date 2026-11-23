@@ -41,21 +41,14 @@ test('HighScaleRoomManager: In-Memory scaling & Delta updates for 150+ users', a
     assert.equal(room.energy.activeStudyingCount, 150);
   });
 
-  await t.test('3. Focus Shield: Chat is strictly dropped during FOCUS phase', () => {
+  await t.test('3. Chat is always open 24/7 across all phases (FOCUS & BREAK)', () => {
+    // In FOCUS phase, chat is allowed
     const validation = manager.validateChatMessage(roomId, 'user_1', 'Xin chào mọi người!');
-    assert.equal(validation.allowed, false);
-    assert.equal(validation.code, 'FOCUS_MODE_LOCKED');
+    assert.equal(validation.allowed, true);
   });
 
-  await t.test('4. Break Mode & Slow Mode (1 msg / 5s)', () => {
-    // Switch to BREAK phase
-    manager.updateTimer(roomId, 'switch_phase', { phase: 'BREAK' });
-
-    // 1st message is allowed
-    const msg1 = manager.validateChatMessage(roomId, 'user_1', 'Giải lao rồi!');
-    assert.equal(msg1.allowed, true);
-
-    // 2nd message within 5s is REJECTED with RATE_LIMITED
+  await t.test('4. Chat Anti-Spam Rate Limit (2s cooldown)', () => {
+    // 2nd message within 2s is REJECTED with RATE_LIMITED
     const msg2 = manager.validateChatMessage(roomId, 'user_1', 'Gửi thêm tin thứ 2');
     assert.equal(msg2.allowed, false);
     assert.equal(msg2.code, 'RATE_LIMITED');

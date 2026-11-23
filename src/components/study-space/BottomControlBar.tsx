@@ -367,7 +367,7 @@ export const BottomControlBar = React.memo(function BottomControlBar({
           </span>
         </button>
 
-        {/* Nút Khung Chat (Có trạng thái Focus lock) */}
+        {/* Nút Khung Chat (Luôn mở) */}
         <button
           type="button"
           onClick={() => onToggleDrawer?.('chat')}
@@ -378,15 +378,10 @@ export const BottomControlBar = React.memo(function BottomControlBar({
               ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
               : 'bg-[#3c4043] hover:bg-[#484c50] border-white/5 text-slate-300'
           }`}
-          title={isFocusPhase ? 'Trò chuyện (Đang khóa để giữ yên tĩnh)' : 'Trò chuyện giờ nghỉ'}
+          title="Trò chuyện phòng học (Luôn mở)"
         >
           <MessageSquare className="w-4 h-4" />
-          {isFocusPhase && (
-            <span className="absolute -top-1 -right-1 p-0.5 rounded-full bg-amber-500 text-slate-950">
-              <Lock className="w-2.5 h-2.5" />
-            </span>
-          )}
-          {!isFocusPhase && unreadChatCount > 0 && (
+          {unreadChatCount > 0 && (
             <span className="absolute -top-1 -right-1 px-1.5 py-0.2 rounded-full bg-emerald-400 text-slate-950 font-black text-[9px]">
               {unreadChatCount}
             </span>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, Lock, Flame, Sparkles, MessageSquare, Clock } from 'lucide-react';
+import { Send, Flame, Sparkles, MessageSquare, Clock } from 'lucide-react';
 
 export interface ChatMessageItem {
   id: string;
@@ -11,7 +11,7 @@ export interface ChatMessageItem {
 }
 
 export interface SmartBreakChatProps {
-  phase: 'FOCUS' | 'BREAK' | 'PAUSED';
+  phase?: 'FOCUS' | 'BREAK' | 'PAUSED';
   messages: ChatMessageItem[];
   currentUserId: string;
   onSendMessage: (text: string) => void;
@@ -20,7 +20,6 @@ export interface SmartBreakChatProps {
 }
 
 export const SmartBreakChat = React.memo(function SmartBreakChat({
-  phase,
   messages,
   currentUserId,
   onSendMessage,
@@ -36,7 +35,7 @@ export const SmartBreakChat = React.memo(function SmartBreakChat({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages.length]);
 
-  // Local Slow Mode 5s Countdown Timer
+  // Local Slow Mode Countdown Timer (gentle 2s cooldown)
   useEffect(() => {
     if (slowModeSeconds <= 0) return;
     const interval = setInterval(() => {
@@ -47,11 +46,11 @@ export const SmartBreakChat = React.memo(function SmartBreakChat({
 
   const handleSend = () => {
     const trimmed = inputText.trim();
-    if (!trimmed || slowModeSeconds > 0 || phase === 'FOCUS') return;
+    if (!trimmed || slowModeSeconds > 0) return;
 
     onSendMessage(trimmed);
     setInputText('');
-    setSlowModeSeconds(5); // 5s slow mode
+    setSlowModeSeconds(2); // Gentle 2s anti-spam cooldown
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -73,28 +72,13 @@ export const SmartBreakChat = React.memo(function SmartBreakChat({
       <div className="p-3 border-b flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <MessageSquare className="w-4 h-4 text-emerald-500" />
-          <span className="font-bold text-xs">Trò Chuyện Giờ Nghỉ</span>
+          <span className="font-bold text-xs">Trò Chuyện Phòng Học</span>
         </div>
 
-        {/* Phase Pill */}
-        <span
-          className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border flex items-center gap-1 ${
-            phase === 'FOCUS'
-              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
-              : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-          }`}
-        >
-          {phase === 'FOCUS' ? (
-            <>
-              <Lock className="w-2.5 h-2.5" />
-              <span>Khóa Focus</span>
-            </>
-          ) : (
-            <>
-              <Sparkles className="w-2.5 h-2.5 text-amber-400" />
-              <span>Mở Giờ Nghỉ</span>
-            </>
-          )}
+        {/* Live Always Open Status Pill */}
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase border flex items-center gap-1.5 bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+          <span>Luôn Mở</span>
         </span>
       </div>
 
@@ -105,7 +89,7 @@ export const SmartBreakChat = React.memo(function SmartBreakChat({
             <Sparkles className="w-6 h-6 text-emerald-500/50 mb-1" />
             <p className="font-semibold text-xs">Chưa có tin nhắn nào</p>
             <p className="text-[10px] mt-0.5 text-slate-500">
-              Hãy gửi lời động viên cho bạn bè trong giờ giải lao!
+              Hãy gửi tin nhắn trao đổi bài tập hoặc lời động viên cho bạn bè!
             </p>
           </div>
         ) : (
@@ -139,73 +123,59 @@ export const SmartBreakChat = React.memo(function SmartBreakChat({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Bottom Input Area: Dependent on Phase */}
+      {/* Bottom Input Area: Always Open */}
       <div className="p-2.5 border-t shrink-0">
-        {phase === 'FOCUS' ? (
-          /* FOCUS SHIELD: Input is locked, only Kudos button */
-          <div className="flex items-center gap-2">
-            <div className="flex-1 px-3 py-2 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs flex items-center gap-2">
-              <Lock className="w-3.5 h-3.5 shrink-0" />
-              <span className="truncate text-[11px] font-medium">
-                Khung chat khóa trong giờ Focus để giữ yên tĩnh
-              </span>
-            </div>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder={
+              slowModeSeconds > 0
+                ? `Vui lòng đợi ${slowModeSeconds}s...`
+                : 'Nhập tin nhắn trao đổi bài học...'
+            }
+            disabled={slowModeSeconds > 0}
+            className={`flex-1 px-3 py-2 rounded-xl text-xs border focus:outline-hidden focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 transition ${
+              isLight
+                ? 'bg-slate-100 border-slate-200 text-slate-800 disabled:opacity-60'
+                : 'bg-white/5 border-white/10 text-white disabled:opacity-60'
+            }`}
+          />
 
-            <button
-              type="button"
-              onClick={() => onSendKudos('🔥')}
-              className="px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-95 text-white text-xs font-bold flex items-center gap-1 shadow-md shadow-orange-500/20 cursor-pointer shrink-0 transition-all"
-              title="Gửi tiếp lửa nhẹ nhàng cho cả phòng"
-            >
-              <Flame className="w-4 h-4" />
-              <span>Tiếp Lửa</span>
-            </button>
-          </div>
-        ) : (
-          /* BREAK MODE: Active chat with Slow Mode 5s */
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={
-                slowModeSeconds > 0
-                  ? `Vui lòng đợi ${slowModeSeconds}s...`
-                  : 'Nói gì đó trong giờ nghỉ...'
-              }
-              disabled={slowModeSeconds > 0}
-              className={`flex-1 px-3 py-2 rounded-xl text-xs border focus:outline-none focus:border-emerald-500 transition ${
-                isLight
-                  ? 'bg-slate-100 border-slate-200 text-slate-800 disabled:opacity-60'
-                  : 'bg-white/5 border-white/10 text-white disabled:opacity-60'
-              }`}
-            />
+          <button
+            type="button"
+            onClick={() => onSendKudos('🔥')}
+            className="p-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 transition-all cursor-pointer shrink-0"
+            title="Tiếp Lửa cho phòng"
+          >
+            <Flame className="w-4 h-4" />
+          </button>
 
-            <button
-              type="button"
-              onClick={handleSend}
-              disabled={!inputText.trim() || slowModeSeconds > 0}
-              className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer ${
-                slowModeSeconds > 0 || !inputText.trim()
-                  ? 'bg-slate-700/50 text-slate-400 cursor-not-allowed'
-                  : 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-emerald-500/20'
-              }`}
-            >
-              {slowModeSeconds > 0 ? (
-                <>
-                  <Clock className="w-3.5 h-3.5 animate-spin" />
-                  <span>{slowModeSeconds}s</span>
-                </>
-              ) : (
-                <>
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Gửi</span>
-                </>
-              )}
-            </button>
-          </div>
-        )}
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={!inputText.trim() || slowModeSeconds > 0}
+            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs cursor-pointer shrink-0 ${
+              slowModeSeconds > 0 || !inputText.trim()
+                ? 'bg-slate-700/50 text-slate-400 cursor-not-allowed'
+                : 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-emerald-500/20 active:scale-95'
+            }`}
+          >
+            {slowModeSeconds > 0 ? (
+              <>
+                <Clock className="w-3.5 h-3.5 animate-spin" />
+                <span>{slowModeSeconds}s</span>
+              </>
+            ) : (
+              <>
+                <Send className="w-3.5 h-3.5" />
+                <span>Gửi</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
