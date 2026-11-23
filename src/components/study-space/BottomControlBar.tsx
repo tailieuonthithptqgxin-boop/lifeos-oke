@@ -15,7 +15,13 @@ import {
   Play,
   Pause,
   RotateCcw,
-  Settings
+  Settings,
+  Mic,
+  MicOff,
+  Video,
+  VideoOff,
+  Monitor,
+  Music
 } from 'lucide-react';
 
 export interface BottomControlBarProps {
@@ -33,6 +39,15 @@ export interface BottomControlBarProps {
   isLight?: boolean;
   isFullscreen?: boolean;
   isHost?: boolean;
+  isMicOn?: boolean;
+  isCameraOn?: boolean;
+  isScreenSharing?: boolean;
+  isYouTubePlaying?: boolean;
+  youTubeTrackTitle?: string;
+  onToggleMic?: () => void;
+  onToggleCamera?: () => void;
+  onToggleScreenShare?: () => void;
+  onOpenYouTubePlayer?: () => void;
   onTogglePlayPomodoro?: () => void;
   onResetPomodoro?: () => void;
   onEditGoalClick?: () => void;
@@ -57,6 +72,15 @@ export const BottomControlBar = React.memo(function BottomControlBar({
   isLight = false,
   isFullscreen = false,
   isHost = false,
+  isMicOn = false,
+  isCameraOn = false,
+  isScreenSharing = false,
+  isYouTubePlaying = false,
+  youTubeTrackTitle,
+  onToggleMic,
+  onToggleCamera,
+  onToggleScreenShare,
+  onOpenYouTubePlayer,
   onTogglePlayPomodoro,
   onResetPomodoro,
   onEditGoalClick,
@@ -139,7 +163,7 @@ export const BottomControlBar = React.memo(function BottomControlBar({
 
         {/* Room Name & Online Count */}
         <div className="hidden md:flex flex-col min-w-0">
-          <span className="font-bold text-xs truncate max-w-[160px] lg:max-w-[220px]">
+          <span className="font-bold text-xs truncate max-w-[160px] lg:max-w-[200px]">
             {roomName}
           </span>
           <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
@@ -147,13 +171,96 @@ export const BottomControlBar = React.memo(function BottomControlBar({
             <span>{onlineCount} bạn đang học</span>
           </span>
         </div>
+
+        {/* Live YouTube Mini Ticker */}
+        {isYouTubePlaying && youTubeTrackTitle && (
+          <div
+            onClick={onOpenYouTubePlayer}
+            className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-red-500/15 border border-red-500/30 text-rose-300 text-[11px] font-medium cursor-pointer hover:bg-red-500/25 transition max-w-[180px] shrink-0"
+            title={`Đang phát: ${youTubeTrackTitle} (Nhấn để mở)`}
+          >
+            <Music className="w-3 h-3 text-red-400 animate-pulse shrink-0" />
+            <span className="truncate">{youTubeTrackTitle}</span>
+          </div>
+        )}
       </div>
 
       {/* =================================================================== */}
       {/* 2. KHỐI GIỮA: NÚT ĐIỀU KHIỂN CHÍNH (CHUẨN GOOGLE MEET DARK DOCK)    */}
       {/* =================================================================== */}
-      <div className="flex items-center gap-2 sm:gap-2.5">
-        {/* Nút 1: Sửa mục tiêu cá nhân */}
+      <div className="flex items-center gap-1.5 sm:gap-2">
+        {/* Nút 1: Bật / Tắt Micro */}
+        <button
+          type="button"
+          onClick={onToggleMic}
+          className={`p-3 rounded-full border transition-all cursor-pointer shadow-xs active:scale-95 ${
+            isMicOn
+              ? isLight
+                ? 'bg-emerald-100 hover:bg-emerald-200 border-emerald-300 text-emerald-700'
+                : 'bg-[#3c4043] hover:bg-[#484c50] border-emerald-500/40 text-emerald-400 shadow-sm'
+              : 'bg-red-600 hover:bg-red-500 border-red-500 text-white shadow-md shadow-red-600/25'
+          }`}
+          title={isMicOn ? 'Tắt Micro (Đang bật)' : 'Bật Micro (Đang tắt)'}
+        >
+          {isMicOn ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+        </button>
+
+        {/* Nút 2: Bật / Tắt Camera */}
+        <button
+          type="button"
+          onClick={onToggleCamera}
+          className={`p-3 rounded-full border transition-all cursor-pointer shadow-xs active:scale-95 ${
+            isCameraOn
+              ? isLight
+                ? 'bg-emerald-100 hover:bg-emerald-200 border-emerald-300 text-emerald-700'
+                : 'bg-[#3c4043] hover:bg-[#484c50] border-emerald-500/40 text-emerald-400 shadow-sm'
+              : 'bg-red-600 hover:bg-red-500 border-red-500 text-white shadow-md shadow-red-600/25'
+          }`}
+          title={isCameraOn ? 'Tắt Camera (Đang bật)' : 'Bật Camera (Đang tắt)'}
+        >
+          {isCameraOn ? <Video className="w-4 h-4" /> : <VideoOff className="w-4 h-4" />}
+        </button>
+
+        {/* Nút 3: Chia sẻ màn hình (Screen Share) */}
+        <button
+          type="button"
+          onClick={onToggleScreenShare}
+          className={`p-3 rounded-full border transition-all cursor-pointer shadow-xs active:scale-95 ${
+            isScreenSharing
+              ? 'bg-cyan-500 text-slate-950 border-cyan-400 shadow-md shadow-cyan-500/30'
+              : isLight
+              ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700'
+              : 'bg-[#3c4043] hover:bg-[#484c50] border-white/5 text-slate-200'
+          }`}
+          title={isScreenSharing ? 'Dừng chia sẻ màn hình' : 'Chia sẻ màn hình'}
+        >
+          <Monitor className="w-4 h-4" />
+        </button>
+
+        {/* Nút 4: YouTube Study Music Player */}
+        <button
+          type="button"
+          onClick={onOpenYouTubePlayer}
+          className={`relative flex items-center gap-1.5 px-3 py-2.5 rounded-full border text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95 ${
+            isYouTubePlaying
+              ? 'bg-red-600 hover:bg-red-500 border-red-400 text-white shadow-md shadow-red-600/30'
+              : isLight
+              ? 'bg-rose-50 hover:bg-rose-100 border-rose-200 text-rose-700'
+              : 'bg-[#3c4043] hover:bg-[#484c50] border-white/5 text-rose-300'
+          }`}
+          title="Nhạc học tập YouTube (Lofi, Không lời, Sóng não)"
+        >
+          <Music className={`w-4 h-4 ${isYouTubePlaying ? 'animate-bounce text-white' : 'text-rose-400'}`} />
+          <span className="hidden md:inline">Nhạc YouTube</span>
+          {isYouTubePlaying && (
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+            </span>
+          )}
+        </button>
+
+        {/* Nút 5: Sửa mục tiêu cá nhân */}
         <button
           type="button"
           onClick={onEditGoalClick}
@@ -165,10 +272,10 @@ export const BottomControlBar = React.memo(function BottomControlBar({
           title={`Mục tiêu hiện tại: ${userGoal} - Bấm để thay đổi`}
         >
           <Target className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span className="hidden lg:inline max-w-[130px] truncate">{userGoal}</span>
+          <span className="hidden lg:inline max-w-[120px] truncate">{userGoal}</span>
         </button>
 
-        {/* Nút 2: Nhạc nền tập trung (Lo-Fi / Mưa rơi) */}
+        {/* Nút 6: Nhạc nền tập trung (Âm thanh trắng, Mưa rơi, Cafe) */}
         <button
           type="button"
           onClick={onOpenAmbientMusic}
@@ -177,12 +284,12 @@ export const BottomControlBar = React.memo(function BottomControlBar({
               ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-indigo-600'
               : 'bg-[#3c4043] hover:bg-[#484c50] border-white/5 text-indigo-300'
           }`}
-          title="Âm thanh trắng & Nhạc Lo-Fi thư giãn"
+          title="Âm thanh trắng & Tiếng mưa/Bàn phím/Quán Cafe"
         >
           <Headphones className="w-4 h-4" />
         </button>
 
-        {/* Nút 3: Tiếp Lửa (Spark / Kudos) */}
+        {/* Nút 7: Tiếp Lửa (Spark / Kudos) */}
         <button
           type="button"
           onClick={onSendKudosClick}
@@ -196,11 +303,11 @@ export const BottomControlBar = React.memo(function BottomControlBar({
           <Sparkles className="w-4 h-4" />
         </button>
 
-        {/* Nút 4: Đổi bố cục (Change Layout) */}
+        {/* Nút 8: Đổi bố cục (Change Layout) */}
         <button
           type="button"
           onClick={onOpenLayoutSettings}
-          className={`flex items-center gap-1.5 px-3.5 py-2.5 rounded-full border text-xs font-bold transition-all cursor-pointer shadow-xs active:scale-95 ${
+          className={`p-3 rounded-full border transition-all cursor-pointer shadow-xs active:scale-95 ${
             isLight
               ? 'bg-cyan-50 hover:bg-cyan-100 border-cyan-200 text-cyan-800'
               : 'bg-[#3c4043] hover:bg-cyan-500 hover:text-slate-950 border-white/5 text-cyan-300'
@@ -208,10 +315,9 @@ export const BottomControlBar = React.memo(function BottomControlBar({
           title="Thay đổi bố cục (Tự động, Xếp kề, Tiêu điểm, Thanh bên)"
         >
           <Sliders className="w-4 h-4" />
-          <span className="hidden sm:inline">Bố cục</span>
         </button>
 
-        {/* Nút 4.1: Cài đặt phòng học (Chỉ dành cho Chủ phòng / Host) */}
+        {/* Nút 8.1: Cài đặt phòng học (Chỉ dành cho Chủ phòng / Host) */}
         {isHost && (
           <button
             type="button"
@@ -227,11 +333,11 @@ export const BottomControlBar = React.memo(function BottomControlBar({
           </button>
         )}
 
-        {/* Nút 5: Rời phòng học (Màu đỏ tròn chuẩn Google Meet) */}
+        {/* Nút 9: Rời phòng học (Màu đỏ tròn chuẩn Google Meet) */}
         <button
           type="button"
           onClick={onLeaveRoomClick}
-          className="p-3.5 rounded-full bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30 active:scale-90 transition-all cursor-pointer flex items-center justify-center"
+          className="p-3.5 rounded-full bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30 active:scale-90 transition-all cursor-pointer flex items-center justify-center shrink-0"
           title="Rời khỏi phòng học"
         >
           <PhoneOff className="w-4 h-4" />

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import { Pin, Sparkles, Mic, MicOff, Flame, Target, Video, VideoOff, UserX, Crown } from 'lucide-react';
 import type { MeetParticipant } from './useSortedParticipants';
 
@@ -9,6 +9,7 @@ export interface ParticipantTileProps {
   isCompact?: boolean; // When grid has >= 16 tiles or small height
   isHost?: boolean;
   roomHostId?: string;
+  stream?: MediaStream | null;
   onTogglePin?: (id: string) => void;
   onSendKudos?: (id: string, emoji?: string) => void;
   onTileClick?: (participant: MeetParticipant) => void;
@@ -22,11 +23,24 @@ export const ParticipantTile = React.memo(function ParticipantTile({
   isCompact = false,
   isHost = false,
   roomHostId,
+  stream,
   onTogglePin,
   onSendKudos,
   onTileClick,
   onKick,
 }: ParticipantTileProps) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current && isSelf) {
+      if (participant.isCameraOn && stream) {
+        videoRef.current.srcObject = stream;
+      } else {
+        videoRef.current.srcObject = null;
+      }
+    }
+  }, [isSelf, stream, participant.isCameraOn]);
+
   const isFocusing =
     participant.presence === 'STUDYING' ||
     participant.presence === 'FOCUS' ||
@@ -55,9 +69,27 @@ export const ParticipantTile = React.memo(function ParticipantTile({
     >
       {/* 1. Center Avatar / Visual Content */}
       <div className="relative flex flex-col items-center justify-center w-full h-full p-2 pointer-events-none">
-        {participant.isCameraOn ? (
-          <div className="w-full h-full bg-slate-900 rounded-xl flex items-center justify-center text-xs text-slate-400">
-            <Video className="w-6 h-6 text-emerald-400 animate-pulse" />
+        {isSelf && participant.isCameraOn && stream ? (
+          <div className="relative w-full h-full bg-slate-950 rounded-xl overflow-hidden flex items-center justify-center">
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full h-full object-cover rounded-xl"
+              style={{ transform: 'scaleX(-1)' }}
+            />
+            <div className="absolute top-2 left-2 z-10 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-md text-emerald-400 text-[10px] font-bold flex items-center gap-1 border border-emerald-500/30">
+              <Video className="w-2.5 h-2.5" />
+              <span>Webcam (Bạn)</span>
+            </div>
+          </div>
+        ) : participant.isCameraOn ? (
+          <div className="w-full h-full bg-slate-900 rounded-xl flex flex-col items-center justify-center text-xs text-slate-400 gap-1.5 p-2">
+            <div className="p-3 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+              <Video className="w-6 h-6 text-emerald-400 animate-pulse" />
+            </div>
+            <span className="text-[10px] text-slate-300 font-semibold">{name} đang mở Cam</span>
           </div>
         ) : (
           <div

@@ -127,6 +127,10 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
   // Check-In Modal state
   const [pendingCheckInRoom, setPendingCheckInRoom] = useState<StudyRoomSummary | null>(null);
   const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const [initialMediaSettings, setInitialMediaSettings] = useState<{ micOn: boolean; camOn: boolean }>({
+    micOn: false,
+    camOn: true
+  });
 
   // Rule 3: Session summary celebratory modal state when user leaves room
   const [sessionSummary, setSessionSummary] = useState<SessionSummaryData | null>(null);
@@ -312,17 +316,9 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
     }
   }, [loadRoomDetail]);
 
-  // 5. User clicks room in Lobby -> Direct 1-tap entry into dedicated fullscreen study space
+  // 5. User clicks room in Lobby -> Open Google Meet Pre-join Check-in Modal ("Giao diện đầu")
   const handleSelectRoom = (room: StudyRoomSummary) => {
-    // Attempt Fullscreen immersion automatically to isolate the study space
-    try {
-      if (typeof document !== 'undefined' && document.documentElement.requestFullscreen && !document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
-    } catch {}
-
-    const defaultGoal = room.topic ? `Tập trung: ${room.topic}` : 'Tập trung học tập & hoàn thành mục tiêu';
-    handleDirectRoomEntry(room, defaultGoal);
+    setPendingCheckInRoom(room);
   };
 
   const handleDirectRoomEntry = async (targetRoom: StudyRoomSummary, goal: string) => {
@@ -397,13 +393,24 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
     }
   };
 
-  // 6. User confirms Check-in & enters room (fallback for room creator)
-  const handleConfirmCheckIn = async (goal: string) => {
+  // 6. User confirms Check-in & enters room
+  const handleConfirmCheckIn = async (goal: string, options?: { micOn: boolean; camOn: boolean }) => {
     if (!pendingCheckInRoom) return;
     setIsCheckingIn(true);
     const targetRoom = pendingCheckInRoom;
     const roomId = targetRoom.id;
     const roomName = targetRoom.name;
+
+    const micOn = options?.micOn ?? false;
+    const camOn = options?.camOn ?? true;
+    setInitialMediaSettings({ micOn, camOn });
+
+    // Attempt Fullscreen immersion automatically to isolate the study space
+    try {
+      if (typeof document !== 'undefined' && document.documentElement.requestFullscreen && !document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+    } catch {}
 
     const optimisticDetail: RoomDetail = {
       id: roomId,
@@ -870,6 +877,8 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
           currentUserId={currentUser?.id || ''}
           currentUserName={currentUser?.name || 'Bạn'}
           currentUserAvatar={currentUser?.avatar}
+          initialMicOn={initialMediaSettings.micOn}
+          initialCamOn={initialMediaSettings.camOn}
           onLeaveRoom={handleLeaveRoom}
           onUpdateGoal={handleUpdateGoal}
           onSendMessage={handleSendMessage}
@@ -895,6 +904,8 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
           isOpen={Boolean(pendingCheckInRoom)}
           roomName={pendingCheckInRoom.name}
           roomTopic={pendingCheckInRoom.topic}
+          userName={currentUser?.name || 'Bạn'}
+          userAvatar={currentUser?.avatar}
           onClose={() => setPendingCheckInRoom(null)}
           onCheckIn={handleConfirmCheckIn}
           isSubmitting={isCheckingIn}

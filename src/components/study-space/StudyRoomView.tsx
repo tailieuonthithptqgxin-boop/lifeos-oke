@@ -59,6 +59,7 @@ import { OverflowTile } from './OverflowTile';
 import { LayoutSettingsModal, LayoutSettings, loadSavedLayoutSettings } from './LayoutSettingsModal';
 import { BottomControlBar } from './BottomControlBar';
 import { RoomSettingsModal, RoomSettingsData } from './RoomSettingsModal';
+import { YouTubeStudyPlayer } from './YouTubeStudyPlayer';
 import { useAppStore } from '../../lib/store';
 import { apiCall } from '../../lib/apiClient';
 import { toast } from '../../lib/toast';
@@ -126,6 +127,8 @@ interface StudyRoomViewProps {
   currentUserId?: string;
   currentUserName?: string;
   currentUserAvatar?: string;
+  initialMicOn?: boolean;
+  initialCamOn?: boolean;
   onSendMessage?: (text: string) => void;
   onSyncPomodoro?: (action: 'start' | 'pause' | 'reset' | 'switch_phase', params?: any) => void;
   onSendSignal?: (toUserId: string, signalType: string, signalData: any) => void;
@@ -140,6 +143,8 @@ export function StudyRoomView({
   currentUserId,
   currentUserName,
   currentUserAvatar,
+  initialMicOn = false,
+  initialCamOn = true,
   onSendMessage,
   onSyncPomodoro,
   language = 'vi'
@@ -259,8 +264,11 @@ export function StudyRoomView({
   const [newTaskInput, setNewTaskInput] = useState('');
 
   // Media & Controls
-  const [isMicOn, setIsMicOn] = useState(false);
-  const [isWebcamOn, setIsWebcamOn] = useState(false);
+  const [isMicOn, setIsMicOn] = useState(initialMicOn);
+  const [isWebcamOn, setIsWebcamOn] = useState(initialCamOn);
+  const [isYouTubePlayerOpen, setIsYouTubePlayerOpen] = useState(false);
+  const [isYouTubePlaying, setIsYouTubePlaying] = useState(false);
+  const [youTubeTrackTitle, setYouTubeTrackTitle] = useState('');
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [tileLayout, setTileLayout] = useState<'grid' | 'spotlight'>('grid');
   const [pinnedTileKey, setPinnedTileKey] = useState<string>('user');
@@ -337,9 +345,11 @@ export function StudyRoomView({
         goal: userTask,
         presence: 'STUDYING',
         streak: userStreak,
+        isCameraOn: initialCamOn,
+        isMicOn: initialMicOn,
       },
     ];
-  }, [myId, myName, currentUserAvatar, userTask, userStreak]);
+  }, [myId, myName, currentUserAvatar, userTask, userStreak, initialCamOn, initialMicOn]);
 
   const [viewMode, setViewMode] = useState<'hall' | 'desk'>('hall');
   const [pinnedFriends, setPinnedFriends] = useState<CompactParticipant[]>(() => []);
@@ -514,6 +524,8 @@ export function StudyRoomView({
           goal: userTask,
           presence: 'STUDYING',
           streak: userStreak,
+          isCameraOn: isWebcamOn,
+          isMicOn: isMicOn,
         };
         const allRealMembers = hasSelf ? remoteMembers : [selfMember, ...remoteMembers];
         setHighScaleMembers(allRealMembers);
@@ -777,6 +789,9 @@ export function StudyRoomView({
   const startSoundSynth = (type: 'rain' | 'keyboard' | 'cafe' | 'lofi', vol: number) => {
     const ctx = audioCtxRef.current;
     if (!ctx) return;
+    if (ctx.state === 'suspended') {
+      ctx.resume().catch(() => {});
+    }
 
     if (type === 'rain') {
       const bufferSize = 2 * ctx.sampleRate;
@@ -925,6 +940,39 @@ export function StudyRoomView({
     };
   }, []);
 
+  // Auto-start webcam if requested from pre-join lobby
+  useEffect(() => {
+    let active = true;
+    if (initialCamOn && !webcamStreamRef.current) {
+      navigator.mediaDevices?.getUserMedia({ video: true })
+        .then((stream) => {
+          if (!active) {
+            stream.getTracks().forEach((t) => t.stop());
+            return;
+          }
+          webcamStreamRef.current = stream;
+          if (webcamVideoRef.current) {
+            webcamVideoRef.current.srcObject = stream;
+          }
+          setIsWebcamOn(true);
+          setHighScaleMembers((prev) =>
+            prev.map((m) => (m.id === myId ? { ...m, isCameraOn: true } : m))
+          );
+        })
+        .catch(() => {
+          if (active) {
+            setIsWebcamOn(false);
+            setHighScaleMembers((prev) =>
+              prev.map((m) => (m.id === myId ? { ...m, isCameraOn: false } : m))
+            );
+          }
+        });
+    }
+    return () => {
+      active = false;
+    };
+  }, [initialCamOn, myId]);
+
   // Webcam & Screen Share
   const toggleDockCam = async () => {
     if (!isWebcamOn) {
@@ -935,6 +983,9 @@ export function StudyRoomView({
           webcamVideoRef.current.srcObject = stream;
         }
         setIsWebcamOn(true);
+        setHighScaleMembers((prev) =>
+          prev.map((m) => (m.id === myId ? { ...m, isCameraOn: true } : m))
+        );
         toast.success('Đã bật Webcam!');
       } catch {
         toast.info('Không thể mở camera. Đang hiển thị Avatar cá nhân.');
@@ -948,6 +999,9 @@ export function StudyRoomView({
         webcamVideoRef.current.srcObject = null;
       }
       setIsWebcamOn(false);
+      setHighScaleMembers((prev) =>
+        prev.map((m) => (m.id === myId ? { ...m, isCameraOn: false } : m))
+      );
       toast.info('Đã tắt Webcam.');
     }
   };
@@ -955,6 +1009,9 @@ export function StudyRoomView({
   const toggleDockMic = () => {
     setIsMicOn((prev) => {
       const next = !prev;
+      setHighScaleMembers((members) =>
+        members.map((m) => (m.id === myId ? { ...m, isMicOn: next } : m))
+      );
       toast.info(next ? 'Đã bật Micro' : 'Đã tắt Micro');
       return next;
     });
@@ -1394,6 +1451,7 @@ export function StudyRoomView({
                       isCompact={false}
                       isHost={isHost}
                       roomHostId={room.hostId}
+                      stream={isTargetSelf ? webcamStreamRef.current : null}
                       onTogglePin={(id) => togglePin(id)}
                       onSendKudos={(id, emoji) => sendTileFire(spotlightTarget.name, id)}
                       onKick={handleKickUser}
@@ -1432,6 +1490,7 @@ export function StudyRoomView({
                         isCompact={false}
                         isHost={isHost}
                         roomHostId={room.hostId}
+                        stream={spotlightTarget.id === myId ? webcamStreamRef.current : null}
                         onTogglePin={(id) => togglePin(id)}
                         onSendKudos={(id, emoji) => sendTileFire(spotlightTarget.name, id)}
                         onKick={handleKickUser}
@@ -1459,6 +1518,7 @@ export function StudyRoomView({
                         isCompact={true}
                         isHost={isHost}
                         roomHostId={room.hostId}
+                        stream={p.id === myId ? webcamStreamRef.current : null}
                         onTogglePin={(id) => togglePin(id)}
                         onSendKudos={(id, emoji) => sendTileFire(p.name, id)}
                         onTileClick={() => setSpotlightUserId(p.id)}
@@ -1487,6 +1547,7 @@ export function StudyRoomView({
                     isCompact={isMeetCompact || layoutSettings.maxTiles >= 30}
                     isHost={isHost}
                     roomHostId={room.hostId}
+                    stream={participant.id === myId ? webcamStreamRef.current : null}
                     onTogglePin={(id) => togglePin(id)}
                     onSendKudos={(id, emoji) => sendTileFire(participant.name, id)}
                     onTileClick={(p) => {
@@ -1778,11 +1839,23 @@ export function StudyRoomView({
           isLight={isLight}
           isFullscreen={isFullscreen}
           isHost={isHost}
+          isMicOn={isMicOn}
+          isCameraOn={isWebcamOn}
+          isScreenSharing={isScreenSharing}
+          isYouTubePlaying={isYouTubePlaying}
+          youTubeTrackTitle={youTubeTrackTitle}
+          onToggleMic={toggleDockMic}
+          onToggleCamera={toggleDockCam}
+          onToggleScreenShare={toggleScreenShare}
+          onOpenYouTubePlayer={() => setIsYouTubePlayerOpen(true)}
           onOpenRoomSettings={() => setIsRoomSettingsOpen(true)}
           onTogglePlayPomodoro={togglePomoTimer}
           onResetPomodoro={resetPomoTimer}
           onEditGoalClick={editUserTask}
-          onOpenAmbientMusic={() => setIsSoundPopoverOpen((prev) => !prev)}
+          onOpenAmbientMusic={() => {
+            initAudioContext();
+            setIsSoundPopoverOpen((prev) => !prev);
+          }}
           onSendKudosClick={() => triggerBatchKudos('🔥')}
           onOpenLayoutSettings={() => setIsLayoutModalOpen(true)}
           onLeaveRoomClick={() => setShowSummaryModal(true)}
@@ -1798,6 +1871,17 @@ export function StudyRoomView({
           onToggleFullscreen={toggleFullscreen}
         />
       )}
+
+      {/* YOUTUBE STUDY MUSIC PLAYER */}
+      <YouTubeStudyPlayer
+        isOpen={isYouTubePlayerOpen}
+        onClose={() => setIsYouTubePlayerOpen(false)}
+        isLight={isLight}
+        onPlayStateChange={(playing, title) => {
+          setIsYouTubePlaying(playing);
+          setYouTubeTrackTitle(title);
+        }}
+      />
 
       {/* AMBIENT SOUND POPOVER */}
       {isSoundPopoverOpen && (
