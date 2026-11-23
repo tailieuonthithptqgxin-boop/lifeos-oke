@@ -25,7 +25,8 @@ import {
   Search, 
   Flame, 
   Sparkles,
-  Video
+  Video,
+  FileEdit
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { ViewState } from '../lib/types';
@@ -249,6 +250,43 @@ export function BottomNav() {
             >
               <Zap className="w-4 h-4 text-indigo-500 mb-1" />
               <span className="text-[10px] font-bold">Zen Focus</span>
+            </button>
+          </div>
+
+          {/* Quick Floating Widgets Shortcuts */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                closeSheet();
+                window.dispatchEvent(new CustomEvent('lifeos:open-scratchpad'));
+              }}
+              className="flex items-center gap-2.5 p-3 rounded-2xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/20 text-left min-h-[48px] cursor-pointer active:scale-95 transition-all"
+            >
+              <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <FileEdit className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="font-bold text-xs truncate text-amber-700 dark:text-amber-300">Giấy nháp 24h</div>
+                <div className="text-[10px] text-amber-600/80 dark:text-amber-400/80 truncate">Tự hủy sau 24h</div>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                closeSheet();
+                window.dispatchEvent(new CustomEvent('lifeos:open-global-chat'));
+              }}
+              className="flex items-center gap-2.5 p-3 rounded-2xl bg-indigo-500/10 dark:bg-indigo-500/15 border border-indigo-500/20 text-left min-h-[48px] cursor-pointer active:scale-95 transition-all"
+            >
+              <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                <MessageSquare className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <div className="font-bold text-xs truncate text-indigo-700 dark:text-indigo-300">Chat Cộng Đồng</div>
+                <div className="text-[10px] text-indigo-600/80 dark:text-indigo-400/80 truncate">Trực tuyến 24/7</div>
+              </div>
             </button>
           </div>
 

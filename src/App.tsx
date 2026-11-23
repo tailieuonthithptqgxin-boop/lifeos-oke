@@ -24,6 +24,7 @@ import { LockedWorkspaceOverlay } from './components/LockedWorkspaceOverlay';
 import { GlobalFocusMusicPlayer } from './components/GlobalFocusMusicPlayer';
 import { ScratchpadWidget } from './components/ScratchpadWidget';
 import { GlobalChatWidget } from './components/chat/GlobalChatWidget';
+import { MobileFloatingDock } from './components/common/MobileFloatingDock';
 import { PwaPromptBanner } from './components/PwaPromptBanner';
 import { verifyPostUpdate } from './lib/pwa';
 import { PageSkeleton } from './components/Skeleton';
@@ -669,7 +670,7 @@ function AppContent() {
         <StickyTopBanner />
         <TopBar />
         <AccountStatusBanner />
-        <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] w-full max-w-full pb-24 sm:pb-28 md:pb-6 relative min-h-0">
+        <main ref={mainRef} className="flex-1 overflow-y-auto overflow-x-hidden [scrollbar-gutter:stable] w-full max-w-full pb-[calc(7rem+env(safe-area-inset-bottom))] md:pb-8 relative min-h-0">
           <div className={`w-full mx-auto px-3.5 sm:px-5 lg:px-8 py-3.5 sm:py-5 lg:py-6 ${
             currentView === 'projects' || currentView === 'tasks' || currentView === 'calendar' || currentView === 'admin' || currentView === 'connect'
               ? 'max-w-[1400px]' 
@@ -687,6 +688,7 @@ function AppContent() {
       <LoginAnnouncementModal />
       <PwaPromptBanner />
       <GlobalFocusMusicPlayer />
+      <MobileFloatingDock />
       <ScratchpadWidget />
       <GlobalChatWidget
         currentUserId={currentUser?.id || ''}
