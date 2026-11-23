@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Target,
@@ -9,6 +10,7 @@ import {
   CheckCircle2,
   BookOpen
 } from 'lucide-react';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 export const STUDY_ONBOARDING_STORAGE_KEY = 'study_lobby_onboarding_seen_v1';
 
@@ -18,6 +20,8 @@ interface StudyOnboardingModalProps {
 }
 
 export function StudyOnboardingModal({ isOpen, onClose }: StudyOnboardingModalProps) {
+  useBodyScrollLock(isOpen);
+
   // ESC key support
   useEffect(() => {
     if (!isOpen) return;
@@ -39,15 +43,15 @@ export function StudyOnboardingModal({ isOpen, onClose }: StudyOnboardingModalPr
     onClose();
   };
 
-  return (
+  const modalContent = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
       role="dialog"
       aria-modal="true"
       onClick={handleDismiss}
     >
       <div
-        className="relative w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-8 space-y-6 animate-in zoom-in-95 duration-200 overflow-hidden"
+        className="relative w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-5 sm:p-7 md:p-8 space-y-5 sm:space-y-6 animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[90vh] my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Decorative background glows */}
@@ -159,4 +163,8 @@ export function StudyOnboardingModal({ isOpen, onClose }: StudyOnboardingModalPr
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 }

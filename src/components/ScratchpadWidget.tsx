@@ -48,6 +48,20 @@ export function ScratchpadWidget() {
     }
   });
 
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  useEffect(() => {
+    const handleChatStatus = (e: any) => {
+      if (typeof e?.detail?.isOpen === 'boolean') {
+        setIsChatOpen(e.detail.isOpen);
+      }
+    };
+    window.addEventListener('lifeos:globalchat-status', handleChatStatus as EventListener);
+    return () => {
+      window.removeEventListener('lifeos:globalchat-status', handleChatStatus as EventListener);
+    };
+  }, []);
+
   useEffect(() => {
     const handleSettingsUpdate = () => {
       try {
@@ -344,13 +358,11 @@ export function ScratchpadWidget() {
         </div>
       </MobileBottomSheet>
 
-      {/* 2. DESKTOP FLOATING POPOVER & TRIGGER BUTTON (hidden md:block) */}
+      {/* 2. DESKTOP FLOATING POPOVER & TRIGGER BUTTON (hidden md:flex) */}
       <div 
         ref={desktopPopoverRef}
-        className={`hidden md:flex fixed z-40 flex-col pointer-events-none transition-all duration-300 ${
-          hasMascotOnRight 
-            ? 'bottom-6 right-48 items-end' 
-            : 'bottom-6 right-48 items-end'
+        className={`hidden md:flex fixed z-40 flex-col pointer-events-none transition-all duration-300 items-end bottom-6 ${
+          isChatOpen ? 'right-[456px]' : 'right-[268px]'
         }`}
       >
         {isOpen && (

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Target,
   Sparkles,
@@ -15,6 +16,7 @@ import {
   ShieldCheck,
   Volume2
 } from 'lucide-react';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 
 export interface RoomCheckInOptions {
   micOn: boolean;
@@ -51,6 +53,7 @@ export function RoomCheckInModal({
   onCheckIn,
   isSubmitting = false
 }: RoomCheckInModalProps) {
+  useBodyScrollLock(isOpen);
   const [goal, setGoal] = useState('Giải bài tập & Làm đề');
   const [isCamOn, setIsCamOn] = useState(true);
   const [isMicOn, setIsMicOn] = useState(false);
@@ -205,10 +208,10 @@ export function RoomCheckInModal({
 
   const avatar = userAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${userName}`;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto">
+  const modalContent = (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
       <div
-        className="w-full max-w-xl bg-white dark:bg-[#181a1d] border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 my-auto"
+        className="w-full max-w-xl bg-white dark:bg-[#181a1d] border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 my-auto max-h-[92vh] flex flex-col"
         role="dialog"
         aria-modal="true"
       >
@@ -418,4 +421,8 @@ export function RoomCheckInModal({
       </div>
     </div>
   );
+
+  return typeof document !== 'undefined'
+    ? createPortal(modalContent, document.body)
+    : modalContent;
 }
