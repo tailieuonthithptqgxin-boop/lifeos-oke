@@ -739,7 +739,7 @@ export function StudyRoomView({
   };
 
   // Web Audio API Synthesizers
-  const initAudioContext = () => {
+  const initAudioContext = async () => {
     if (!audioCtxRef.current) {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (AudioCtx) {
@@ -747,12 +747,16 @@ export function StudyRoomView({
       }
     }
     if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
-      audioCtxRef.current.resume();
+      try {
+        await audioCtxRef.current.resume();
+      } catch (e) {
+        console.warn('AudioContext resume failed:', e);
+      }
     }
   };
 
-  const toggleSoundSynth = (type: 'rain' | 'keyboard' | 'cafe' | 'lofi') => {
-    initAudioContext();
+  const toggleSoundSynth = async (type: 'rain' | 'keyboard' | 'cafe' | 'lofi') => {
+    await initAudioContext();
     const ctx = audioCtxRef.current;
     if (!ctx) return;
 
@@ -1429,156 +1433,194 @@ export function StudyRoomView({
           isLight={isLight}
         />
 
-        {/* 2. Google Meet Layout Engine Stage (Auto, Tiled, Spotlight, Sidebar) */}
-        <div className="flex-1 flex overflow-hidden gap-3 relative pb-20">
-          {layoutSettings.mode === 'spotlight' ? (
-            /* VIEW: SPOTLIGHT MODE */
-            <div className="flex-1 flex flex-col items-center justify-center p-3 sm:p-6 overflow-hidden relative">
-              {(() => {
-                const spotlightTarget =
-                  allSortedParticipants.find((p) => p.id === (spotlightUserId || pinnedIds[0])) ||
-                  allSortedParticipants[0];
-
-                if (!spotlightTarget) return null;
-                const isTargetSelf = spotlightTarget.id === myId;
-
-                return (
-                  <div className="w-full max-w-4xl h-full max-h-[72vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl relative border border-white/10 group">
-                    <ParticipantTile
-                      participant={spotlightTarget}
-                      isSelf={isTargetSelf}
-                      isPinned={true}
-                      isCompact={false}
-                      isHost={isHost}
-                      roomHostId={room.hostId}
-                      stream={isTargetSelf ? webcamStreamRef.current : null}
-                      onTogglePin={(id) => togglePin(id)}
-                      onSendKudos={(id, emoji) => sendTileFire(spotlightTarget.name, id)}
-                      onKick={handleKickUser}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLayoutSettings((prev) => ({ ...prev, mode: 'auto' }));
-                      }}
-                      className="absolute top-4 right-4 z-30 bg-[#202124]/90 hover:bg-[#3c4043] text-white border border-white/20 px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 shadow-xl cursor-pointer"
-                    >
-                      <PinOff className="w-3.5 h-3.5" />
-                      <span>Thoát Tiêu Điểm</span>
-                    </button>
-                  </div>
-                );
-              })()}
-            </div>
-          ) : layoutSettings.mode === 'sidebar' ? (
-            /* VIEW: SIDEBAR MODE (75% Spotlight Left + 25% Filmstrip Right) */
-            <div className="flex-1 flex overflow-hidden p-3 gap-3">
-              {/* Left Main Spotlight (75%) */}
-              <div className="flex-1 h-full flex items-center justify-center rounded-2xl overflow-hidden relative shadow-lg">
+        {/* 2. HORIZONTAL BODY CONTAINER: STAGE (LEFT) + DRAWER (RIGHT) SIDE-BY-SIDE */}
+        <div className="flex-1 flex flex-row overflow-hidden gap-3 relative pb-20">
+          {/* LEFT: Video Stage (Always visible, smoothly adapts when drawer opens) */}
+          <div className="flex-1 h-full min-w-0 flex flex-col overflow-hidden relative">
+            {layoutSettings.mode === 'spotlight' ? (
+              /* VIEW: SPOTLIGHT MODE */
+              <div className="flex-1 flex flex-col items-center justify-center p-2 sm:p-4 overflow-hidden relative">
                 {(() => {
+                  const fallbackSelf: MeetParticipant = {
+                    id: myId,
+                    name: myName,
+                    avatar: currentUserAvatar,
+                    goal: userTask,
+                    presence: 'STUDYING',
+                    streak: userStreak,
+                    isCameraOn: isWebcamOn,
+                    isMicOn: isMicOn,
+                    isSelf: true,
+                  };
                   const spotlightTarget =
                     allSortedParticipants.find((p) => p.id === (spotlightUserId || pinnedIds[0])) ||
-                    allSortedParticipants[0];
+                    allSortedParticipants[0] ||
+                    fallbackSelf;
 
-                  if (!spotlightTarget) return null;
+                  const isTargetSelf = spotlightTarget.id === myId;
+
                   return (
-                    <div className="w-full h-full max-h-[75vh] relative rounded-2xl overflow-hidden shadow-xl">
+                    <div className="w-full max-w-4xl h-full max-h-[75vh] flex flex-col rounded-3xl overflow-hidden shadow-2xl relative border border-white/10 group">
                       <ParticipantTile
                         participant={spotlightTarget}
-                        isSelf={spotlightTarget.id === myId}
-                        isPinned={isPinned(spotlightTarget.id)}
+                        isSelf={isTargetSelf}
+                        isPinned={true}
                         isCompact={false}
                         isHost={isHost}
                         roomHostId={room.hostId}
-                        stream={spotlightTarget.id === myId ? webcamStreamRef.current : null}
+                        stream={isTargetSelf ? webcamStreamRef.current : null}
                         onTogglePin={(id) => togglePin(id)}
                         onSendKudos={(id, emoji) => sendTileFire(spotlightTarget.name, id)}
                         onKick={handleKickUser}
                       />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLayoutSettings((prev) => ({ ...prev, mode: 'auto' }));
+                        }}
+                        className="absolute top-4 right-4 z-30 bg-[#202124]/90 hover:bg-[#3c4043] text-white border border-white/20 px-3.5 py-1.5 rounded-full text-xs font-bold transition flex items-center gap-1.5 shadow-xl cursor-pointer"
+                      >
+                        <PinOff className="w-3.5 h-3.5" />
+                        <span>Thoát Tiêu Điểm</span>
+                      </button>
                     </div>
                   );
                 })()}
               </div>
+            ) : layoutSettings.mode === 'sidebar' ? (
+              /* VIEW: SIDEBAR MODE (75% Spotlight Left + 25% Filmstrip Right) */
+              <div className="flex-1 flex overflow-hidden p-2 sm:p-3 gap-3">
+                {/* Left Main Spotlight (75%) */}
+                <div className="flex-1 h-full flex items-center justify-center rounded-2xl overflow-hidden relative shadow-lg">
+                  {(() => {
+                    const fallbackSelf: MeetParticipant = {
+                      id: myId,
+                      name: myName,
+                      avatar: currentUserAvatar,
+                      goal: userTask,
+                      presence: 'STUDYING',
+                      streak: userStreak,
+                      isCameraOn: isWebcamOn,
+                      isMicOn: isMicOn,
+                      isSelf: true,
+                    };
+                    const spotlightTarget =
+                      allSortedParticipants.find((p) => p.id === (spotlightUserId || pinnedIds[0])) ||
+                      allSortedParticipants[0] ||
+                      fallbackSelf;
 
-              {/* Right Vertical Filmstrip (25%) */}
-              <div className="w-64 sm:w-72 h-full flex flex-col gap-2 overflow-y-auto pr-1">
-                {allSortedParticipants
-                  .filter((p) => p.id !== (spotlightUserId || pinnedIds[0] || allSortedParticipants[0]?.id))
-                  .slice(0, 15)
-                  .map((p) => (
-                    <div
-                      key={`filmstrip-${p.id}`}
-                      className="h-36 shrink-0 relative cursor-pointer"
-                      onClick={() => setSpotlightUserId(p.id)}
-                    >
+                    return (
+                      <div className="w-full h-full max-h-[75vh] relative rounded-2xl overflow-hidden shadow-xl">
+                        <ParticipantTile
+                          participant={spotlightTarget}
+                          isSelf={spotlightTarget.id === myId}
+                          isPinned={isPinned(spotlightTarget.id)}
+                          isCompact={false}
+                          isHost={isHost}
+                          roomHostId={room.hostId}
+                          stream={spotlightTarget.id === myId ? webcamStreamRef.current : null}
+                          onTogglePin={(id) => togglePin(id)}
+                          onSendKudos={(id, emoji) => sendTileFire(spotlightTarget.name, id)}
+                          onKick={handleKickUser}
+                        />
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* Right Vertical Filmstrip (25%) */}
+                <div className="w-56 sm:w-64 md:w-72 h-full flex flex-col gap-2 overflow-y-auto pr-1">
+                  {allSortedParticipants
+                    .filter((p) => p.id !== (spotlightUserId || pinnedIds[0] || allSortedParticipants[0]?.id))
+                    .slice(0, 15)
+                    .map((p) => (
+                      <div
+                        key={`filmstrip-${p.id}`}
+                        className="h-36 shrink-0 relative cursor-pointer"
+                        onClick={() => setSpotlightUserId(p.id)}
+                      >
+                        <ParticipantTile
+                          participant={p}
+                          isSelf={p.id === myId}
+                          isPinned={isPinned(p.id)}
+                          isCompact={true}
+                          isHost={isHost}
+                          roomHostId={room.hostId}
+                          stream={p.id === myId ? webcamStreamRef.current : null}
+                          onTogglePin={(id) => togglePin(id)}
+                          onSendKudos={(id, emoji) => sendTileFire(p.name, id)}
+                          onTileClick={() => setSpotlightUserId(p.id)}
+                          onKick={handleKickUser}
+                        />
+                      </div>
+                    ))}
+                </div>
+              </div>
+            ) : (
+              /* VIEW: AUTO / TILED 16:9 GRID WITH OVERFLOW TILE */
+              <div
+                ref={stageContainerRef}
+                className="flex-1 w-full h-full flex items-center justify-center p-2 sm:p-4 overflow-hidden"
+              >
+                <div
+                  style={meetGridStyle}
+                  className="transition-all duration-300 w-full h-full"
+                >
+                  {(() => {
+                    const fallbackSelf: MeetParticipant = {
+                      id: myId,
+                      name: myName,
+                      avatar: currentUserAvatar,
+                      goal: userTask,
+                      presence: 'STUDYING',
+                      streak: userStreak,
+                      isCameraOn: isWebcamOn,
+                      isMicOn: isMicOn,
+                      isSelf: true,
+                    };
+                    const displayList = visibleParticipants.length > 0 ? visibleParticipants : [fallbackSelf];
+
+                    return displayList.map((participant) => (
                       <ParticipantTile
-                        participant={p}
-                        isSelf={p.id === myId}
-                        isPinned={isPinned(p.id)}
-                        isCompact={true}
+                        key={participant.id}
+                        participant={participant}
+                        isSelf={participant.id === myId}
+                        isPinned={isPinned(participant.id)}
+                        isCompact={isMeetCompact || layoutSettings.maxTiles >= 30}
                         isHost={isHost}
                         roomHostId={room.hostId}
-                        stream={p.id === myId ? webcamStreamRef.current : null}
+                        stream={participant.id === myId ? webcamStreamRef.current : null}
                         onTogglePin={(id) => togglePin(id)}
-                        onSendKudos={(id, emoji) => sendTileFire(p.name, id)}
-                        onTileClick={() => setSpotlightUserId(p.id)}
+                        onSendKudos={(id, emoji) => sendTileFire(participant.name, id)}
+                        onTileClick={(p) => {
+                          setSpotlightUserId(p.id);
+                        }}
                         onKick={handleKickUser}
                       />
-                    </div>
-                  ))}
-              </div>
-            </div>
-          ) : (
-            /* VIEW: AUTO / TILED 16:9 GRID WITH OVERFLOW TILE */
-            <div
-              ref={stageContainerRef}
-              className="flex-1 w-full h-full flex items-center justify-center p-2 sm:p-4 overflow-hidden"
-            >
-              <div
-                style={meetGridStyle}
-                className="transition-all duration-300 w-full h-full"
-              >
-                {visibleParticipants.map((participant) => (
-                  <ParticipantTile
-                    key={participant.id}
-                    participant={participant}
-                    isSelf={participant.id === myId}
-                    isPinned={isPinned(participant.id)}
-                    isCompact={isMeetCompact || layoutSettings.maxTiles >= 30}
-                    isHost={isHost}
-                    roomHostId={room.hostId}
-                    stream={participant.id === myId ? webcamStreamRef.current : null}
-                    onTogglePin={(id) => togglePin(id)}
-                    onSendKudos={(id, emoji) => sendTileFire(participant.name, id)}
-                    onTileClick={(p) => {
-                      setSpotlightUserId(p.id);
-                    }}
-                    onKick={handleKickUser}
-                  />
-                ))}
+                    ));
+                  })()}
 
-                {hasOverflow && (
-                  <OverflowTile
-                    count={overflowCount}
-                    previewAvatars={overflowPreviewAvatars}
-                    isCompact={isMeetCompact || layoutSettings.maxTiles >= 30}
-                    onClick={() => {
-                      setIsDrawerOpen(true);
-                      setActiveDrawerTab('members');
-                    }}
-                  />
-                )}
+                  {hasOverflow && (
+                    <OverflowTile
+                      count={overflowCount}
+                      previewAvatars={overflowPreviewAvatars}
+                      isCompact={isMeetCompact || layoutSettings.maxTiles >= 30}
+                      onClick={() => {
+                        setIsDrawerOpen(true);
+                        setActiveDrawerTab('members');
+                      }}
+                    />
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-        {/* ========================================================= */}
-        {/* 3. RIGHT DRAWER: REAL MEMBERS, CHAT, TASKS, RANK          */}
-        {/* ========================================================= */}
-        {isDrawerOpen && (
-          <aside className={`w-80 md:w-88 h-full border-l flex flex-col overflow-hidden transition-all duration-300 z-30 shrink-0 shadow-2xl ${
-            isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#181a1d] border-white/10 text-white'
-          }`}>
+            )}
+          </div>
+
+          {/* RIGHT: Side-by-Side Drawer (Chat, Members, Tasks, Rank) */}
+          {isDrawerOpen && (
+            <aside className={`w-80 sm:w-88 md:w-96 h-full border-l rounded-2xl flex flex-col overflow-hidden transition-all duration-300 z-20 shrink-0 shadow-2xl ${
+              isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#181a1d] border-white/10 text-white'
+            }`}>
             {/* Header Tabs */}
             <div className={`flex items-center justify-between border-b p-2 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#1e2023] border-white/10'}`}>
               <div className="flex gap-1 overflow-x-auto no-scrollbar">
@@ -1818,6 +1860,7 @@ export function StudyRoomView({
             )}
           </aside>
         )}
+        </div>
       </main>
 
       {/* ========================================================= */}
@@ -1885,37 +1928,57 @@ export function StudyRoomView({
 
       {/* AMBIENT SOUND POPOVER */}
       {isSoundPopoverOpen && (
-        <div className={`fixed bottom-22 left-1/2 -translate-x-1/2 w-80 rounded-2xl p-4 border shadow-2xl z-50 flex flex-col gap-3 animate-in fade-in zoom-in-95 duration-150 ${
+        <div className={`fixed bottom-22 left-1/2 -translate-x-1/2 w-88 rounded-3xl p-5 border shadow-2xl z-50 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-150 ${
           isLight ? 'bg-white/95 border-slate-200 text-slate-800' : 'bg-[#181a1d]/95 border-white/10 text-white backdrop-blur-xl'
         }`}>
-          <div className={`flex justify-between items-center border-b pb-2 ${isLight ? 'border-slate-200' : 'border-white/10'}`}>
+          <div className={`flex justify-between items-center border-b pb-2.5 ${isLight ? 'border-slate-200' : 'border-white/10'}`}>
             <span className="text-xs font-bold flex items-center gap-2 text-cyan-400">
               <Sliders className="w-4 h-4" /> ÂM THANH NỀN TẬP TRUNG
             </span>
             <button
               type="button"
               onClick={() => setIsSoundPopoverOpen(false)}
-              className="opacity-50 hover:opacity-100 cursor-pointer p-1"
+              className="opacity-50 hover:opacity-100 cursor-pointer p-1 rounded-full hover:bg-white/10 transition"
+              title="Đóng bảng âm thanh"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Rain */}
-          <div className="flex flex-col gap-1 text-xs">
+          {/* Sound 1: Rain */}
+          <div className="flex flex-col gap-1.5 text-xs">
             <div className="flex justify-between items-center">
-              <span>🌧️ Mưa rơi nhẹ</span>
-              <button
-                type="button"
-                onClick={() => toggleSoundSynth('rain')}
-                className={`text-[10px] font-bold px-2.5 py-1 rounded-lg cursor-pointer transition ${
+              <span className="font-semibold text-slate-200">🌧️ Tiếng mưa rơi</span>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
                   synthStates.rain.active
-                    ? 'bg-emerald-500 text-white shadow-xs'
-                    : (isLight ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-slate-400')
-                }`}
-              >
-                {synthStates.rain.active ? 'BẬT' : 'TẮT'}
-              </button>
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : isLight ? 'bg-slate-100 text-slate-400' : 'bg-white/5 text-slate-400'
+                }`}>
+                  {synthStates.rain.active ? (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>Đang phát</span>
+                    </>
+                  ) : (
+                    <span>Tắt</span>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => toggleSoundSynth('rain')}
+                  className={`w-11 h-6 rounded-full transition-colors duration-200 ease-in-out relative p-0.5 cursor-pointer focus:outline-none ${
+                    synthStates.rain.active ? 'bg-emerald-500' : isLight ? 'bg-slate-300' : 'bg-slate-700'
+                  }`}
+                  title={synthStates.rain.active ? 'Nhấn để tắt tiếng mưa' : 'Nhấn để bật tiếng mưa'}
+                >
+                  <span
+                    className={`inline-block w-5 h-5 rounded-full bg-white shadow-md transform transition duration-200 ease-in-out ${
+                      synthStates.rain.active ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
             <input
               type="range"
@@ -1924,25 +1987,44 @@ export function StudyRoomView({
               step="0.05"
               value={synthStates.rain.vol}
               onChange={(e) => updateSoundVol('rain', parseFloat(e.target.value))}
-              className="w-full accent-emerald-500 h-1.5 rounded cursor-pointer"
+              className="w-full accent-emerald-500 h-1.5 rounded-lg cursor-pointer bg-slate-700/50"
             />
           </div>
 
-          {/* Keyboard */}
-          <div className="flex flex-col gap-1 text-xs">
+          {/* Sound 2: Keyboard */}
+          <div className="flex flex-col gap-1.5 text-xs">
             <div className="flex justify-between items-center">
-              <span>⌨️ Tiếng phím cơ</span>
-              <button
-                type="button"
-                onClick={() => toggleSoundSynth('keyboard')}
-                className={`text-[10px] font-bold px-2.5 py-1 rounded-lg cursor-pointer transition ${
+              <span className="font-semibold text-slate-200">⌨️ Phím cơ gõ lách cách</span>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
                   synthStates.keyboard.active
-                    ? 'bg-emerald-500 text-white shadow-xs'
-                    : (isLight ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-slate-400')
-                }`}
-              >
-                {synthStates.keyboard.active ? 'BẬT' : 'TẮT'}
-              </button>
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : isLight ? 'bg-slate-100 text-slate-400' : 'bg-white/5 text-slate-400'
+                }`}>
+                  {synthStates.keyboard.active ? (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>Đang phát</span>
+                    </>
+                  ) : (
+                    <span>Tắt</span>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => toggleSoundSynth('keyboard')}
+                  className={`w-11 h-6 rounded-full transition-colors duration-200 ease-in-out relative p-0.5 cursor-pointer focus:outline-none ${
+                    synthStates.keyboard.active ? 'bg-emerald-500' : isLight ? 'bg-slate-300' : 'bg-slate-700'
+                  }`}
+                  title={synthStates.keyboard.active ? 'Nhấn để tắt tiếng phím cơ' : 'Nhấn để bật tiếng phím cơ'}
+                >
+                  <span
+                    className={`inline-block w-5 h-5 rounded-full bg-white shadow-md transform transition duration-200 ease-in-out ${
+                      synthStates.keyboard.active ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
             <input
               type="range"
@@ -1951,25 +2033,44 @@ export function StudyRoomView({
               step="0.05"
               value={synthStates.keyboard.vol}
               onChange={(e) => updateSoundVol('keyboard', parseFloat(e.target.value))}
-              className="w-full accent-emerald-500 h-1.5 rounded cursor-pointer"
+              className="w-full accent-emerald-500 h-1.5 rounded-lg cursor-pointer bg-slate-700/50"
             />
           </div>
 
-          {/* Cafe */}
-          <div className="flex flex-col gap-1 text-xs">
+          {/* Sound 3: Cafe */}
+          <div className="flex flex-col gap-1.5 text-xs">
             <div className="flex justify-between items-center">
-              <span>☕ Không gian quán Cafe</span>
-              <button
-                type="button"
-                onClick={() => toggleSoundSynth('cafe')}
-                className={`text-[10px] font-bold px-2.5 py-1 rounded-lg cursor-pointer transition ${
+              <span className="font-semibold text-slate-200">☕ Không gian quán Cafe</span>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
                   synthStates.cafe.active
-                    ? 'bg-emerald-500 text-white shadow-xs'
-                    : (isLight ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-slate-400')
-                }`}
-              >
-                {synthStates.cafe.active ? 'BẬT' : 'TẮT'}
-              </button>
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : isLight ? 'bg-slate-100 text-slate-400' : 'bg-white/5 text-slate-400'
+                }`}>
+                  {synthStates.cafe.active ? (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>Đang phát</span>
+                    </>
+                  ) : (
+                    <span>Tắt</span>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => toggleSoundSynth('cafe')}
+                  className={`w-11 h-6 rounded-full transition-colors duration-200 ease-in-out relative p-0.5 cursor-pointer focus:outline-none ${
+                    synthStates.cafe.active ? 'bg-emerald-500' : isLight ? 'bg-slate-300' : 'bg-slate-700'
+                  }`}
+                  title={synthStates.cafe.active ? 'Nhấn để tắt không gian cafe' : 'Nhấn để bật không gian cafe'}
+                >
+                  <span
+                    className={`inline-block w-5 h-5 rounded-full bg-white shadow-md transform transition duration-200 ease-in-out ${
+                      synthStates.cafe.active ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
             <input
               type="range"
@@ -1978,25 +2079,44 @@ export function StudyRoomView({
               step="0.05"
               value={synthStates.cafe.vol}
               onChange={(e) => updateSoundVol('cafe', parseFloat(e.target.value))}
-              className="w-full accent-emerald-500 h-1.5 rounded cursor-pointer"
+              className="w-full accent-emerald-500 h-1.5 rounded-lg cursor-pointer bg-slate-700/50"
             />
           </div>
 
-          {/* Lofi */}
-          <div className="flex flex-col gap-1 text-xs">
+          {/* Sound 4: Lofi */}
+          <div className="flex flex-col gap-1.5 text-xs">
             <div className="flex justify-between items-center">
-              <span>🎵 Giai điệu Lo-Fi Chill</span>
-              <button
-                type="button"
-                onClick={() => toggleSoundSynth('lofi')}
-                className={`text-[10px] font-bold px-2.5 py-1 rounded-lg cursor-pointer transition ${
+              <span className="font-semibold text-slate-200">🎵 Giai điệu Lo-Fi sâu lắng</span>
+              <div className="flex items-center gap-2">
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
                   synthStates.lofi.active
-                    ? 'bg-emerald-500 text-white shadow-xs'
-                    : (isLight ? 'bg-slate-100 text-slate-500' : 'bg-white/10 text-slate-400')
-                }`}
-              >
-                {synthStates.lofi.active ? 'BẬT' : 'TẮT'}
-              </button>
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    : isLight ? 'bg-slate-100 text-slate-400' : 'bg-white/5 text-slate-400'
+                }`}>
+                  {synthStates.lofi.active ? (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>Đang phát</span>
+                    </>
+                  ) : (
+                    <span>Tắt</span>
+                  )}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => toggleSoundSynth('lofi')}
+                  className={`w-11 h-6 rounded-full transition-colors duration-200 ease-in-out relative p-0.5 cursor-pointer focus:outline-none ${
+                    synthStates.lofi.active ? 'bg-emerald-500' : isLight ? 'bg-slate-300' : 'bg-slate-700'
+                  }`}
+                  title={synthStates.lofi.active ? 'Nhấn để tắt lofi' : 'Nhấn để bật lofi'}
+                >
+                  <span
+                    className={`inline-block w-5 h-5 rounded-full bg-white shadow-md transform transition duration-200 ease-in-out ${
+                      synthStates.lofi.active ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
             <input
               type="range"
@@ -2005,7 +2125,7 @@ export function StudyRoomView({
               step="0.05"
               value={synthStates.lofi.vol}
               onChange={(e) => updateSoundVol('lofi', parseFloat(e.target.value))}
-              className="w-full accent-emerald-500 h-1.5 rounded cursor-pointer"
+              className="w-full accent-emerald-500 h-1.5 rounded-lg cursor-pointer bg-slate-700/50"
             />
           </div>
         </div>

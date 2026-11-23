@@ -74,6 +74,35 @@ export const LayoutSettingsModal = React.memo(function LayoutSettingsModal({
 
   if (!isOpen) return null;
 
+  const applyModeChange = (newMode: MeetLayoutMode) => {
+    setMode(newMode);
+    const updated: LayoutSettings = { mode: newMode, maxTiles, hideSelf };
+    try {
+      localStorage.setItem(STORAGE_KEYS.MODE, newMode);
+      localStorage.setItem(STORAGE_KEYS.MAX_TILES, maxTiles.toString());
+      localStorage.setItem(STORAGE_KEYS.HIDE_SELF, hideSelf.toString());
+    } catch {}
+    onSaveSettings(updated);
+  };
+
+  const applyMaxTilesChange = (newMax: number) => {
+    setMaxTiles(newMax);
+    const updated: LayoutSettings = { mode, maxTiles: newMax, hideSelf };
+    try {
+      localStorage.setItem(STORAGE_KEYS.MAX_TILES, newMax.toString());
+    } catch {}
+    onSaveSettings(updated);
+  };
+
+  const applyHideSelfChange = (newHide: boolean) => {
+    setHideSelf(newHide);
+    const updated: LayoutSettings = { mode, maxTiles, hideSelf: newHide };
+    try {
+      localStorage.setItem(STORAGE_KEYS.HIDE_SELF, newHide.toString());
+    } catch {}
+    onSaveSettings(updated);
+  };
+
   const handleApply = () => {
     const updated: LayoutSettings = { mode, maxTiles, hideSelf };
     try {
@@ -151,7 +180,7 @@ export const LayoutSettingsModal = React.memo(function LayoutSettingsModal({
             return (
               <div
                 key={card.id}
-                onClick={() => setMode(card.id)}
+                onClick={() => applyModeChange(card.id)}
                 className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-2 ${
                   isSelected
                     ? 'bg-cyan-950/50 border-cyan-400 shadow-md ring-1 ring-cyan-400/50'
@@ -197,7 +226,7 @@ export const LayoutSettingsModal = React.memo(function LayoutSettingsModal({
                 value={TILE_LIMIT_PRESETS.indexOf(maxTiles as any) >= 0 ? TILE_LIMIT_PRESETS.indexOf(maxTiles as any) : 2}
                 onChange={(e) => {
                   const idx = parseInt(e.target.value, 10);
-                  setMaxTiles(TILE_LIMIT_PRESETS[idx]);
+                  applyMaxTilesChange(TILE_LIMIT_PRESETS[idx]);
                 }}
                 className="w-full accent-cyan-400 cursor-pointer h-2 bg-slate-700 rounded-lg appearance-none"
               />
@@ -207,7 +236,7 @@ export const LayoutSettingsModal = React.memo(function LayoutSettingsModal({
                 {TILE_LIMIT_PRESETS.map((count) => (
                   <span
                     key={count}
-                    onClick={() => setMaxTiles(count)}
+                    onClick={() => applyMaxTilesChange(count)}
                     className={`cursor-pointer transition-colors ${
                       maxTiles === count ? 'text-cyan-400 font-extrabold scale-110' : 'hover:text-white'
                     }`}
@@ -231,7 +260,7 @@ export const LayoutSettingsModal = React.memo(function LayoutSettingsModal({
 
         {/* 3. Hide Self Video Toggle */}
         <div
-          onClick={() => setHideSelf((prev) => !prev)}
+          onClick={() => applyHideSelfChange(!hideSelf)}
           className="flex items-center justify-between p-3.5 rounded-2xl bg-[#3c4043]/30 border border-white/5 hover:border-white/10 cursor-pointer transition"
         >
           <div className="flex items-center gap-2.5">
@@ -244,7 +273,7 @@ export const LayoutSettingsModal = React.memo(function LayoutSettingsModal({
           <input
             type="checkbox"
             checked={hideSelf}
-            onChange={(e) => setHideSelf(e.target.checked)}
+            onChange={(e) => applyHideSelfChange(e.target.checked)}
             className="w-4 h-4 accent-cyan-400 cursor-pointer rounded"
           />
         </div>
