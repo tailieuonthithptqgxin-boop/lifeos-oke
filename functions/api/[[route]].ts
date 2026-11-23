@@ -303,10 +303,12 @@ export async function onRequest(context: EventContext): Promise<Response> {
 
   // 7. Google Auth Config Check for Cloudflare Pages
   if (pathname === '/api/auth/google/config' && request.method === 'GET') {
+    const clientId = (env.GOOGLE_CLIENT_ID || '').trim() || '607780285544-pvk93gmansfosbc248j7p30ppu6ppr8o.apps.googleusercontent.com';
     return sendJson({
       enabled: true,
-      hasClientId: Boolean(env.APP_URL),
+      hasClientId: Boolean(clientId),
       hasClientSecret: true,
+      clientId,
       redirectUri: `${url.origin}/api/auth/google/callback`,
       mode: 'cloudflare-pages'
     });
