@@ -212,7 +212,8 @@ function AppContent() {
   const [isGoogleProcessing, setIsGoogleProcessing] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
-      return params.get('login') === 'google_success';
+      const isCallback = window.location.pathname.includes('/callback') || Boolean(params.get('code') && params.get('state'));
+      return params.get('login') === 'google_success' || isCallback;
     }
     return false;
   });
@@ -299,6 +300,69 @@ function AppContent() {
       if (token && token.length > 20) {
         try { localStorage.setItem('token', token); } catch (e) {}
       }
+      const code = params.get('code');
+      const state = params.get('state');
+      const isCallbackPath = window.location.pathname.includes('/callback') || Boolean(code && state);
+
+      if (isCallbackPath && code) {
+        setIsGoogleProcessing(true);
+        setOauthError(null);
+
+        // Exchange authorization code directly via API gateway
+        const callbackUrl = `/api/auth/google/callback${window.location.search}`;
+        apiCall(callbackUrl, 'GET', undefined, { timeoutMs: 12000, maxRetries: 1 })
+          .then(async (res) => {
+            if (res && (res.token || (res.success && res.user))) {
+              const u = res.user || res;
+              const jwtToken = res.token || token;
+              await login(u, jwtToken, 'study');
+              setCurrentView('study');
+              toast.success('Đăng nhập Google thành công! Chào mừng bạn đến với Phòng Học Trực Tuyến LifeOS 🎉');
+              window.history.replaceState({}, document.title, '/?tab=study');
+            } else if (res && res.redirectUrl) {
+              window.location.replace(res.redirectUrl);
+            } else {
+              throw new Error(res?.message || 'Không thể xác thực mã đăng nhập Google.');
+            }
+          })
+          .catch(async (err) => {
+            console.error('[Google OAuth Client Callback] Direct exchange error:', err);
+            const fallbackToken = params.get('token') || (typeof window !== 'undefined' ? localStorage.getItem('token') : null);
+            if (fallbackToken && fallbackToken.length > 20) {
+              const fallbackPayload = decodeJwtPayload(fallbackToken);
+              if (fallbackPayload && (fallbackPayload.userId || fallbackPayload.email)) {
+                const recoveryUser = {
+                  id: String(fallbackPayload.userId || `user_${Date.now()}`),
+                  email: fallbackPayload.email || '',
+                  name: fallbackPayload.name || fallbackPayload.email?.split('@')[0] || 'Học Viên',
+                  avatar: fallbackPayload.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${fallbackPayload.userId || 'student'}`,
+                  role: fallbackPayload.role || 'USER',
+                  plan: fallbackPayload.plan || 'PRO',
+                  streakDays: 0,
+                  xp: 0,
+                  level: 1,
+                  onboardingCompleted: true,
+                };
+                await login(recoveryUser, fallbackToken, 'study');
+                setCurrentView('study');
+                toast.success('Đăng nhập Google thành công! Chào mừng bạn đến với Phòng Học Trực Tuyến LifeOS 🎉');
+                window.history.replaceState({}, document.title, '/?tab=study');
+                return;
+              }
+            }
+            const msg = `Xác thực Google thất bại: ${err?.message || 'Lỗi kết nối máy chủ'}`;
+            setOauthError(msg);
+            setPublicView('login');
+            await logout();
+            toast.error(msg);
+            window.history.replaceState({}, document.title, '/');
+          })
+          .finally(() => {
+            setIsGoogleProcessing(false);
+          });
+        return;
+      }
+
       if (loginStatus === 'google_success') {
         setIsGoogleProcessing(true);
         setOauthError(null);

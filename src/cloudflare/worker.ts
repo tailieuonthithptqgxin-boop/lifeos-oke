@@ -163,7 +163,7 @@ function buildErrorRedirect(origin: string, code: string, reason?: string): Resp
 }
 
 const EDGE_DEFAULT_GOOGLE_CLIENT_ID_CHARS = [
-  54, 48, 55, 55, 56, 48, 50, 56, 53, 53, 54, 52, 45, 112, 118, 107, 57, 51, 103, 109, 97, 110, 115, 102, 111, 115, 98, 99, 50, 52, 56, 106, 55, 112, 51, 48, 112, 112, 117, 54, 112, 112, 114, 56, 111, 46, 97, 112, 112, 115, 46, 103, 111, 111, 103, 108, 101, 117, 115, 101, 114, 99, 111, 110, 116, 101, 110, 116, 46, 99, 111, 109
+  54, 48, 55, 55, 56, 48, 50, 56, 53, 53, 52, 52, 45, 112, 118, 107, 57, 51, 103, 109, 97, 110, 115, 102, 111, 115, 98, 99, 50, 52, 56, 106, 55, 112, 51, 48, 112, 112, 117, 54, 112, 112, 114, 56, 111, 46, 97, 112, 112, 115, 46, 103, 111, 111, 103, 108, 101, 117, 115, 101, 114, 99, 111, 110, 116, 101, 110, 116, 46, 99, 111, 109
 ];
 
 const EDGE_DEFAULT_GOOGLE_CLIENT_SECRET_CHARS = [
@@ -366,6 +366,27 @@ async function handleEdgeAuthRoute(request: Request, env: Env): Promise<Response
       const target = new URL('/', origin);
       target.searchParams.set('login', codeStr);
       if (reason) target.searchParams.set('reason', reason.slice(0, 300));
+
+      const acceptHeader = request.headers.get('Accept') || '';
+      if (acceptHeader.includes('application/json')) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            error: codeStr,
+            message: reason || codeStr,
+            redirectUrl: target.toString(),
+          }),
+          {
+            status: 400,
+            headers: {
+              'Content-Type': 'application/json',
+              'Set-Cookie': clearStateCookie,
+              'Cache-Control': 'no-store',
+            },
+          }
+        );
+      }
+
       return new Response(null, {
         status: 302,
         headers: {
@@ -527,6 +548,20 @@ async function handleEdgeAuthRoute(request: Request, env: Env): Promise<Response
       });
       headers.append('Set-Cookie', clearStateCookie);
       headers.append('Set-Cookie', sessionCookie);
+
+      const acceptHeader = request.headers.get('Accept') || '';
+      if (acceptHeader.includes('application/json')) {
+        headers.set('Content-Type', 'application/json');
+        return new Response(
+          JSON.stringify({
+            success: true,
+            user: edgeUser,
+            token: jwtToken,
+            redirectUrl: successUrl,
+          }),
+          { status: 200, headers }
+        );
+      }
 
       console.info(`[Edge Google OAuth] Sign-in success for ${cleanEmail} -> ${targetOrigin}`);
       return new Response(null, { status: 302, headers });

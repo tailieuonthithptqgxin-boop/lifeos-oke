@@ -8,7 +8,7 @@
  * 4. Cache Versioning & Self-Cleanup: Tự động dọn dẹp các cache cũ khi triển khai bản mới.
  */
 
-const CACHE_VERSION = 'quan-li-ca-nhan-v2.1.2-real-data';
+const CACHE_VERSION = 'quan-li-ca-nhan-v2.1.4-auth-fix';
 const STATIC_CACHE_NAME = `static-${CACHE_VERSION}`;
 const RUNTIME_CACHE_NAME = `runtime-${CACHE_VERSION}`;
 
@@ -94,8 +94,14 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
 
-  // Tuyệt đối không can thiệp các luồng xác thực OAuth (Google / API auth)
-  if (url.pathname.startsWith('/api/auth/') || url.pathname.startsWith('/auth/')) {
+  // Tuyệt đối không can thiệp các luồng xác thực OAuth (Google / API auth / callback)
+  if (
+    url.pathname.includes('/auth') ||
+    url.pathname.includes('/callback') ||
+    url.pathname.startsWith('/api/') ||
+    url.searchParams.has('code') ||
+    url.searchParams.has('state')
+  ) {
     return;
   }
 

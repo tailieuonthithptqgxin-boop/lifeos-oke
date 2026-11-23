@@ -400,9 +400,12 @@ export function registerPwaServiceWorker(): void {
     notifyListeners();
   });
 
-  // Register sw.js after window load
+  // Register sw.js after window load (never during OAuth callbacks)
   window.addEventListener('load', () => {
     if (!('serviceWorker' in navigator)) return;
+    if (window.location.search.includes('code=') || window.location.pathname.includes('/callback') || window.location.search.includes('login=google')) {
+      return;
+    }
 
     navigator.serviceWorker
       .register('/sw.js', { scope: '/' })

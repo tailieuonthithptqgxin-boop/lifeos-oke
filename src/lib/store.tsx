@@ -214,7 +214,7 @@ const getInitialState = (): AppState => {
   try {
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get('token');
-    isGoogleCallback = params.get('login') === 'google_success';
+    isGoogleCallback = params.get('login') === 'google_success' || Boolean(params.get('code') && params.get('state')) || window.location.pathname.includes('/callback');
     if (urlToken && urlToken.length > 20) {
       try { localStorage.setItem('token', urlToken); } catch (e) {}
       token = urlToken;
@@ -326,7 +326,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const params = new URLSearchParams(window.location.search);
         urlToken = params.get('token');
-        isGoogleLogin = params.get('login') === 'google_success';
+        isGoogleLogin = params.get('login') === 'google_success' || Boolean(params.get('code') && params.get('state')) || window.location.pathname.includes('/callback');
         if (urlToken && urlToken.length > 20) {
           try { localStorage.setItem('token', urlToken); } catch (e) {}
         }
