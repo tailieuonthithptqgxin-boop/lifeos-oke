@@ -14,6 +14,7 @@ import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { retentionEngine, RetentionProfile } from '../lib/retentionEngine';
 import { CelebrationModal } from './CelebrationModal';
 import { EmptyState } from './EmptyState';
+import { NextStepCard } from './NextStepCard';
 import { soundEngine } from '../lib/soundEngine';
 import { GenZMood, MOOD_PRESETS, getTodayMood, setTodayMood } from '../lib/moodEngine';
 import { ShareStoryModal } from './ShareStoryModal';
@@ -754,6 +755,13 @@ export function DashboardView() {
 
   return (
     <div className="w-full min-w-0 max-w-7xl mx-auto px-4 py-4 sm:p-6 lg:p-8 space-y-4 md:space-y-6 pb-[max(7rem,calc(env(safe-area-inset-bottom)+5.5rem))] md:pb-12 overflow-x-hidden">
+      <NextStepCard
+        taskCount={(tasks || []).length}
+        habitCount={(habits || []).length}
+        focusSessionCount={(focusSessions || []).length}
+        isVi={isVi}
+        onNavigate={(v) => setCurrentView(v as any)}
+      />
       
       {/* ========================================================================= */}
       {/* 1. COMPACT SUPER-APP HEADER BANNER (MB BANK / XANH SM STYLE)             */}
