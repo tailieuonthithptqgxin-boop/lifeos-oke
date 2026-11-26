@@ -124,7 +124,7 @@ export function RPGCharacterHub({
     }
   };
 
-  if (!charStats) {
+  if (!charStats || typeof charStats !== 'object' || Array.isArray(charStats)) {
     return (
       <div className="p-12 text-center text-slate-400">
         <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-emerald-400" />
@@ -133,7 +133,50 @@ export function RPGCharacterHub({
     );
   }
 
-  const { stats, hp, combatPower, statBreakdown, equippedGear, availableSkillPoints } = charStats;
+  const stats = {
+    power: Number(charStats.stats?.power ?? charStats.attack ?? 10),
+    defense: Number(charStats.stats?.defense ?? charStats.defense ?? 8),
+    focus: Number(charStats.stats?.focus ?? charStats.focusPower ?? 0),
+    knowledge: Number(charStats.stats?.knowledge ?? 0),
+    discipline: Number(charStats.stats?.discipline ?? charStats.currentStreak ?? 0),
+  };
+  const hp =
+    typeof charStats.hp === 'object' && charStats.hp !== null
+      ? { current: Number(charStats.hp.current) || 100, max: Number(charStats.hp.max) || 100 }
+      : { current: Number(charStats.hp) || 100, max: Number(charStats.maxHp || charStats.hp) || 100 };
+  const combatPower = Number(charStats.combatPower ?? (stats.power * 5 + stats.defense * 5 + hp.max));
+  const equippedGear = {
+    weapon: charStats.equippedGear?.weapon || null,
+    armor: charStats.equippedGear?.armor || null,
+    accessory: charStats.equippedGear?.accessory || null,
+  };
+  const availableSkillPoints = Number(charStats.availableSkillPoints) || 0;
+  const statBreakdown = {
+    tasksContribution: {
+      completedTasksCount: Number(charStats.statBreakdown?.tasksContribution?.completedTasksCount) || 0,
+      power: Number(charStats.statBreakdown?.tasksContribution?.power) || 0,
+    },
+    focusContribution: {
+      totalFocusMinutes: Number(charStats.statBreakdown?.focusContribution?.totalFocusMinutes ?? stats.focus) || 0,
+      hp: Number(charStats.statBreakdown?.focusContribution?.hp) || 0,
+      power: Number(charStats.statBreakdown?.focusContribution?.power) || 0,
+    },
+    habitsContribution: {
+      totalHabitChecks: Number(charStats.statBreakdown?.habitsContribution?.totalHabitChecks) || 0,
+      currentStreak: Number(charStats.statBreakdown?.habitsContribution?.currentStreak ?? charStats.currentStreak) || 0,
+      defense: Number(charStats.statBreakdown?.habitsContribution?.defense) || 0,
+      hp: Number(charStats.statBreakdown?.habitsContribution?.hp) || 0,
+    },
+    learningContribution: {
+      vocabWordCount: Number(charStats.statBreakdown?.learningContribution?.vocabWordCount) || 0,
+      power: Number(charStats.statBreakdown?.learningContribution?.power) || 0,
+    },
+    gearContribution: {
+      power: Number(charStats.statBreakdown?.gearContribution?.power) || 0,
+      defense: Number(charStats.statBreakdown?.gearContribution?.defense) || 0,
+      hp: Number(charStats.statBreakdown?.gearContribution?.hp) || 0,
+    },
+  };
 
   const filteredInventory = inventory.filter(item => {
     if (filterSlot === 'ALL') return true;

@@ -2421,18 +2421,88 @@ async function handleEdgeStandaloneApi(request: Request, env?: Env): Promise<Res
       return new Response(JSON.stringify({ success: true, milestones: [] }), { status: 200, headers: jsonHeaders });
     }
     if (pathname === '/api/rpg/character' && method === 'GET') {
+      const hpMax = 100 + Math.floor(realFocusMinutes / 5) + realStreak * 5;
+      const pow = 10 + Math.floor(realFocusMinutes / 10);
+      const def = 8 + realStreak * 2;
       return new Response(
         JSON.stringify({
           success: true,
           data: {
             level,
             totalXp,
-            hp: 100,
-            maxHp: 100,
-            attack: 10 + level * 2,
-            defense: 8 + realStreak * 2,
-            focusPower: 10 + Math.floor(realFocusMinutes / 10),
-            monstersDefeated: 0,
+            coins: 0,
+            currentStreak: realStreak,
+            hp: { current: hpMax, max: hpMax },
+            stats: {
+              power: pow,
+              defense: def,
+              focus: realFocusMinutes,
+              knowledge: 0,
+              discipline: realStreak,
+            },
+            combatPower: pow * 5 + def * 5 + hpMax,
+            availableSkillPoints: Math.max(0, level - 1),
+            equippedGear: { weapon: null, armor: null, accessory: null },
+            statBreakdown: {
+              tasksContribution: { completedTasksCount: 0, power: 0 },
+              focusContribution: {
+                totalFocusMinutes: realFocusMinutes,
+                hp: Math.floor(realFocusMinutes / 5),
+                power: Math.floor(realFocusMinutes / 10),
+              },
+              habitsContribution: {
+                totalHabitChecks: 0,
+                currentStreak: realStreak,
+                defense: realStreak * 2,
+                hp: realStreak * 5,
+              },
+              learningContribution: { vocabWordCount: 0, power: 0 },
+              gearContribution: { power: 0, defense: 0, hp: 0 },
+            },
+          },
+        }),
+        { status: 200, headers: jsonHeaders }
+      );
+    }
+    if (pathname === '/api/rpg/equipment' && method === 'GET') {
+      return new Response(
+        JSON.stringify({ success: true, data: { inventory: [] } }),
+        { status: 200, headers: jsonHeaders }
+      );
+    }
+    if (pathname === '/api/rpg/skills' && method === 'GET') {
+      return new Response(
+        JSON.stringify({ success: true, data: { trees: [], availableSkillPoints: Math.max(0, level - 1) } }),
+        { status: 200, headers: jsonHeaders }
+      );
+    }
+    if (pathname === '/api/rpg/monsters' && method === 'GET') {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            totalMonsters: 4,
+            defeatedMonstersCount: 0,
+            chapters: [
+              {
+                index: 1,
+                title: 'Thung Lũng Trì Hoãn',
+                subtitle: 'Đánh bại sức ỳ ban đầu',
+                monsters: [
+                  {
+                    id: 'm_sloth_1',
+                    name: 'Bóng Ma Trì Hoãn',
+                    title: 'Ải 01 · Khởi Đầu Tập Trung',
+                    icon: '👾',
+                    hp: 120,
+                    recommendedCp: 200,
+                    rewardCoins: 25,
+                    rewardXp: 40,
+                    status: 'AVAILABLE',
+                  },
+                ],
+              },
+            ],
           },
         }),
         { status: 200, headers: jsonHeaders }

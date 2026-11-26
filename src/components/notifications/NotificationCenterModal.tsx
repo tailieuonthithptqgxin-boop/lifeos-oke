@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Bell,
   CheckCircle2,
@@ -252,7 +253,7 @@ export function NotificationCenterModal({
     toast.success('📊 Đã tổng hợp số liệu thật và phát hành Báo Cáo Kỷ Luật thành công!');
   };
 
-  return (
+  const modalContent = (
     <>
       <div 
         onMouseDown={(e) => {
@@ -263,12 +264,12 @@ export function NotificationCenterModal({
             onClose();
           }
         }}
-        className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150 cursor-default"
+        className="fixed inset-0 z-[105] flex items-end sm:items-center justify-center pt-[max(0.75rem,env(safe-area-inset-top))] p-0 sm:p-4 bg-slate-950/70 backdrop-blur-sm animate-in fade-in duration-150 cursor-default"
       >
         <div
           onMouseDown={(e) => e.stopPropagation()}
           onClick={(e) => e.stopPropagation()}
-          className="bg-white dark:bg-slate-900 border-t sm:border border-slate-200 dark:border-slate-800 rounded-t-[32px] sm:rounded-3xl w-full max-w-2xl max-h-[92vh] sm:max-h-[88vh] flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-bottom-6 sm:zoom-in-95 duration-200"
+          className="bg-white dark:bg-slate-900 border-t sm:border border-slate-200 dark:border-slate-800 rounded-t-[32px] sm:rounded-3xl w-full max-w-2xl max-h-[88dvh] pb-[env(safe-area-inset-bottom)] sm:pb-0 flex flex-col shadow-2xl overflow-hidden animate-in slide-in-from-bottom-6 sm:zoom-in-95 duration-200"
           role="dialog"
           aria-modal="true"
         >
@@ -599,4 +600,6 @@ export function NotificationCenterModal({
       />
     </>
   );
+
+  return typeof document !== 'undefined' ? createPortal(modalContent, document.body) : modalContent;
 }

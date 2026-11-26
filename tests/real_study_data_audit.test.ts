@@ -130,6 +130,18 @@ describe('100% Real Study Data & Edge Schema Audit (Zero Fake Data)', () => {
     assert.equal(Array.isArray(progData.data), false, 'Progression data must be an object, never []');
     assert.equal(progData.data.equipped.frame, 'default');
     assert.equal(progData.data.totalXp, 0);
+
+    const rpgRes = await worker.fetch(
+      new Request('https://quanlicanhan.online/api/rpg/character'),
+      mockEnv,
+      mockCtx
+    );
+    const rpgData: any = await rpgRes.json();
+    assert.equal(rpgData.success, true);
+    assert.equal(typeof rpgData.data.combatPower, 'number');
+    assert.equal(typeof rpgData.data.hp.max, 'number');
+    assert.equal(typeof rpgData.data.stats.power, 'number');
+    assert.ok(rpgData.data.statBreakdown.tasksContribution);
   });
 
   test('5. Pages Function fallback /api/study-space/rooms/:id/leave also enforces strict 60s rule', async () => {
