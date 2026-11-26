@@ -1393,6 +1393,17 @@ function AllNotesView({
           <FileText className="w-10 h-10 text-slate-300 dark:text-slate-600 mx-auto" />
           <h4 className="text-base font-bold text-slate-700 dark:text-slate-200">Không tìm thấy ghi chú nào</h4>
           <p className="text-xs text-slate-500 dark:text-slate-400">Hãy thử thay đổi bộ lọc hoặc tạo ghi chú mới bằng thanh Omnibar ở trên.</p>
+          <button
+            type="button"
+            onClick={() => {
+              const el = document.querySelector<HTMLInputElement>('input[placeholder^="Ghi chú nhanh"], input[placeholder^="Quick capture"]');
+              el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              el?.focus();
+            }}
+            className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold shadow-xs cursor-pointer"
+          >
+            + Tạo ghi chú nhanh
+          </button>
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

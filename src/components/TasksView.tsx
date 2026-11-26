@@ -655,13 +655,26 @@ export function TasksView() {
                       ? `${t('Không có công việc nào thuộc danh mục lọc')} "${t(filterStatus === 'Today' ? 'Hôm nay' : filterStatus === 'Overdue' ? 'Quá hạn' : filterStatus)}"`
                       : t('Chưa có công việc nào. Hãy thêm công việc đầu tiên ở ô trên!')}
                   </p>
-                  {(searchQuery || filterStatus !== 'All') && (
+                  {(searchQuery || filterStatus !== 'All') ? (
                     <button
                       type="button"
                       onClick={() => { setSearchQuery(''); setFilterStatus('All'); }}
                       className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer"
                     >
                       {t('Xóa bộ lọc')}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        try { soundEngine.playPop(); } catch {}
+                        const el = document.querySelector<HTMLInputElement>('input[placeholder^="Thêm nhanh công việc"]');
+                        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        el?.focus();
+                      }}
+                      className="mt-1 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-xs cursor-pointer"
+                    >
+                      + {t('Thêm công việc đầu tiên')}
                     </button>
                   )}
                 </div>
