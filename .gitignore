@@ -52,8 +52,11 @@ playwright-report/
 backups/
 *.exe
 *.png
+!public/*.png
 !public/**/*.png
 !src/**/*.png
+!dist/*.png
+!dist/**/*.png
 .DS_Store
 Thumbs.db
 *.log
