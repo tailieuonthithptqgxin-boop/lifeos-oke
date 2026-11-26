@@ -185,7 +185,7 @@ export function HabitsView() {
       if (milestone) {
         triggerConfetti();
         soundEngine.playCelebration();
-        showFloatingXp(milestone);
+        showFloatingXp(milestone, document.body);
       }
       const otherIncomplete = habits.filter(h => h.id !== habit.id && !isCompletedToday(h));
       if (otherIncomplete.length === 0) {

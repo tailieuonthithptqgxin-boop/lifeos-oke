@@ -13,6 +13,7 @@ import { apiCall } from '../lib/apiClient';
 import { ENERGY_CONFIG, EnergyLevel } from '../utils/commandParser';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { soundEngine } from '../lib/soundEngine';
+import { showFloatingXp } from '../lib/celebrationEngine';
 
 export type NormalizedTaskStatus = 'Chưa làm' | 'Đang làm' | 'Đang chờ' | 'Hoàn thành' | 'Hủy';
 
@@ -1440,6 +1441,10 @@ function TimeboxingView({ tasks, onEditTask, onUpdateTask, localToday }: any) {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
+                          if (!isDone) {
+                            try { soundEngine.playSuccess(); } catch {}
+                            showFloatingXp('+20 XP', e.currentTarget);
+                          }
                           onUpdateTask(t.id, { status: isDone ? 'Chưa làm' : 'Hoàn thành' });
                         }}
                         className={`w-3.5 h-3.5 rounded-md border flex items-center justify-center ${

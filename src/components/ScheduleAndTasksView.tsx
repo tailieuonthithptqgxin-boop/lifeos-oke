@@ -28,7 +28,7 @@ import { Task, Priority } from '../lib/types';
 import { TasksView, TaskModal, normalizeTaskStatus, getLocalDateString, isTaskForToday, isTaskOverdue } from './TasksView';
 import { SpatialTaskCard } from './spatial/functional/SpatialTaskCard';
 import { SpatialTimelineBlock } from './spatial/functional/SpatialTimelineBlock';
-import { triggerDelightCelebration } from '../lib/celebrationEngine';
+import { triggerDelightCelebration, showFloatingXp } from '../lib/celebrationEngine';
 import { soundEngine } from '../lib/soundEngine';
 import { retentionEngine } from '../lib/retentionEngine';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
@@ -346,6 +346,7 @@ export function ScheduleAndTasksView({
     if (nextStatus === 'Hoàn thành') {
       try {
         triggerDelightCelebration(e?.clientX, e?.clientY);
+        showFloatingXp('+20 XP', (e?.currentTarget as Element | undefined) ?? null);
         retentionEngine.addXp(20, `Hoàn thành việc: ${task.title}`);
       } catch (e) {
         console.warn('XP add failed gracefully:', e);
