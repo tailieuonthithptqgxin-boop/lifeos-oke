@@ -251,8 +251,8 @@ export function GlobalChatWidget({
   }, [cooldown]);
 
   // 4. Send Message Handler
-  const handleSend = async () => {
-    const text = inputText.trim();
+  const handleSend = async (overrideText?: string) => {
+    const text = (overrideText !== undefined ? overrideText : inputText).trim();
     if (!text || isSending || cooldown > 0) return;
     if (text.length > 300) return;
 
@@ -261,11 +261,21 @@ export function GlobalChatWidget({
       const res = await apiCall<{ success: boolean; message: GlobalChatMessage }>(
         '/api/global-chat/messages',
         'POST',
-        { content: text }
+        {
+          content: text,
+          userId: currentUserId,
+          userName: currentUserName,
+          userAvatar: currentUserAvatar,
+        }
       );
 
       if (res && res.success) {
-        setInputText('');
+        if (overrideText === undefined) setInputText('');
+        if (res.message) {
+          setMessages((prev) =>
+            prev.some((m) => m.id === res.message.id) ? prev : [...prev, res.message]
+          );
+        }
         setCooldown(2);
         try { soundEngine.playPop(); } catch {}
         setTimeout(() => {
@@ -279,7 +289,7 @@ export function GlobalChatWidget({
     }
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
@@ -374,11 +384,28 @@ export function GlobalChatWidget({
     </div>
   );
 
-  // Render Input Footer
+  // Render Sleek Modern Pill Input Footer (Zero iOS Auto-Zoom, 1-Tap Vibe Chips)
   const renderInputFooter = () => (
-    <div className="p-3 border-t border-slate-100 dark:border-white/[0.08] bg-white dark:bg-slate-900 space-y-1.5 shrink-0 safe-area-pb">
-      <div className="relative flex items-center">
-        <textarea
+    <div className="px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-slate-200/70 dark:border-white/[0.08] bg-white/95 dark:bg-[#0f1320]/95 backdrop-blur-xl space-y-2 shrink-0">
+      {/* 1-Tap Quick Vibe Chips */}
+      <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+        {['👋 Chào cả nhà!', '🔥 Đang cày bài', '🦉 Hội cú đêm', '💪 Quyết tâm!'].map((chip) => (
+          <button
+            key={chip}
+            type="button"
+            disabled={isSending || cooldown > 0}
+            onClick={() => handleSend(chip)}
+            className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 hover:bg-indigo-50 dark:bg-white/[0.06] dark:hover:bg-indigo-500/20 text-slate-700 hover:text-indigo-600 dark:text-slate-200 dark:hover:text-indigo-300 border border-slate-200/80 dark:border-white/10 shrink-0 transition active:scale-95 cursor-pointer disabled:opacity-40"
+          >
+            {chip}
+          </button>
+        ))}
+      </div>
+
+      {/* Rounded-Full iMessage Capsule */}
+      <div className="flex items-center gap-2 pl-4 pr-1.5 py-1 rounded-full bg-slate-100/90 dark:bg-slate-800/90 border border-slate-200/90 dark:border-white/10 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+        <input
+          type="text"
           value={inputText}
           onChange={(e) => {
             if (e.target.value.length <= 300) {
@@ -388,39 +415,37 @@ export function GlobalChatWidget({
           onKeyDown={handleKeyDown}
           placeholder={
             cooldown > 0
-              ? `Giãn cách chống spam: đợi ${cooldown}s...`
-              : 'Trò chuyện cộng đồng (Enter để gửi)...'
+              ? `Đợi ${cooldown}s để gửi tiếp...`
+              : 'Nhắn tin giao lưu cùng cộng đồng...'
           }
           disabled={isSending || cooldown > 0}
-          rows={2}
-          className="w-full pl-3 pr-11 py-2 text-xs rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-500 resize-none disabled:opacity-60 disabled:cursor-not-allowed"
+          className="flex-1 min-w-0 bg-transparent py-1.5 text-base sm:text-xs text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden disabled:opacity-60"
         />
+
+        {inputText.length >= 220 && (
+          <span className={`text-[10px] font-mono shrink-0 ${inputText.length >= 285 ? 'text-rose-500 font-bold' : 'text-slate-400'}`}>
+            {inputText.length}/300
+          </span>
+        )}
 
         <button
           type="button"
-          onClick={handleSend}
+          onClick={() => handleSend()}
           disabled={!inputText.trim() || isSending || cooldown > 0}
-          className="absolute right-2.5 p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-xs cursor-pointer min-h-[36px] min-w-[36px] flex items-center justify-center"
+          className={`w-9 h-9 rounded-full flex items-center justify-center transition-all shrink-0 cursor-pointer ${
+            !inputText.trim() || isSending || cooldown > 0
+              ? 'bg-slate-200 dark:bg-slate-700 text-slate-400 cursor-not-allowed'
+              : 'bg-gradient-to-tr from-indigo-600 to-violet-500 hover:from-indigo-500 hover:to-violet-400 text-white shadow-md shadow-indigo-500/25 active:scale-90'
+          }`}
           title="Gửi tin nhắn"
           aria-label="Gửi tin nhắn"
         >
-          <Send className="w-3.5 h-3.5" />
-        </button>
-      </div>
-
-      <div className="flex items-center justify-between text-[10px] text-slate-400 px-1">
-        <div>
           {cooldown > 0 ? (
-            <span className="text-amber-500 font-semibold flex items-center gap-1 animate-pulse">
-              <Clock className="w-2.5 h-2.5" /> Đang chống spam ({cooldown}s)
-            </span>
+            <span className="text-[10px] font-black font-mono">{cooldown}s</span>
           ) : (
-            <span>Mọi thành viên đều thấy tin nhắn trực tiếp</span>
+            <Send className="w-4 h-4 translate-x-[0.5px]" />
           )}
-        </div>
-        <span className={inputText.length >= 280 ? 'text-amber-500 font-bold' : ''}>
-          {inputText.length}/300
-        </span>
+        </button>
       </div>
     </div>
   );

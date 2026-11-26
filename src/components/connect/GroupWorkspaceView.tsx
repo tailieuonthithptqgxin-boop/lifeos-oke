@@ -1268,31 +1268,35 @@ function GroupChatTab({
         </div>
       )}
 
-      {/* 3. INPUT BAR */}
-      <div className="p-3 border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900">
+      {/* 3. INPUT BAR (Sleek Mobile Pill Composer — Zero iOS Auto-Zoom) */}
+      <div className="px-3 py-2.5 pb-[max(0.65rem,env(safe-area-inset-bottom))] border-t border-slate-200/80 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md">
         {isMuted ? (
-          <div className="p-2.5 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-600 text-xs font-bold text-center">
+          <div className="p-2.5 rounded-2xl bg-rose-50 dark:bg-rose-950/30 text-rose-600 text-xs font-bold text-center">
             Bạn đang bị Ban quản trị tạm khóa quyền gửi tin nhắn trong nhóm.
           </div>
         ) : isAnnouncementOnly ? (
-          <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs font-semibold text-center">
+          <div className="p-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 text-slate-500 text-xs font-semibold text-center">
             🔒 Kênh Thông Báo chỉ cho phép Quản trị viên gửi tin nhắn để tránh trôi tin.
           </div>
         ) : (
-          <form onSubmit={handleSend} className="flex items-center gap-2">
+          <form
+            onSubmit={handleSend}
+            className="flex items-center gap-2 pl-4 pr-1.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700 focus-within:bg-white dark:focus-within:bg-slate-800 focus-within:border-indigo-500 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all"
+          >
             <input
               type="text"
-              placeholder={`Nhắn tin vào ${activeChannel?.name || 'kênh'}...`}
+              placeholder={`Nhắn vào #${activeChannel?.name || 'kênh'}...`}
               value={text}
               onChange={e => setText(e.target.value)}
-              className="flex-1 text-xs px-3.5 py-2.5 rounded-2xl bg-slate-100 dark:bg-slate-800 border-0 outline-none text-slate-900 dark:text-white"
+              className="flex-1 min-w-0 bg-transparent py-1.5 text-base sm:text-xs outline-none text-slate-900 dark:text-white placeholder:text-slate-400"
             />
             <button
               type="submit"
               disabled={!text.trim() && chatImages.length === 0}
-              className="p-2.5 rounded-2xl bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40 transition-all cursor-pointer shadow-xs"
+              aria-label="Gửi tin nhắn"
+              className="w-9 h-9 rounded-full bg-gradient-to-tr from-indigo-600 to-violet-500 text-white hover:from-indigo-500 hover:to-violet-400 disabled:opacity-35 flex items-center justify-center transition-all active:scale-90 cursor-pointer shadow-sm shrink-0"
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-4 h-4 translate-x-[0.5px]" />
             </button>
           </form>
         )}

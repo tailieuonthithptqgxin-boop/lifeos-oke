@@ -25,12 +25,16 @@ import { OnlineClassroomView } from '../classroom/OnlineClassroomView';
 import { AestheticStudyReceiptModal } from '../sharing/AestheticStudyReceiptModal';
 
 import { analyticsTracker } from '../../lib/analyticsTracker';
+import { retentionEngine } from '../../lib/retentionEngine';
 
 interface SessionSummaryData {
   roomName: string;
+  seconds: number;
   minutes: number;
   recordedMinutes: number;
   wasRecorded: boolean;
+  xpEarned: number;
+  streakDays: number;
 }
 
 const DEFAULT_STUDY_ROOMS: StudyRoomSummary[] = [
@@ -162,7 +166,12 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
   const roomEventSourceRef = useRef<EventSource | null>(null);
   const lobbyEventSourceRef = useRef<EventSource | null>(null);
   const activeRoomIdRef = useRef<string | null>(null);
+  const joinedAtRef = useRef<number>(0);
+  const activeRoomNameRef = useRef<string>('Phòng học');
   activeRoomIdRef.current = activeRoomId;
+  if (activeRoomDetail?.name) {
+    activeRoomNameRef.current = activeRoomDetail.name;
+  }
 
   // 1. Fetch rooms list for Lobby
   const loadRooms = useCallback(async () => {
@@ -263,6 +272,7 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
       if (urlRoomId && !activeRoomId) {
         const autoJoinUrlRoom = async () => {
           try {
+            joinedAtRef.current = Date.now();
             await apiCall(`/api/study-space/rooms/${urlRoomId}/checkin`, 'POST', {
               goal: 'Gia nhập bàn học cùng bạn bè'
             });
@@ -298,6 +308,8 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
       if (elapsedSincePing <= 15 * 60 * 1000) {
         const autoReconnect = async () => {
           try {
+            joinedAtRef.current = typeof savedData.joinedAt === 'number' ? savedData.joinedAt : Date.now();
+            if (savedData.roomName) activeRoomNameRef.current = savedData.roomName;
             await apiCall(`/api/study-space/rooms/${savedData.roomId}/checkin`, 'POST', {
               goal: savedData.goal || 'Đang tiếp tục ca học...'
             });
@@ -450,6 +462,10 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
       messages: [],
     };
 
+    const nowJoined = Date.now();
+    joinedAtRef.current = nowJoined;
+    activeRoomNameRef.current = roomName;
+
     setActiveRoomDetail(optimisticDetail);
     setActiveRoomId(roomId);
     setPendingCheckInRoom(null);
@@ -465,15 +481,18 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
           roomId,
           roomName,
           goal,
-          joinedAt: Date.now(),
-          lastPing: Date.now()
+          joinedAt: nowJoined,
+          lastPing: nowJoined
         };
         localStorage.setItem('lifeos_active_study_desk_v2', JSON.stringify(deskData));
         sessionStorage.setItem('lifeos_active_study_room', JSON.stringify(deskData));
       } catch {}
 
       const res = await apiCall<any>(`/api/study-space/rooms/${roomId}/checkin`, 'POST', {
-        goal
+        goal,
+        userId: currentUser?.id,
+        userName: currentUser?.name,
+        userAvatar: currentUser?.avatar,
       });
       if (res && res.success && res.room) {
         setActiveRoomDetail(res.room);
@@ -487,8 +506,8 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
     }
   };
 
-  // 7. User leaves room (Handles summary computation & cleanup)
-  const handleLeaveRoom = useCallback(async () => {
+  // 7. User leaves room (100% Real wall-clock duration & strict 60s filter — ZERO fake minutes!)
+  const handleLeaveRoom = useCallback(async (clientElapsedSeconds?: number) => {
     const currentId = activeRoomIdRef.current;
     if (!currentId) return;
 
@@ -497,42 +516,83 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
       roomEventSourceRef.current = null;
     }
 
+    const wallSeconds =
+      joinedAtRef.current > 0
+        ? Math.max(0, Math.floor((Date.now() - joinedAtRef.current) / 1000))
+        : typeof clientElapsedSeconds === 'number' && Number.isFinite(clientElapsedSeconds)
+          ? Math.max(0, Math.floor(clientElapsedSeconds))
+          : 0;
+    joinedAtRef.current = 0;
+    const roomNameFallback = activeRoomNameRef.current || 'Phòng học';
+
     // Clear F5 session storage upon explicit leave
     try {
       localStorage.removeItem('lifeos_active_study_desk_v2');
       sessionStorage.removeItem('lifeos_active_study_room');
     } catch {}
 
+    let verifiedSeconds = wallSeconds;
+    let resolvedRoomName = roomNameFallback;
+    let serverStreak: number | undefined;
+
     try {
       const res = await apiCall<{
         success: boolean;
+        studiedSeconds?: number;
         studiedMinutes?: number;
         recordedMinutes?: number;
         wasRecorded?: boolean;
+        xpEarned?: number;
+        streakDays?: number;
         roomName?: string;
-      }>(`/api/study-space/rooms/${currentId}/leave`, 'POST');
+      }>(`/api/study-space/rooms/${currentId}/leave`, 'POST', {
+        elapsedSeconds: wallSeconds,
+        roomName: roomNameFallback,
+        userId: currentUser?.id,
+        userName: currentUser?.name,
+        userAvatar: currentUser?.avatar,
+      });
 
-      // Rule 3: Session summary with 1-minute filter feedback
-      if (res && typeof res.studiedMinutes === 'number') {
-        const studiedMinutes = res.studiedMinutes;
-        const wasRecorded = Boolean(res.wasRecorded && (res.recordedMinutes || 0) >= 1);
-        const recordedMinutes = res.recordedMinutes || (wasRecorded ? studiedMinutes : 0);
-
-        setSessionSummary({
-          roomName: res.roomName || 'Phòng học',
-          minutes: studiedMinutes,
-          recordedMinutes,
-          wasRecorded
-        });
+      if (res) {
+        if (res.roomName) resolvedRoomName = res.roomName;
+        if (typeof res.streakDays === 'number') serverStreak = res.streakDays;
+        if (typeof res.studiedSeconds === 'number') {
+          verifiedSeconds = wallSeconds > 0 ? Math.min(wallSeconds + 5, res.studiedSeconds) : res.studiedSeconds;
+        }
       }
     } catch (err) {
-      console.warn('Failed to leave study room cleanly:', err);
+      console.warn('Failed to leave study room cleanly, using verified local timer:', err);
     }
+
+    const studiedMinutes = Math.floor(verifiedSeconds / 60);
+    const wasRecorded = studiedMinutes >= 1;
+    const recordedMinutes = wasRecorded ? studiedMinutes : 0;
+    const xpEarned = wasRecorded ? recordedMinutes * 2 : 0;
+
+    let finalStreak = serverStreak ?? (currentUser?.streakDays ?? 0);
+    if (wasRecorded) {
+      try {
+        const updatedResult = retentionEngine.addXp(xpEarned, 'focus', currentUser?.id);
+        if (updatedResult?.profile && typeof updatedResult.profile.streak === 'number') {
+          finalStreak = Math.max(finalStreak, updatedResult.profile.streak);
+        }
+      } catch {}
+    }
+
+    setSessionSummary({
+      roomName: resolvedRoomName,
+      seconds: verifiedSeconds,
+      minutes: studiedMinutes,
+      recordedMinutes,
+      wasRecorded,
+      xpEarned,
+      streakDays: finalStreak,
+    });
 
     setActiveRoomId(null);
     setActiveRoomDetail(null);
     loadRooms();
-  }, [loadRooms]);
+  }, [loadRooms, currentUser?.id, currentUser?.name, currentUser?.avatar, currentUser?.streakDays]);
 
   // 8. Cleanup when unmounting or switching views
   useEffect(() => {
@@ -922,14 +982,14 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
         isSubmitting={isSubmittingRoom}
       />
 
-      {/* Rule 3: Session Completion Aesthetic Study Receipt / Short-Session Notice */}
+      {/* Rule 3: Session Completion Aesthetic Study Receipt / Honest Short-Session Notice */}
       {sessionSummary && sessionSummary.wasRecorded && (
         <AestheticStudyReceiptModal
           receipt={{
             title: `Phòng học: ${sessionSummary.roomName}`,
             minutes: sessionSummary.recordedMinutes,
-            xpEarned: Math.max(20, sessionSummary.recordedMinutes * 2),
-            streakDays: currentUser?.streakDays || 1,
+            xpEarned: sessionSummary.xpEarned,
+            streakDays: sessionSummary.streakDays,
             userName: currentUser?.name,
             modeLabel: 'Sảnh Học Chung Trực Tuyến',
           }}
@@ -948,26 +1008,26 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
               className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-7 text-center space-y-5 animate-in zoom-in-95 duration-200 max-h-[88vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="w-16 h-16 rounded-3xl bg-linear-to-tr from-slate-400 to-slate-600 text-white flex items-center justify-center mx-auto shadow-md">
+              <div className="w-16 h-16 rounded-3xl bg-linear-to-tr from-slate-500 to-slate-700 text-white flex items-center justify-center mx-auto shadow-md">
                 <Clock className="w-8 h-8" />
               </div>
 
               <div className="space-y-2">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold">
-                  <span>Phiên Học Ngắn</span>
+                  <span>⏱️ Dữ Liệu Thực Tế · +0 Phút · +0 XP</span>
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                  Phiên học kết thúc ({sessionSummary.minutes} phút)
+                  Phiên học kéo dài {sessionSummary.seconds} giây
                 </h3>
                 <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                  Hãy duy trì tập trung từ 1 phút trở lên ở phiên tiếp theo để nhận Biên lai Học tập và tích lũy giờ trên Bảng Xếp Hạng nhé!
+                  Hệ thống chỉ ghi nhận giờ học thật khi bạn duy trì tập trung từ <strong>1 phút (60 giây) trở lên</strong>. Hãy vào lại bàn học và ngồi đủ ít nhất 1 phút để nhận Biên lai Học tập nhé!
                 </p>
               </div>
 
               <button
                 type="button"
                 onClick={() => setSessionSummary(null)}
-                className="w-full py-3 min-h-[44px] rounded-2xl bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-3 min-h-[44px] rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md"
               >
                 <span>Đã hiểu</span>
               </button>

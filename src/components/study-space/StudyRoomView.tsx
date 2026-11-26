@@ -122,7 +122,7 @@ interface FloatingEmoji {
 
 interface StudyRoomViewProps {
   room: RoomDetail;
-  onLeaveRoom: () => void;
+  onLeaveRoom: (elapsedSeconds?: number) => void;
   onUpdateGoal: (newGoal: string) => void;
   currentUserId?: string;
   currentUserName?: string;
@@ -1246,29 +1246,39 @@ export function StudyRoomView({
     if (typeof document !== 'undefined' && document.fullscreenElement) {
       document.exitFullscreen?.().catch(() => {});
     }
-    onLeaveRoom();
+    onLeaveRoom(taskTimerSeconds);
+  };
+
+  const handleRequestLeave = () => {
+    // If user already studied >= 60 real seconds, leave cleanly & show the single verified Study Receipt!
+    if (taskTimerSeconds >= 60) {
+      executeLeave();
+      return;
+    }
+    // Under 60 seconds: show honest 1-minute notice & loss-aversion prompt to keep studying
+    setShowSummaryModal(true);
   };
 
   const roomContent = (
     <div
-      className={`fixed inset-0 z-[99999] w-screen h-screen overflow-hidden flex flex-col select-none font-sans transition-colors duration-300 ${
-        isLight ? 'bg-[#F8FAFC] text-slate-900' : 'bg-[#202124] text-slate-100'
+      className={`fixed inset-0 z-[99999] w-full h-[100dvh] overflow-hidden flex flex-col select-none font-sans transition-colors duration-300 ${
+        isLight ? 'bg-[#F8FAFC] text-slate-900' : 'bg-[#121316] text-slate-100'
       }`}
     >
       {/* ========================================================= */}
-      {/* 1. TOP HUD BAR: TỐI GIẢN CHUẨN GOOGLE MEET (h-14)         */}
+      {/* 1. TOP HUD BAR: SAFE-AREA TOP CHO IPHONE + ĐỒNG HỒ THẬT   */}
       {/* ========================================================= */}
       <header
-        className={`h-14 px-3 sm:px-5 flex items-center justify-between border-b backdrop-blur-xl z-30 shrink-0 transition-all duration-300 select-none ${
-          isLight ? 'bg-white/95 border-slate-200 shadow-xs text-slate-800' : 'bg-[#202124]/95 border-white/10 text-white shadow-md'
+        className={`h-auto min-h-[3.5rem] pt-[max(0.6rem,env(safe-area-inset-top))] pb-2 px-3 sm:px-5 flex items-center justify-between border-b backdrop-blur-xl z-30 shrink-0 transition-all duration-300 select-none ${
+          isLight ? 'bg-white/95 border-slate-200 shadow-xs text-slate-800' : 'bg-[#18191c]/95 border-white/10 text-white shadow-md'
         } ${zenMode ? '-translate-y-full opacity-0 pointer-events-none' : 'translate-y-0 opacity-100'}`}
       >
-        {/* KHỐI TRÁI: TÊN PHÒNG & MÃ PHÒNG (COPY LINK MỜI BẠN) */}
-        <div className="flex items-center gap-2.5 min-w-0">
+        {/* KHỐI TRÁI: TÊN PHÒNG & ĐỒNG HỒ PHIÊN HỌC THẬT */}
+        <div className="flex items-center gap-2 min-w-0">
           <button
             type="button"
-            onClick={() => setShowSummaryModal(true)}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer border ${
+            onClick={handleRequestLeave}
+            className={`flex items-center justify-center w-9 h-9 sm:w-auto sm:px-2.5 sm:py-1.5 rounded-xl text-xs font-semibold transition cursor-pointer border shrink-0 ${
               isLight
                 ? 'bg-slate-100 hover:bg-red-50 text-slate-700 hover:text-red-600 border-slate-200 hover:border-red-200'
                 : 'bg-white/5 hover:bg-red-500/10 text-slate-300 hover:text-red-400 border-white/10 hover:border-red-500/30'
@@ -1276,14 +1286,29 @@ export function StudyRoomView({
             title="Rời phòng học"
           >
             <ChevronLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Rời</span>
+            <span className="hidden sm:inline ml-1">Rời</span>
           </button>
 
-          <div className="flex items-center gap-2 min-w-0">
-            <GraduationCap className="w-4 h-4 text-emerald-400 shrink-0" />
-            <h2 className="text-sm font-bold truncate max-w-[160px] sm:max-w-xs md:max-w-md">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <GraduationCap className="w-4 h-4 text-emerald-400 shrink-0 hidden xs:block" />
+            <h2 className="text-xs sm:text-sm font-bold truncate max-w-[135px] sm:max-w-xs md:max-w-md">
               {localRoomName}
             </h2>
+          </div>
+
+          {/* Live Real Session Timer Pill (Visible on Mobile & Desktop — 100% Honest!) */}
+          <div
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono font-extrabold border shrink-0 ${
+              taskTimerSeconds >= 60
+                ? 'bg-emerald-500/15 border-emerald-500/35 text-emerald-400'
+                : isLight
+                  ? 'bg-slate-100 border-slate-200 text-slate-600'
+                  : 'bg-white/[0.06] border-white/10 text-slate-300'
+            }`}
+            title="Thời gian học thực tế trong phiên này (đủ 01:00 để ghi nhận giờ)"
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${taskTimerSeconds >= 60 ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400 animate-pulse'}`} />
+            <span>{formatTaskTimer(taskTimerSeconds)}</span>
           </div>
 
           <button
@@ -1433,8 +1458,8 @@ export function StudyRoomView({
           isLight={isLight}
         />
 
-        {/* 2. HORIZONTAL BODY CONTAINER: STAGE (LEFT) + DRAWER (RIGHT) SIDE-BY-SIDE */}
-        <div className="flex-1 flex flex-row overflow-hidden gap-3 relative pb-20">
+        {/* 2. HORIZONTAL BODY CONTAINER: STAGE (LEFT) + DRAWER (BOTTOM SHEET ON MOBILE / SIDE ON DESKTOP) */}
+        <div className="flex-1 flex flex-row overflow-hidden gap-3 relative pb-[calc(4.75rem+env(safe-area-inset-bottom))] md:pb-20">
           {/* LEFT: Video Stage (Always visible, smoothly adapts when drawer opens) */}
           <div className="flex-1 h-full min-w-0 flex flex-col overflow-hidden relative">
             {layoutSettings.mode === 'spotlight' ? (
@@ -1616,11 +1641,17 @@ export function StudyRoomView({
             )}
           </div>
 
-          {/* RIGHT: Side-by-Side Drawer (Chat, Members, Tasks, Rank) */}
+          {/* RIGHT / MOBILE BOTTOM SHEET: Drawer (Chat, Members, Tasks) */}
           {isDrawerOpen && (
-            <aside className={`w-80 sm:w-88 md:w-96 h-full border-l rounded-2xl flex flex-col overflow-hidden transition-all duration-300 z-20 shrink-0 shadow-2xl ${
-              isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#181a1d] border-white/10 text-white'
-            }`}>
+            <>
+              <div
+                className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+                onClick={() => setIsDrawerOpen(false)}
+              />
+              <aside className={`fixed inset-x-0 bottom-0 z-[60] h-[80dvh] rounded-t-3xl border-t pb-[env(safe-area-inset-bottom)] md:static md:z-20 md:w-88 lg:w-96 md:h-full md:border-t-0 md:border-l md:rounded-2xl md:pb-0 flex flex-col overflow-hidden transition-all duration-300 shrink-0 shadow-2xl animate-in slide-in-from-bottom md:animate-none ${
+                isLight ? 'bg-white border-slate-200 text-slate-800' : 'bg-[#181a1d] border-white/10 text-white'
+              }`}>
+              <div className="md:hidden w-10 h-1 rounded-full bg-slate-400/40 mx-auto mt-2.5 mb-1 shrink-0" />
             {/* Header Tabs */}
             <div className={`flex items-center justify-between border-b p-2 ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-[#1e2023] border-white/10'}`}>
               <div className="flex gap-1 overflow-x-auto no-scrollbar">
@@ -1859,6 +1890,7 @@ export function StudyRoomView({
               </div>
             )}
           </aside>
+            </>
         )}
         </div>
       </main>
@@ -1901,7 +1933,7 @@ export function StudyRoomView({
           }}
           onSendKudosClick={() => triggerBatchKudos('🔥')}
           onOpenLayoutSettings={() => setIsLayoutModalOpen(true)}
-          onLeaveRoomClick={() => setShowSummaryModal(true)}
+          onLeaveRoomClick={handleRequestLeave}
           onToggleDrawer={(tab) => {
             if (isDrawerOpen && activeDrawerTab === tab) {
               setIsDrawerOpen(false);
@@ -1928,7 +1960,7 @@ export function StudyRoomView({
 
       {/* AMBIENT SOUND POPOVER */}
       {isSoundPopoverOpen && (
-        <div className={`fixed bottom-22 left-1/2 -translate-x-1/2 w-88 rounded-3xl p-5 border shadow-2xl z-50 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-150 ${
+        <div className={`fixed bottom-24 left-1/2 -translate-x-1/2 w-[calc(100vw-1.5rem)] max-w-sm rounded-3xl p-5 border shadow-2xl z-50 flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-150 ${
           isLight ? 'bg-white/95 border-slate-200 text-slate-800' : 'bg-[#181a1d]/95 border-white/10 text-white backdrop-blur-xl'
         }`}>
           <div className={`flex justify-between items-center border-b pb-2.5 ${isLight ? 'border-slate-200' : 'border-white/10'}`}>
@@ -2222,57 +2254,45 @@ export function StudyRoomView({
       )}
 
       {/* ========================================================= */}
-      {/* 6. MODAL 2: SESSION SUMMARY UPON LEAVING                  */}
+      {/* 6. MODAL XÁC NHẬN KHI RỜI PHÒNG DƯỚI 60 GIÂY (100% THẬT!) */}
       {/* ========================================================= */}
       {showSummaryModal && (
-        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[1010] flex items-center justify-center p-4">
-          <div className={`w-full max-w-md rounded-2xl p-6 border text-center flex flex-col items-center gap-4 shadow-2xl ${
-            isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#11151f] border-white/10 text-white'
+        <div className="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-[1010] flex items-center justify-center p-4">
+          <div className={`w-full max-w-sm rounded-3xl p-6 border text-center flex flex-col items-center gap-4 shadow-2xl animate-in zoom-in-95 duration-150 ${
+            isLight ? 'bg-white border-slate-200 text-slate-900' : 'bg-[#151821] border-white/10 text-white'
           }`}>
-            <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-slate-950 text-2xl font-black shadow-xl">
-              🎓
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-2xl shadow-lg">
+              ⏱️
             </div>
-            <div>
-              <h3 className="font-extrabold text-xl">BUỔI HỌC KẾT THÚC RỰC RỠ!</h3>
-              <p className="text-xs opacity-75 mt-1">Tổng kết thành tích tự học hôm nay của bạn</p>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3 w-full my-2">
-              <div className={`border p-3 rounded-xl flex flex-col items-center ${
-                isLight ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/10'
-              }`}>
-                <span className="text-xs opacity-75">Thời gian</span>
-                <span className="font-mono text-base font-bold text-emerald-500">
-                  {formatTaskTimer(taskTimerSeconds)}
-                </span>
-              </div>
-              <div className={`border p-3 rounded-xl flex flex-col items-center ${
-                isLight ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/10'
-              }`}>
-                <span className="text-xs opacity-75">XP Tích lũy</span>
-                <span className="font-mono text-base font-bold text-amber-500">+{Math.max(50, Math.round(taskTimerSeconds / 60) * 10)} XP</span>
-              </div>
-              <div className={`border p-3 rounded-xl flex flex-col items-center ${
-                isLight ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/10'
-              }`}>
-                <span className="text-xs opacity-75">Mục tiêu xong</span>
-                <span className="font-mono text-base font-bold text-purple-500">
-                  {roomTasks.filter((t) => t.status === 'Hoàn thành' || t.status === 'Done').length} / {roomTasks.length}
-                </span>
-              </div>
+            <div className="space-y-1.5">
+              <h3 className="font-extrabold text-lg">
+                Mới học được {taskTimerSeconds} giây thôi!
+              </h3>
+              <p className="text-xs opacity-80 leading-relaxed">
+                Chỉ còn <strong className="text-emerald-400">{Math.max(1, 60 - taskTimerSeconds)} giây</strong> nữa là đủ 1 phút đầu tiên để hệ thống ghi nhận giờ học thật và cộng XP. Bạn muốn ngồi thêm chút nữa không?
+              </p>
             </div>
 
-            <p className="text-xs text-emerald-600 dark:text-emerald-300 bg-emerald-500/10 border border-emerald-500/30 p-2.5 rounded-xl">
-              🔥 Bạn đã giữ vững Chuỗi Tập Trung {userStreak} ngày liên tiếp!
-            </p>
-
-            <button
-              type="button"
-              onClick={executeLeave}
-              className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold py-2.5 rounded-xl text-sm transition cursor-pointer"
-            >
-              Trở Về Sảnh Học
-            </button>
+            <div className="w-full space-y-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => setShowSummaryModal(false)}
+                className="w-full bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black py-3 min-h-[44px] rounded-2xl text-xs sm:text-sm transition active:scale-97 cursor-pointer shadow-lg shadow-emerald-500/20"
+              >
+                🔥 Ở lại học tiếp cho đủ 1 phút
+              </button>
+              <button
+                type="button"
+                onClick={executeLeave}
+                className={`w-full py-2.5 min-h-[40px] rounded-2xl text-xs font-bold border transition cursor-pointer ${
+                  isLight
+                    ? 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-600'
+                    : 'bg-white/5 hover:bg-white/10 border-white/10 text-slate-400 hover:text-white'
+                }`}
+              >
+                Rời phòng ngay (+0 phút · +0 XP)
+              </button>
+            </div>
           </div>
         </div>
       )}

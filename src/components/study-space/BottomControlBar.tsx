@@ -94,22 +94,303 @@ export const BottomControlBar = React.memo(function BottomControlBar({
   onToggleFullscreen,
 }: BottomControlBarProps) {
   const isFocusPhase = pomodoro.phase === 'FOCUS';
+  const [mobileToolsOpen, setMobileToolsOpen] = React.useState(false);
 
   return (
-    <footer
-      className={`h-[76px] px-3 sm:px-6 fixed bottom-0 inset-x-0 z-40 border-t backdrop-blur-xl flex items-center justify-between transition-colors select-none ${
-        isLight
-          ? 'bg-white/95 border-slate-200 text-slate-800 shadow-lg'
-          : 'bg-[#202124] border-white/10 text-white shadow-2xl'
-      }`}
-      style={{
-        backgroundColor: isLight ? undefined : '#202124',
-      }}
-    >
+    <>
+      {/* =================================================================== */}
+      {/* MOBILE TOOLS ACTION SHEET (< md) — GỌN GÀNG, CHỐNG TRÀN 100%        */}
+      {/* =================================================================== */}
+      {mobileToolsOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
+          <div
+            className="fixed inset-0 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+            onClick={() => setMobileToolsOpen(false)}
+          />
+          <div
+            className={`relative z-10 rounded-t-3xl border-t p-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] space-y-4 shadow-2xl animate-in slide-in-from-bottom duration-200 ${
+              isLight
+                ? 'bg-white border-slate-200 text-slate-900'
+                : 'bg-[#181a1f]/98 border-white/10 text-white backdrop-blur-2xl'
+            }`}
+          >
+            <div className="w-10 h-1 rounded-full bg-slate-400/40 mx-auto" />
+
+            {/* Live Pomodoro Control Strip inside Mobile Sheet */}
+            <div
+              className={`flex items-center justify-between p-3 rounded-2xl border ${
+                isLight ? 'bg-slate-50 border-slate-200' : 'bg-white/[0.05] border-white/10'
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <span
+                  className={`w-2.5 h-2.5 rounded-full ${
+                    isFocusPhase ? 'bg-emerald-500 animate-pulse' : 'bg-amber-400'
+                  }`}
+                />
+                <div>
+                  <div className="font-mono font-black text-base tracking-wider leading-none">
+                    {pomodoro.timeFormatted}
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase">
+                    Đồng hồ Pomodoro · {isFocusPhase ? 'Tập trung' : 'Giải lao'}
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onTogglePlayPomodoro}
+                  className="px-3.5 py-2 rounded-xl bg-emerald-500 text-slate-950 font-extrabold text-xs flex items-center gap-1.5 active:scale-95 cursor-pointer"
+                >
+                  {pomodoro.isRunning ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5" />}
+                  <span>{pomodoro.isRunning ? 'Tạm dừng' : 'Chạy'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={onResetPomodoro}
+                  className={`p-2 rounded-xl border active:scale-95 cursor-pointer ${
+                    isLight ? 'bg-white border-slate-200 text-slate-600' : 'bg-white/10 border-white/10 text-slate-300'
+                  }`}
+                  title="Đặt lại"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Grid of Study Utilities */}
+            <div className="grid grid-cols-3 gap-2.5 text-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileToolsOpen(false);
+                  onOpenYouTubePlayer?.();
+                }}
+                className={`p-3 rounded-2xl border flex flex-col items-center gap-1.5 active:scale-95 cursor-pointer ${
+                  isYouTubePlaying
+                    ? 'bg-rose-500/20 border-rose-500/40 text-rose-300'
+                    : isLight
+                      ? 'bg-slate-50 border-slate-200 text-slate-700'
+                      : 'bg-white/[0.04] border-white/10 text-slate-200'
+                }`}
+              >
+                <Music className="w-5 h-5 text-rose-400" />
+                <span className="text-[11px] font-bold">Nhạc Lofi</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileToolsOpen(false);
+                  onOpenAmbientMusic?.();
+                }}
+                className={`p-3 rounded-2xl border flex flex-col items-center gap-1.5 active:scale-95 cursor-pointer ${
+                  isLight
+                    ? 'bg-slate-50 border-slate-200 text-slate-700'
+                    : 'bg-white/[0.04] border-white/10 text-slate-200'
+                }`}
+              >
+                <Headphones className="w-5 h-5 text-indigo-400" />
+                <span className="text-[11px] font-bold">Tiếng mưa</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileToolsOpen(false);
+                  onSendKudosClick?.();
+                }}
+                className={`p-3 rounded-2xl border flex flex-col items-center gap-1.5 active:scale-95 cursor-pointer ${
+                  isLight
+                    ? 'bg-amber-50 border-amber-200 text-amber-800'
+                    : 'bg-amber-500/10 border-amber-500/25 text-amber-300'
+                }`}
+              >
+                <Sparkles className="w-5 h-5 text-amber-400" />
+                <span className="text-[11px] font-bold">Tiếp lửa 🔥</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileToolsOpen(false);
+                  onToggleDrawer?.('members');
+                }}
+                className={`p-3 rounded-2xl border flex flex-col items-center gap-1.5 active:scale-95 cursor-pointer ${
+                  isLight
+                    ? 'bg-slate-50 border-slate-200 text-slate-700'
+                    : 'bg-white/[0.04] border-white/10 text-slate-200'
+                }`}
+              >
+                <Users className="w-5 h-5 text-cyan-400" />
+                <span className="text-[11px] font-bold">Học viên ({onlineCount})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileToolsOpen(false);
+                  onEditGoalClick?.();
+                }}
+                className={`p-3 rounded-2xl border flex flex-col items-center gap-1.5 active:scale-95 cursor-pointer ${
+                  isLight
+                    ? 'bg-slate-50 border-slate-200 text-slate-700'
+                    : 'bg-white/[0.04] border-white/10 text-slate-200'
+                }`}
+              >
+                <Target className="w-5 h-5 text-emerald-400" />
+                <span className="text-[11px] font-bold">Đổi mục tiêu</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileToolsOpen(false);
+                  if (isHost && onOpenRoomSettings) {
+                    onOpenRoomSettings();
+                  } else {
+                    onOpenLayoutSettings?.();
+                  }
+                }}
+                className={`p-3 rounded-2xl border flex flex-col items-center gap-1.5 active:scale-95 cursor-pointer ${
+                  isLight
+                    ? 'bg-slate-50 border-slate-200 text-slate-700'
+                    : 'bg-white/[0.04] border-white/10 text-slate-200'
+                }`}
+              >
+                {isHost ? <Settings className="w-5 h-5 text-purple-400" /> : <Sliders className="w-5 h-5 text-cyan-400" />}
+                <span className="text-[11px] font-bold">{isHost ? 'Cài đặt phòng' : 'Bố cục'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <footer
+        className={`fixed bottom-0 inset-x-0 z-40 border-t backdrop-blur-2xl transition-colors select-none ${
+          isLight
+            ? 'bg-white/95 border-slate-200 text-slate-800 shadow-lg'
+            : 'bg-[#18191c]/95 border-white/10 text-white shadow-2xl'
+        }`}
+      >
+        {/* =================================================================== */}
+        {/* GIAO DIỆN MOBILE (< md): 5 NÚT CHUẨN FACETIME / DISCORD, DỄ BẤM 100% */}
+        {/* =================================================================== */}
+        <div className="flex md:hidden items-center justify-between gap-2 px-3 pt-2 pb-[max(0.65rem,env(safe-area-inset-bottom))] max-w-md mx-auto">
+          {/* 1. Mic */}
+          <button
+            type="button"
+            onClick={onToggleMic}
+            className="flex-1 flex flex-col items-center gap-1 py-1 active:scale-95 transition cursor-pointer"
+          >
+            <span
+              className={`w-11 h-11 rounded-2xl flex items-center justify-center border transition-all ${
+                isMicOn
+                  ? isLight
+                    ? 'bg-emerald-100 border-emerald-300 text-emerald-700'
+                    : 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                  : isLight
+                    ? 'bg-slate-100 border-slate-200 text-slate-600'
+                    : 'bg-white/[0.07] border-white/10 text-slate-300'
+              }`}
+            >
+              {isMicOn ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5 text-rose-400" />}
+            </span>
+            <span className="text-[10px] font-bold opacity-80">{isMicOn ? 'Đang bật' : 'Tắt Mic'}</span>
+          </button>
+
+          {/* 2. Camera */}
+          <button
+            type="button"
+            onClick={onToggleCamera}
+            className="flex-1 flex flex-col items-center gap-1 py-1 active:scale-95 transition cursor-pointer"
+          >
+            <span
+              className={`w-11 h-11 rounded-2xl flex items-center justify-center border transition-all ${
+                isCameraOn
+                  ? isLight
+                    ? 'bg-emerald-100 border-emerald-300 text-emerald-700'
+                    : 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400'
+                  : isLight
+                    ? 'bg-slate-100 border-slate-200 text-slate-600'
+                    : 'bg-white/[0.07] border-white/10 text-slate-300'
+              }`}
+            >
+              {isCameraOn ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5 text-rose-400" />}
+            </span>
+            <span className="text-[10px] font-bold opacity-80">{isCameraOn ? 'Cam bật' : 'Tắt Cam'}</span>
+          </button>
+
+          {/* 3. Chat Phòng (1-Tap) */}
+          <button
+            type="button"
+            onClick={() => onToggleDrawer?.('chat')}
+            className="flex-1 flex flex-col items-center gap-1 py-1 active:scale-95 transition cursor-pointer"
+          >
+            <span
+              className={`relative w-11 h-11 rounded-2xl flex items-center justify-center border transition-all ${
+                isDrawerOpen && activeDrawerTab === 'chat'
+                  ? 'bg-emerald-500 text-slate-950 border-emerald-400 shadow-lg shadow-emerald-500/25'
+                  : isLight
+                    ? 'bg-slate-100 border-slate-200 text-slate-700'
+                    : 'bg-white/[0.07] border-white/10 text-slate-200'
+              }`}
+            >
+              <MessageSquare className="w-5 h-5" />
+              {unreadChatCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-400 text-slate-950 font-black text-[10px] flex items-center justify-center">
+                  {unreadChatCount > 99 ? '99+' : unreadChatCount}
+                </span>
+              )}
+            </span>
+            <span className="text-[10px] font-bold opacity-80">Trò chuyện</span>
+          </button>
+
+          {/* 4. Tiện ích (Nhạc, Mưa, Pomodoro, Mục tiêu) */}
+          <button
+            type="button"
+            onClick={() => setMobileToolsOpen(true)}
+            className="flex-1 flex flex-col items-center gap-1 py-1 active:scale-95 transition cursor-pointer"
+          >
+            <span
+              className={`relative w-11 h-11 rounded-2xl flex items-center justify-center border transition-all ${
+                isYouTubePlaying
+                  ? 'bg-indigo-500/25 border-indigo-400/50 text-indigo-300'
+                  : isLight
+                    ? 'bg-indigo-50 border-indigo-200 text-indigo-600'
+                    : 'bg-white/[0.07] border-white/10 text-amber-300'
+              }`}
+            >
+              <Sparkles className="w-5 h-5" />
+              {isYouTubePlaying && (
+                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+              )}
+            </span>
+            <span className="text-[10px] font-bold opacity-80">Tiện ích</span>
+          </button>
+
+          {/* 5. Rời phòng */}
+          <button
+            type="button"
+            onClick={onLeaveRoomClick}
+            className="flex-1 flex flex-col items-center gap-1 py-1 active:scale-95 transition cursor-pointer"
+          >
+            <span className="w-11 h-11 rounded-2xl bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-600/30 flex items-center justify-center">
+              <PhoneOff className="w-5 h-5" />
+            </span>
+            <span className="text-[10px] font-bold text-rose-400">Rời phòng</span>
+          </button>
+        </div>
+
+        {/* =================================================================== */}
+        {/* GIAO DIỆN DESKTOP (hidden md:flex): ĐẦY ĐỦ 3 CỤM GOOGLE MEET        */}
+        {/* =================================================================== */}
+        <div className="hidden md:flex h-[76px] px-5 items-center justify-between">
       {/* =================================================================== */}
       {/* 1. KHỐI TRÁI: ĐỒNG HỒ POMODORO, TÊN PHÒNG, SỐ NGƯỜI ONLINE          */}
       {/* =================================================================== */}
-      <div className="flex items-center gap-3 min-w-0 max-w-[30%] sm:max-w-[35%]">
+      <div className="flex items-center gap-3 min-w-0 max-w-[35%]">
         {/* Pomodoro Clock Capsule */}
         <div
           className={`flex items-center gap-2 px-3 py-1.5 rounded-full border shadow-xs shrink-0 ${
@@ -419,6 +700,8 @@ export const BottomControlBar = React.memo(function BottomControlBar({
           {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
         </button>
       </div>
+      </div>
     </footer>
+    </>
   );
 });

@@ -422,8 +422,67 @@ export function JourneyView() {
         apiCall('/api/rpg/character')
       ]);
 
-      if (progResult.status === 'fulfilled' && progResult.value && progResult.value.data) {
-        setProgState(progResult.value.data);
+      if (
+        progResult.status === 'fulfilled' &&
+        progResult.value &&
+        progResult.value.data &&
+        typeof progResult.value.data === 'object' &&
+        !Array.isArray(progResult.value.data)
+      ) {
+        const raw = progResult.value.data;
+        const safeCat = (c: any, defaultTitle: string) => ({
+          xp: Number(c?.xp) || 0,
+          level: Number(c?.level) || 1,
+          title: String(c?.title || defaultTitle),
+          percent: Number(c?.percent) || 0,
+        });
+        setProgState({
+          level: Number(raw.level) || 1,
+          levelTitle: String(raw.levelTitle || 'Initiator · Người Khởi Đầu'),
+          totalXp: Number(raw.totalXp) || 0,
+          xpForCurrentLevel: Number(raw.xpForCurrentLevel) || 0,
+          xpForNextLevel: Number(raw.xpForNextLevel) || 100,
+          xpNeededForNextLevel: Number(raw.xpNeededForNextLevel ?? 100),
+          levelProgressPercent: Number(raw.levelProgressPercent) || 0,
+          coins: Number(raw.coins) || 0,
+          currentStreak: Number(raw.currentStreak) || 0,
+          longestStreak: Number(raw.longestStreak) || 0,
+          lastActiveDate: raw.lastActiveDate || null,
+          equipped: {
+            title: String(raw.equipped?.title || raw.levelTitle || 'Initiator · Người Khởi Đầu'),
+            frame: String(raw.equipped?.frame || 'default'),
+            badge: String(raw.equipped?.badge || 'default'),
+            accent: String(raw.equipped?.accent || 'emerald'),
+          },
+          categories: {
+            learning: safeCat(raw.categories?.learning, 'Tân Binh Tri Thức'),
+            habit: safeCat(raw.categories?.habit, 'Mầm Kỷ Luật'),
+            focus: safeCat(raw.categories?.focus, 'Người Tập Trung'),
+            finance: safeCat(raw.categories?.finance, 'Quản Lý Cơ Bản'),
+          },
+          dailyQuests: Array.isArray(raw.dailyQuests) ? raw.dailyQuests : [],
+          weeklyChallenges: Array.isArray(raw.weeklyChallenges) ? raw.weeklyChallenges : [],
+          journeyChapters: Array.isArray(raw.journeyChapters) ? raw.journeyChapters : [],
+          achievements: Array.isArray(raw.achievements) ? raw.achievements : [],
+          weeklyStats: {
+            tasksCompleted: Number(raw.weeklyStats?.tasksCompleted) || 0,
+            focusMinutes: Number(raw.weeklyStats?.focusMinutes) || 0,
+            learningMinutes: Number(raw.weeklyStats?.learningMinutes) || 0,
+            habitsCompleted: Number(raw.weeklyStats?.habitsCompleted) || 0,
+            savingsAmount: Number(raw.weeklyStats?.savingsAmount) || 0,
+            streakDays: Number(raw.weeklyStats?.streakDays) || 0,
+          },
+          allTimeStats: {
+            totalTasksCompleted: Number(raw.allTimeStats?.totalTasksCompleted) || 0,
+            totalFocusMinutes: Number(raw.allTimeStats?.totalFocusMinutes) || 0,
+            totalLearningCount: Number(raw.allTimeStats?.totalLearningCount) || 0,
+            totalHabitsStreak: Number(raw.allTimeStats?.totalHabitsStreak) || 0,
+            totalSavingsAmount: Number(raw.allTimeStats?.totalSavingsAmount) || 0,
+          },
+          recentXpLedger: Array.isArray(raw.recentXpLedger) ? raw.recentXpLedger : [],
+          recentCoinLedger: Array.isArray(raw.recentCoinLedger) ? raw.recentCoinLedger : [],
+          cosmeticsCatalog: Array.isArray(raw.cosmeticsCatalog) ? raw.cosmeticsCatalog : [],
+        });
       } else if (!progState) {
         const errMsg = progResult.status === 'rejected' ? (progResult.reason?.message || 'Không thể tải tiến trình') : null;
         if (errMsg) setLoadError(errMsg);
@@ -707,11 +766,12 @@ export function JourneyView() {
   const isBrandNewUser = progState.totalXp === 0 && (progState.allTimeStats.totalTasksCompleted === 0);
 
   // Frame styling mapping
+  const frameKey = progState.equipped?.frame || 'default';
   const frameClass = 
-    progState.equipped.frame === 'frame_emerald_neon' ? 'ring-3 ring-emerald-500 shadow-lg shadow-emerald-500/30' :
-    progState.equipped.frame === 'frame_cyber_cyan' ? 'ring-3 ring-cyan-400 shadow-lg shadow-cyan-400/30' :
-    progState.equipped.frame === 'frame_obsidian_gold' ? 'ring-3 ring-amber-400 shadow-lg shadow-amber-400/30' :
-    progState.equipped.frame === 'frame_amethyst_aura' ? 'ring-3 ring-purple-500 shadow-lg shadow-purple-500/30' :
+    frameKey === 'frame_emerald_neon' ? 'ring-3 ring-emerald-500 shadow-lg shadow-emerald-500/30' :
+    frameKey === 'frame_cyber_cyan' ? 'ring-3 ring-cyan-400 shadow-lg shadow-cyan-400/30' :
+    frameKey === 'frame_obsidian_gold' ? 'ring-3 ring-amber-400 shadow-lg shadow-amber-400/30' :
+    frameKey === 'frame_amethyst_aura' ? 'ring-3 ring-purple-500 shadow-lg shadow-purple-500/30' :
     'ring-2 ring-slate-700';
 
   // Today completion percentage calculation
@@ -1777,7 +1837,7 @@ export function JourneyView() {
                 
                 <div>
                   <h3 className="text-xl font-black text-white">{currentUser?.name || 'Player'}</h3>
-                  <span className="text-xs font-bold text-emerald-400 block mt-0.5">{progState.equipped.title}</span>
+                  <span className="text-xs font-bold text-emerald-400 block mt-0.5">{progState.equipped?.title || progState.levelTitle || 'Initiator · Người Khởi Đầu'}</span>
                   
                   {/* Action buttons to change avatar */}
                   <div className="mt-2.5 flex items-center justify-center gap-2">
@@ -1851,7 +1911,7 @@ export function JourneyView() {
                     </div>
                     <div className="min-w-0">
                       <span className="text-[9px] font-black text-slate-400 uppercase block">VƯƠNG MIỆN</span>
-                      <span className="font-bold text-white text-[11px] truncate block">{progState.equipped.title}</span>
+                      <span className="font-bold text-white text-[11px] truncate block">{progState.equipped?.title || progState.levelTitle || 'Initiator'}</span>
                     </div>
                   </div>
                 </div>

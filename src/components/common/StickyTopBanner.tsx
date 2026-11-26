@@ -50,7 +50,7 @@ export function StickyTopBanner() {
   return (
     <aside 
       aria-label="Thông báo ghim từ quản trị viên"
-      className="bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-700 text-white px-3 py-2 text-xs font-medium flex items-center justify-between gap-3 shadow-md relative z-30 select-none animate-in fade-in duration-300"
+      className="bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-700 text-white px-3 pt-[max(0.5rem,env(safe-area-inset-top))] pb-2 text-xs font-medium flex items-center justify-between gap-3 shadow-md relative z-30 select-none animate-in fade-in duration-300"
     >
       <div className="flex items-center gap-2 overflow-hidden flex-1 max-w-4xl mx-auto">
         <span className="p-1 rounded-lg bg-white/20 shrink-0">

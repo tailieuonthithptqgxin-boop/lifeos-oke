@@ -302,15 +302,17 @@ export function FocusView() {
         triggerConfetti();
         soundEngine.playSuccess();
         const finishedTask = (tasks || []).find(t => t.id === selectedTaskId);
-        const totalMins = Math.max(1, (isQuickTest ? 1 : settings.focusMinutes) * settings.targetRounds);
-        setStudyReceipt({
-          title: finishedTask ? finishedTask.title : 'Phiên Tập Trung Pomodoro',
-          minutes: totalMins,
-          xpEarned: 35 * settings.targetRounds,
-          streakDays: currentUser?.streakDays || 1,
-          userName: currentUser?.name,
-          modeLabel: `Pomodoro (${settings.targetRounds} hiệp)`,
-        });
+        const totalMins = isQuickTest ? 0 : Math.max(1, settings.focusMinutes * settings.targetRounds);
+        if (totalMins >= 1) {
+          setStudyReceipt({
+            title: finishedTask ? finishedTask.title : 'Phiên Tập Trung Pomodoro',
+            minutes: totalMins,
+            xpEarned: totalMins * 2,
+            streakDays: currentUser?.streakDays ?? 0,
+            userName: currentUser?.name,
+            modeLabel: `Pomodoro (${settings.targetRounds} hiệp)`,
+          });
+        }
         toast.success(
           isVi ? `Xuất sắc! Bạn đã hoàn thành trọn vẹn ${settings.targetRounds} hiệp học hôm nay!` : 'Congratulations on finishing all focus rounds!',
           '🏆 Mục Tiêu Hoàn Thành'

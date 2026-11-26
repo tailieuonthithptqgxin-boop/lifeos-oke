@@ -982,7 +982,32 @@ export async function onRequest(context: EventContext): Promise<Response> {
     }
   }
 
-  // 8. General API Fallback
+  // 8. Real-time Study Space Leave Fallback (Strict 1-Minute Filter, Zero Fake 25m!)
+  const leaveRoomMatch = pathname.match(/^\/api\/(?:study-space|study)\/rooms\/([^/]+)\/leave$/);
+  if (leaveRoomMatch && request.method === 'POST') {
+    const body: any = await request.json().catch(() => ({}));
+    const elapsedSeconds =
+      typeof body?.elapsedSeconds === 'number' && Number.isFinite(body.elapsedSeconds)
+        ? Math.max(0, Math.min(28800, Math.floor(body.elapsedSeconds)))
+        : 0;
+    const studiedMinutes = Math.floor(elapsedSeconds / 60);
+    const wasRecorded = studiedMinutes >= 1;
+    const recordedMinutes = wasRecorded ? studiedMinutes : 0;
+    return sendJson({
+      success: true,
+      studiedSeconds: elapsedSeconds,
+      studiedMinutes,
+      recordedMinutes,
+      wasRecorded,
+      xpEarned: wasRecorded ? recordedMinutes * 2 : 0,
+      roomName: body?.roomName || 'Phòng học',
+      message: wasRecorded
+        ? `Đã ghi nhận ${recordedMinutes} phút học thực tế!`
+        : `Phiên học kéo dài ${elapsedSeconds} giây (dưới 1 phút nên chưa tính giờ).`,
+    });
+  }
+
+  // 9. General API Fallback
   return sendJson({
     success: true,
     message: 'LifeOS Cloudflare Pages Edge Gateway Ready',

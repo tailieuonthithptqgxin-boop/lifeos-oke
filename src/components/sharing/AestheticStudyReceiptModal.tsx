@@ -49,8 +49,8 @@ export function AestheticStudyReceiptModal({
 
   const now = new Date();
   const persona = getTimeOfDayPersona(now.getHours());
-  const xp = receipt.xpEarned ?? Math.max(15, receipt.minutes * 2);
-  const streak = receipt.streakDays ?? 1;
+  const xp = receipt.xpEarned ?? (receipt.minutes > 0 ? receipt.minutes * 2 : 0);
+  const streak = receipt.streakDays ?? 0;
   const timeStamp = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
   const dateStamp = now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
 

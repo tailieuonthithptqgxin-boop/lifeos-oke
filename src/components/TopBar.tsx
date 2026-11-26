@@ -147,6 +147,7 @@ export function TopBar() {
   const isStreakAtRiskTonight = !isStreakLitToday && new Date().getHours() >= 19;
 
   return (
+    <>
     <header className="h-auto min-h-[3.75rem] md:h-16 pt-[max(0.75rem,env(safe-area-inset-top))] md:pt-0 pb-2 md:pb-0 bg-white/80 dark:bg-[#07070C]/80 backdrop-blur-2xl border-b border-slate-200/80 dark:border-white/[0.08] shadow-sm flex items-center justify-between px-3.5 sm:px-5 md:px-6 shrink-0 sticky top-0 z-30 transition-colors">
       {/* Mobile Brand Logo */}
       <div 
@@ -698,8 +699,9 @@ export function TopBar() {
         </div>
 
       </div>
+    </header>
 
-      {/* Quick Inbox Modal */}
+      {/* Quick Inbox Modal (Rendered outside backdrop-blur header so fixed positioning spans full viewport!) */}
       {showInboxModal && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs cursor-pointer"
@@ -775,6 +777,6 @@ export function TopBar() {
         isOpen={showVibeModal}
         onClose={() => setShowVibeModal(false)}
       />
-    </header>
+    </>
   );
 }

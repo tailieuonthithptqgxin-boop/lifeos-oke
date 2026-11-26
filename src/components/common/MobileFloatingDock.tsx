@@ -112,9 +112,11 @@ export function MobileFloatingDock({ className = '' }: MobileFloatingDockProps) 
               )}
             </div>
             <span className="text-xs font-bold tracking-tight text-slate-100">Nháp</span>
-            <span className="text-[10px] font-mono font-semibold text-amber-300 bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.2 rounded-full">
-              {scratchpadTimeLeft.slice(0, 5)}
-            </span>
+            {hasScratchpadContent && (
+              <span className="text-[10px] font-mono font-semibold text-amber-300 bg-amber-500/20 border border-amber-500/30 px-1.5 py-0.2 rounded-full">
+                {scratchpadTimeLeft.slice(0, 5)}
+              </span>
+            )}
           </button>
 
           {/* Divider */}
