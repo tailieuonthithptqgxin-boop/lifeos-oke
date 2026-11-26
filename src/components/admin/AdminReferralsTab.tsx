@@ -28,6 +28,7 @@ export function AdminReferralsTab() {
   // Modal actions
   const [selectedWithdrawal, setSelectedWithdrawal] = useState<any | null>(null);
   const [actionType, setActionType] = useState<'APPROVE' | 'REJECT' | null>(null);
+  const actionTypeRef = React.useRef<'APPROVE' | 'REJECT' | null>(null);
   const [txReference, setTxReference] = useState('');
   const [rejectReason, setRejectReason] = useState('');
   const [processingAction, setProcessingAction] = useState(false);

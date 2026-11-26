@@ -99,6 +99,7 @@ export function initStudyRoomSocket(httpServer: HTTPServer): SocketIOServer {
       hostId?: string;
       isHost?: boolean;
     }) => {
+      const { roomId, userId, name, avatar, studyGoal, streakDays, hostId, isHost } = data || ({} as typeof data);
       const verifiedUserId = authUser?.userId || userId;
       if (!roomId || !verifiedUserId) {
         socket.emit('room:error', { message: 'Missing roomId or userId' });
@@ -125,7 +126,6 @@ export function initStudyRoomSocket(httpServer: HTTPServer): SocketIOServer {
           avatar: authUser?.avatar || avatar,
           studyGoal,
           streakDays,
-          isHost: verifiedIsHost,
         }
       );
 

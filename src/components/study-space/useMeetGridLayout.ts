@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, RefObject } from 'react';
+import React, { useState, useEffect, useMemo, RefObject } from 'react';
 
 export type MeetLayoutMode = 'auto' | 'tiled' | 'spotlight' | 'sidebar';
 

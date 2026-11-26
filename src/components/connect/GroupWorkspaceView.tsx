@@ -1352,6 +1352,7 @@ function GroupMeetTab({
   isMod: boolean; 
   currentUserId?: string; 
 }) {
+  const { currentUser } = useAppStore();
   const [meets, setMeets] = useState<CommunityMeetItem[]>([]);
   const [loading, setLoading] = useState(true);
 

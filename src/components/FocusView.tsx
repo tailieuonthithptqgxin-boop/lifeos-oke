@@ -18,6 +18,7 @@ import { companionEventBus } from '../lib/companion/companionEventBus';
 import { retentionEngine } from '../lib/retentionEngine';
 import { analytics } from '../lib/analytics';
 import { soundEngine } from '../lib/soundEngine';
+import { toast } from '../lib/toast';
 import { triggerConfetti } from '../lib/confetti';
 import { webNotification } from '../lib/webNotification';
 import { notifyStudyCommunity } from '../lib/unifiedNotificationEngine';

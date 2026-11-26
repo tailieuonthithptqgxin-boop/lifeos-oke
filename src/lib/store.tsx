@@ -74,7 +74,7 @@ interface AppState {
 
 // Generate context generic action types
 interface AppContextType extends AppState {
-  login: (user: User, token?: string, targetView?: AppView) => Promise<void> | void;
+  login: (user: User, token?: string, targetView?: ViewState) => Promise<void> | void;
   logout: () => void;
   completeOnboarding: (selections?: any) => Promise<void>;
   resetOnboarding: () => Promise<void>;
@@ -247,6 +247,7 @@ const getInitialState = (): AppState => {
           avatar: payload.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${payload.userId || 'student'}`,
           role: payload.role || 'USER',
           plan: payload.plan || 'PRO',
+          status: 'ACTIVE',
           streakDays: 0,
           xp: 0,
           level: 1,
@@ -274,7 +275,7 @@ const getInitialState = (): AppState => {
     hasAccess: true,
     lifecycleStatus: 'ACTIVE',
     planId: isAdmin ? 'ADMIN_FULL_ACCESS' : 'FREE_FULL_ACCESS',
-    planType: isAdmin ? 'SYSTEM' : 'PERSONAL',
+    planType: isAdmin ? 'TEAM' : 'PERSONAL',
     planName: isAdmin ? 'Quản Trị Viên (Full Access)' : 'Trải nghiệm Miễn phí (Full Access)',
     status: 'ACTIVE',
     remainingDays: 99999,
@@ -646,7 +647,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const login = async (user: User, token?: string, targetView?: AppView) => {
+  const login = async (user: User, token?: string, targetView?: ViewState) => {
     const unifiedUser = normalizeUserStats(user);
     try {
       if (token && token.length > 10) {
@@ -663,7 +664,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       hasAccess: true,
       lifecycleStatus: 'ACTIVE',
       planId: isAdmin ? 'ADMIN_FULL_ACCESS' : 'FREE_FULL_ACCESS',
-      planType: isAdmin ? 'SYSTEM' : 'PERSONAL',
+      planType: isAdmin ? 'TEAM' : 'PERSONAL',
       planName: isAdmin ? 'Quản Trị Viên (Full Access)' : 'Trải nghiệm Miễn phí (Full Access)',
       status: 'ACTIVE',
       remainingDays: 99999,
@@ -681,7 +682,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
 
     // Authenticate user immediately and transition UI directly to target view (admin view for Admin, study hall for Users)
-    const destinationView = targetView || (isAdmin ? 'admin' : (isGoogleCallback ? 'study' : 'study'));
+    const destinationView: ViewState = targetView || (isAdmin ? 'admin' : 'study');
     try {
       localStorage.setItem('lifeos_current_view', destinationView);
     } catch (e) {}

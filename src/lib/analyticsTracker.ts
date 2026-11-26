@@ -161,6 +161,13 @@ class SmartAnalyticsTracker {
   }
 
   /**
+   * Alias tương thích ngược cho trackFeatureView
+   */
+  public trackFeatureUsage(featureKey: string, customName?: string, _category?: string) {
+    this.trackFeatureView(featureKey, customName);
+  }
+
+  /**
    * Đồng bộ ngầm lên server (Batching)
    */
   public async flushSync(useBeacon: boolean = false) {

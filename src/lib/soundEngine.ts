@@ -462,6 +462,10 @@ class SoundEngine {
     } catch (e) {}
   }
 
+  public playBadge() {
+    this.playLevelUpFanfare();
+  }
+
   public playLevelUpFanfare() {
     if (!this.enabled) return;
     const ctx = this.initContext();

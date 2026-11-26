@@ -16,6 +16,7 @@ export interface Env {
     connectionString: string;
   };
   R2_STORAGE?: any;
+  KV?: any;
   CACHE_KV?: any;
   APP_URL?: string;
   API_BACKEND_URL?: string;
@@ -26,10 +27,12 @@ export interface Env {
   GOOGLE_CALLBACK_URL?: string;
   JWT_SECRET?: string;
   INITIAL_ADMIN_EMAIL?: string;
+  INITIAL_ADMIN_PASSWORD?: string;
   NODE_ENV?: string;
 }
 
 const EDGE_DEFAULT_JWT_SECRET = 'lifeos_edge_jwt_secret_token_session_2026_salt_9988_robust_min32';
+const inFlightEdgeGets = new Map<string, Promise<{ body: ArrayBuffer; status: number; statusText: string; headers: Headers }>>();
 
 function hasExternalBackend(env?: Env): boolean {
   const url = (env?.API_BACKEND_URL || '').trim();

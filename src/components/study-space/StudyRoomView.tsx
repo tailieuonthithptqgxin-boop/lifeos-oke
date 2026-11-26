@@ -524,7 +524,7 @@ export function StudyRoomView({
           goal: userTask,
           presence: 'STUDYING',
           streak: userStreak,
-          isCameraOn: isWebcamOn,
+          isCamOn: isWebcamOn,
           isMicOn: isMicOn,
         };
         const allRealMembers = hasSelf ? remoteMembers : [selfMember, ...remoteMembers];
@@ -571,7 +571,7 @@ export function StudyRoomView({
       });
 
       socket.on('room:kicked', (data: { reason?: string }) => {
-        toast.error(data.reason || 'Bạn đã bị chủ phòng mời ra khỏi phòng học.', { duration: 5000 });
+        toast.error(data.reason || 'Bạn đã bị chủ phòng mời ra khỏi phòng học.', undefined, 5000);
         onLeaveRoom();
       });
 
