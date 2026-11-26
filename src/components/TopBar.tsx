@@ -3,13 +3,14 @@ import {
   Menu, Moon, Sun, Search, Bell, Plus, Inbox, ShoppingCart, 
   Shield, CheckSquare, DollarSign, Calendar, Target, Zap, 
   User, LogOut, ChevronDown, CheckCircle2, Globe, Sparkles, Lock, Flame, Award, Volume2, VolumeX, Bot,
-  ExternalLink, AlertTriangle, FileText, Settings, Palette
+  ExternalLink, AlertTriangle, FileText, Settings, Palette, Headphones, Pause, Play, SkipForward
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { useTranslation } from '../lib/i18n';
 import { formatLocalDateKey } from '../lib/utils';
 import { retentionEngine, RetentionProfile } from '../lib/retentionEngine';
 import { soundEngine } from '../lib/soundEngine';
+import { youtubeMusicService, useFocusMusic } from '../lib/youtubeMusicEngine';
 import { ZenFocusOverlay } from './focus/ZenFocusOverlay';
 import { VibeThemeModal } from './VibeThemeModal';
 import { apiCall } from '../lib/apiClient';
@@ -36,6 +37,7 @@ export function TopBar() {
   
   const t = useTranslation(language);
   const isVi = language === 'vi';
+  const focusMusic = useFocusMusic();
 
   // Smart Dismiss Refs & Hooks for TopBar Dropdowns
   const notifTriggerRef = useRef<HTMLButtonElement>(null);
@@ -180,6 +182,57 @@ export function TopBar() {
 
       {/* Right Action Cluster */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {/* Dynamic Island Lofi / Ambient Mini-Player Pill (1-tap Play / Pause / Next across all tabs) */}
+        {focusMusic.isPlaying ? (
+          <div className="flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-full bg-slate-900 dark:bg-white/[0.1] border border-emerald-500/40 text-white text-xs shadow-sm transition-all">
+            {/* Animated 3-bar Audio Equalizer */}
+            <div className="flex items-end gap-[2px] h-3 w-3 shrink-0" aria-hidden="true">
+              <span className="w-[2.5px] h-full bg-emerald-400 rounded-full animate-music-bar-1" />
+              <span className="w-[2.5px] h-full bg-emerald-400 rounded-full animate-music-bar-2" />
+              <span className="w-[2.5px] h-full bg-emerald-400 rounded-full animate-music-bar-3" />
+            </div>
+            <button
+              type="button"
+              onClick={() => setCurrentView('focus')}
+              title={`${focusMusic.currentTrack.title} · Bấm để mở Phòng Tập Trung`}
+              className="hidden lg:inline max-w-[125px] truncate font-bold text-[11px] text-emerald-200 hover:text-white cursor-pointer"
+            >
+              {focusMusic.currentTrack.title}
+            </button>
+            <button
+              type="button"
+              onClick={() => youtubeMusicService.togglePlay()}
+              title={isVi ? 'Tạm dừng nhạc ngay' : 'Pause music'}
+              className="w-6 h-6 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white cursor-pointer"
+              aria-label="Tạm dừng nhạc"
+            >
+              <Pause className="w-3 h-3 fill-current" />
+            </button>
+            <button
+              type="button"
+              onClick={() => youtubeMusicService.nextTrack()}
+              title={isVi ? 'Đổi kênh nhạc Lofi / Mưa tiếp theo' : 'Next ambient track'}
+              className="hidden sm:flex w-6 h-6 rounded-full hover:bg-white/15 items-center justify-center text-white/80 hover:text-white cursor-pointer"
+              aria-label="Bài tiếp theo"
+            >
+              <SkipForward className="w-3 h-3" />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              try { soundEngine.playPop(); } catch {}
+              youtubeMusicService.play();
+            }}
+            title={isVi ? `Bật nhạc nền 1 chạm: ${focusMusic.currentTrack.title}` : `1-tap Lofi: ${focusMusic.currentTrack.title}`}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-slate-100/80 dark:bg-white/[0.06] hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border border-slate-200/80 dark:border-white/10 hover:border-emerald-400/50 text-slate-600 dark:text-slate-300 hover:text-emerald-700 dark:hover:text-emerald-300 text-[11px] font-bold transition-all cursor-pointer shadow-2xs"
+          >
+            <Headphones className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+            <span className="hidden md:inline">{isVi ? 'Lofi' : 'Lofi'}</span>
+          </button>
+        )}
+
         {/* Duolingo-style Streak Flame Live Motivation Badge */}
         <div 
           onClick={() => {

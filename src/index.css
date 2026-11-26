@@ -482,11 +482,51 @@ button:not(:disabled):active {
 html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 :where(button, a, input, select, textarea, [role="button"]):focus-visible {
-  outline: 2px solid rgba(16, 185, 129, 0.75);
+  outline: 2px solid var(--vibe-accent, rgba(16, 185, 129, 0.75));
   outline-offset: 2px;
   border-radius: 0.75rem;
 }
 [role="dialog"] { overscroll-behavior: contain; }
+
+/* ========================================================================== */
+/* COZY DESK VIBE THEMES (Real-time Ambient Aura & Accent Palette)            */
+/* ========================================================================== */
+html[data-vibe-theme="cyber_emerald"] {
+  --vibe-accent: #10b981;
+  --vibe-aura: radial-gradient(900px circle at 18% -8%, rgba(16, 185, 129, 0.14), transparent 60%),
+               radial-gradient(700px circle at 88% 0%, rgba(20, 184, 166, 0.10), transparent 55%);
+}
+html[data-vibe-theme="matcha_latte"] {
+  --vibe-accent: #84cc16;
+  --vibe-aura: radial-gradient(950px circle at 20% -8%, rgba(132, 204, 22, 0.16), transparent 62%),
+               radial-gradient(750px circle at 85% 5%, rgba(245, 158, 11, 0.10), transparent 58%);
+}
+html[data-vibe-theme="midnight_neon"] {
+  --vibe-accent: #a855f7;
+  --vibe-aura: radial-gradient(950px circle at 18% -5%, rgba(168, 85, 247, 0.18), transparent 62%),
+               radial-gradient(800px circle at 85% 5%, rgba(99, 102, 241, 0.15), transparent 58%);
+}
+html[data-vibe-theme="retro_pixel"] {
+  --vibe-accent: #f59e0b;
+  --vibe-aura: radial-gradient(950px circle at 20% -8%, rgba(245, 158, 11, 0.16), transparent 60%),
+               radial-gradient(750px circle at 85% 5%, rgba(239, 68, 68, 0.10), transparent 55%);
+}
+
+html[data-vibe-theme] body {
+  background-image: var(--vibe-aura);
+  background-attachment: fixed;
+}
+html[data-vibe-theme] ::selection {
+  background-color: color-mix(in srgb, var(--vibe-accent, #10b981) 28%, transparent);
+}
+
+@keyframes musicBarBounce {
+  0%, 100% { transform: scaleY(0.35); }
+  50% { transform: scaleY(1); }
+}
+.animate-music-bar-1 { animation: musicBarBounce 0.75s ease-in-out infinite; transform-origin: bottom; }
+.animate-music-bar-2 { animation: musicBarBounce 0.55s ease-in-out 0.15s infinite; transform-origin: bottom; }
+.animate-music-bar-3 { animation: musicBarBounce 0.85s ease-in-out 0.3s infinite; transform-origin: bottom; }
 
 /* 3. Tactile Card Hover & Touch Elevation */
 .tactile-card {

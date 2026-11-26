@@ -236,7 +236,7 @@ export function PublicLandingView({ onLoginClick, onNavigateLegal, initialError 
           toast.show(`Chào mừng bạn trở lại, ${res.user.name || 'bạn'}!`, 'success', 'Đăng nhập thành công');
           notifyAuthSecurity('LOGIN_SUCCESS', res.user.email || emailOrUsername.trim(), res.user.name).catch(() => {});
           analyticsTracker.trackFeatureView('auth_login_success');
-          await login(res.user, res.token, 'study');
+          await login(res.user, res.token);
           setIsAuthModalOpen(false);
         } else {
           setAuthError(res.message || 'Email hoặc mật khẩu không chính xác. Vui lòng kiểm tra lại!');
@@ -247,22 +247,15 @@ export function PublicLandingView({ onLoginClick, onNavigateLegal, initialError 
         setIsSubmitting(false);
       }
     } else if (authMode === 'register') {
-      if (!name.trim()) {
-        setAuthError('Vui lòng nhập họ và tên của bạn.');
-        return;
-      }
-      if (!emailOrUsername.trim()) {
+      if (!emailOrUsername.trim() || !emailOrUsername.includes('@')) {
         setAuthError('Vui lòng nhập địa chỉ email hợp lệ.');
         return;
       }
-      if (!password || password.length < 8) {
-        setAuthError('Mật khẩu phải có độ dài tối thiểu 8 ký tự.');
+      if (!password || password.length < 6) {
+        setAuthError('Mật khẩu cần tối thiểu 6 ký tự.');
         return;
       }
-      if (password !== confirmPassword) {
-        setAuthError('Mật khẩu xác nhận không khớp. Vui lòng nhập lại!');
-        return;
-      }
+      const derivedName = name.trim() || emailOrUsername.trim().split('@')[0] || 'Thành viên LifeOS';
 
       setIsSubmitting(true);
       try {
@@ -272,7 +265,7 @@ export function PublicLandingView({ onLoginClick, onNavigateLegal, initialError 
           user: any;
           token?: string;
         }>('/api/auth/register', 'POST', {
-          name: name.trim(),
+          name: derivedName,
           email: emailOrUsername.trim().toLowerCase(),
           password,
           referralCode: inputRefCode.trim().toUpperCase() || undefined
@@ -285,7 +278,7 @@ export function PublicLandingView({ onLoginClick, onNavigateLegal, initialError 
           toast.show('Chúc mừng bạn đã tạo tài khoản thành công! Không gian LifeOS của bạn đã sẵn sàng.', 'success', 'Đăng ký thành công');
           notifyAuthSecurity('REGISTER_SUCCESS', res.user.email || emailOrUsername.trim(), res.user.name).catch(() => {});
           analyticsTracker.trackFeatureView('auth_register_success');
-          await login(res.user, res.token, 'study');
+          await login(res.user, res.token);
           setIsAuthModalOpen(false);
         } else {
           setAuthError(res.message || 'Không thể tạo tài khoản. Vui lòng thử lại!');
@@ -1023,20 +1016,19 @@ export function PublicLandingView({ onLoginClick, onNavigateLegal, initialError 
 
             {/* Form Fields */}
             <form onSubmit={handleAuthSubmit} className="space-y-3.5">
-              {/* Name field (Register only) */}
+              {/* Name field (Register only - optional for 5s frictionless signup) */}
               {authMode === 'register' && (
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Họ và tên của bạn <span className="text-rose-500">*</span>
+                    Tên hiển thị (Không bắt buộc)
                   </label>
                   <div className="relative">
                     <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
-                      required
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      placeholder="Ví dụ: Nguyễn Văn A"
+                      placeholder="Để trống sẽ tự lấy theo Email"
                       className="w-full min-h-[48px] pl-10 pr-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-[16px] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
                     />
                   </div>
@@ -1099,26 +1091,6 @@ export function PublicLandingView({ onLoginClick, onNavigateLegal, initialError 
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Confirm Password (Register only) */}
-              {authMode === 'register' && (
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                    Xác nhận mật khẩu <span className="text-rose-500">*</span>
-                  </label>
-                  <div className="relative">
-                    <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      required
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Nhập lại mật khẩu"
-                      className="w-full min-h-[48px] pl-10 pr-3 rounded-xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-[16px] text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-emerald-500"
-                    />
                   </div>
                 </div>
               )}

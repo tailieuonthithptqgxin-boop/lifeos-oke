@@ -9,6 +9,7 @@ import {
 import { formatCurrency, formatCompactCurrency, formatLocalDateKey } from '../lib/utils';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
 import { soundEngine } from '../lib/soundEngine';
+import { showFloatingXp } from '../lib/celebrationEngine';
 import { toast } from '../lib/toast';
 
 // Subcomponents and Modals
@@ -305,7 +306,7 @@ export function FinanceView() {
             balance: 0,
             currency: 'VND'
           });
-          targetAccId = defaultAcc?.id || (useAppStore.getState?.()?.financeAccounts?.[0]?.id ?? '');
+          targetAccId = defaultAcc?.id || ((useAppStore as any).getState?.()?.financeAccounts?.[0]?.id ?? '');
         } catch {}
       }
 
@@ -319,13 +320,73 @@ export function FinanceView() {
       await addTransaction(parsed);
       soundEngine.playSuccess();
       setQuickTxInput('');
-      toast.success(`Đã ghi nhận giao dịch: ${parsed.description || 'Chi tiêu'} (${parsed.amount.toLocaleString()}đ)`);
+      toast.success(`Đã ghi nhận giao dịch: ${(parsed as any).description || parsed.note || 'Chi tiêu'} (${parsed.amount.toLocaleString()}đ)`);
     } catch (err: any) {
       console.error('Failed to quick add transaction:', err);
       toast.error(err?.message || 'Không thể thêm giao dịch nhanh.');
     } finally {
       setIsQuickSubmitting(false);
     }
+  };
+
+  // 1-Tap Gen Z Quick Expense Chips + 5s Undo
+  const [recentChipTx, setRecentChipTx] = useState<{ id: string; label: string } | null>(null);
+  const recentChipTimerRef = useRef<any>(null);
+
+  const handleOneTapChip = async (
+    preset: { label: string; amount: number; category: string },
+    anchorEl?: Element | null
+  ) => {
+    if (isQuickSubmitting) return;
+    try {
+      setIsQuickSubmitting(true);
+      let targetAccId = financeAccounts.length > 0 ? financeAccounts[0]?.id : '';
+      if (!targetAccId) {
+        try {
+          const defaultAcc = await addFinanceAccount({
+            name: 'Ví tiền mặt',
+            type: 'Tiền mặt',
+            balance: 0,
+            currency: 'VND',
+          });
+          targetAccId = defaultAcc?.id || ((useAppStore as any).getState?.()?.financeAccounts?.[0]?.id ?? '');
+        } catch {}
+      }
+      const created = await addTransaction({
+        type: 'Chi tiêu',
+        amount: preset.amount,
+        category: preset.category,
+        note: preset.label,
+        description: preset.label,
+        accountId: targetAccId || undefined,
+        date: formatLocalDateKey(new Date()),
+        status: 'Completed',
+      });
+      soundEngine.playSuccess();
+      showFloatingXp('+10 XP', anchorEl ?? null);
+      toast.success(`Đã ghi 1 chạm: -${formatCurrency(preset.amount)} (${preset.label})`);
+      if (created?.id) {
+        if (recentChipTimerRef.current) clearTimeout(recentChipTimerRef.current);
+        setRecentChipTx({ id: created.id, label: preset.label });
+        recentChipTimerRef.current = setTimeout(() => setRecentChipTx(null), 5000);
+      }
+    } catch {
+      toast.error('Không thể ghi nhanh lúc này.');
+    } finally {
+      setIsQuickSubmitting(false);
+    }
+  };
+
+  const handleUndoRecentChip = async () => {
+    if (!recentChipTx) return;
+    if (recentChipTimerRef.current) clearTimeout(recentChipTimerRef.current);
+    const idToDelete = recentChipTx.id;
+    setRecentChipTx(null);
+    try {
+      await deleteTransaction(idToDelete);
+      soundEngine.playPop();
+      toast.info('Đã hoàn tác giao dịch vừa chạm.');
+    } catch {}
   };
 
   // Scenario Tab state with F5 Persistence
@@ -541,6 +602,45 @@ export function FinanceView() {
             <span>{isVi ? 'Ghi sổ' : 'Record'}</span>
           </button>
         </form>
+
+        {/* 1-Tap Gen Z Student / Daily Expense Chips (0.5s Logging) */}
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-2.5 mt-2.5 border-t border-slate-100 dark:border-white/[0.06]">
+          <span className="text-[11px] font-bold text-slate-400 shrink-0 mr-1">
+            {isVi ? 'Chạm 1s:' : '1-Tap:'}
+          </span>
+          {[
+            { emoji: '🧋', label: isVi ? 'Trà sữa' : 'Milk tea', amount: 35000, category: 'Ăn uống' },
+            { emoji: '🍜', label: isVi ? 'Ăn trưa' : 'Lunch', amount: 40000, category: 'Ăn uống' },
+            { emoji: '☕', label: isVi ? 'Cafe chạy bài' : 'Study cafe', amount: 45000, category: 'Ăn uống' },
+            { emoji: '🛵', label: isVi ? 'Grab / Xăng' : 'Transport', amount: 30000, category: 'Đi lại' },
+            { emoji: '📦', label: isVi ? 'Shopee' : 'Shopping', amount: 100000, category: 'Mua sắm' },
+          ].map((chip) => (
+            <button
+              key={chip.label}
+              type="button"
+              disabled={isQuickSubmitting}
+              onClick={(e) => handleOneTapChip(chip, e.currentTarget)}
+              className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-800/80 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 border border-slate-200/80 dark:border-slate-700/80 hover:border-emerald-400/50 text-xs font-bold text-slate-700 dark:text-slate-200 transition-all cursor-pointer"
+            >
+              <span>{chip.emoji}</span>
+              <span>{chip.label}</span>
+              <span className="text-[10px] font-extrabold text-rose-500 dark:text-rose-400">
+                -{Math.round(chip.amount / 1000)}k
+              </span>
+            </button>
+          ))}
+
+          {recentChipTx && (
+            <button
+              type="button"
+              onClick={handleUndoRecentChip}
+              className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-amber-500 text-slate-950 text-xs font-black shadow-xs cursor-pointer animate-in fade-in duration-150"
+            >
+              <RotateCcw className="w-3 h-3" />
+              <span>{isVi ? 'Hoàn tác (5s)' : 'Undo (5s)'}</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ========================================================= */}

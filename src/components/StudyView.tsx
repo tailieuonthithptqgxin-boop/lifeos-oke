@@ -39,6 +39,7 @@ type Tab = 'vocabulary' | 'overview' | 'my-grades' | 'subjects' | 'assignments' 
 export function StudyView() {
   const { 
     currentUser,
+    setCurrentView,
     language,
     subjects = [], 
     studyAssignments = [], 
@@ -281,21 +282,34 @@ export function StudyView() {
       <div className="bg-white/90 dark:bg-[#0B1120]/90 backdrop-blur-xl border-b border-[#E2E8F0] dark:border-white/[0.08] px-3.5 sm:px-6 pt-3.5 sm:pt-4 pb-2 shrink-0 w-full min-w-0 max-w-full overflow-hidden">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-3 w-full min-w-0">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-[#0D523F] text-white rounded-xl flex items-center justify-center shadow-xs shrink-0">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 bg-gradient-to-br from-emerald-600 to-teal-700 text-white rounded-2xl flex items-center justify-center shadow-xs shrink-0">
               <GraduationCap className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
             <div className="min-w-0">
-              <h1 className="text-lg sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2 truncate">
-                Study OS
-                <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-md bg-[#8387F5]/15 text-[#8387F5] border border-[#8387F5]/30 shrink-0">
-                  PRO ENGINE
+              <h1 className="text-lg sm:text-xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-2 truncate">
+                <span>{isVi ? 'Không Gian Học Tập & Ngoại Ngữ' : 'Study & Language Hub'}</span>
+                <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 shrink-0">
+                  {isVi ? 'MIỄN PHÍ 100%' : 'FREE 100%'}
                 </span>
               </h1>
               <p className="text-xs text-slate-500 dark:text-slate-400 font-normal break-words">
-                {isVi ? 'Quản lý môn học, lịch thi, bài tập và mô phỏng điểm số học tập chuẩn quốc tế' : 'Manage subjects, exams, assignments and academic performance simulation'}
+                {isVi ? 'Ôn thẻ nhớ ngoại ngữ thông minh, theo dõi môn học, lịch thi và mục tiêu GPA' : 'Smart flashcards, subjects, exam countdowns, and GPA tracking'}
               </p>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              soundEngine.playPop();
+              setCurrentView('study-space');
+            }}
+            className="self-start sm:self-center shrink-0 px-3.5 py-2 min-h-[40px] rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-black shadow-sm flex items-center gap-1.5 cursor-pointer"
+          >
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <Users className="w-3.5 h-3.5" />
+            <span>{isVi ? 'Vào Sảnh Học Live 24/7' : 'Join 24/7 Study Hall'}</span>
+          </button>
         </div>
 
         {/* Tab Navigation */}

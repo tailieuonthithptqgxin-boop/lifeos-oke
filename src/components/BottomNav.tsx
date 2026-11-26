@@ -71,10 +71,10 @@ export function BottomNav() {
     }
   };
 
-  const isStudyActive = currentView === 'study' || currentView === 'vocab' || currentView === 'study-space' || currentView === 'classroom';
+  const isHomeActive = currentView === 'dashboard';
+  const isStudyActive = currentView === 'study' || currentView === 'vocab' || currentView === 'study-space' || currentView === 'classroom' || currentView === 'focus';
   const isScheduleActive = currentView === 'tasks' || currentView === 'schedule' || currentView === 'calendar';
   const isConnectActive = currentView === 'connect' || currentView === 'feed' || currentView === 'community';
-  const isFinanceActive = currentView === 'finance';
 
   const pendingTasksCount = (tasks || []).filter((t: any) => t.status !== 'Hoàn thành' && t.status !== 'Done').length;
   const streakCount = currentUser?.streakDays || 0;
@@ -89,11 +89,28 @@ export function BottomNav() {
       >
         <div className="flex items-center justify-between w-full max-w-md mx-auto h-full gap-1">
           
-          {/* 1. Học Tập (Study) */}
+          {/* 1. Hôm nay (Home / Dashboard) */}
+          <button
+            id="mobile-tab-home"
+            type="button"
+            onClick={() => handleTabPress('dashboard')}
+            className={`flex-1 flex flex-col items-center justify-center h-full py-1 px-1 rounded-2xl active:scale-95 transition-all cursor-pointer min-h-[48px] ${
+              isHomeActive
+                ? 'text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 dark:bg-emerald-500/15 shadow-2xs'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
+            }`}
+          >
+            <LayoutDashboard className={`w-5 h-5 transition-transform ${isHomeActive ? 'scale-110 stroke-[2.4]' : ''}`} />
+            <span className="text-[11px] mt-0.5 tracking-tight font-bold whitespace-nowrap">
+              {isVi ? 'Hôm nay' : 'Today'}
+            </span>
+          </button>
+
+          {/* 2. Học Tập (Study) */}
           <button
             id="mobile-tab-study"
             type="button"
-            onClick={() => handleTabPress('study')}
+            onClick={() => handleTabPress('study-space')}
             className={`flex-1 flex flex-col items-center justify-center h-full py-1 px-1 rounded-2xl active:scale-95 transition-all cursor-pointer min-h-[48px] ${
               isStudyActive
                 ? 'text-indigo-600 dark:text-indigo-400 font-bold bg-indigo-500/10 dark:bg-indigo-500/15 shadow-2xs'
@@ -102,11 +119,11 @@ export function BottomNav() {
           >
             <GraduationCap className={`w-5 h-5 transition-transform ${isStudyActive ? 'scale-110 stroke-[2.4]' : ''}`} />
             <span className="text-[11px] mt-0.5 tracking-tight font-bold whitespace-nowrap">
-              {isVi ? 'Học tập' : 'Study'}
+              {isVi ? 'Sảnh Học' : 'Study'}
             </span>
           </button>
 
-          {/* 2. Lịch & Việc (Schedule / Tasks) */}
+          {/* 3. Lịch & Việc (Schedule / Tasks) */}
           <button
             id="mobile-tab-schedule"
             type="button"
@@ -130,7 +147,7 @@ export function BottomNav() {
             </span>
           </button>
 
-          {/* 3. Cộng Đồng (Community / Connect) */}
+          {/* 4. Cộng Đồng (Community / Connect) */}
           <button
             id="mobile-tab-connect"
             type="button"
@@ -147,23 +164,6 @@ export function BottomNav() {
             </div>
             <span className="text-[11px] mt-0.5 tracking-tight font-bold whitespace-nowrap">
               {isVi ? 'Cộng đồng' : 'Connect'}
-            </span>
-          </button>
-
-          {/* 4. Tài Chính (Finance) */}
-          <button
-            id="mobile-tab-finance"
-            type="button"
-            onClick={() => handleTabPress('finance')}
-            className={`flex-1 flex flex-col items-center justify-center h-full py-1 px-1 rounded-2xl active:scale-95 transition-all cursor-pointer min-h-[48px] ${
-              isFinanceActive
-                ? 'text-teal-600 dark:text-teal-400 font-bold bg-teal-500/10 dark:bg-teal-500/15 shadow-2xs'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 font-medium'
-            }`}
-          >
-            <DollarSign className={`w-5 h-5 transition-transform ${isFinanceActive ? 'scale-110 stroke-[2.4]' : ''}`} />
-            <span className="text-[11px] mt-0.5 tracking-tight font-bold whitespace-nowrap">
-              {isVi ? 'Tài chính' : 'Finance'}
             </span>
           </button>
 

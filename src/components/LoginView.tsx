@@ -338,7 +338,7 @@ export function LoginView({ onBack, initialMode, initialError }: LoginViewProps)
       }
 
       if (storedRef) clearStoredReferralCode();
-      await login(res.user, res.token, 'study');
+      await login(res.user, res.token);
     } catch (err: any) {
       console.error('Login error:', err);
       let msg = 'Email/Tên đăng nhập hoặc mật khẩu không chính xác.';
@@ -359,26 +359,19 @@ export function LoginView({ onBack, initialMode, initialError }: LoginViewProps)
     setError(null);
     setSuccessMsg(null);
 
-    if (!regName.trim()) {
-      setError('Vui lòng nhập họ và tên của bạn.');
-      return;
-    }
-    if (!regAgreeTerms || !regAgreePrivacy) {
-      setError('Theo Nghị định 13/2023/NĐ-CP, bạn cần đánh dấu đồng ý với Điều khoản dịch vụ và Chính sách bảo mật để tạo tài khoản.');
+    if (!regAgreeTerms) {
+      setError('Vui lòng đánh dấu đồng ý với Điều khoản dịch vụ & Chính sách bảo mật để tạo tài khoản.');
       return;
     }
     if (!regEmail.trim() || !regEmail.includes('@')) {
       setError('Vui lòng nhập địa chỉ email hợp lệ.');
       return;
     }
-    if (regPassword.length < 8) {
-      setError('Mật khẩu bảo mật phải có tối thiểu 8 ký tự.');
+    if (regPassword.length < 6) {
+      setError('Mật khẩu cần có tối thiểu 6 ký tự.');
       return;
     }
-    if (regPassword !== regConfirmPassword) {
-      setError('Mật khẩu xác nhận không khớp. Vui lòng kiểm tra lại.');
-      return;
-    }
+    const derivedName = regName.trim() || regEmail.trim().split('@')[0] || 'Thành viên LifeOS';
 
     setIsLoading(true);
     try {
@@ -388,7 +381,7 @@ export function LoginView({ onBack, initialMode, initialError }: LoginViewProps)
         token?: string;
         message?: string;
       }>('/api/auth/register', 'POST', {
-        name: regName.trim(),
+        name: derivedName,
         email: regEmail.trim(),
         password: String(regPassword),
         referralCode: regReferralCode.trim() || undefined
@@ -405,9 +398,9 @@ export function LoginView({ onBack, initialMode, initialError }: LoginViewProps)
       clearStoredReferralCode();
       setSuccessMsg('Đăng ký tài khoản thành công! Đang chuyển tiếp vào không gian làm việc...');
       try {
-        notifyAuthSecurity('REGISTER_SUCCESS', res.user?.email || regEmail.trim(), res.user?.name || regName.trim()).catch(() => {});
+        notifyAuthSecurity('REGISTER_SUCCESS', res.user?.email || regEmail.trim(), res.user?.name || derivedName).catch(() => {});
       } catch (e) {}
-      await login(res.user, res.token, 'study');
+      await login(res.user, res.token);
     } catch (err: any) {
       console.error('Registration error:', err);
       setError(err?.message || 'Không thể tạo tài khoản. Vui lòng thử lại.');
@@ -734,7 +727,7 @@ export function LoginView({ onBack, initialMode, initialError }: LoginViewProps)
             <form onSubmit={handleRegisterSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  {tView.fullName}
+                  {isVi ? 'Tên hiển thị (Không bắt buộc)' : 'Display Name (Optional)'}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -744,8 +737,7 @@ export function LoginView({ onBack, initialMode, initialError }: LoginViewProps)
                     type="text"
                     value={regName}
                     onChange={(e) => setRegName(e.target.value)}
-                    placeholder="Nguyễn Văn A"
-                    required
+                    placeholder={isVi ? 'Để trống sẽ tự lấy theo Email' : 'Leave blank to use email'}
                     className="w-full h-12 min-h-[48px] pl-10 pr-4 bg-slate-950/70 border border-slate-800 rounded-2xl text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:bg-slate-950 transition-all duration-150"
                   />
                 </div>
@@ -815,25 +807,6 @@ export function LoginView({ onBack, initialMode, initialError }: LoginViewProps)
                 )}
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                  {tView.confirmPassword}
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                    <KeyRound className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="password"
-                    value={regConfirmPassword}
-                    onChange={(e) => setRegConfirmPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    className="w-full h-12 min-h-[48px] pl-10 pr-4 bg-slate-950/70 border border-slate-800 rounded-2xl text-base sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:bg-slate-950 transition-all duration-150"
-                  />
-                </div>
-              </div>
-
               {regReferralCode && (
                 <div className="p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs flex items-center gap-2">
                   <Sparkles className="w-4 h-4 text-indigo-400 shrink-0" />
@@ -841,61 +814,35 @@ export function LoginView({ onBack, initialMode, initialError }: LoginViewProps)
                 </div>
               )}
 
-              {/* Nghị định 13/2023/NĐ-CP: Khai báo mục đích thu thập & Checkbox đồng ý riêng biệt */}
-              <div className="pt-2 pb-1 space-y-2.5 text-left">
-                <div className="p-3 rounded-2xl bg-slate-950/80 border border-slate-800/80 text-[11px] text-slate-300 leading-relaxed">
-                  <div className="flex items-center gap-1.5 font-bold text-emerald-400 mb-1">
-                    <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
-                    <span>Mục đích thu thập dữ liệu (Nghị định 13/2023/NĐ-CP):</span>
-                  </div>
-                  <p className="text-slate-300">
-                    Thông tin tài khoản được thu thập để định danh người dùng, đồng bộ dữ liệu nhiệm vụ và gửi cảnh báo bảo mật. Dữ liệu tài chính và ghi chép của bạn được bảo mật tuyệt đối và không bao giờ chia sẻ cho bên thứ ba.
-                  </p>
-                </div>
-
-                {/* Checkbox 1: Điều khoản dịch vụ & Hoàn tiền */}
+              {/* Đồng ý điều khoản & Nghị định 13 gọn nhẹ 1 chạm */}
+              <div className="pt-1 pb-1 text-left">
                 <label className="flex items-start gap-2.5 cursor-pointer text-xs select-none group">
                   <input
                     type="checkbox"
                     checked={regAgreeTerms}
-                    onChange={(e) => setRegAgreeTerms(e.target.checked)}
+                    onChange={(e) => {
+                      setRegAgreeTerms(e.target.checked);
+                      setRegAgreePrivacy(e.target.checked);
+                    }}
                     className="mt-0.5 w-4 h-4 rounded-md border-slate-700 bg-slate-900 text-emerald-600 focus:ring-emerald-500 focus:ring-offset-0 transition cursor-pointer shrink-0"
                     required
                   />
                   <span className="text-slate-300 leading-snug">
-                    Tôi xác nhận đã đủ từ 15 tuổi trở lên, đã đọc và đồng ý với{' '}
+                    Tôi đồng ý với{' '}
                     <a href="/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-emerald-400 font-semibold hover:underline">
                       Điều khoản dịch vụ
                     </a>{' '}
                     và{' '}
-                    <a href="/refund-policy" target="_blank" rel="noopener noreferrer" className="text-emerald-400 font-semibold hover:underline">
-                      Chính sách hoàn tiền
-                    </a>.
-                  </span>
-                </label>
-
-                {/* Checkbox 2: Chính sách bảo mật dữ liệu */}
-                <label className="flex items-start gap-2.5 cursor-pointer text-xs select-none group">
-                  <input
-                    type="checkbox"
-                    checked={regAgreePrivacy}
-                    onChange={(e) => setRegAgreePrivacy(e.target.checked)}
-                    className="mt-0.5 w-4 h-4 rounded-md border-slate-700 bg-slate-900 text-emerald-600 focus:ring-emerald-500 focus:ring-offset-0 transition cursor-pointer shrink-0"
-                    required
-                  />
-                  <span className="text-slate-300 leading-snug">
-                    Tôi đồng ý cho phép LifeOS xử lý dữ liệu cá nhân theo{' '}
                     <a href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="text-emerald-400 font-semibold hover:underline">
-                      Chính sách bảo mật
-                    </a>{' '}
-                    (Tuân thủ Nghị định 13/2023/NĐ-CP).
+                      Chính sách bảo mật dữ liệu (Nghị định 13)
+                    </a>.
                   </span>
                 </label>
               </div>
 
               <button
                 type="submit"
-                disabled={isLoading || !regAgreeTerms || !regAgreePrivacy}
+                disabled={isLoading || !regAgreeTerms}
                 className="w-full h-12 min-h-[48px] bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base sm:text-sm rounded-2xl transition-all duration-150 shadow-lg shadow-emerald-950/40 flex items-center justify-center gap-2 mt-2 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
               >
                 {isLoading ? (

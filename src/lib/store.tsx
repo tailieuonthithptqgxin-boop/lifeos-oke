@@ -227,7 +227,7 @@ const getInitialState = (): AppState => {
     if (tabParam && (VALID_VIEWS.has(tabParam) || tabParam.startsWith('custom_module_'))) {
       initialView = tabParam;
     } else if (isGoogleCallback) {
-      initialView = 'study'; // Navigate straight into Study Hall / Space upon Google OAuth
+      initialView = 'dashboard'; // Navigate straight into Today Dashboard upon Google OAuth
     } else if (storedView && (VALID_VIEWS.has(storedView) || storedView.startsWith('custom_module_'))) {
       initialView = storedView;
     } else {
@@ -247,7 +247,7 @@ const getInitialState = (): AppState => {
           avatar: payload.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${payload.userId || 'student'}`,
           role: payload.role || 'USER',
           plan: payload.plan || 'PRO',
-          status: 'ACTIVE',
+          status: 'Active',
           streakDays: 0,
           xp: 0,
           level: 1,
@@ -681,8 +681,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       } catch (e) {}
     }
 
-    // Authenticate user immediately and transition UI directly to target view (admin view for Admin, study hall for Users)
-    const destinationView: ViewState = targetView || (isAdmin ? 'admin' : 'study');
+    // Authenticate user immediately and transition UI directly to target view (admin view for Admin, Today dashboard for Users)
+    const destinationView: ViewState = targetView || (isAdmin ? 'admin' : 'dashboard');
     try {
       localStorage.setItem('lifeos_current_view', destinationView);
     } catch (e) {}
