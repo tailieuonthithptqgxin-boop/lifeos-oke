@@ -7,6 +7,7 @@ import {
 import { useAppStore } from '../lib/store';
 import { Habit } from '../lib/types';
 import { soundEngine } from '../lib/soundEngine';
+import { showFloatingXp, getStreakMilestoneMessage } from '../lib/celebrationEngine';
 import { triggerConfetti } from '../lib/confetti';
 import { formatLocalDateKey } from '../lib/utils';
 import { useBodyScrollLock } from '../hooks/useBodyScrollLock';
@@ -179,6 +180,13 @@ export function HabitsView() {
 
     if (!wasCompleted) {
       soundEngine.playPop();
+      showFloatingXp('+10 XP');
+      const milestone = getStreakMilestoneMessage((habit.streak || 0) + 1, isVi);
+      if (milestone) {
+        triggerConfetti();
+        soundEngine.playCelebration();
+        showFloatingXp(milestone);
+      }
       const otherIncomplete = habits.filter(h => h.id !== habit.id && !isCompletedToday(h));
       if (otherIncomplete.length === 0) {
         triggerConfetti();

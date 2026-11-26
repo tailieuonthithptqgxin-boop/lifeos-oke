@@ -121,3 +121,35 @@ export function useSmoothCounter(targetNumber: number, duration: number = 400): 
 
   return current;
 }
+
+/**
+ * Floating "+XP" badge that rises from the focused/clicked element (or screen center).
+ * Pure DOM, auto-cleaned after 1s, respects prefers-reduced-motion.
+ */
+export function showFloatingXp(label: string, anchor?: Element | null): void {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const el = anchor ?? document.activeElement;
+  const rect = el && el !== document.body ? el.getBoundingClientRect() : null;
+  const x = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
+  const y = rect ? rect.top : window.innerHeight / 2;
+  const badge = document.createElement('div');
+  badge.textContent = label;
+  badge.setAttribute('aria-hidden', 'true');
+  badge.className = 'animate-xp-burst';
+  badge.style.cssText = `position:fixed;left:${x}px;top:${y}px;transform:translateX(-50%);z-index:9999;padding:4px 10px;border-radius:9999px;font-weight:800;font-size:13px;color:#064e3b;background:linear-gradient(90deg,#6ee7b7,#fde68a);box-shadow:0 6px 18px rgba(16,185,129,.35);pointer-events:none;`;
+  document.body.appendChild(badge);
+  window.setTimeout(() => badge.remove(), 1000);
+}
+
+/** Streak milestone check: returns a congratulation message or null. */
+export function getStreakMilestoneMessage(streak: number, isVi = true): string | null {
+  const m: Record<number, [string, string]> = {
+    3: ['🔥 Chuỗi 3 ngày! Đà đang lên rồi!', '🔥 3-day streak! Momentum is building!'],
+    7: ['🏆 Chuỗi 7 ngày! Một tuần kỷ luật trọn vẹn!', '🏆 7-day streak! A full week of discipline!'],
+    14: ['💎 Chuỗi 14 ngày! Thói quen đang thành hình!', '💎 14-day streak! The habit is forming!'],
+    30: ['👑 Chuỗi 30 ngày! Bạn đã làm chủ thói quen này!', '👑 30-day streak! You own this habit!'],
+  };
+  const hit = m[streak];
+  return hit ? (isVi ? hit[0] : hit[1]) : null;
+}
