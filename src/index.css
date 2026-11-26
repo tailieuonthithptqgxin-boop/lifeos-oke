@@ -441,14 +441,41 @@ button:not(.btn-no-tactile):active,
 @keyframes viewTransitionEnter {
   from {
     opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.995);
   }
   to {
     opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
 .view-transition-enter {
-  animation: viewTransitionEnter 0.18s ease-out;
+  animation: viewTransitionEnter 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Floating +XP burst for dopamine feedback */
+@keyframes xpFloat {
+  0% { opacity: 0; transform: translate3d(0, 8px, 0) scale(0.8); }
+  20% { opacity: 1; transform: translate3d(0, -4px, 0) scale(1.1); }
+  100% { opacity: 0; transform: translate3d(0, -36px, 0) scale(1); }
+}
+.animate-xp-burst {
+  animation: xpFloat 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+  pointer-events: none;
+}
+
+/* Tactile press on all buttons */
+button:not(:disabled) {
+  transition-property: transform, background-color, color, box-shadow, opacity;
+}
+button:not(:disabled):active {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-transition-enter, .animate-xp-burst, .animate-page-enter, .animate-modal-enter {
+    animation-duration: 0.01ms !important;
+  }
 }
 
 /* 3. Tactile Card Hover & Touch Elevation */

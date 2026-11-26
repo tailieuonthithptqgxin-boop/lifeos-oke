@@ -88,7 +88,7 @@ export function QuickPersonaQuizModal({ isOpen, onClose }: QuickPersonaQuizModal
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
-      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-white flex flex-col my-auto">
+      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-white flex flex-col">
         {/* Top Progress bar */}
         <div className="w-full h-1 bg-slate-800">
           <div 

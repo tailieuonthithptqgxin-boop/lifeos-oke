@@ -144,7 +144,7 @@ export function SundayWeeklyResetModal({
     >
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-white flex flex-col my-auto"
+        className="relative w-full max-w-xl bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-white flex flex-col"
       >
         {/* Ambient Top Glow */}
         <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-emerald-500/15 via-teal-500/5 to-transparent pointer-events-none" />

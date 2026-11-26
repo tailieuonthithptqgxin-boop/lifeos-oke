@@ -209,12 +209,23 @@ export function RoomCheckInModal({
   const avatar = userAvatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${userName}`;
 
   const modalContent = (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto">
+    <div
+      className="fixed inset-0 z-[100] overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+    >
+      {/* Backdrop */}
       <div
-        className="w-full max-w-xl bg-white dark:bg-[#181a1d] border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[88vh] flex flex-col"
-        role="dialog"
-        aria-modal="true"
-      >
+        className="fixed inset-0 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+        onClick={onClose}
+      />
+
+      {/* Centering wrapper */}
+      <div className="flex min-h-full items-center justify-center p-3 sm:p-4 text-center">
+        <div
+          className="relative w-full max-w-xl text-left bg-white dark:bg-[#181a1d] border border-slate-200 dark:border-white/10 rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 max-h-[88vh] flex flex-col"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Modal Top Header Banner */}
         <div className="relative overflow-hidden bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-700 p-5 text-white">
           <div className="absolute -right-12 -top-12 w-40 h-40 bg-white/10 rounded-full blur-2xl pointer-events-none" />
@@ -420,7 +431,8 @@ export function RoomCheckInModal({
         </form>
       </div>
     </div>
-  );
+  </div>
+);
 
   return typeof document !== 'undefined'
     ? createPortal(modalContent, document.body)

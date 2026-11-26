@@ -227,7 +227,7 @@ export function LifeOsWrappedModal({
     >
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-white flex flex-col my-auto"
+        className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden text-white flex flex-col"
       >
         {/* Story progress tick bars at top */}
         <div className="p-4 pb-0 flex items-center gap-1.5 z-10">

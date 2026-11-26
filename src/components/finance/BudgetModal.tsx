@@ -126,7 +126,7 @@ export function BudgetModal({ budget, onClose, onSave, onDelete }: BudgetModalPr
     >
       <div 
         onClick={(e) => e.stopPropagation()}
-        className={`bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-slate-200/80 dark:border-slate-800 animate-modal-enter my-auto ${
+        className={`bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col border border-slate-200/80 dark:border-slate-800 animate-modal-enter ${
           isShaking ? 'animate-[shake_0.4s_ease-in-out]' : ''
         }`}
       >

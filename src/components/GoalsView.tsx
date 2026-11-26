@@ -2516,7 +2516,7 @@ function GoalModal({ goal, onClose, onSave, onDelete }: any) {
     >
       <div 
         onClick={(e) => e.stopPropagation()}
-        className={`bg-white dark:bg-[#141E30] rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col border border-slate-200/80 dark:border-slate-800 animate-modal-enter my-auto transition-transform ${
+        className={`bg-white dark:bg-[#141E30] rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col border border-slate-200/80 dark:border-slate-800 animate-modal-enter transition-transform ${
           isShaking ? 'animate-[shake_0.4s_ease-in-out]' : ''
         }`}
       >

@@ -357,7 +357,7 @@ export function ShareStoryModal({
       <div 
         onMouseDown={(e) => e.stopPropagation()}
         onClick={(e) => e.stopPropagation()}
-        className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-2xl relative text-white my-auto"
+        className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-4 sm:p-6 space-y-4 shadow-2xl relative text-white"
       >
         
         {/* Header */}

@@ -2150,7 +2150,7 @@ function NoteDetailModal({
     >
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="bg-white dark:bg-[#141E30] rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#E2E8F0] dark:border-white/[0.08] overflow-hidden animate-modal-enter my-auto"
+        className="bg-white dark:bg-[#141E30] rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#E2E8F0] dark:border-white/[0.08] overflow-hidden animate-modal-enter"
       >
         {/* HEADER */}
         <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
@@ -2598,7 +2598,7 @@ function NoteEditorModal({
     >
       <div 
         onClick={(e) => e.stopPropagation()}
-        className={`bg-white dark:bg-[#141E30] rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#E2E8F0] dark:border-white/[0.08] overflow-hidden animate-modal-enter my-auto transition-transform ${
+        className={`bg-white dark:bg-[#141E30] rounded-3xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-[#E2E8F0] dark:border-white/[0.08] overflow-hidden animate-modal-enter transition-transform ${
           isShaking ? 'animate-[shake_0.4s_ease-in-out]' : ''
         }`}
       >

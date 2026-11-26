@@ -79,11 +79,23 @@ export function StudyCreateRoomModal({
   };
 
   const modalContent = (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-150 overflow-y-auto">
-      <div 
-        className="w-full max-w-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-7 space-y-6 relative overflow-y-auto max-h-[88vh] animate-in zoom-in-95 duration-150"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div
+      className="fixed inset-0 z-[100] overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+    >
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-150"
+        onClick={onClose}
+      />
+
+      {/* Centering wrapper */}
+      <div className="flex min-h-full items-center justify-center p-3 sm:p-4 text-center">
+        <div 
+          className="relative w-full max-w-lg text-left bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-7 space-y-6 overflow-y-auto max-h-[88vh] animate-in zoom-in-95 duration-150"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
           <div className="flex items-center gap-2.5">
@@ -240,7 +252,8 @@ export function StudyCreateRoomModal({
         </form>
       </div>
     </div>
-  );
+  </div>
+);
 
   return typeof document !== 'undefined'
     ? createPortal(modalContent, document.body)

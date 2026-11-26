@@ -1013,7 +1013,7 @@ function HabitModal({ habit, onClose, onSave, isVi }: any) {
     >
       <div 
         onClick={(e) => e.stopPropagation()}
-        className={`bg-white dark:bg-[#141E30] rounded-3xl max-w-sm w-full p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-2xl space-y-4 animate-modal-enter my-auto transition-transform ${
+        className={`bg-white dark:bg-[#141E30] rounded-3xl max-w-sm w-full p-5 sm:p-6 border border-slate-200/80 dark:border-slate-800 shadow-2xl space-y-4 animate-modal-enter transition-transform ${
           isShaking ? 'animate-[shake_0.4s_ease-in-out]' : ''
         }`}
       >

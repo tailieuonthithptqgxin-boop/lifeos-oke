@@ -45,15 +45,22 @@ export function StudyOnboardingModal({ isOpen, onClose }: StudyOnboardingModalPr
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200 overflow-y-auto"
+      className="fixed inset-0 z-[100] overflow-y-auto"
       role="dialog"
       aria-modal="true"
-      onClick={handleDismiss}
     >
+      {/* Backdrop */}
       <div
-        className="relative w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-5 sm:p-6 md:p-7 space-y-4 sm:space-y-5 animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[88vh]"
-        onClick={(e) => e.stopPropagation()}
-      >
+        className="fixed inset-0 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200"
+        onClick={handleDismiss}
+      />
+
+      {/* Centering wrapper */}
+      <div className="flex min-h-full items-center justify-center p-3 sm:p-4 md:p-6 text-center">
+        <div
+          className="relative w-full max-w-2xl text-left bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-5 sm:p-6 md:p-7 space-y-4 sm:space-y-5 animate-in zoom-in-95 duration-200 overflow-y-auto max-h-[88vh]"
+          onClick={(e) => e.stopPropagation()}
+        >
         {/* Decorative background glows */}
         <div className="absolute -right-16 -top-16 w-56 h-56 bg-indigo-500/15 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute -left-16 -bottom-16 w-56 h-56 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -162,7 +169,8 @@ export function StudyOnboardingModal({ isOpen, onClose }: StudyOnboardingModalPr
         </div>
       </div>
     </div>
-  );
+  </div>
+);
 
   return typeof document !== 'undefined'
     ? createPortal(modalContent, document.body)

@@ -109,7 +109,7 @@ export function ChineseActiveRecallModal({
     >
       <div 
         onClick={(e) => e.stopPropagation()}
-        className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-2xl overflow-hidden my-auto max-h-[92dvh] sm:max-h-[85vh] animate-modal-enter transition-transform"
+        className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl w-full max-w-2xl overflow-hidden max-h-[92dvh] sm:max-h-[85vh] animate-modal-enter transition-transform"
       >
         {/* Mobile Drag Indicator */}
         <div className="w-12 h-1.5 bg-slate-300 dark:bg-slate-700 rounded-full mx-auto my-2 sm:hidden shrink-0" />

@@ -1,3 +1,4 @@
+import { soundEngine } from '../lib/soundEngine';
 import React, { useState } from 'react';
 import {
   LayoutDashboard,
@@ -168,6 +169,7 @@ export function Sidebar() {
         id={`nav-item-${item.id}`}
         type="button"
         onClick={() => {
+          if (!isActive) { try { soundEngine.playPop(); } catch {} }
           setCurrentView(item.id);
           if (isMobileMenuOpen) toggleMobileMenu();
         }}
