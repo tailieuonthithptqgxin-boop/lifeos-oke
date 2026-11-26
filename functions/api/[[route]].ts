@@ -8,11 +8,16 @@
 interface Env {
   DB?: any;              // Cloudflare D1 Database binding
   KV?: any;              // Cloudflare KV binding
+  CACHE_KV?: any;        // Optional alternate KV binding
   R2_STORAGE?: any;      // Cloudflare R2 Bucket binding
   APP_URL?: string;
   CRON_SECRET?: string;
   JWT_SECRET?: string;
   TURNSTILE_SECRET_KEY?: string;
+  INITIAL_ADMIN_EMAIL?: string;
+  INITIAL_ADMIN_PASSWORD?: string;
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
   NODE_ENV?: string;
 }
 
