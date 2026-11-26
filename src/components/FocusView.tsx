@@ -24,6 +24,7 @@ import { webNotification } from '../lib/webNotification';
 import { notifyStudyCommunity } from '../lib/unifiedNotificationEngine';
 import { WeeklyLeaderboardModal } from './dashboard/WeeklyLeaderboardModal';
 import { ShareStoryModal } from './ShareStoryModal';
+import { AestheticStudyReceiptModal, StudyReceiptData } from './sharing/AestheticStudyReceiptModal';
 import { AmbientMixerWidget } from './focus/AmbientMixerWidget';
 import { SpeedMatchGameModal } from './vocab/SpeedMatchGameModal';
 import { recordUserActivity } from '../lib/globalUserSync';
@@ -128,6 +129,7 @@ export function FocusView() {
   }, [selectedTaskId]);
 
   const [activeSession, setActiveSession] = useState<FocusSession | null>(null);
+  const [studyReceipt, setStudyReceipt] = useState<StudyReceiptData | null>(null);
   const currentSessionIdRef = useRef<string | null>(null);
   const chimeTimeoutRef = useRef<any>(null);
 
@@ -299,6 +301,16 @@ export function FocusView() {
         setTargetEndTime(null);
         triggerConfetti();
         soundEngine.playSuccess();
+        const finishedTask = (tasks || []).find(t => t.id === selectedTaskId);
+        const totalMins = Math.max(1, (isQuickTest ? 1 : settings.focusMinutes) * settings.targetRounds);
+        setStudyReceipt({
+          title: finishedTask ? finishedTask.title : 'Phiên Tập Trung Pomodoro',
+          minutes: totalMins,
+          xpEarned: 35 * settings.targetRounds,
+          streakDays: currentUser?.streakDays || 1,
+          userName: currentUser?.name,
+          modeLabel: `Pomodoro (${settings.targetRounds} hiệp)`,
+        });
         toast.success(
           isVi ? `Xuất sắc! Bạn đã hoàn thành trọn vẹn ${settings.targetRounds} hiệp học hôm nay!` : 'Congratulations on finishing all focus rounds!',
           '🏆 Mục Tiêu Hoàn Thành'
@@ -1687,6 +1699,13 @@ export function FocusView() {
         isOpen={showShareStory}
         onClose={() => setShowShareStory(false)}
         userName={currentUser?.name}
+      />
+
+      {/* Aesthetic Study Receipt ("Strava / Receiptify for Study") */}
+      <AestheticStudyReceiptModal
+        receipt={studyReceipt}
+        onClose={() => setStudyReceipt(null)}
+        onOpenStoryModal={() => setShowShareStory(true)}
       />
 
       {/* Product Synergy: Pomodoro 5m Break Speed Match Mini-Game */}

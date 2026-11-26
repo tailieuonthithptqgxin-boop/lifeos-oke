@@ -22,6 +22,7 @@ import { StudyRoomView, RoomDetail } from '../study-space/StudyRoomView';
 import { StudyCreateRoomModal } from '../study-space/StudyCreateRoomModal';
 import { RoomCheckInModal } from '../study-space/RoomCheckInModal';
 import { OnlineClassroomView } from '../classroom/OnlineClassroomView';
+import { AestheticStudyReceiptModal } from '../sharing/AestheticStudyReceiptModal';
 
 import { analyticsTracker } from '../../lib/analyticsTracker';
 
@@ -921,8 +922,22 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
         isSubmitting={isSubmittingRoom}
       />
 
-      {/* Rule 3: Session Completion Celebratory / Feedback Modal */}
-      {sessionSummary && typeof document !== 'undefined' && createPortal(
+      {/* Rule 3: Session Completion Aesthetic Study Receipt / Short-Session Notice */}
+      {sessionSummary && sessionSummary.wasRecorded && (
+        <AestheticStudyReceiptModal
+          receipt={{
+            title: `Phòng học: ${sessionSummary.roomName}`,
+            minutes: sessionSummary.recordedMinutes,
+            xpEarned: Math.max(20, sessionSummary.recordedMinutes * 2),
+            streakDays: currentUser?.streakDays || 1,
+            userName: currentUser?.name,
+            modeLabel: 'Sảnh Học Chung Trực Tuyến',
+          }}
+          onClose={() => setSessionSummary(null)}
+        />
+      )}
+
+      {sessionSummary && !sessionSummary.wasRecorded && typeof document !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-[100] overflow-y-auto" role="dialog" aria-modal="true">
           <div
             className="fixed inset-0 bg-slate-950/75 backdrop-blur-md animate-in fade-in duration-200"
@@ -933,83 +948,29 @@ export function StudySpaceView({ initialTab = 'rooms' }: StudySpaceViewProps = {
               className="relative w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl p-6 sm:p-7 text-center space-y-5 animate-in zoom-in-95 duration-200 max-h-[88vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-            {sessionSummary.wasRecorded ? (
-              <>
-                {/* Trophy Icon Badge for Recorded Sessions */}
-                <div className="w-16 h-16 rounded-3xl bg-linear-to-tr from-amber-400 to-amber-600 text-white flex items-center justify-center mx-auto shadow-lg shadow-amber-500/30">
-                  <Trophy className="w-8 h-8" />
-                </div>
+              <div className="w-16 h-16 rounded-3xl bg-linear-to-tr from-slate-400 to-slate-600 text-white flex items-center justify-center mx-auto shadow-md">
+                <Clock className="w-8 h-8" />
+              </div>
 
-                {/* Title & Stats */}
-                <div className="space-y-2">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 text-xs font-black uppercase tracking-wider">
-                    <Sparkles className="w-3.5 h-3.5" />
-                    <span>+{sessionSummary.recordedMinutes} Phút Tích Lũy</span>
-                  </div>
-                  <h3 className="text-xl font-extrabold text-slate-900 dark:text-white leading-snug">
-                    Tuyệt vời! Bạn vừa được cộng thêm +{sessionSummary.recordedMinutes} phút vào hồ sơ học tập!
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                    Bạn vừa hoàn thành{' '}
-                    <span className="font-black text-emerald-600 dark:text-emerald-400 text-base">
-                      {sessionSummary.minutes} phút
-                    </span>{' '}
-                    học tập tập trung trong phòng{' '}
-                    <span className="font-bold text-slate-800 dark:text-slate-100">
-                      "{sessionSummary.roomName}"
-                    </span>
-                    .
-                  </p>
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold">
+                  <span>Phiên Học Ngắn</span>
                 </div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                  Phiên học kết thúc ({sessionSummary.minutes} phút)
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Hãy duy trì tập trung từ 1 phút trở lên ở phiên tiếp theo để nhận Biên lai Học tập và tích lũy giờ trên Bảng Xếp Hạng nhé!
+                </p>
+              </div>
 
-                {/* Motivational Quote Banner */}
-                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-100 dark:border-slate-800 text-left flex items-start gap-3">
-                  <Award className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                    Mỗi phút nỗ lực hôm nay là một bước tiến vững chắc hướng đến mục tiêu của bạn. Hãy tự thưởng cho mình vài phút nghỉ ngơi nhé!
-                  </p>
-                </div>
-
-                {/* Dismiss Button */}
-                <button
-                  type="button"
-                  onClick={() => setSessionSummary(null)}
-                  className="w-full py-3 min-h-[44px] rounded-2xl bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold text-xs sm:text-sm shadow-lg shadow-indigo-600/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>Tiếp tục ngày mới</span>
-                </button>
-              </>
-            ) : (
-              <>
-                {/* Clock Icon for Sessions Under 5 Minutes */}
-                <div className="w-16 h-16 rounded-3xl bg-linear-to-tr from-slate-400 to-slate-600 text-white flex items-center justify-center mx-auto shadow-md">
-                  <Clock className="w-8 h-8" />
-                </div>
-
-                {/* Notice Body */}
-                <div className="space-y-2">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 text-xs font-bold">
-                    <span>Phiên Học Ngắn</span>
-                  </div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                    Phiên học kết thúc ({sessionSummary.minutes} phút)
-                  </h3>
-                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
-                    Phiên học dưới 1 phút sẽ không được tính vào tổng giờ tích lũy nhé! Hãy duy trì tập trung từ 1 phút trở lên ở phiên tiếp theo để được ghi danh vào Bảng Xếp Hạng.
-                  </p>
-                </div>
-
-                {/* Dismiss Button */}
-                <button
-                  type="button"
-                  onClick={() => setSessionSummary(null)}
-                  className="w-full py-3 min-h-[44px] rounded-2xl bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span>Đã hiểu</span>
-                </button>
-              </>
-            )}
+              <button
+                type="button"
+                onClick={() => setSessionSummary(null)}
+                className="w-full py-3 min-h-[44px] rounded-2xl bg-slate-800 dark:bg-slate-700 hover:bg-slate-900 text-white font-bold text-xs sm:text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Đã hiểu</span>
+              </button>
             </div>
           </div>
         </div>,

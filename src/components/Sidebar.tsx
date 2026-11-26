@@ -47,38 +47,39 @@ import { SidebarCustomizerModal, getVisibleNavModules } from './SidebarCustomize
 interface NavItem {
   id: ViewState;
   label: string;
+  labelEn?: string;
   icon: React.ComponentType<{ className?: string }>;
   adminOnly?: boolean;
   description?: string;
 }
 
-// 1. Daily Rhythm
+// 1. Nhịp sống hàng ngày (Core Daily Flow)
 const DAILY_RHYTHM_ITEMS: NavItem[] = [
-  { id: 'dashboard', label: 'Today', icon: LayoutDashboard },
-  { id: 'focus', label: 'Phòng Tập Trung', icon: Zap },
-  { id: 'journey', label: 'Journey', icon: Compass },
+  { id: 'dashboard', label: 'Hôm nay', labelEn: 'Today', icon: LayoutDashboard },
+  { id: 'focus', label: 'Phòng Tập Trung', labelEn: 'Focus Studio', icon: Zap },
+  { id: 'tasks', label: 'Lịch & Công việc', labelEn: 'Schedule & Tasks', icon: CalendarDays },
 ];
 
-// 2. Spaces
+// 2. Không gian chính (Core Study & Life Spaces)
 const SPACES_ITEMS: NavItem[] = [
-  { id: 'tasks', label: 'Lịch & Công việc', icon: CalendarDays },
-  { id: 'projects', label: 'Kho Dự Án & Second Brain', icon: FolderKanban },
-  { id: 'habits', label: 'Thói quen kỷ luật', icon: Target },
-  { id: 'finance', label: 'Tài chính & Hũ Tiết Kiệm', icon: DollarSign },
-  { id: 'study', label: 'Học Tập & Từ Vựng (FSRS)', icon: BookOpen },
-  { id: 'study-space', label: 'Phòng & Lớp Học Live', icon: GraduationCap },
-  { id: 'connect', label: 'Bảng Tin Cộng Đồng', icon: Globe },
-  { id: 'notes', label: 'Sổ tay & Ghi chú (Vault)', icon: FileText },
-  { id: 'goals', label: 'Mục tiêu', icon: Target },
+  { id: 'study-space', label: 'Sảnh Học Live', labelEn: 'Live Study Hall', icon: GraduationCap },
+  { id: 'study', label: 'Học Tập & Từ Vựng', labelEn: 'Study & Vocab', icon: BookOpen },
+  { id: 'habits', label: 'Thói quen mỗi ngày', labelEn: 'Daily Habits', icon: Target },
+  { id: 'finance', label: 'Ví & Chi tiêu', labelEn: 'Wallet & Finance', icon: DollarSign },
+  { id: 'connect', label: 'Bảng Tin Cộng Đồng', labelEn: 'Community Feed', icon: Globe },
 ];
 
-// 3. Ecosystem & Tools
+// 3. Mở rộng & Tiện ích (Progressive Disclosure — gọn đầu, cần mới bung)
 const SYSTEM_ITEMS: NavItem[] = [
-  { id: 'marketplace', label: 'Templates Marketplace', icon: ShoppingBag },
-  { id: 'referral', label: 'Cộng tác viên (Affiliate)', icon: Gift },
-  { id: 'automation', label: 'Automation Rules', icon: Cpu },
-  { id: 'feedback', label: 'Feedback & Support', icon: MessageSquare },
-  { id: 'admin', label: 'System Admin', icon: Shield, adminOnly: true }
+  { id: 'notes', label: 'Sổ tay & Ghi chú', labelEn: 'Notes & Docs', icon: FileText },
+  { id: 'projects', label: 'Dự án cá nhân', labelEn: 'Projects', icon: FolderKanban },
+  { id: 'goals', label: 'Mục tiêu dài hạn', labelEn: 'Goals', icon: Target },
+  { id: 'journey', label: 'Hành trình & Cấp độ', labelEn: 'Level & Journey', icon: Compass },
+  { id: 'marketplace', label: 'Kho mẫu giao diện', labelEn: 'Templates', icon: ShoppingBag },
+  { id: 'automation', label: 'Quy tắc tự động', labelEn: 'Automations', icon: Cpu },
+  { id: 'referral', label: 'Cộng tác viên', labelEn: 'Affiliate Hub', icon: Gift },
+  { id: 'feedback', label: 'Góp ý & Hỗ trợ', labelEn: 'Feedback & Help', icon: MessageSquare },
+  { id: 'admin', label: 'Quản trị Hệ thống', labelEn: 'System Admin', icon: Shield, adminOnly: true }
 ];
 
 export function Sidebar() {
@@ -103,7 +104,13 @@ export function Sidebar() {
 
   const isVi = language === 'vi';
   const t = useTranslation(language);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem('lifeos_sidebar_more_open') === 'true';
+    } catch {
+      return false;
+    }
+  });
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [visibleModules, setVisibleModules] = useState<string[]>(() => getVisibleNavModules());
   const [customModules, setCustomModules] = useState<Array<{ id: string; name: string; slug: string; icon: string }>>([]);
@@ -185,8 +192,8 @@ export function Sidebar() {
         <Icon className={`w-4 h-4 shrink-0 transition-transform ${isActive ? 'text-emerald-600 dark:text-emerald-400 scale-105' : 'text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300'}`} />
         <span className="truncate flex-1 md:hidden lg:inline">
           {item.id === 'referral' && (currentUser?.isAffiliate || isAdmin)
-            ? '⭐ Cổng Quản Lý CTV'
-            : t(item.label)}
+            ? (isVi ? '⭐ Cổng Quản Lý CTV' : '⭐ Affiliate Portal')
+            : (isVi ? item.label : (item.labelEn || t(item.label)))}
         </span>
         {item.id === 'referral' && (currentUser?.isAffiliate || isAdmin) && (
           <span className="text-[10px] font-black px-1.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 to-purple-500/20 text-purple-700 dark:text-purple-300 border border-purple-300/60 dark:border-purple-800 flex items-center gap-1 shadow-2xs">
@@ -194,10 +201,10 @@ export function Sidebar() {
             <span>CTV</span>
           </span>
         )}
-        {item.id === 'connect' && (
-          <span className="text-[9px] font-black px-1 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 flex items-center gap-1 shrink-0 ml-auto">
+        {(item.id === 'study-space' || item.id === 'connect') && (
+          <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-300 md:hidden lg:inline-flex items-center gap-1 shrink-0 ml-auto">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-            LIVE
+            {item.id === 'study-space' ? '24/7' : 'LIVE'}
           </span>
         )}
         {item.id === 'tasks' && pendingTasksCount > 0 && (
@@ -335,15 +342,43 @@ export function Sidebar() {
             </div>
           )}
 
-          {/* Group 3: System & Tools */}
-          {availableSystemItems.length > 0 && (
-            <div className="space-y-1 pt-2.5 border-t border-[#E2E8F0] dark:border-white/[0.08]">
-              <div className="px-3 pb-1.5 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-[0.08em]">
-                {t('System & Tools')}
+          {/* Group 3: Mở rộng & Tiện ích (Progressive Disclosure) */}
+          {availableSystemItems.length > 0 && (() => {
+            const adminItem = availableSystemItems.find(i => i.id === 'admin');
+            const collapsibleItems = availableSystemItems.filter(i => i.id !== 'admin');
+            const hasActiveInside = collapsibleItems.some(i => i.id === currentView);
+            const isExpanded = showAdvanced || hasActiveInside;
+
+            return (
+              <div className="space-y-1 pt-2.5 border-t border-[#E2E8F0] dark:border-white/[0.08]">
+                {adminItem && renderNavButton(adminItem)}
+                {collapsibleItems.length > 0 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        try { soundEngine.playPop(); } catch {}
+                        const next = !isExpanded;
+                        setShowAdvanced(next);
+                        try { localStorage.setItem('lifeos_sidebar_more_open', String(next)); } catch {}
+                      }}
+                      className="w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-[10px] font-bold text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 uppercase tracking-[0.08em] transition-colors cursor-pointer"
+                    >
+                      <span className="md:hidden lg:inline">
+                        {isVi ? `MỞ RỘNG (${collapsibleItems.length})` : `MORE TOOLS (${collapsibleItems.length})`}
+                      </span>
+                      {isExpanded ? <ChevronUp className="w-3.5 h-3.5 mx-auto lg:mx-0" /> : <ChevronDown className="w-3.5 h-3.5 mx-auto lg:mx-0" />}
+                    </button>
+                    {isExpanded && (
+                      <div className="space-y-0.5 animate-in fade-in duration-150">
+                        {collapsibleItems.map(renderNavButton)}
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
-              {availableSystemItems.map(renderNavButton)}
-            </div>
-          )}
+            );
+          })()}
         </nav>
 
         {/* Quick Preferences: Theme & Language */}

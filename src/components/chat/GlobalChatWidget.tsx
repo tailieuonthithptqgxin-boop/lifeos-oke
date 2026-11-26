@@ -466,21 +466,21 @@ export function GlobalChatWidget({
           <button
             type="button"
             onClick={handleToggle}
-            className="fixed bottom-6 right-6 z-40 px-4 py-2.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:scale-95 text-white shadow-xl shadow-indigo-500/25 flex items-center gap-2.5 transition-all duration-200 cursor-pointer border border-white/20"
+            className="fixed bottom-4 right-5 z-40 h-9 px-3.5 rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 active:scale-95 text-white shadow-lg shadow-indigo-500/25 flex items-center gap-2 transition-all duration-200 cursor-pointer border border-white/20"
             title="Mở Phòng Chat Cộng Đồng"
           >
             <div className="relative">
-              <MessageSquare className="w-4 h-4" />
-              <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
             </div>
-            <span className="font-bold text-xs tracking-wide">Chat Cộng Đồng</span>
+            <span className="font-bold text-[11px] tracking-wide">Chat Chung</span>
             {unreadCount > 0 && (
               <span className="px-1.5 py-0.5 rounded-full bg-rose-500 text-white text-[10px] font-black animate-bounce">
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
-            <span className="text-[11px] opacity-80 flex items-center gap-1 pl-1 border-l border-white/20">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
+            <span className="text-[10px] opacity-85 flex items-center gap-1 pl-1.5 border-l border-white/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
               <span>{onlineCount}</span>
             </span>
           </button>

@@ -104,7 +104,7 @@ export function StudyCreateRoomModal({
             </div>
             <div>
               <h3 className="font-bold text-slate-900 dark:text-white text-base">Tạo Phòng Học Tập Mới</h3>
-              <p className="text-xs text-slate-500">Tối ưu hiệu năng, 0% băng thông máy chủ</p>
+              <p className="text-xs text-slate-500">Không gian riêng tư · Mời bạn bè vào học chung bằng 1 link</p>
             </div>
           </div>
           <button

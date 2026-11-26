@@ -361,8 +361,8 @@ export function ScratchpadWidget() {
       {/* 2. DESKTOP FLOATING POPOVER & TRIGGER BUTTON (hidden md:flex) */}
       <div 
         ref={desktopPopoverRef}
-        className={`hidden md:flex fixed z-40 flex-col pointer-events-none transition-all duration-300 items-end bottom-6 ${
-          isChatOpen ? 'right-[456px]' : 'right-[268px]'
+        className={`hidden md:flex fixed z-40 flex-col pointer-events-none transition-all duration-300 items-end bottom-4 ${
+          isChatOpen ? 'right-[444px]' : 'right-[196px]'
         }`}
       >
         {isOpen && (
@@ -421,15 +421,16 @@ export function ScratchpadWidget() {
             soundEngine.playPop();
             setIsOpen(!isOpen);
           }}
-          className={`pointer-events-auto cursor-pointer flex items-center gap-2 px-4 py-2.5 rounded-full shadow-xl border transition-all duration-200 ${
+          title={`Giấy nháp tự hủy sau ${timeLeft}`}
+          className={`pointer-events-auto cursor-pointer flex items-center gap-1.5 h-9 px-3.5 rounded-full shadow-lg border transition-all duration-200 ${
             isOpen
               ? 'bg-slate-900 text-white border-slate-800 dark:bg-white dark:text-slate-900 shadow-slate-900/30'
-              : 'bg-white/95 dark:bg-slate-900/95 hover:bg-white dark:hover:bg-slate-900 text-slate-800 dark:text-slate-200 border-slate-200/80 dark:border-white/10 backdrop-blur-xl hover:scale-105 active:scale-95 shadow-lg'
+              : 'bg-white/90 dark:bg-slate-900/90 hover:bg-white dark:hover:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-200/80 dark:border-white/10 backdrop-blur-xl hover:scale-105 active:scale-95'
           }`}
         >
-          <FileEdit className="w-4 h-4 text-amber-500" />
-          <span className="text-xs font-bold tracking-tight">Giấy nháp 24h</span>
-          <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+          <FileEdit className="w-3.5 h-3.5 text-amber-500" />
+          <span className="text-[11px] font-bold tracking-tight">Nháp 24h</span>
+          <span className="text-[10px] font-mono font-semibold text-amber-600 dark:text-amber-400">
             {timeLeft.slice(0, 5)}
           </span>
         </button>

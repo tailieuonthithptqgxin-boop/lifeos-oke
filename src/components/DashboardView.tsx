@@ -15,6 +15,8 @@ import { retentionEngine, RetentionProfile } from '../lib/retentionEngine';
 import { CelebrationModal } from './CelebrationModal';
 import { EmptyState } from './EmptyState';
 import { NextStepCard } from './NextStepCard';
+import { InlineSmartOmnibar } from './dashboard/InlineSmartOmnibar';
+import { showFloatingXp } from '../lib/celebrationEngine';
 import { soundEngine } from '../lib/soundEngine';
 import { GenZMood, MOOD_PRESETS, getTodayMood, setTodayMood } from '../lib/moodEngine';
 import { ShareStoryModal } from './ShareStoryModal';
@@ -918,67 +920,34 @@ export function DashboardView() {
       </div>
 
       {/* ========================================================================= */}
-      {/* 1.1 HERO QUICK OMNIBAR LAUNCHER (SPOTLIGHT 1-CHẠM)                         */}
+      {/* 1.1 INLINE SMART OMNIBAR (GÕ THẬT - ENTER LƯU NGAY 1 CHẠM)                */}
       {/* ========================================================================= */}
-      <div 
-        onClick={() => {
-          soundEngine.playPop();
-          toggleCommand();
-        }}
-        className="w-full bg-white dark:bg-[#141E30] hover:bg-slate-50 dark:hover:bg-[#19243C] border border-[#E2E8F0] dark:border-white/[0.08] hover:border-emerald-500/50 rounded-2xl p-3 sm:p-3.5 flex items-center justify-between gap-3 shadow-xs hover:shadow-md transition-all cursor-pointer group"
-      >
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-            <Search className="w-5 h-5 stroke-[2.2]" />
-          </div>
-          <div className="min-w-0 text-left">
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-xs sm:text-sm text-slate-800 dark:text-slate-100 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                {t("Gõ nhanh việc cần làm, chi tiêu, hoặc tìm kiếm...")}
-              </span>
-              <span className="hidden sm:inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-800/40">
-                ⚡ 0ms Quick-Add
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate mt-0.5">
-              {t("VD: 'Cafe 45k', '+15m Lương', 'Họp mai !gap', '#note Ý tưởng'...")}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <kbd className="hidden sm:inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[11px] font-mono font-bold text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-            Ctrl + K
-          </kbd>
-          <span className="px-3 py-1.5 rounded-xl bg-emerald-600 group-hover:bg-emerald-500 text-white text-xs font-bold shadow-xs transition-colors flex items-center gap-1">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{t("Mở nhanh")}</span>
-          </span>
-        </div>
-      </div>
+      <InlineSmartOmnibar />
 
       {/* ========================================================================= */}
-      {/* 2. DYNAMIC BÉ LUMI BAR (DUOLINGO / TIKTOK STREAK MOOD LOGIC)              */}
+      {/* 2. DYNAMIC BÉ LUMI BAR (VECTOR MASCOT SỐNG ĐỘNG + NHIỆM VỤ +XP)           */}
       {/* ========================================================================= */}
       <div 
         onClick={() => {
           soundEngine.playPop();
           setShowLumiModal(true);
         }}
-        className={`w-full rounded-2xl p-3 sm:p-4 border transition-all cursor-pointer hover:scale-[1.01] active:scale-[0.99] flex items-center justify-between gap-3 shadow-xs ${
+        className={`w-full rounded-2xl p-3 sm:p-3.5 border transition-all cursor-pointer hover:scale-[1.005] active:scale-[0.995] flex items-center justify-between gap-3 shadow-xs ${
           hasCompletedTaskToday
             ? 'bg-gradient-to-r from-emerald-50/90 via-teal-50/70 to-emerald-50/90 dark:from-emerald-950/40 dark:via-teal-950/30 dark:to-slate-900 border-emerald-300 dark:border-emerald-700/60 shadow-emerald-500/10'
-            : 'bg-slate-50 dark:bg-slate-900/90 border-slate-200 dark:border-slate-800 hover:border-slate-300'
+            : 'bg-white dark:bg-[#141E30] border-slate-200/80 dark:border-white/[0.08] hover:border-emerald-400/50'
         }`}
       >
         <div className="flex items-center gap-3 min-w-0">
-          {/* Dynamic Mood Avatar */}
-          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl shrink-0 transition-transform ${
-            hasCompletedTaskToday
-              ? 'bg-gradient-to-tr from-emerald-400 to-teal-500 text-white shadow-md shadow-emerald-500/25 ring-2 ring-emerald-400/30 animate-pulse'
-              : 'bg-slate-200 dark:bg-slate-800 text-slate-400 grayscale'
-          }`}>
-            {hasCompletedTaskToday ? '😄' : '😢'}
+          {/* Live Animated Vector Mascot */}
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-emerald-500/10 to-teal-500/15 dark:from-emerald-500/15 dark:to-indigo-500/15 border border-emerald-500/20 flex items-center justify-center shrink-0 overflow-hidden">
+            <LiveMascotCharacter
+              mood={hasCompletedTaskToday ? 'celebrate' : 'encourage'}
+              mascotId={(mascotSettings as any)?.selectedId || 'lumi'}
+              equippedAccessoryId={(mascotSettings as any)?.equippedAccessoryId || 'none'}
+              size="compact"
+              showAura={false}
+            />
           </div>
 
           <div className="min-w-0">
@@ -989,15 +958,15 @@ export function DashboardView() {
               <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
                 hasCompletedTaskToday
                   ? 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300'
-                  : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
               }`}>
-                Cấp {currentLevel}
+                Lv.{currentLevel}
               </span>
             </div>
             <p className="text-xs font-medium text-slate-600 dark:text-slate-300 truncate mt-0.5">
               {hasCompletedTaskToday
-                ? 'Bé Lumi đang cười tươi: Đã xong việc hôm nay! Nhận thưởng XP ngay ✨'
-                : 'Bé Lumi đang buồn rơm rớm: Bạn chưa xong việc nào hôm nay, cố lên nhé! 🥺'}
+                ? 'Hôm nay giữ nhịp quá đỉnh! Vào nhận thưởng nhiệm vụ ngày nhé ✨'
+                : 'Tick nhẹ 1 việc đầu ngày để đánh thức chuỗi lửa cùng Lumi nha! 🔥'}
             </p>
           </div>
         </div>
@@ -1005,9 +974,23 @@ export function DashboardView() {
         <div className="flex items-center gap-1.5 shrink-0">
           <button
             type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              soundEngine.playPop();
+              setShowVibeThemeModal(true);
+            }}
+            title="Đổi Vibe góc học tập & âm thanh bàn phím"
+            className="text-[11px] font-bold px-2.5 py-1.5 rounded-xl transition-all inline-flex items-center gap-1 border bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 border-purple-200/80 dark:border-purple-800/60 hover:bg-purple-100 cursor-pointer"
+          >
+            <span>🎨</span>
+            <span className="hidden sm:inline">Đổi Vibe</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handlePinLockScreenWidget}
-            title="Ghim thời gian biểu & linh vật ra màn hình khóa điện thoại (Duolingo PWA Live Widget)"
-            className={`text-[11px] font-bold px-2.5 py-1 rounded-xl transition-all inline-flex items-center gap-1 border ${
+            title="Ghim lịch trình ra màn hình điện thoại"
+            className={`text-[11px] font-bold px-2.5 py-1.5 rounded-xl transition-all hidden md:inline-flex items-center gap-1 border cursor-pointer ${
               widgetPinnedSuccess
                 ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
                 : 'bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800/60 hover:bg-indigo-100'
@@ -1019,66 +1002,272 @@ export function DashboardView() {
                 ? 'Đã ghim!'
                 : isPinningWidget
                 ? 'Đang ghim...'
-                : 'Ghim thẻ khóa'}
+                : 'Ghim màn hình'}
             </span>
           </button>
 
-          <span className={`text-[11px] font-bold px-3 py-1 rounded-xl transition-all hidden sm:inline-flex items-center gap-1 ${
+          <span className={`text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all hidden sm:inline-flex items-center gap-1 ${
             hasCompletedTaskToday
               ? 'bg-emerald-600 text-white shadow-xs'
               : 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
           }`}>
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Nhiệm vụ +XP</span>
+            <span>Nhận +XP</span>
           </span>
           <ChevronRight className="w-4 h-4 text-slate-400" />
         </div>
       </div>
 
-      {/* 🌟 BANNER ĐẶC BIỆT: KHÔNG GIAN HỌC TẬP & CO-WORKING TRỰC TUYẾN */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-violet-900/90 via-indigo-900/90 to-purple-950/90 border border-violet-500/30 p-4 sm:p-5 shadow-xl text-white">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="space-y-1">
+      {/* ========================================================================= */}
+      {/* 2.5 BENTO "LÀM NGAY TẠI CHỖ": TICK VIỆC & THÓI QUEN 1 CHẠM (ZERO MODAL)   */}
+      {/* ========================================================================= */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Cột 1: Tiêu điểm công việc hôm nay (Tick trực tiếp) */}
+        <div className="rounded-3xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] p-4 sm:p-5 shadow-xs flex flex-col justify-between space-y-3">
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-violet-500/30 text-violet-200 border border-violet-400/30 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Phòng Học Online & Co-working
-              </span>
-              <span className="text-xs font-bold text-amber-300 flex items-center gap-1">
-                👑 Google Meet & Bảng Xếp Hạng Tuần
-              </span>
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <CheckSquare className="w-4 h-4 stroke-[2.4]" />
+              </div>
+              <div>
+                <h3 className="text-sm font-black text-slate-900 dark:text-white leading-tight">
+                  {isVi ? 'Tiêu điểm hôm nay' : "Today's Focus"}
+                </h3>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                  {completedTasks.length}/{todayTasks.length} {isVi ? 'việc hoàn thành · Chạm để tick ngay' : 'completed · Tap to check off'}
+                </p>
+              </div>
             </div>
-            <h3 className="text-base sm:text-lg font-black text-white">
-              Không Gian Học Tập & Co-working Trực Tuyến
-            </h3>
-            <p className="text-xs text-violet-200/90 max-w-xl">
-              Cùng học qua Google Meet / Jitsi, kết nối phòng học ảo, tích lũy giờ học tự động và vinh danh Quán Quân tuần mới!
-            </p>
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  setShowQuickTaskModal(true);
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 text-xs font-bold flex items-center gap-1 cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>{isVi ? 'Thêm' : 'Add'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  setCurrentView('tasks');
+                }}
+                className="px-2.5 py-1.5 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold cursor-pointer"
+              >
+                {isVi ? 'Tất cả' : 'All'}
+              </button>
+            </div>
           </div>
-          <div className="flex items-center gap-2 flex-wrap shrink-0 w-full sm:w-auto">
-            <button
-              type="button"
-              onClick={() => {
-                soundEngine.playSuccess();
-                setCurrentView('connect');
-              }}
-              className="w-full sm:w-auto justify-center px-4 py-2.5 min-h-[44px] rounded-2xl bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white font-black text-xs sm:text-sm shadow-md hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
-            >
-              <Globe className="w-4 h-4" />
-              <span>Bảng Tin Cộng Đồng</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                soundEngine.playSuccess();
-                setCurrentView('study-space');
-              }}
-              className="w-full sm:w-auto justify-center px-4 py-2.5 min-h-[44px] rounded-2xl bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 text-white font-black text-xs sm:text-sm shadow-lg shadow-violet-500/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 cursor-pointer"
-            >
-              <Users className="w-4 h-4" />
-              <span>Vào Sảnh Học Ngay</span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+
+          {todayTasks.length === 0 ? (
+            <div className="py-5 px-4 rounded-2xl bg-slate-50/80 dark:bg-slate-900/50 border border-dashed border-slate-200 dark:border-slate-800 text-center space-y-2">
+              <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                {isVi ? 'Chưa có việc nào cho hôm nay — gõ vào thanh phía trên để lên dây cót nhé!' : 'No tasks for today yet — type above to add your first win!'}
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  setCurrentView('focus');
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold shadow-xs cursor-pointer"
+              >
+                <Zap className="w-3.5 h-3.5 fill-current" />
+                <span>{isVi ? 'Vào Pomodoro 25 phút' : 'Start 25m Pomodoro'}</span>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {[...pendingTasks, ...completedTasks].slice(0, 4).map((task: any) => {
+                const isDone = task.status === 'Hoàn thành' || task.status === 'Completed' || task.status === 'Done';
+                return (
+                  <div
+                    key={task.id}
+                    onClick={(e) => {
+                      if (!isDone) {
+                        showFloatingXp('+20 XP', e.currentTarget);
+                      }
+                      handleToggleTaskModal(task.id);
+                    }}
+                    className={`group flex items-center justify-between gap-2.5 px-3 py-2.5 rounded-2xl border transition-all cursor-pointer select-none ${
+                      isDone
+                        ? 'bg-slate-50/70 dark:bg-slate-900/40 border-slate-100 dark:border-slate-800/70 opacity-65'
+                        : 'bg-slate-50/90 dark:bg-slate-900/70 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 border-slate-200/70 dark:border-slate-800 hover:border-emerald-400/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span
+                        className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center shrink-0 transition-all ${
+                          isDone
+                            ? 'bg-emerald-500 border-emerald-500 text-white scale-105'
+                            : 'border-slate-300 dark:border-slate-600 group-hover:border-emerald-500'
+                        }`}
+                      >
+                        {isDone && <Check className="w-3 h-3 stroke-[3]" />}
+                      </span>
+                      <span
+                        className={`text-xs sm:text-sm font-semibold truncate ${
+                          isDone ? 'line-through text-slate-400' : 'text-slate-800 dark:text-slate-100'
+                        }`}
+                      >
+                        {task.title}
+                      </span>
+                    </div>
+                    {!isDone && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          soundEngine.playPop();
+                          setZenFocusTaskId(task.id);
+                          setZenFocusOpen(true);
+                        }}
+                        title={isVi ? 'Bật Zen Focus cho việc này' : 'Focus on this task'}
+                        className="shrink-0 px-2 py-1 rounded-lg bg-violet-500/10 hover:bg-violet-500/20 text-violet-600 dark:text-violet-300 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
+                      >
+                        <Play className="w-2.5 h-2.5 fill-current" />
+                        <span>Focus</span>
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Cột 2: Thói quen 1 chạm + Dải Sảnh Học Chung Trực Tuyến */}
+        <div className="rounded-3xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] p-4 sm:p-5 shadow-xs flex flex-col justify-between space-y-3">
+          <div className="space-y-2.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <Flame className="w-4 h-4 fill-current" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-slate-900 dark:text-white leading-tight">
+                    {isVi ? 'Thói quen mỗi ngày' : 'Daily Habits'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    {completedHabitsToday.length}/{habits.length} {isVi ? 'đã duy trì hôm nay' : 'done today'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  setCurrentView('habits');
+                }}
+                className="px-2.5 py-1.5 rounded-xl text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold cursor-pointer"
+              >
+                {isVi ? 'Chi tiết' : 'Manage'}
+              </button>
+            </div>
+
+            {habits.length === 0 ? (
+              <div className="py-3.5 px-4 rounded-2xl bg-slate-50/80 dark:bg-slate-900/50 border border-dashed border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
+                <span className="text-xs text-slate-500 dark:text-slate-400">
+                  {isVi ? 'Tạo 1 thói quen nhỏ (VD: Uống 2L nước) để nuôi chuỗi lửa!' : 'Start 1 tiny habit to build your streak!'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundEngine.playPop();
+                    setCurrentView('habits');
+                  }}
+                  className="shrink-0 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black cursor-pointer"
+                >
+                  + {isVi ? 'Tạo ngay' : 'Create'}
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {habits.slice(0, 4).map((habit: any) => {
+                  const isDone =
+                    habit.completedDates?.includes(dateStr) ||
+                    (habitRecords || []).some(
+                      (r: any) => r.habitId === habit.id && r.date === dateStr && r.status === 'Completed'
+                    );
+                  return (
+                    <button
+                      key={habit.id}
+                      type="button"
+                      onClick={(e) => {
+                        if (!isDone) {
+                          showFloatingXp('+10 XP', e.currentTarget);
+                        }
+                        handleToggleHabitModal(habit.id);
+                      }}
+                      className={`flex items-center justify-between gap-2 px-3 py-2.5 rounded-2xl border text-left transition-all cursor-pointer ${
+                        isDone
+                          ? 'bg-amber-500/10 dark:bg-amber-500/15 border-amber-400/40 text-amber-800 dark:text-amber-200'
+                          : 'bg-slate-50/90 dark:bg-slate-900/70 hover:border-amber-400/50 border-slate-200/70 dark:border-slate-800 text-slate-800 dark:text-slate-100'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className={`w-4 h-4 rounded-full border flex items-center justify-center shrink-0 ${
+                            isDone ? 'bg-amber-500 border-amber-500 text-white' : 'border-slate-300 dark:border-slate-600'
+                          }`}
+                        >
+                          {isDone && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                        </span>
+                        <span className="text-xs font-bold truncate">{habit.name}</span>
+                      </div>
+                      <span className="text-[10px] font-black text-amber-600 dark:text-amber-400 shrink-0">
+                        🔥{habit.streak || 0}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Sleek Live Study Hall Co-working Pill (Replaces bulky 5-line purple banner) */}
+          <div className="rounded-2xl bg-gradient-to-r from-violet-950 via-indigo-950 to-slate-900 border border-violet-500/30 p-3 text-white flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400" />
+              </span>
+              <div className="min-w-0">
+                <div className="text-xs font-extrabold truncate">
+                  {isVi ? 'Sảnh Học Live 24/7 đang mở' : '24/7 Live Study Hall is open'}
+                </div>
+                <div className="text-[10px] text-violet-200/80 truncate">
+                  {isVi ? 'Ngồi học chung có cam/mic tùy chọn & đua Top tuần 👑' : 'Co-working rooms & weekly leaderboard 👑'}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playPop();
+                  setCurrentView('connect');
+                }}
+                className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-[11px] font-bold text-white cursor-pointer"
+              >
+                {isVi ? 'Bảng tin' : 'Feed'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  soundEngine.playSuccess();
+                  setCurrentView('study-space');
+                }}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-violet-500 to-fuchsia-500 hover:from-violet-400 hover:to-fuchsia-400 text-[11px] font-black text-white shadow-sm flex items-center gap-1 cursor-pointer"
+              >
+                <span>{isVi ? 'Vào bàn học' : 'Join room'}</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -1095,7 +1284,7 @@ export function DashboardView() {
           <span className="text-[11px] font-bold text-slate-400">Chạm để mở chi tiết</span>
         </div>
 
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-9 gap-2 sm:gap-3.5">
+        <div className="grid grid-cols-4 sm:grid-cols-4 md:grid-cols-8 gap-2 sm:gap-3">
           {/* 1. Tam Hợp (Rule of 3) */}
           <button
             type="button"
@@ -1281,7 +1470,7 @@ export function DashboardView() {
           className="flex items-center gap-2 px-3.5 py-2.5 min-h-[44px] rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-emerald-500/50 hover:bg-emerald-50/30 dark:hover:bg-emerald-950/20 transition-all shadow-2xs shrink-0 cursor-pointer"
         >
           <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-          <span>Nạp từ tự động (0ms)</span>
+          <span>Thêm từ siêu tốc</span>
         </button>
 
         <button
@@ -1293,7 +1482,7 @@ export function DashboardView() {
           className="flex items-center gap-2 px-3.5 py-2.5 min-h-[44px] rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-amber-500/50 hover:bg-amber-50/30 dark:hover:bg-amber-950/20 transition-all shadow-2xs shrink-0 cursor-pointer"
         >
           <Zap className="w-3.5 h-3.5 text-amber-500 fill-current" />
-          <span>Speed Match 60s</span>
+          <span>Đấu từ vựng 60s</span>
         </button>
 
         <button
@@ -1305,7 +1494,19 @@ export function DashboardView() {
           className="flex items-center gap-2 px-3.5 py-2.5 min-h-[44px] rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-indigo-500/50 hover:bg-indigo-50/30 dark:hover:bg-indigo-950/20 transition-all shadow-2xs shrink-0 cursor-pointer"
         >
           <BookOpen className="w-3.5 h-3.5 text-indigo-500" />
-          <span>Phòng luyện FSRS</span>
+          <span>Ôn thẻ nhớ thông minh</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            soundEngine.playPop();
+            setShowShareStory(true);
+          }}
+          className="flex items-center gap-2 px-3.5 py-2.5 min-h-[44px] rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-purple-500/50 hover:bg-purple-50/30 dark:hover:bg-purple-950/20 transition-all shadow-2xs shrink-0 cursor-pointer"
+        >
+          <Award className="w-3.5 h-3.5 text-purple-500" />
+          <span>Khoe thẻ Story 9:16</span>
         </button>
 
         <button
@@ -1317,7 +1518,7 @@ export function DashboardView() {
           className="flex items-center gap-2 px-3.5 py-2.5 min-h-[44px] rounded-2xl bg-white dark:bg-[#141E30] border border-[#E2E8F0] dark:border-white/[0.08] text-xs font-bold text-slate-800 dark:text-slate-200 hover:border-pink-500/50 hover:bg-pink-50/30 dark:hover:bg-pink-950/20 transition-all shadow-2xs shrink-0 cursor-pointer"
         >
           <Coins className="w-3.5 h-3.5 text-amber-500" />
-          <span>Đổi thưởng Coin Shop</span>
+          <span>Cửa hàng đổi xu</span>
         </button>
       </div>
     {/* ========================================================================= */}

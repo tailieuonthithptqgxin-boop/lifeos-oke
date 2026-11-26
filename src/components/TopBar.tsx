@@ -3,13 +3,15 @@ import {
   Menu, Moon, Sun, Search, Bell, Plus, Inbox, ShoppingCart, 
   Shield, CheckSquare, DollarSign, Calendar, Target, Zap, 
   User, LogOut, ChevronDown, CheckCircle2, Globe, Sparkles, Lock, Flame, Award, Volume2, VolumeX, Bot,
-  ExternalLink, AlertTriangle, FileText, Settings
+  ExternalLink, AlertTriangle, FileText, Settings, Palette
 } from 'lucide-react';
 import { useAppStore } from '../lib/store';
 import { useTranslation } from '../lib/i18n';
+import { formatLocalDateKey } from '../lib/utils';
 import { retentionEngine, RetentionProfile } from '../lib/retentionEngine';
 import { soundEngine } from '../lib/soundEngine';
 import { ZenFocusOverlay } from './focus/ZenFocusOverlay';
+import { VibeThemeModal } from './VibeThemeModal';
 import { apiCall } from '../lib/apiClient';
 import { companionEngine, MASCOT_PROFILES } from '../lib/companionEngine';
 import { NotificationCenterModal } from './notifications/NotificationCenterModal';
@@ -21,6 +23,7 @@ export function TopBar() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showInboxModal, setShowInboxModal] = useState(false);
   const [showZenFocus, setShowZenFocus] = useState(false);
+  const [showVibeModal, setShowVibeModal] = useState(false);
   const [isNotificationCenterOpen, setIsNotificationCenterOpen] = useState(false);
   const [isNotificationSettingsOpen, setIsNotificationSettingsOpen] = useState(false);
 
@@ -28,7 +31,7 @@ export function TopBar() {
     isMobileMenuOpen, toggleMobileMenu, theme, setTheme, cart, 
     setCurrentView, currentUser, logout, toggleCommand, currentView, 
     language, setLanguage, activeLanguages, notifications, markNotificationRead, 
-    clearAllNotifications, inbox, removeInboxItem, subscriptionStatus, habits
+    clearAllNotifications, inbox, removeInboxItem, subscriptionStatus, habits, tasks, focusSessions
   } = useAppStore();
   
   const t = useTranslation(language);
@@ -132,6 +135,15 @@ export function TopBar() {
   const unreadCount = notifications?.filter(n => !n.read).length || 0;
   const inboxCount = inbox?.length || 0;
 
+  // Duolingo-style Live Daily Streak Ignition State
+  const todayKey = formatLocalDateKey(new Date());
+  const isStreakLitToday = Boolean(
+    (tasks || []).some((item: any) => item.dueDate?.startsWith(todayKey) && (item.status === 'Hoàn thành' || item.status === 'Completed' || item.status === 'Done')) ||
+    (habits || []).some((h: any) => h.completedDates?.includes(todayKey)) ||
+    (focusSessions || []).some((fs: any) => fs.startTime?.startsWith(todayKey) && fs.status === 'Completed')
+  );
+  const isStreakAtRiskTonight = !isStreakLitToday && new Date().getHours() >= 19;
+
   return (
     <header className="h-auto min-h-[3.75rem] md:h-16 pt-[max(0.75rem,env(safe-area-inset-top))] md:pt-0 pb-2 md:pb-0 bg-white/80 dark:bg-[#07070C]/80 backdrop-blur-2xl border-b border-slate-200/80 dark:border-white/[0.08] shadow-sm flex items-center justify-between px-3.5 sm:px-5 md:px-6 shrink-0 sticky top-0 z-30 transition-colors">
       {/* Mobile Brand Logo */}
@@ -167,19 +179,58 @@ export function TopBar() {
       ) : <div />}
 
       {/* Right Action Cluster */}
-      <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
-        {/* Streak Flame Live Motivation Badge */}
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {/* Duolingo-style Streak Flame Live Motivation Badge */}
         <div 
           onClick={() => {
             try { soundEngine.playPop(); } catch {}
             setCurrentView('journey');
           }}
-          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-400/30 text-amber-600 dark:text-amber-400 text-xs font-black shrink-0 cursor-pointer hover:bg-amber-500/20 active:scale-95 transition-all shadow-2xs"
-          title={`Chuỗi kỷ luật: ${realStreak} ngày liên tiếp 🔥`}
+          className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full border text-xs font-black shrink-0 cursor-pointer active:scale-95 transition-all shadow-2xs ${
+            isStreakLitToday
+              ? 'bg-gradient-to-r from-amber-500/15 to-orange-500/15 border-amber-400/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/25'
+              : isStreakAtRiskTonight
+              ? 'bg-sky-500/10 border-sky-400/40 text-sky-600 dark:text-sky-300 hover:bg-sky-500/20'
+              : 'bg-slate-100/80 dark:bg-white/[0.06] border-slate-200/80 dark:border-white/10 text-slate-500 dark:text-slate-400 hover:border-amber-400/40'
+          }`}
+          title={
+            isStreakLitToday
+              ? (isVi ? `Đã giữ lửa hôm nay! Chuỗi kỷ luật ${realStreak} ngày 🔥` : `Streak lit today! ${realStreak} day streak 🔥`)
+              : isStreakAtRiskTonight
+              ? (isVi ? `Sắp hết ngày! Tick 1 việc hoặc học 5 phút để cứu chuỗi ${realStreak} ngày 🔥` : `Day ending soon! Complete 1 action to keep your ${realStreak} day streak`)
+              : (isVi ? `Hoàn thành 1 việc đầu ngày để thắp sáng ngọn lửa chuỗi ${realStreak} ngày!` : `Complete 1 task today to ignite your ${realStreak} day streak!`)
+          }
         >
-          <Flame className="w-4 h-4 text-amber-500 animate-flame-glow shrink-0" />
-          <span>{realStreak} <span className="hidden sm:inline font-bold text-[11px] opacity-80">ngày</span></span>
+          <Flame
+            className={`w-4 h-4 shrink-0 transition-all ${
+              isStreakLitToday
+                ? 'fill-amber-500 text-amber-500 animate-flame-glow'
+                : isStreakAtRiskTonight
+                ? 'text-sky-500 animate-pulse'
+                : 'text-slate-400 dark:text-slate-500'
+            }`}
+          />
+          <span>
+            {realStreak}{' '}
+            <span className="hidden sm:inline font-bold text-[11px] opacity-85">
+              {isStreakAtRiskTonight ? (isVi ? 'giữ lửa!' : 'at risk!') : (isVi ? 'ngày' : 'days')}
+            </span>
+          </span>
         </div>
+
+        {/* Cozy Vibe & Soundpack Switcher (1-tap anywhere) */}
+        <button
+          type="button"
+          onClick={() => {
+            try { soundEngine.playPop(); } catch {}
+            setShowVibeModal(true);
+          }}
+          className="hidden sm:inline-flex h-9 w-9 min-h-[36px] min-w-[36px] items-center justify-center text-purple-600 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 rounded-full border border-purple-200/70 dark:border-purple-800/50 bg-purple-50/50 dark:bg-purple-950/20 transition-all cursor-pointer shadow-2xs active:scale-95"
+          title={isVi ? 'Đổi Vibe thẩm mỹ & Âm thanh gõ phím' : 'Switch Cozy Vibe & Soundpack'}
+          aria-label={isVi ? 'Đổi Vibe không gian' : 'Switch Vibe'}
+        >
+          <Palette className="w-4 h-4" />
+        </button>
 
         {/* Quick Theme Toggle Button (Hidden on Mobile phone <640px, available in Bottom Sheet Menu) */}
         <button
@@ -664,6 +715,12 @@ export function TopBar() {
       <NotificationSettingsModal
         isOpen={isNotificationSettingsOpen}
         onClose={() => setIsNotificationSettingsOpen(false)}
+      />
+
+      {/* Global Cozy Vibe & Soundpack Modal */}
+      <VibeThemeModal
+        isOpen={showVibeModal}
+        onClose={() => setShowVibeModal(false)}
       />
     </header>
   );
