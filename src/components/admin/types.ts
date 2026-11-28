@@ -202,7 +202,8 @@ export interface PlanAuditLog {
 
 export interface GmailConfig {
   enabled: boolean;
-  serviceType: 'gmail' | 'smtp' | 'resend';
+  serviceType: 'webhook' | 'gmail' | 'smtp' | 'resend';
+  webhookUrl?: string;
   apiKey?: string;
   user: string;
   appPassword?: string;

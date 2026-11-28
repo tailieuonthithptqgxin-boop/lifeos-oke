@@ -193,7 +193,7 @@ class UnifiedNotificationEngine {
         badgeLevel: currentUser?.badgeLevel || 'Tân Binh'
       },
       ctaLabel: params.emailData?.ctaLabel || '🚀 Mở Thời Gian Biểu & Vào Học Ngay',
-      ctaUrl: params.emailData?.ctaUrl || (typeof window !== 'undefined' ? window.location.origin : 'https://lifeos.vn'),
+      ctaUrl: params.emailData?.ctaUrl || (typeof window !== 'undefined' ? window.location.origin : 'https://quanlicanhan.online'),
       securityDetails: params.emailData?.securityDetails,
       paragraphs: params.emailData?.paragraphs
     };
@@ -201,31 +201,9 @@ class UnifiedNotificationEngine {
     const renderedHtml = buildBeautifulGmailHTML(fullEmailData);
     const gmailConfig = this.getGmailConfig();
 
-    // 1. If Google Apps Script Webhook is configured, post directly
-    if (gmailConfig.enabled && gmailConfig.webhookUrl && gmailConfig.webhookUrl.trim().startsWith('http')) {
-      try {
-        const response = await fetch(gmailConfig.webhookUrl.trim(), {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({
-            recipient: recipientEmail,
-            subject: fullEmailData.headline,
-            htmlBody: renderedHtml,
-            category: params.category,
-            timestamp: new Date().toISOString()
-          })
-        });
-        if (response.ok) {
-          return { success: true, method: 'google_apps_script_webhook' };
-        }
-      } catch (webhookErr) {
-        console.warn('[UnifiedNotificationEngine] Google Apps Script Webhook delivery fallback:', webhookErr);
-      }
-    }
-
-    // 2. Dispatch to Backend Outbox Queue (Default resilient path)
+    // 1. Primary Path: Dispatch via Server / Cloudflare Edge Outbox Engine (Zero browser CORS issues on 302 redirects!)
     try {
-      const res = await apiCall<{ success: boolean; id?: string }>('/api/notifications/dispatch', 'POST', {
+      const res = await apiCall<{ success: boolean; id?: string; method?: string; error?: string }>('/api/notifications/dispatch', 'POST', {
         recipient: recipientEmail,
         subject: fullEmailData.headline,
         htmlBody: renderedHtml,
@@ -240,13 +218,39 @@ class UnifiedNotificationEngine {
       });
 
       if (res && res.success) {
-        return { success: true, method: 'backend_email_queue' };
+        return { success: true, method: res.method || 'edge_email_engine' };
       }
     } catch (apiErr: any) {
-      console.warn('[UnifiedNotificationEngine] Backend email dispatch error:', apiErr.message || apiErr);
+      console.warn('[UnifiedNotificationEngine] Edge/Backend email dispatch fallback notice:', apiErr.message || apiErr);
     }
 
-    return { success: false, error: 'Không thể kết nối dịch vụ gửi email' };
+    // 2. Fallback: Direct client-side Google Apps Script Webhook (sends both to/html & recipient/htmlBody keys)
+    if (gmailConfig.enabled && gmailConfig.webhookUrl && gmailConfig.webhookUrl.trim().startsWith('http')) {
+      try {
+        const response = await fetch(gmailConfig.webhookUrl.trim(), {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({
+            to: recipientEmail,
+            recipient: recipientEmail,
+            subject: fullEmailData.headline,
+            html: renderedHtml,
+            htmlBody: renderedHtml,
+            body: renderedHtml,
+            category: params.category,
+            timestamp: new Date().toISOString()
+          })
+        });
+        if (response.ok || response.type === 'opaque') {
+          return { success: true, method: 'google_apps_script_webhook_client' };
+        }
+      } catch (webhookErr) {
+        console.warn('[UnifiedNotificationEngine] Client Google Apps Script Webhook error:', webhookErr);
+      }
+    }
+
+    return { success: false, error: 'Chưa cấu hình cổng gửi email hoặc kết nối tạm thời gián đoạn' };
   }
 
   // --------------------------------------------------------------------------

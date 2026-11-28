@@ -28,6 +28,7 @@ import { apiCall } from '../../lib/apiClient';
 import { toast } from '../../lib/toast';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { AdminConfirmModal } from '../admin/AdminConfirmModal';
+import { unifiedNotificationEngine } from '../../lib/unifiedNotificationEngine';
 
 interface NotificationSettingsModalProps {
   isOpen: boolean;
@@ -178,9 +179,18 @@ export function NotificationSettingsModal({ isOpen, onClose }: NotificationSetti
   const handleSaveEmailConfig = async () => {
     setIsSavingEmailConfig(true);
     try {
+      unifiedNotificationEngine.saveGmailConfig({
+        mode: (emailConfig.serviceType === 'emailjs' ? 'emailjs' : emailConfig.serviceType === 'smtp' ? 'smtp' : 'webhook'),
+        enabled: emailConfig.enabled,
+        webhookUrl: emailConfig.webhookUrl,
+        emailjsServiceId: emailConfig.emailjsServiceId,
+        emailjsTemplateId: emailConfig.emailjsTemplateId,
+        emailjsPublicKey: emailConfig.emailjsPublicKey,
+        targetEmail: preferences.recipientEmail || currentUser?.email || '',
+      });
       const res = await apiCall<{ success: boolean; message?: string }>('/api/notifications/email-config', 'POST', emailConfig);
       if (res && res.success) {
-        toast.success('Đã lưu cấu hình cổng gửi Gmail tự động thành công!', 'Cổng Gửi Gmail');
+        toast.success('Đã lưu cấu hình cổng gửi Gmail tự động trên Cloudflare thành công!', 'Cổng Gửi Gmail');
       } else {
         toast.error(res?.message || 'Không thể lưu cấu hình cổng gửi Gmail.', 'Lỗi');
       }
@@ -657,10 +667,28 @@ export function NotificationSettingsModal({ isOpen, onClose }: NotificationSetti
                         <button
                           type="button"
                           onClick={() => {
-                            const code = `function doPost(e) {\\n  try {\\n    var data = JSON.parse(e.postData.contents);\\n    MailApp.sendEmail({\\n      to: data.to,\\n      subject: data.subject || "Thông báo từ LifeOS",\\n      htmlBody: data.html || data.body || ""\\n    });\\n    return ContentService.createTextOutput(JSON.stringify({ success: true, message: "Email sent" }))\\n      .setMimeType(ContentService.MimeType.JSON);\\n  } catch (error) {\\n    return ContentService.createTextOutput(JSON.stringify({ success: false, error: error.toString() }))\\n      .setMimeType(ContentService.MimeType.JSON);\\n  }\\n}`;
+                            const code = [
+                              'function doPost(e) {',
+                              '  try {',
+                              '    var data = JSON.parse(e.postData.contents);',
+                              '    var recipient = data.to || data.recipient;',
+                              '    var htmlContent = data.html || data.htmlBody || data.body || "";',
+                              '    MailApp.sendEmail({',
+                              '      to: recipient,',
+                              '      subject: data.subject || "Thông báo từ LifeOS",',
+                              '      htmlBody: htmlContent',
+                              '    });',
+                              '    return ContentService.createTextOutput(JSON.stringify({ success: true, message: "Email sent" }))',
+                              '      .setMimeType(ContentService.MimeType.JSON);',
+                              '  } catch (error) {',
+                              '    return ContentService.createTextOutput(JSON.stringify({ success: false, error: error.toString() }))',
+                              '      .setMimeType(ContentService.MimeType.JSON);',
+                              '  }',
+                              '}',
+                            ].join('\n');
                             navigator.clipboard.writeText(code);
                             setCopiedScript(true);
-                            toast.success('Đã sao chép mã Google Apps Script vào bộ nhớ tạm!', 'Sao chép');
+                            toast.success('Đã sao chép mã Google Apps Script chuẩn vào bộ nhớ tạm!', 'Sao chép');
                             setTimeout(() => setCopiedScript(false), 2500);
                           }}
                           className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors"
@@ -1087,10 +1115,28 @@ export function NotificationSettingsModal({ isOpen, onClose }: NotificationSetti
                         <button
                           type="button"
                           onClick={() => {
-                            const code = `function doPost(e) {\\n  try {\\n    var data = JSON.parse(e.postData.contents);\\n    MailApp.sendEmail({\\n      to: data.to,\\n      subject: data.subject || "Thông báo từ LifeOS",\\n      htmlBody: data.html || data.body || ""\\n    });\\n    return ContentService.createTextOutput(JSON.stringify({ success: true, message: "Email sent" }))\\n      .setMimeType(ContentService.MimeType.JSON);\\n  } catch (error) {\\n    return ContentService.createTextOutput(JSON.stringify({ success: false, error: error.toString() }))\\n      .setMimeType(ContentService.MimeType.JSON);\\n  }\\n}`;
+                            const code = [
+                              'function doPost(e) {',
+                              '  try {',
+                              '    var data = JSON.parse(e.postData.contents);',
+                              '    var recipient = data.to || data.recipient;',
+                              '    var htmlContent = data.html || data.htmlBody || data.body || "";',
+                              '    MailApp.sendEmail({',
+                              '      to: recipient,',
+                              '      subject: data.subject || "Thông báo từ LifeOS",',
+                              '      htmlBody: htmlContent',
+                              '    });',
+                              '    return ContentService.createTextOutput(JSON.stringify({ success: true, message: "Email sent" }))',
+                              '      .setMimeType(ContentService.MimeType.JSON);',
+                              '  } catch (error) {',
+                              '    return ContentService.createTextOutput(JSON.stringify({ success: false, error: error.toString() }))',
+                              '      .setMimeType(ContentService.MimeType.JSON);',
+                              '  }',
+                              '}',
+                            ].join('\n');
                             navigator.clipboard.writeText(code);
                             setCopiedScript(true);
-                            toast.success('Đã sao chép mã Google Apps Script vào bộ nhớ tạm!', 'Sao chép');
+                            toast.success('Đã sao chép mã Google Apps Script chuẩn vào bộ nhớ tạm!', 'Sao chép');
                             setTimeout(() => setCopiedScript(false), 2500);
                           }}
                           className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs cursor-pointer transition-colors"

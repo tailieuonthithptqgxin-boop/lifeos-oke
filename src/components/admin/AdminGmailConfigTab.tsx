@@ -147,7 +147,12 @@ export function AdminGmailConfigTab({ onShowMessage }: AdminGmailConfigTabProps)
   const handleSaveGmailConfig = async (e: React.FormEvent) => {
     e.preventDefault();
     if (gmailConfig.enabled) {
-      if (gmailConfig.serviceType === 'resend') {
+      if (gmailConfig.serviceType === 'webhook') {
+        if (!gmailConfig.webhookUrl || !gmailConfig.webhookUrl.trim().startsWith('http')) {
+          onShowMessage?.({ text: 'Vui lòng nhập URL Google Apps Script Webhook hợp lệ (https://script.google.com/macros/s/.../exec)', type: 'error' });
+          return;
+        }
+      } else if (gmailConfig.serviceType === 'resend') {
         const key = gmailConfig.apiKey || gmailConfig.appPassword;
         if (!key || !key.trim()) {
           onShowMessage?.({ text: 'Vui lòng nhập Resend API Key (ví dụ: re_xxxx...)', type: 'error' });
@@ -624,48 +629,107 @@ export function AdminGmailConfigTab({ onShowMessage }: AdminGmailConfigTabProps)
               </div>
 
               {/* Service Type Selector */}
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <label className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                  Dịch vụ Email Provider
+                  Dịch vụ Email Provider (Trên Cloudflare khuyên dùng Apps Script hoặc Resend qua cổng HTTPS 443)
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <button
                     type="button"
-                    onClick={() => setGmailConfig({ ...gmailConfig, serviceType: 'gmail', smtpHost: 'smtp.gmail.com', smtpPort: 465, smtpSecure: true })}
+                    onClick={() => setGmailConfig({ ...gmailConfig, enabled: true, serviceType: 'webhook' })}
                     className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                      gmailConfig.serviceType === 'gmail'
-                        ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800'
+                      gmailConfig.serviceType === 'webhook'
+                        ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-400 dark:border-emerald-700'
                         : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                     }`}
                   >
-                    Google Gmail
+                    🌐 Apps Script (0đ)
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setGmailConfig({ ...gmailConfig, serviceType: 'resend', smtpHost: 'smtp.resend.com', smtpPort: 465, smtpSecure: true })}
+                    onClick={() => setGmailConfig({ ...gmailConfig, enabled: true, serviceType: 'resend', smtpHost: 'smtp.resend.com', smtpPort: 465, smtpSecure: true })}
                     className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                       gmailConfig.serviceType === 'resend'
                         ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800'
                         : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                     }`}
                   >
-                    Resend API
+                    ⚡ Resend API
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => setGmailConfig({ ...gmailConfig, serviceType: 'smtp' })}
+                    onClick={() => setGmailConfig({ ...gmailConfig, enabled: true, serviceType: 'gmail', smtpHost: 'smtp.gmail.com', smtpPort: 465, smtpSecure: true })}
+                    className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                      gmailConfig.serviceType === 'gmail'
+                        ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800'
+                        : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                    }`}
+                  >
+                    ✉️ Gmail SMTP
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setGmailConfig({ ...gmailConfig, enabled: true, serviceType: 'smtp' })}
                     className={`py-2 px-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                       gmailConfig.serviceType === 'smtp'
                         ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800'
                         : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
                     }`}
                   >
-                    SMTP Tùy Chỉnh
+                    🔧 SMTP Tùy Chỉnh
                   </button>
                 </div>
               </div>
+
+              {gmailConfig.serviceType === 'webhook' && (
+                <div className="space-y-3 p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/80 dark:border-emerald-800/60 text-xs">
+                  <div>
+                    <label className="font-bold text-slate-800 dark:text-slate-200 block mb-1">
+                      URL Google Apps Script Web App (Cổng HTTPS 443 — Hoạt động 100% trên Cloudflare Free):
+                    </label>
+                    <input
+                      type="url"
+                      value={gmailConfig.webhookUrl || ''}
+                      onChange={e => setGmailConfig({ ...gmailConfig, webhookUrl: e.target.value })}
+                      placeholder="https://script.google.com/macros/s/AKfycb.../exec"
+                      className="w-full px-3 py-2 text-xs font-mono rounded-xl border border-emerald-300 dark:border-emerald-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                  </div>
+                  <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                    💡 Mẹo: Vào <a href="https://script.google.com" target="_blank" rel="noopener noreferrer" className="underline font-bold text-emerald-600">script.google.com</a> → Tạo dự án mới → Bấm nút bên dưới để chép mã chuẩn → Chọn <strong>Triển khai (Ứng dụng web · Ai có quyền: Bất kỳ ai)</strong> → Dán URL vào ô trên và bấm Lưu!
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const scriptCode = [
+                        'function doPost(e) {',
+                        '  try {',
+                        '    var data = JSON.parse(e.postData.contents);',
+                        '    MailApp.sendEmail({',
+                        '      to: data.to || data.recipient,',
+                        '      subject: data.subject || "Thông báo từ LifeOS",',
+                        '      htmlBody: data.html || data.htmlBody || data.body || ""',
+                        '    });',
+                        '    return ContentService.createTextOutput(JSON.stringify({ success: true }))',
+                        '      .setMimeType(ContentService.MimeType.JSON);',
+                        '  } catch (err) {',
+                        '    return ContentService.createTextOutput(JSON.stringify({ success: false, error: err.toString() }))',
+                        '      .setMimeType(ContentService.MimeType.JSON);',
+                        '  }',
+                        '}',
+                      ].join('\n');
+                      navigator.clipboard.writeText(scriptCode);
+                      onShowMessage?.({ text: 'Đã sao chép mã Google Apps Script chuẩn!', type: 'success' });
+                    }}
+                    className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs cursor-pointer"
+                  >
+                    📋 Sao chép mã Google Apps Script chuẩn
+                  </button>
+                </div>
+              )}
 
               {/* Sender Email & Name */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -678,7 +742,7 @@ export function AdminGmailConfigTab({ onShowMessage }: AdminGmailConfigTabProps)
                     value={gmailConfig.user}
                     onChange={e => setGmailConfig({ ...gmailConfig, user: e.target.value })}
                     placeholder="notifications@yourdomain.com"
-                    required={gmailConfig.enabled}
+                    required={gmailConfig.enabled && gmailConfig.serviceType !== 'webhook'}
                     className="w-full px-3 py-2 text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white focus:ring-2 focus:ring-rose-500"
                   />
                 </div>
