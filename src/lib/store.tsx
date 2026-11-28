@@ -163,6 +163,84 @@ const VALID_VIEWS = new Set<string>([
   'study-space', 'classroom', 'connect', 'feed'
 ]);
 
+const PERSISTED_COLLECTION_KEYS = [
+  'tasks', 'projects', 'events', 'focusSessions', 'focusGoals',
+  'financeAccounts', 'transactions', 'budgets', 'savingGoals', 'debts',
+  'subjects', 'studyTopics', 'studyAssignments', 'studyExams',
+  'habits', 'habitRecords', 'routines', 'goals', 'notes',
+  'decisions', 'decisionRules', 'automationRules', 'automationHistory',
+  'automationConflicts', 'products', 'cart', 'orders', 'inbox', 'notifications'
+] as const;
+
+interface UserLocalVault {
+  userId: string;
+  updatedAt: number;
+  collections: Record<string, any[]>;
+}
+
+function getVaultKey(userId: string): string {
+  return `lifeos_vault_v2_${userId}`;
+}
+
+function readUserLocalVault(userId?: string | null): UserLocalVault | null {
+  if (typeof window === 'undefined' || !userId) return null;
+  try {
+    const rawVault = localStorage.getItem(getVaultKey(userId));
+    if (rawVault) {
+      const parsed = JSON.parse(rawVault);
+      if (parsed && typeof parsed === 'object' && parsed.collections) {
+        return {
+          userId,
+          updatedAt: Number(parsed.updatedAt) || Date.now(),
+          collections: parsed.collections,
+        };
+      }
+    }
+    // Seamless fallback to legacy SWR collections if owned by same user (or unowned)
+    const owner = localStorage.getItem('lifeos_swr_collections_owner');
+    if (!owner || owner === userId) {
+      const rawSwr = localStorage.getItem('lifeos_swr_collections');
+      if (rawSwr) {
+        const parsedSwr = JSON.parse(rawSwr);
+        if (parsedSwr && typeof parsedSwr === 'object') {
+          const hasAnyItems = Object.values(parsedSwr).some(v => Array.isArray(v) && v.length > 0);
+          if (hasAnyItems) {
+            return {
+              userId,
+              updatedAt: Date.now(),
+              collections: parsedSwr,
+            };
+          }
+        }
+      }
+    }
+  } catch {}
+  return null;
+}
+
+function writeUserLocalVault(userId: string, stateOrCollections: Record<string, any>): void {
+  if (typeof window === 'undefined' || !userId) return;
+  try {
+    const collectionsSnapshot: Record<string, any[]> = {};
+    const swrCompact: Record<string, any[]> = {};
+    for (const col of PERSISTED_COLLECTION_KEYS) {
+      const list = Array.isArray(stateOrCollections[col]) ? stateOrCollections[col] : [];
+      collectionsSnapshot[col] = list.slice(0, 500);
+      swrCompact[col] = list.slice(0, 150);
+    }
+    const payload: UserLocalVault = {
+      userId,
+      updatedAt: Date.now(),
+      collections: collectionsSnapshot,
+    };
+    localStorage.setItem(getVaultKey(userId), JSON.stringify(payload));
+    localStorage.setItem('lifeos_swr_collections', JSON.stringify(swrCompact));
+    localStorage.setItem('lifeos_swr_collections_owner', userId);
+  } catch (e) {
+    console.warn('[Store] Local vault write warning:', e);
+  }
+}
+
 function safeJsonParse<T>(value: string | null, fallback: T): T {
   if (!value) return fallback;
   try {
@@ -260,7 +338,8 @@ const getInitialState = (): AppState => {
       }
     }
 
-    cachedCollections = safeJsonParse(localStorage.getItem('lifeos_swr_collections'), {});
+    const localVault = cachedUser?.id ? readUserLocalVault(cachedUser.id) : null;
+    cachedCollections = localVault?.collections || safeJsonParse(localStorage.getItem('lifeos_swr_collections'), {});
     cachedSub = safeJsonParse(localStorage.getItem('lifeos_swr_sub'), null);
   } catch (e) {}
 
@@ -314,6 +393,92 @@ const getInitialState = (): AppState => {
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState<AppState>(getInitialState);
   const activeItemMutations = useRef(new Set<string>());
+  const currentUserIdRef = useRef<string | null>(state.currentUser?.id || null);
+  const stateRef = useRef<AppState>(state);
+  stateRef.current = state;
+  if (state.currentUser?.id) {
+    currentUserIdRef.current = state.currentUser.id;
+  }
+
+  // Automatic 0ms Durable Local Vault Sync whenever any workspace collection changes!
+  // Guarantees zero data loss even if the user closes the tab/browser 10ms after creating a task.
+  useEffect(() => {
+    const uid = state.currentUser?.id;
+    if (!state.isAuthenticated || !uid || !state.isAppLoaded) return;
+    writeUserLocalVault(uid, state as any);
+  }, [
+    state.isAuthenticated,
+    state.isAppLoaded,
+    state.currentUser?.id,
+    state.tasks,
+    state.projects,
+    state.events,
+    state.focusSessions,
+    state.focusGoals,
+    state.financeAccounts,
+    state.transactions,
+    state.budgets,
+    state.savingGoals,
+    state.debts,
+    state.subjects,
+    state.studyTopics,
+    state.studyAssignments,
+    state.studyExams,
+    state.habits,
+    state.habitRecords,
+    state.routines,
+    state.goals,
+    state.notes,
+    state.decisions,
+    state.decisionRules,
+    state.automationRules,
+    state.automationHistory,
+    state.automationConflicts,
+    state.products,
+    state.cart,
+    state.orders,
+    state.inbox,
+    state.notifications,
+  ]);
+
+  // Flush latest vault snapshot to Edge server on tab hide / browser close (mobile Safari & Chrome resilience)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const flushVaultOnExit = () => {
+      const cur = stateRef.current;
+      const uid = cur.currentUser?.id;
+      if (!cur.isAuthenticated || !uid) return;
+      writeUserLocalVault(uid, cur as any);
+      try {
+        const collectionsPayload: Record<string, any[]> = {};
+        for (const col of PERSISTED_COLLECTION_KEYS) {
+          collectionsPayload[col] = Array.isArray((cur as any)[col]) ? (cur as any)[col].slice(0, 300) : [];
+        }
+        const token = localStorage.getItem('token') || '';
+        const bodyStr = JSON.stringify({ userId: uid, collections: collectionsPayload });
+        fetch('/api/data-sync', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-LifeOS-User-Id': uid,
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: bodyStr,
+          keepalive: true,
+          credentials: 'include',
+        }).catch(() => {});
+      } catch {}
+    };
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') flushVaultOnExit();
+    };
+    window.addEventListener('pagehide', flushVaultOnExit);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      window.removeEventListener('pagehide', flushVaultOnExit);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, []);
 
   // Bind global Socket.io client to logged-in user for instant cross-tab & cross-window sync
   useEffect(() => {
@@ -384,12 +549,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           else if (storedPrefs?.domain === 'student') initialMode = 'Personal';
 
           const unifiedUser = normalizeUserStats(user);
+          currentUserIdRef.current = unifiedUser.id;
+          const existingVault = readUserLocalVault(unifiedUser.id);
           try {
             localStorage.setItem('lifeos_user', JSON.stringify(unifiedUser));
+            localStorage.setItem('lifeos_swr_user', JSON.stringify(unifiedUser));
           } catch {}
 
           setState(s => ({
             ...s,
+            ...(existingVault?.collections ? existingVault.collections : {}),
             isAuthenticated: true,
             currentUser: unifiedUser,
             subscriptionStatus: authRes.subscriptionStatus || s.subscriptionStatus,
@@ -400,7 +569,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           }));
 
           // Background revalidation: Load all collections and subscription in background without blocking UI
-          loadAllData().catch((loadErr) => {
+          loadAllData(unifiedUser.id).catch((loadErr) => {
             console.warn("Background data load completed with non-fatal warnings:", loadErr);
             setState(s => ({ ...s, isAppLoaded: true }));
           });
@@ -563,72 +732,95 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
-  const loadAllData = async () => {
+  const loadAllData = async (explicitUserId?: string) => {
     try {
-      const collections = [
-        'tasks', 'projects', 'events', 'focusSessions', 'focusGoals',
-        'financeAccounts', 'transactions', 'budgets', 'savingGoals', 'debts',
-        'subjects', 'studyTopics', 'studyAssignments', 'studyExams',
-        'habits', 'habitRecords', 'routines', 'goals', 'notes',
-        'decisions', 'decisionRules', 'automationRules', 'automationHistory',
-        'automationConflicts', 'products', 'cart', 'orders', 'inbox', 'notifications'
-      ];
-      
-      // Technique 2 & 5: High-speed single batch HTTP request with server-side parallel execution
-      const batchRes = await apiCall('/api/data-batch', 'POST', { collections });
-      
+      const collections = [...PERSISTED_COLLECTION_KEYS];
+      const uid = explicitUserId || currentUserIdRef.current || stateRef.current.currentUser?.id || '';
+      const localVault = uid ? readUserLocalVault(uid) : null;
+      const localCollections = localVault?.collections || {};
+
+      // Send localVault snapshot along with batch request so a cold Edge Worker isolate
+      // immediately hydrates from the user's durable vault instead of returning empty []!
+      const batchRes = await apiCall('/api/data-batch', 'POST', {
+        collections,
+        userId: uid || undefined,
+        clientSnapshot: localVault?.collections || undefined,
+      });
+
       let newState: Partial<AppState> = {};
       if (batchRes && batchRes.success && batchRes.data) {
         const data = batchRes.data;
+        const isColdEdge = Boolean(batchRes.isColdEdgeVault);
+        const collectionsToPushBack: Record<string, any[]> = {};
+        let needsEdgePushBack = false;
+
         collections.forEach(col => {
-          (newState as any)[col] = Array.isArray(data[col]) ? data[col] : [];
+          const serverItems = Array.isArray(data[col]) ? data[col] : [];
+          const localItems = Array.isArray(localCollections[col]) ? localCollections[col] : [];
+          const inMemoryItems = Array.isArray((stateRef.current as any)[col]) ? (stateRef.current as any)[col] : [];
+          const bestLocal = localItems.length >= inMemoryItems.length ? localItems : inMemoryItems;
+
+          if (serverItems.length === 0 && bestLocal.length > 0 && isColdEdge) {
+            // Protect local data when Edge isolate is cold and sync it up!
+            (newState as any)[col] = bestLocal;
+            collectionsToPushBack[col] = bestLocal;
+            needsEdgePushBack = true;
+          } else if (serverItems.length > 0 && bestLocal.length > 0) {
+            // Merge any temp optimistic items not yet reflected on server
+            const serverIds = new Set(serverItems.map((it: any) => it?.id));
+            const unsynced = bestLocal.filter((it: any) => it?.id && String(it.id).startsWith('tmp_') && !serverIds.has(it.id));
+            (newState as any)[col] = unsynced.length > 0 ? [...serverItems, ...unsynced] : serverItems;
+          } else {
+            (newState as any)[col] = serverItems;
+          }
         });
 
-        const settings = data.settings;
-        setState(s => ({
-          ...s,
-          ...newState,
-          ...(settings && settings.id && s.currentUser ? { currentUser: { ...s.currentUser, ...settings } } : {}),
-          isAppLoaded: true
-        }));
+        const settings = data.settings || batchRes.settings;
+        setState(s => {
+          const merged = {
+            ...s,
+            ...newState,
+            ...(settings && settings.id && s.currentUser ? { currentUser: { ...s.currentUser, ...settings } } : {}),
+            isAppLoaded: true
+          };
+          if (uid) writeUserLocalVault(uid, merged as any);
+          return merged;
+        });
 
-        // Technique 3: SWR cache storage (keep up to 100 recent items per collection to ensure < 2MB footprint)
-        try {
-          const swrCache: any = {};
-          collections.forEach(col => {
-            if (Array.isArray(data[col])) {
-              swrCache[col] = data[col].slice(0, 100);
-            }
-          });
-          localStorage.setItem('lifeos_swr_collections', JSON.stringify(swrCache));
-        } catch (e) {}
+        if (needsEdgePushBack && uid) {
+          apiCall('/api/data-sync', 'POST', { userId: uid, collections: collectionsToPushBack }).catch(() => {});
+        }
         return;
       }
 
       // Fallback: Concurrent Promise.allSettled across individual collections if batch is unavailable
       const promises = collections.map(col => apiCall(`/api/data/${col}`));
       promises.push(apiCall('/api/settings'));
-      
+
       const results = await Promise.allSettled(promises);
       const settingsResult = results.pop();
       const settings = settingsResult?.status === 'fulfilled' ? settingsResult.value : {};
 
-      // Set user collections from settled results
       collections.forEach((col, idx) => {
         const itemRes = results[idx];
-        (newState as any)[col] = (itemRes && itemRes.status === 'fulfilled' && Array.isArray(itemRes.value)) 
-          ? itemRes.value 
-          : [];
+        const fallbackLocal = Array.isArray(localCollections[col]) ? localCollections[col] : [];
+        (newState as any)[col] = (itemRes && itemRes.status === 'fulfilled' && Array.isArray(itemRes.value))
+          ? itemRes.value
+          : fallbackLocal;
       });
-      
-      setState(s => ({
-        ...s,
-        ...newState,
-        ...(settings && settings.id && s.currentUser ? { currentUser: { ...s.currentUser, ...settings } } : {}),
-        isAppLoaded: true
-      }));
+
+      setState(s => {
+        const merged = {
+          ...s,
+          ...newState,
+          ...(settings && settings.id && s.currentUser ? { currentUser: { ...s.currentUser, ...settings } } : {}),
+          isAppLoaded: true
+        };
+        if (uid) writeUserLocalVault(uid, merged as any);
+        return merged;
+      });
     } catch (err: any) {
-      console.warn("Notice loading data collections:", err?.message || err);
+      console.warn("Notice loading data collections (kept durable local vault):", err?.message || err);
       setState(s => ({ ...s, isAppLoaded: true }));
     }
   };
@@ -636,9 +828,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const clearWorkspace = async () => {
     try {
       setState(s => ({ ...s, syncState: 'syncing', syncMessage: 'Đang làm sạch dữ liệu để sẵn sàng hoạt động thực tế...' }));
+      const uid = currentUserIdRef.current || stateRef.current.currentUser?.id;
+      if (uid) {
+        try {
+          localStorage.removeItem(getVaultKey(uid));
+          localStorage.removeItem('lifeos_swr_collections');
+        } catch {}
+      }
       await apiCall('/api/clear-workspace', 'POST');
-      await loadAllData();
-      setState(s => ({ ...s, syncState: 'success', syncMessage: 'Đã làm sạch dữ liệu, sẵn sàng ghi nhận hoạt động thật!' }));
+      const clearedCollections: any = {};
+      PERSISTED_COLLECTION_KEYS.forEach(c => { clearedCollections[c] = []; });
+      setState(s => ({
+        ...s,
+        ...clearedCollections,
+        syncState: 'success',
+        syncMessage: 'Đã làm sạch dữ liệu, sẵn sàng ghi nhận hoạt động thật!'
+      }));
       setTimeout(() => setState(s => ({ ...s, syncState: 'idle', syncMessage: '' })), 2500);
     } catch (err: any) {
       console.error("Failed to clear workspace:", err);
@@ -649,6 +854,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const login = async (user: User, token?: string, targetView?: ViewState) => {
     const unifiedUser = normalizeUserStats(user);
+    currentUserIdRef.current = unifiedUser.id;
+    const userVault = readUserLocalVault(unifiedUser.id);
     try {
       if (token && token.length > 10) {
         localStorage.setItem('token', token);
@@ -687,9 +894,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       localStorage.setItem('lifeos_current_view', destinationView);
     } catch (e) {}
 
-    // Authenticate user immediately and transition UI without delay
+    // Hydrate user's durable vault immediately (0ms) instead of resetting collections to empty!
     setState(s => ({
       ...defaultState,
+      ...(userVault?.collections ? userVault.collections : {}),
       isAuthenticated: true,
       currentUser: unifiedUser,
       currentView: destinationView,
@@ -701,7 +909,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }));
     // Background populate collections and fetch fresh subscription entitlement
     Promise.allSettled([
-      loadAllData(),
+      loadAllData(unifiedUser.id),
       fetchSubscriptionStatus()
     ]).catch(err => {
       console.warn("Background login revalidation warning:", err);
@@ -714,12 +922,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const logout = () => {
+    const curState = stateRef.current;
+    if (curState.currentUser?.id) {
+      writeUserLocalVault(curState.currentUser.id, curState as any);
+    }
+    currentUserIdRef.current = null;
     apiCall('/api/auth/logout', 'POST').catch(console.error);
     try {
       localStorage.removeItem('token');
       localStorage.removeItem('lifeos_swr_user');
       localStorage.removeItem('lifeos_current_view');
       localStorage.removeItem('lifeos_swr_collections');
+      localStorage.removeItem('lifeos_swr_collections_owner');
       localStorage.removeItem('lifeos_swr_sub');
       sessionStorage.clear();
       window.history.replaceState(null, '', '/');
@@ -864,13 +1078,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
       }, 'Thêm thành công');
       return resultItem;
-    } catch (err) {
-      // Automatic optimistic rollback on server failure / network chaos (Scenario 2)
-      setState(s => ({
-        ...s,
-        [stateKey]: (s[stateKey] as any[]).filter((i: any) => i.id !== tempId)
-      }));
-      throw err;
+    } catch (err: any) {
+      const status = Number(err?.status) || 0;
+      // Only roll back if the server explicitly rejected with a 4xx validation error.
+      // For offline / transient network errors, preserve the item safely in local vault & offline queue!
+      if (status >= 400 && status < 500) {
+        setState(s => ({
+          ...s,
+          [stateKey]: (s[stateKey] as any[]).filter((i: any) => i.id !== tempId)
+        }));
+        throw err;
+      }
+      console.warn(`[Store] Kept '${collection}' item in durable local vault despite network hiccup:`, err?.message);
+      return resultItem;
     }
   };
   
@@ -900,15 +1120,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await withSync(async () => {
         await apiCall(`/api/data/${collection}/${id}`, 'PUT', updates);
       }, 'Cập nhật thành công');
-    } catch (err) {
-      // Automatic rollback to exact previous state on failure (Scenario 2)
-      if (previousItem) {
+    } catch (err: any) {
+      const status = Number(err?.status) || 0;
+      if (status >= 400 && status < 500 && previousItem) {
         setState(s => ({
           ...s,
           [stateKey]: (s[stateKey] as any[]).map((item: any) => item.id === id ? previousItem : item)
         }));
+        throw err;
       }
-      throw err;
+      console.warn(`[Store] Kept '${collection}' update in durable local vault despite network hiccup:`, err?.message);
     } finally {
       activeItemMutations.current.delete(mutationLockKey);
     }
@@ -940,15 +1161,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await withSync(async () => {
         await apiCall(`/api/data/${collection}/${id}`, 'DELETE');
       }, 'Xóa thành công');
-    } catch (err) {
-      // Automatic rollback to restore deleted item if server rejected (Scenario 2)
-      if (previousItem) {
+    } catch (err: any) {
+      const status = Number(err?.status) || 0;
+      if (status >= 400 && status < 500 && previousItem) {
         setState(s => ({
           ...s,
           [stateKey]: [...(s[stateKey] as any[]), previousItem]
         }));
+        throw err;
       }
-      throw err;
+      console.warn(`[Store] Kept '${collection}' deletion in durable local vault despite network hiccup:`, err?.message);
     } finally {
       activeItemMutations.current.delete(mutationLockKey);
     }
@@ -1095,10 +1317,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           console.warn('Syncing finance accounts after transaction delete:', syncErr);
         }
       }
-      // Refresh tasks from server to get accurate cascading changes
+      // Refresh tasks from server to get accurate cascading changes (safe guard against non-array)
       if (col.name === 'projects' || col.name === 'goals') {
-        const updatedTasks = await apiCall('/api/data/tasks');
-        setState(s => ({ ...s, tasks: updatedTasks }));
+        try {
+          const updatedTasks = await apiCall('/api/data/tasks');
+          if (Array.isArray(updatedTasks)) {
+            setState(s => ({ ...s, tasks: updatedTasks }));
+          }
+        } catch {}
       }
     };
   });
@@ -1196,8 +1422,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   
   const updateProfile = async (data: { name?: string; avatar?: string }) => {
     try {
-      await apiCall('/api/auth/profile', 'PUT', data);
-      setState(s => ({ ...s, currentUser: { ...s.currentUser, ...data } as User }));
+      const res = await apiCall('/api/auth/profile', 'PUT', data);
+      if (res?.token && typeof res.token === 'string' && res.token.length > 20) {
+        try { localStorage.setItem('token', res.token); } catch {}
+      }
+      setState(s => {
+        const nextUser = { ...(s.currentUser || {}), ...data } as User;
+        try {
+          localStorage.setItem('lifeos_swr_user', JSON.stringify(nextUser));
+          localStorage.setItem('lifeos_user', JSON.stringify(nextUser));
+        } catch {}
+        return { ...s, currentUser: nextUser };
+      });
       try {
         unifiedNotificationEngine.notifyAuthSecurity(
           'PROFILE_UPDATED',

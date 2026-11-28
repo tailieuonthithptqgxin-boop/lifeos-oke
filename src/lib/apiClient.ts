@@ -46,6 +46,7 @@ export function invalidateApiCache(prefix?: string): void {
 
 // In-flight Mutating Request Deduplication Map to neutralize Spam-Clicking (Scenario 1)
 const inFlightMutations = new Map<string, Promise<any>>();
+let csrfPreflightAttempted = false;
 
 export interface ApiCallOptions {
   timeoutMs?: number;
@@ -135,11 +136,18 @@ export async function apiCall<T = any>(
     return inFlightMutations.get(mutationKey)! as Promise<T>;
   }
 
-  // Rapid-fire click spam protection (500ms debounce guard per mutating action)
-  if (isMutating && mutationKey) {
+  // Rapid-fire click spam protection (500ms debounce guard on duplicate POST creations only — NEVER swallow data-batch, data-sync, PUT or DELETE!)
+  const skipSpamGuard =
+    endpoint.includes('/data-batch') ||
+    endpoint.includes('/data-sync') ||
+    method === 'PUT' ||
+    method === 'PATCH' ||
+    method === 'DELETE';
+
+  if (isMutating && mutationKey && !skipSpamGuard) {
     const lastCalled = mutatingCooldownMap.get(mutationKey) || 0;
     const now = Date.now();
-    if (now - lastCalled < 500) {
+    if (now - lastCalled < 400) {
       console.warn(`[ApiClient] Spam-click throttled on ${method} ${endpoint}`);
       if (inFlightMutations.has(mutationKey)) {
         return inFlightMutations.get(mutationKey)! as Promise<T>;
@@ -200,9 +208,10 @@ export async function apiCall<T = any>(
       'Accept': 'application/json'
     };
 
-    // Attach CSRF Token for mutating requests if available
+    // Attach CSRF Token for mutating requests if available (attempt preflight at most once per page session)
     let csrfToken = getCsrfToken();
-    if (!csrfToken && method !== 'GET' && typeof window !== 'undefined') {
+    if (!csrfToken && !csrfPreflightAttempted && method !== 'GET' && typeof window !== 'undefined') {
+      csrfPreflightAttempted = true;
       try {
         await fetch('/api/languages', { method: 'GET', credentials: 'include' });
         csrfToken = getCsrfToken();
@@ -217,6 +226,20 @@ export async function apiCall<T = any>(
     if (token) {
       const safeToken = token.replace(/[^\x20-\x7E]/g, '').trim();
       if (safeToken) headers['Authorization'] = `Bearer ${safeToken}`;
+    }
+
+    // Attach stable user ID header so Edge Vault always scopes to the exact user
+    if (typeof window !== 'undefined') {
+      try {
+        const rawUser = localStorage.getItem('lifeos_swr_user');
+        if (rawUser) {
+          const parsedUser = JSON.parse(rawUser);
+          if (parsedUser?.id) {
+            const safeUid = String(parsedUser.id).replace(/[^\x20-\x7E]/g, '').trim();
+            if (safeUid) headers['X-LifeOS-User-Id'] = safeUid;
+          }
+        }
+      } catch {}
     }
 
     const effectiveTimeout = (endpoint.includes('/data-batch') || endpoint.includes('/clear-workspace') || endpoint.includes('/ai'))

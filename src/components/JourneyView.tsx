@@ -84,8 +84,27 @@ export function JourneyView() {
     cosmeticsCatalog: CosmeticItem[];
   } | null>(null);
 
-  // Milestones Timeline State
-  const [milestones, setMilestones] = useState<MilestoneItem[]>([]);
+  // Milestones Timeline State (Hydrated from local vault for 0ms persistence)
+  const [milestones, setMilestones] = useState<MilestoneItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem(`lifeos_milestones_v2_${currentUser?.id || 'guest'}`);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed;
+        }
+      } catch {}
+    }
+    return [];
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !loading) {
+      try {
+        localStorage.setItem(`lifeos_milestones_v2_${currentUser?.id || 'guest'}`, JSON.stringify(milestones));
+      } catch {}
+    }
+  }, [milestones, loading, currentUser?.id]);
 
   // Navigation tab in Progression Hub (Hero Profile & RPG World Map at the top) with F5 persistence
   const [activeTab, setActiveTab] = useState<'profile' | 'map' | 'skills' | 'milestones' | 'quests' | 'battlepass' | 'achievements' | 'armory'>(() => {
@@ -488,8 +507,11 @@ export function JourneyView() {
         if (errMsg) setLoadError(errMsg);
       }
 
-      if (journeyResult.status === 'fulfilled' && journeyResult.value && journeyResult.value.milestones) {
-        setMilestones(journeyResult.value.milestones);
+      if (journeyResult.status === 'fulfilled' && journeyResult.value && Array.isArray(journeyResult.value.milestones)) {
+        const srvMilestones = journeyResult.value.milestones;
+        if (srvMilestones.length > 0) {
+          setMilestones(srvMilestones);
+        }
       }
       if (charResult.status === 'fulfilled' && charResult.value && charResult.value.data) {
         setCharStats(charResult.value.data);

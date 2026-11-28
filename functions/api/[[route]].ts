@@ -5,6 +5,8 @@
  * Hardened with OWASP Top 10:2025, Cryptographic Signature Verification, and Zero Trust Edge Guards.
  */
 
+import edgeWorker from '../../src/cloudflare/worker';
+
 interface Env {
   DB?: any;              // Cloudflare D1 Database binding
   KV?: any;              // Cloudflare KV binding
@@ -1007,11 +1009,9 @@ export async function onRequest(context: EventContext): Promise<Response> {
     });
   }
 
-  // 9. General API Fallback
-  return sendJson({
-    success: true,
-    message: 'LifeOS Cloudflare Pages Edge Gateway Ready',
-    endpoint: pathname,
-    timestamp: new Date().toISOString()
-  });
+  // 9. Delegate all Workspace CRUD, Vault Sync, Study Space, Connect & RPG Routes to Unified Edge Worker
+  return edgeWorker.fetch(request, env as any, {
+    waitUntil: context.waitUntil ? context.waitUntil.bind(context) : () => {},
+    passThroughOnException: () => {},
+  } as any);
 }

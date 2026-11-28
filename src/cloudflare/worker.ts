@@ -797,32 +797,16 @@ async function handleEdgeAuthRoute(request: Request, env: Env): Promise<Response
       createdAt: new Date().toISOString()
     };
 
-    // Store in KV if available
+    // Store in KV + Edge Cache + In-memory Registry for durable persistence across restarts
     const kv = env.KV || env.CACHE_KV;
-    if (kv) {
-      try {
-        const existing = await kv.get(`user:${cleanEmail}`, 'json');
-        if (existing) {
-          return new Response(
-            JSON.stringify({ success: false, message: 'Email này đã tồn tại trong hệ thống. Vui lòng đăng nhập.' }),
-            { status: 400, headers: { 'Content-Type': 'application/json' } }
-          );
-        }
-        await kv.put(`user:${cleanEmail}`, JSON.stringify(userPayload));
-      } catch (kvErr) {
-        console.warn('KV user registration warning:', kvErr);
-      }
-    }
-
-    // Store in edge in-memory registry
-    const edgeRegistry = getOrCreateEdgeUserRegistry();
-    if (edgeRegistry.has(cleanEmail)) {
+    const existingAccount = await loadEdgeRegisteredUser(cleanEmail, env);
+    if (existingAccount) {
       return new Response(
         JSON.stringify({ success: false, message: 'Email này đã tồn tại trong hệ thống. Vui lòng đăng nhập.' }),
         { status: 400, headers: { 'Content-Type': 'application/json' } }
       );
     }
-    edgeRegistry.set(cleanEmail, userPayload);
+    await saveEdgeRegisteredUser(cleanEmail, userPayload, env);
 
     const user = {
       id: userId,
@@ -1061,23 +1045,8 @@ async function handleEdgeAuthRoute(request: Request, env: Env): Promise<Response
       );
     }
 
-    // 3. Regular Registered Account Lookup
-    let storedUser: any = null;
-    const kv = env.KV || env.CACHE_KV;
-    if (kv) {
-      try {
-        storedUser = await kv.get(`user:${cleanEmail}`, 'json');
-      } catch (kvErr) {
-        console.warn('KV user read warning:', kvErr);
-      }
-    }
-
-    if (!storedUser) {
-      const edgeRegistry = getOrCreateEdgeUserRegistry();
-      if (edgeRegistry.has(cleanEmail)) {
-        storedUser = edgeRegistry.get(cleanEmail);
-      }
-    }
+    // 3. Regular Registered Account Lookup (Memory -> KV -> Cloudflare Cache API)
+    const storedUser: any = await loadEdgeRegisteredUser(cleanEmail, env);
 
     // ZERO BYPASS: Account MUST exist in registry! Unregistered users are strictly rejected with 401.
     if (!storedUser) {
@@ -1203,6 +1172,23 @@ async function handleEdgeAuthRoute(request: Request, env: Env): Promise<Response
           : Boolean(updates?.onboardingCompleted ?? payload?.onboardingCompleted ?? true),
     };
 
+    // Persist profile name/avatar updates back to registered user record if present
+    if (updatedUser.email) {
+      const existingAcc = await loadEdgeRegisteredUser(updatedUser.email.toLowerCase(), env);
+      if (existingAcc) {
+        await saveEdgeRegisteredUser(
+          updatedUser.email.toLowerCase(),
+          {
+            ...existingAcc,
+            name: updatedUser.name,
+            avatar: updatedUser.avatar,
+            onboardingCompleted: updatedUser.onboardingCompleted,
+          },
+          env
+        );
+      }
+    }
+
     const refreshedToken = await signEdgeJwt(
       {
         userId: updatedUser.id,
@@ -1313,6 +1299,179 @@ interface EdgeStudyRoom {
 }
 
 const edgeStudyRoomsMemory = new Map<string, EdgeStudyRoom>();
+
+// ============================================================================
+// DURABLE EDGE STORAGE ENGINE (Memory + Cloudflare KV + Cloudflare Cache API)
+// Guarantees user tasks, notes, habits, finance, milestones & accounts persist!
+// ============================================================================
+interface EdgeUserVault {
+  userId: string;
+  updatedAt: number;
+  collections: Record<string, any[]>;
+  settings: Record<string, any>;
+  milestones: any[];
+  classes: any[];
+  customModules: any[];
+  customModuleRecords: Record<string, any[]>;
+  pet: Record<string, any> | null;
+}
+
+const edgeUserVaultsMemory = new Map<string, EdgeUserVault>();
+
+function getEdgeCacheStorage(): Cache | null {
+  try {
+    const c = (globalThis as any).caches;
+    return c && c.default ? (c.default as Cache) : null;
+  } catch {
+    return null;
+  }
+}
+
+async function readEdgeDurableJson<T>(cachePath: string, kvKey: string, env?: Env): Promise<T | null> {
+  const kv = env?.KV || env?.CACHE_KV;
+  if (kv) {
+    try {
+      const val = await kv.get(kvKey, 'json');
+      if (val !== null && val !== undefined) return val as T;
+    } catch {}
+  }
+  const cache = getEdgeCacheStorage();
+  if (cache) {
+    try {
+      const req = new Request(`https://edge-vault.quanlicanhan.online/${cachePath}`, { method: 'GET' });
+      const res = await cache.match(req);
+      if (res && res.ok) {
+        return (await res.json()) as T;
+      }
+    } catch {}
+  }
+  return null;
+}
+
+async function writeEdgeDurableJson(cachePath: string, kvKey: string, value: unknown, env?: Env): Promise<void> {
+  const serialized = JSON.stringify(value);
+  const kv = env?.KV || env?.CACHE_KV;
+  if (kv) {
+    try {
+      await kv.put(kvKey, serialized);
+    } catch {}
+  }
+  const cache = getEdgeCacheStorage();
+  if (cache) {
+    try {
+      const req = new Request(`https://edge-vault.quanlicanhan.online/${cachePath}`, { method: 'GET' });
+      const res = new Response(serialized, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'public, max-age=31536000',
+        },
+      });
+      await cache.put(req, res);
+    } catch {}
+  }
+}
+
+async function loadEdgeRegisteredUser(cleanEmail: string, env?: Env): Promise<any | null> {
+  const registry = getOrCreateEdgeUserRegistry();
+  if (registry.has(cleanEmail)) {
+    return registry.get(cleanEmail);
+  }
+  const durable = await readEdgeDurableJson<any>(
+    `v2/users/${encodeURIComponent(cleanEmail)}`,
+    `user:${cleanEmail}`,
+    env
+  );
+  if (durable) {
+    registry.set(cleanEmail, durable);
+    return durable;
+  }
+  return null;
+}
+
+async function saveEdgeRegisteredUser(cleanEmail: string, userObj: any, env?: Env): Promise<void> {
+  const registry = getOrCreateEdgeUserRegistry();
+  registry.set(cleanEmail, userObj);
+  await writeEdgeDurableJson(`v2/users/${encodeURIComponent(cleanEmail)}`, `user:${cleanEmail}`, userObj, env);
+}
+
+function createEmptyEdgeVault(userId: string): EdgeUserVault {
+  return {
+    userId,
+    updatedAt: 0,
+    collections: {},
+    settings: { theme: 'dark', language: 'vi', notificationsEnabled: true },
+    milestones: [],
+    classes: [],
+    customModules: [],
+    customModuleRecords: {},
+    pet: null,
+  };
+}
+
+async function loadEdgeUserVault(userId: string, env?: Env): Promise<EdgeUserVault> {
+  const safeId = userId || 'guest';
+  const mem = edgeUserVaultsMemory.get(safeId);
+  if (mem) return mem;
+
+  const durable = await readEdgeDurableJson<EdgeUserVault>(
+    `v2/vault/${encodeURIComponent(safeId)}`,
+    `vault:v2:${safeId}`,
+    env
+  );
+  if (durable && typeof durable === 'object') {
+    const normalized: EdgeUserVault = {
+      userId: safeId,
+      updatedAt: Number(durable.updatedAt) || 0,
+      collections: durable.collections && typeof durable.collections === 'object' ? durable.collections : {},
+      settings: durable.settings && typeof durable.settings === 'object' ? durable.settings : { theme: 'dark', language: 'vi', notificationsEnabled: true },
+      milestones: Array.isArray(durable.milestones) ? durable.milestones : [],
+      classes: Array.isArray(durable.classes) ? durable.classes : [],
+      customModules: Array.isArray(durable.customModules) ? durable.customModules : [],
+      customModuleRecords: durable.customModuleRecords && typeof durable.customModuleRecords === 'object' ? durable.customModuleRecords : {},
+      pet: durable.pet || null,
+    };
+    edgeUserVaultsMemory.set(safeId, normalized);
+    return normalized;
+  }
+
+  const fresh = createEmptyEdgeVault(safeId);
+  edgeUserVaultsMemory.set(safeId, fresh);
+  return fresh;
+}
+
+async function saveEdgeUserVault(vault: EdgeUserVault, env?: Env): Promise<void> {
+  vault.updatedAt = Date.now();
+  edgeUserVaultsMemory.set(vault.userId, vault);
+  await writeEdgeDurableJson(
+    `v2/vault/${encodeURIComponent(vault.userId)}`,
+    `vault:v2:${vault.userId}`,
+    vault,
+    env
+  );
+}
+
+async function resolveEdgeRequestUser(request: Request, secret: string): Promise<{
+  userId: string;
+  name: string;
+  email: string;
+  avatar: string | null;
+  payload: any | null;
+}> {
+  const authHeader = request.headers.get('Authorization') || '';
+  const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+  const cookies = parseCookies(request.headers.get('Cookie'));
+  const token = bearer || cookies['token'] || '';
+  const payload = token ? await verifyEdgeJwt(token, secret) : null;
+  const fallbackClientId = request.headers.get('X-LifeOS-User-Id') || '';
+  return {
+    userId: String(payload?.userId || fallbackClientId || 'guest'),
+    name: String(payload?.name || 'Học viên LifeOS'),
+    email: String(payload?.email || ''),
+    avatar: (payload?.avatar as string | undefined) || null,
+    payload,
+  };
+}
 
 interface EdgeUserStudyStat {
   userId: string;
@@ -1526,15 +1685,33 @@ async function handleEdgeStandaloneApi(request: Request, env?: Env): Promise<Res
     );
   }
 
-  if (pathname === '/api/settings') {
+  if (
+    pathname === '/api/settings' ||
+    pathname === '/api/notifications/settings' ||
+    pathname === '/api/notifications/rules' ||
+    pathname === '/api/notifications/email-config'
+  ) {
+    const reqUser = await resolveEdgeRequestUser(request, secret);
+    const vault = await loadEdgeUserVault(reqUser.userId, env);
+    const settingsKey = pathname === '/api/settings' ? 'core' : pathname.replace('/api/notifications/', 'notif_');
     if (method === 'GET') {
+      const saved = (vault.settings && vault.settings[settingsKey]) || vault.settings || { theme: 'dark', language: 'vi', notificationsEnabled: true };
       return new Response(
-        JSON.stringify({ success: true, settings: { theme: 'dark', language: 'vi', notificationsEnabled: true } }),
+        JSON.stringify({ success: true, settings: saved, config: saved, rules: saved, data: saved }),
         { status: 200, headers: jsonHeaders }
       );
     }
     const body = await request.json().catch(() => ({}));
-    return new Response(JSON.stringify({ success: true, settings: body }), { status: 200, headers: jsonHeaders });
+    vault.settings = {
+      ...vault.settings,
+      ...(pathname === '/api/settings' && body && typeof body === 'object' ? body : {}),
+      [settingsKey]: body,
+    };
+    await saveEdgeUserVault(vault, env);
+    return new Response(
+      JSON.stringify({ success: true, settings: body, config: body, rules: body, data: body }),
+      { status: 200, headers: jsonHeaders }
+    );
   }
 
   if (pathname === '/api/payments/subscription' || pathname === '/api/plans') {
@@ -1560,14 +1737,107 @@ async function handleEdgeStandaloneApi(request: Request, env?: Env): Promise<Res
     );
   }
 
-  if (pathname === '/api/data-batch' && method === 'POST') {
+  // Clear Workspace (Explicit Reset Only)
+  if (pathname === '/api/clear-workspace' && method === 'POST') {
+    const reqUser = await resolveEdgeRequestUser(request, secret);
+    const vault = await loadEdgeUserVault(reqUser.userId, env);
+    vault.collections = {};
+    vault.milestones = [];
+    await saveEdgeUserVault(vault, env);
+    return new Response(JSON.stringify({ success: true, message: 'Đã làm sạch dữ liệu không gian làm việc.' }), {
+      status: 200,
+      headers: jsonHeaders,
+    });
+  }
+
+  // Bulk Data Sync Endpoint (Allows client durable vault & pagehide beacon to hydrate/sync Edge server)
+  if (pathname === '/api/data-sync' && method === 'POST') {
+    const reqUser = await resolveEdgeRequestUser(request, secret);
     const body: any = await request.json().catch(() => ({}));
+    const targetUserId = reqUser.userId !== 'guest' ? reqUser.userId : String(body?.userId || 'guest');
+    const vault = await loadEdgeUserVault(targetUserId, env);
+    const incoming = body?.collections;
+    if (incoming && typeof incoming === 'object') {
+      for (const [col, list] of Object.entries(incoming)) {
+        if (Array.isArray(list)) {
+          vault.collections[col] = list;
+        }
+      }
+      await saveEdgeUserVault(vault, env);
+    }
+    return new Response(
+      JSON.stringify({ success: true, updatedAt: vault.updatedAt, mode: 'cloudflare-edge' }),
+      { status: 200, headers: jsonHeaders }
+    );
+  }
+
+  // Batch Read + Smart Client-Seeded Rehydration (NEVER returns fake empty wipe when user has real data!)
+  if (pathname === '/api/data-batch' && method === 'POST') {
+    const reqUser = await resolveEdgeRequestUser(request, secret);
+    const body: any = await request.json().catch(() => ({}));
+    const targetUserId = reqUser.userId !== 'guest' ? reqUser.userId : String(body?.userId || 'guest');
+    const vault = await loadEdgeUserVault(targetUserId, env);
+    const isColdBeforeSeed = vault.updatedAt === 0;
+
+    // If Edge isolate/POP was cold (updatedAt === 0) and client sent its durable local snapshot, seed Edge immediately!
+    if (isColdBeforeSeed && body?.clientSnapshot && typeof body.clientSnapshot === 'object') {
+      for (const [col, list] of Object.entries(body.clientSnapshot)) {
+        if (Array.isArray(list) && list.length > 0) {
+          vault.collections[col] = list;
+        }
+      }
+      if (Object.keys(vault.collections).length > 0) {
+        await saveEdgeUserVault(vault, env);
+      }
+    }
+
     const collections: string[] = Array.isArray(body?.collections) ? body.collections : [];
     const data: Record<string, any[]> = {};
     for (const c of collections) {
-      data[c] = [];
+      data[c] = Array.isArray(vault.collections[c]) ? vault.collections[c] : [];
     }
-    return new Response(JSON.stringify({ success: true, data, mode: 'cloudflare-edge' }), {
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data,
+        settings: vault.settings?.core || vault.settings,
+        updatedAt: vault.updatedAt,
+        isColdEdgeVault: vault.updatedAt === 0,
+        mode: 'cloudflare-edge',
+      }),
+      {
+        status: 200,
+        headers: jsonHeaders,
+      }
+    );
+  }
+
+  // Workspace Backup Export / Import
+  if (pathname === '/api/workspace/backup/export' && method === 'GET') {
+    const reqUser = await resolveEdgeRequestUser(request, secret);
+    const vault = await loadEdgeUserVault(reqUser.userId, env);
+    return new Response(
+      JSON.stringify({
+        success: true,
+        exportedAt: new Date().toISOString(),
+        vault,
+      }),
+      { status: 200, headers: jsonHeaders }
+    );
+  }
+  if (pathname === '/api/workspace/backup/import' && method === 'POST') {
+    const reqUser = await resolveEdgeRequestUser(request, secret);
+    const body: any = await request.json().catch(() => ({}));
+    const vault = await loadEdgeUserVault(reqUser.userId, env);
+    const src = body?.vault || body?.data || body;
+    if (src?.collections && typeof src.collections === 'object') {
+      vault.collections = { ...vault.collections, ...src.collections };
+    }
+    if (Array.isArray(src?.milestones)) {
+      vault.milestones = src.milestones;
+    }
+    await saveEdgeUserVault(vault, env);
+    return new Response(JSON.stringify({ success: true, updatedAt: vault.updatedAt }), {
       status: 200,
       headers: jsonHeaders,
     });
@@ -1575,16 +1845,23 @@ async function handleEdgeStandaloneApi(request: Request, env?: Env): Promise<Res
 
   // Connect / Social Hub Endpoints on Cloudflare Edge (100% Real Data — Zero Fake Stats)
   if (pathname.startsWith('/api/connect/')) {
-    const authHeader = request.headers.get('Authorization') || '';
-    const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
-    const cookies = parseCookies(request.headers.get('Cookie'));
-    const token = bearer || cookies['token'] || '';
-    const userPayload = token ? await verifyEdgeJwt(token, secret) : null;
-    const currentUserId = String(userPayload?.userId || 'guest');
-    const currentUserName = String(userPayload?.name || 'Học viên LifeOS');
-    const currentUserAvatar = (userPayload?.avatar as string | undefined) || null;
+    const reqConnectUser = await resolveEdgeRequestUser(request, secret);
+    const currentUserId = reqConnectUser.userId;
+    const currentUserName = reqConnectUser.name;
+    const currentUserAvatar = reqConnectUser.avatar;
+    const userPayload = reqConnectUser.payload;
+    const connectVault = await loadEdgeUserVault(currentUserId, env);
 
-    if (pathname === '/api/connect/profile/me' && method === 'GET') {
+    if (pathname === '/api/connect/profile/me' && (method === 'GET' || method === 'PUT')) {
+      if (method === 'PUT') {
+        const body: any = await request.json().catch(() => ({}));
+        connectVault.settings.connectProfile = {
+          ...(connectVault.settings.connectProfile || {}),
+          ...body,
+        };
+        await saveEdgeUserVault(connectVault, env);
+      }
+      const savedProf = connectVault.settings.connectProfile || {};
       const myStat = edgeUserStudyStats.get(currentUserId);
       const myPostsCount = edgeConnectPosts.filter(p => p.authorId === currentUserId).length;
       return new Response(
@@ -1592,15 +1869,15 @@ async function handleEdgeStandaloneApi(request: Request, env?: Env): Promise<Res
           success: true,
           profile: {
             id: currentUserId,
-            name: currentUserName,
-            username: String(userPayload?.email || currentUserId).split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_'),
-            avatar: currentUserAvatar,
-            coverImage: null,
-            bio: '',
-            location: 'Việt Nam',
-            interests: [],
-            learningLanguages: [],
-            learningGoals: [],
+            name: savedProf.name || currentUserName,
+            username: savedProf.username || String(userPayload?.email || currentUserId).split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_'),
+            avatar: savedProf.avatar !== undefined ? savedProf.avatar : currentUserAvatar,
+            coverImage: savedProf.coverImage || null,
+            bio: savedProf.bio ?? '',
+            location: savedProf.location ?? 'Việt Nam',
+            interests: Array.isArray(savedProf.interests) ? savedProf.interests : [],
+            learningLanguages: Array.isArray(savedProf.learningLanguages) ? savedProf.learningLanguages : [],
+            learningGoals: Array.isArray(savedProf.learningGoals) ? savedProf.learningGoals : [],
             totalStudyMinutes: myStat?.totalMinutes ?? 0,
             weeklyStudyMinutes: myStat?.weeklyMinutes ?? 0,
             championCount: 0,
@@ -2353,7 +2630,7 @@ async function handleEdgeStandaloneApi(request: Request, env?: Env): Promise<Res
     return new Response(JSON.stringify({ success: true }), { status: 200, headers: jsonHeaders });
   }
 
-  // Online Classroom & Google Meet on Cloudflare Edge
+  // Online Classroom & Google Meet on Cloudflare Edge (Persisted in User Vault!)
   if (pathname.startsWith('/api/classroom/')) {
     if (pathname === '/api/classroom/google/status') {
       return new Response(
@@ -2370,67 +2647,131 @@ async function handleEdgeStandaloneApi(request: Request, env?: Env): Promise<Res
         { status: 200, headers: jsonHeaders }
       );
     }
-    if (pathname === '/api/classroom/classes') {
-      return new Response(JSON.stringify({ success: true, classes: [] }), { status: 200, headers: jsonHeaders });
+    const reqUser = await resolveEdgeRequestUser(request, secret);
+    const vault = await loadEdgeUserVault(reqUser.userId, env);
+
+    if (pathname === '/api/classroom/classes' && method === 'GET') {
+      return new Response(JSON.stringify({ success: true, classes: vault.classes }), { status: 200, headers: jsonHeaders });
     }
-    if (method === 'POST') {
+    if (pathname === '/api/classroom/classes' && method === 'POST') {
       const body: any = await request.json().catch(() => ({}));
+      const newClass = {
+        id: `class_${crypto.randomUUID().slice(0, 8)}`,
+        title: body?.title || 'Lớp học mới',
+        startAt: body?.startAt || new Date().toISOString(),
+        durationMinutes: body?.durationMinutes || 60,
+        status: 'SCHEDULED',
+        meetMode: body?.meetMode || 'MANUAL_LINK',
+        meetUrl: body?.meetUrl || null,
+        isHost: true,
+        participants: [],
+        ...body,
+      };
+      vault.classes.unshift(newClass);
+      await saveEdgeUserVault(vault, env);
       return new Response(
         JSON.stringify({
           success: true,
           message: 'Lớp học đã được tạo thành công!',
-          class: {
-            id: `class_${crypto.randomUUID().slice(0, 8)}`,
-            title: body?.title || 'Lớp học mới',
-            startAt: body?.startAt || new Date().toISOString(),
-            durationMinutes: body?.durationMinutes || 60,
-            status: 'SCHEDULED',
-            meetMode: body?.meetMode || 'MANUAL_LINK',
-            meetUrl: body?.meetUrl || null,
-            isHost: true,
-            participants: [],
-            ...body,
-          },
+          class: newClass,
         }),
         { status: 201, headers: jsonHeaders }
       );
     }
-    return new Response(JSON.stringify({ success: true, classes: [] }), { status: 200, headers: jsonHeaders });
+    const classIdMatch = pathname.match(/^\/api\/classroom\/classes\/([^/]+)$/);
+    if (classIdMatch) {
+      const classId = decodeURIComponent(classIdMatch[1]);
+      if (method === 'DELETE') {
+        vault.classes = vault.classes.filter((c: any) => c.id !== classId);
+        await saveEdgeUserVault(vault, env);
+        return new Response(JSON.stringify({ success: true, deletedId: classId }), { status: 200, headers: jsonHeaders });
+      }
+      if (method === 'PATCH' || method === 'PUT') {
+        const body: any = await request.json().catch(() => ({}));
+        vault.classes = vault.classes.map((c: any) => (c.id === classId ? { ...c, ...body } : c));
+        await saveEdgeUserVault(vault, env);
+        const updated = vault.classes.find((c: any) => c.id === classId) || null;
+        return new Response(JSON.stringify({ success: true, class: updated }), { status: 200, headers: jsonHeaders });
+      }
+    }
+    return new Response(JSON.stringify({ success: true, classes: vault.classes }), { status: 200, headers: jsonHeaders });
   }
 
-  // Progression, Journey & RPG Hub on Cloudflare Edge (100% Real Zero-Fake State — Prevents n.equipped.frame crash!)
+  // Progression, Journey Milestones & RPG Hub on Cloudflare Edge (100% Real Vault + Study Stats!)
   if (pathname.startsWith('/api/progression') || pathname.startsWith('/api/journey') || pathname.startsWith('/api/rpg/')) {
-    const authHeader = request.headers.get('Authorization') || '';
-    const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
-    const cookies = parseCookies(request.headers.get('Cookie'));
-    const token = bearer || cookies['token'] || '';
-    const userPayload = token ? await verifyEdgeJwt(token, secret) : null;
-    const uid = String(userPayload?.userId || 'guest');
+    const reqUser = await resolveEdgeRequestUser(request, secret);
+    const uid = reqUser.userId;
+    const vault = await loadEdgeUserVault(uid, env);
     const myStat = edgeUserStudyStats.get(uid);
-    const realFocusMinutes = myStat?.totalMinutes ?? 0;
-    const realWeeklyMinutes = myStat?.weeklyMinutes ?? 0;
-    const realStreak = myStat?.streakDays ?? 0;
-    const totalXp = realFocusMinutes * 2;
+
+    // Aggregate real actions from user's persisted vault collections!
+    const vaultTasks = Array.isArray(vault.collections.tasks) ? vault.collections.tasks : [];
+    const completedTasksCount = vaultTasks.filter((t: any) => {
+      const st = String(t?.status || '').toLowerCase();
+      return st === 'hoàn thành' || st === 'done' || st === 'completed' || st === 'đã xong';
+    }).length;
+    const vaultHabits = Array.isArray(vault.collections.habits) ? vault.collections.habits : [];
+    const totalHabitChecks = vaultHabits.reduce(
+      (sum: number, h: any) => sum + (Array.isArray(h?.completedDates) ? h.completedDates.length : 0),
+      0
+    );
+    const maxHabitStreak = vaultHabits.reduce((m: number, h: any) => Math.max(m, Number(h?.streak) || 0), 0);
+    const vaultFocusSessions = Array.isArray(vault.collections.focusSessions) ? vault.collections.focusSessions : [];
+    const vaultFocusMins = vaultFocusSessions.reduce((sum: number, fs: any) => sum + (Number(fs?.duration) || 0), 0);
+
+    const realFocusMinutes = Math.max(myStat?.totalMinutes ?? 0, vaultFocusMins);
+    const realWeeklyMinutes = Math.max(myStat?.weeklyMinutes ?? 0, vaultFocusMins);
+    const realStreak = Math.max(myStat?.streakDays ?? 0, maxHabitStreak);
+    const totalXp = realFocusMinutes * 2 + completedTasksCount * 15 + totalHabitChecks * 10;
     const level = totalXp <= 0 ? 1 : Math.max(1, Math.floor(Math.pow(totalXp / 100, 1 / 1.5)) + 1);
     const currentLevelStart = level <= 1 ? 0 : Math.floor(100 * Math.pow(level - 1, 1.5));
     const nextLevelStart = Math.floor(100 * Math.pow(level, 1.5));
     const levelSpan = Math.max(1, nextLevelStart - currentLevelStart);
     const levelProgressPercent = Math.min(100, Math.max(0, Math.round(((totalXp - currentLevelStart) / levelSpan) * 100)));
 
+    // Journey Milestones CRUD (Persisted in vault.milestones!)
     if (pathname === '/api/journey' && method === 'GET') {
-      return new Response(JSON.stringify({ success: true, milestones: [] }), { status: 200, headers: jsonHeaders });
+      return new Response(JSON.stringify({ success: true, milestones: vault.milestones }), { status: 200, headers: jsonHeaders });
     }
+    if (pathname === '/api/journey/milestone' && method === 'POST') {
+      const body: any = await request.json().catch(() => ({}));
+      const milestone = {
+        id: `ms_${Date.now()}_${crypto.randomUUID().slice(0, 6)}`,
+        userId: uid,
+        title: String(body?.title || 'Cột mốc mới').trim(),
+        description: String(body?.description || '').trim(),
+        category: String(body?.category || 'personal'),
+        date: body?.date || new Date().toISOString().slice(0, 10),
+        icon: String(body?.icon || '🏆'),
+        metricValue: String(body?.metricValue || ''),
+        metricLabel: String(body?.metricLabel || ''),
+        isHighlighted: Boolean(body?.isHighlighted ?? true),
+        isManual: true,
+        createdAt: new Date().toISOString(),
+      };
+      vault.milestones.unshift(milestone);
+      await saveEdgeUserVault(vault, env);
+      return new Response(JSON.stringify({ success: true, milestone }), { status: 201, headers: jsonHeaders });
+    }
+    const delMilestoneMatch = pathname.match(/^\/api\/journey\/milestone\/([^/]+)$/);
+    if (delMilestoneMatch && method === 'DELETE') {
+      const msId = decodeURIComponent(delMilestoneMatch[1]);
+      vault.milestones = vault.milestones.filter((m: any) => m.id !== msId);
+      await saveEdgeUserVault(vault, env);
+      return new Response(JSON.stringify({ success: true, deletedId: msId }), { status: 200, headers: jsonHeaders });
+    }
+
     if (pathname === '/api/rpg/character' && method === 'GET') {
-      const hpMax = 100 + Math.floor(realFocusMinutes / 5) + realStreak * 5;
-      const pow = 10 + Math.floor(realFocusMinutes / 10);
-      const def = 8 + realStreak * 2;
+      const hpMax = 100 + Math.floor(realFocusMinutes / 5) + realStreak * 5 + totalHabitChecks * 2;
+      const pow = 10 + Math.floor(realFocusMinutes / 10) + completedTasksCount * 2;
+      const def = 8 + realStreak * 2 + totalHabitChecks;
       return new Response(
         JSON.stringify({
           success: true,
           data: {
             level,
             totalXp,
-            coins: 0,
+            coins: completedTasksCount * 5 + totalHabitChecks * 3,
             currentStreak: realStreak,
             hp: { current: hpMax, max: hpMax },
             stats: {
@@ -2438,23 +2779,23 @@ async function handleEdgeStandaloneApi(request: Request, env?: Env): Promise<Res
               defense: def,
               focus: realFocusMinutes,
               knowledge: 0,
-              discipline: realStreak,
+              discipline: totalHabitChecks,
             },
             combatPower: pow * 5 + def * 5 + hpMax,
             availableSkillPoints: Math.max(0, level - 1),
             equippedGear: { weapon: null, armor: null, accessory: null },
             statBreakdown: {
-              tasksContribution: { completedTasksCount: 0, power: 0 },
+              tasksContribution: { completedTasksCount, power: completedTasksCount * 2 },
               focusContribution: {
                 totalFocusMinutes: realFocusMinutes,
                 hp: Math.floor(realFocusMinutes / 5),
                 power: Math.floor(realFocusMinutes / 10),
               },
               habitsContribution: {
-                totalHabitChecks: 0,
+                totalHabitChecks,
                 currentStreak: realStreak,
-                defense: realStreak * 2,
-                hp: realStreak * 5,
+                defense: realStreak * 2 + totalHabitChecks,
+                hp: realStreak * 5 + totalHabitChecks * 2,
               },
               learningContribution: { vocabWordCount: 0, power: 0 },
               gearContribution: { power: 0, defense: 0, hp: 0 },
@@ -2529,7 +2870,7 @@ async function handleEdgeStandaloneApi(request: Request, env?: Env): Promise<Res
             xpForNextLevel: nextLevelStart,
             xpNeededForNextLevel: Math.max(0, nextLevelStart - totalXp),
             levelProgressPercent,
-            coins: 0,
+            coins: completedTasksCount * 5 + totalHabitChecks * 3,
             currentStreak: realStreak,
             longestStreak: realStreak,
             lastActiveDate: myStat?.lastStudiedDate || null,
@@ -2540,12 +2881,26 @@ async function handleEdgeStandaloneApi(request: Request, env?: Env): Promise<Res
               accent: 'emerald',
             },
             categories: {
-              learning: { xp: totalXp, level, title: 'Tân Binh Tri Thức', percent: levelProgressPercent },
-              habit: { xp: 0, level: 1, title: 'Mầm Kỷ Luật', percent: 0 },
-              focus: { xp: totalXp, level, title: 'Người Tập Trung', percent: levelProgressPercent },
+              learning: { xp: realFocusMinutes * 2, level, title: 'Tân Binh Tri Thức', percent: levelProgressPercent },
+              habit: { xp: totalHabitChecks * 10, level: Math.max(1, Math.floor(totalHabitChecks / 10) + 1), title: 'Mầm Kỷ Luật', percent: (totalHabitChecks * 10) % 100 },
+              focus: { xp: realFocusMinutes * 2, level, title: 'Người Tập Trung', percent: levelProgressPercent },
               finance: { xp: 0, level: 1, title: 'Quản Lý Cơ Bản', percent: 0 },
             },
             dailyQuests: [
+              {
+                id: 'dq_task_1',
+                key: 'task_complete_1',
+                title: 'Hoàn thành 1 nhiệm vụ hôm nay',
+                description: 'Đánh dấu hoàn thành ít nhất 1 nhiệm vụ trong danh sách công việc',
+                category: 'task',
+                current: Math.min(1, completedTasksCount),
+                target: 1,
+                unit: 'nhiệm vụ',
+                rewardXp: 30,
+                rewardCoins: 10,
+                isCompleted: completedTasksCount >= 1,
+                isClaimed: false,
+              },
               {
                 id: 'dq_focus_1',
                 key: 'focus_25m',
@@ -2571,7 +2926,7 @@ async function handleEdgeStandaloneApi(request: Request, env?: Env): Promise<Res
                 theme: 'emerald',
                 isUnlocked: true,
                 isCompleted: false,
-                progressPercent: Math.min(100, Math.round((realFocusMinutes / 60) * 100)),
+                progressPercent: Math.min(100, Math.round(((realFocusMinutes + completedTasksCount * 10) / 60) * 100)),
                 nodes: [
                   {
                     id: 'node_1_1',
@@ -2593,15 +2948,15 @@ async function handleEdgeStandaloneApi(request: Request, env?: Env): Promise<Res
             ],
             achievements: [],
             weeklyStats: {
-              tasksCompleted: 0,
+              tasksCompleted: completedTasksCount,
               focusMinutes: realWeeklyMinutes,
               learningMinutes: realWeeklyMinutes,
-              habitsCompleted: 0,
+              habitsCompleted: totalHabitChecks,
               savingsAmount: 0,
               streakDays: realStreak,
             },
             allTimeStats: {
-              totalTasksCompleted: 0,
+              totalTasksCompleted: completedTasksCount,
               totalFocusMinutes: realFocusMinutes,
               totalLearningCount: myStat?.sessionsCount ?? 0,
               totalHabitsStreak: realStreak,
@@ -2617,10 +2972,294 @@ async function handleEdgeStandaloneApi(request: Request, env?: Env): Promise<Res
     }
   }
 
-  if (method === 'GET') {
-    if (pathname.startsWith('/api/data/')) {
-      return new Response(JSON.stringify([]), { status: 200, headers: jsonHeaders });
+  // Custom Dynamic Modules CRUD (Persisted in vault.customModules & vault.customModuleRecords)
+  if (pathname.startsWith('/api/custom-modules')) {
+    const reqUser = await resolveEdgeRequestUser(request, secret);
+    const vault = await loadEdgeUserVault(reqUser.userId, env);
+
+    if (pathname === '/api/custom-modules' && method === 'GET') {
+      return new Response(JSON.stringify({ success: true, modules: vault.customModules }), { status: 200, headers: jsonHeaders });
     }
+    if (pathname === '/api/custom-modules' && method === 'POST') {
+      const body: any = await request.json().catch(() => ({}));
+      const slug = String(body?.slug || body?.name || `mod_${Date.now()}`).toLowerCase().replace(/[^a-z0-9_-]/g, '-');
+      const mod = { id: `cmod_${Date.now()}`, slug, ...body, createdAt: new Date().toISOString() };
+      vault.customModules.push(mod);
+      await saveEdgeUserVault(vault, env);
+      return new Response(JSON.stringify({ success: true, module: mod }), { status: 201, headers: jsonHeaders });
+    }
+    const recListMatch = pathname.match(/^\/api\/custom-modules\/([^/]+)\/records$/);
+    if (recListMatch) {
+      const slug = decodeURIComponent(recListMatch[1]);
+      if (method === 'GET') {
+        return new Response(
+          JSON.stringify({ success: true, records: vault.customModuleRecords[slug] || [] }),
+          { status: 200, headers: jsonHeaders }
+        );
+      }
+      if (method === 'POST') {
+        const body: any = await request.json().catch(() => ({}));
+        const rec = { id: `crec_${Date.now()}_${crypto.randomUUID().slice(0, 5)}`, ...body, createdAt: new Date().toISOString() };
+        if (!Array.isArray(vault.customModuleRecords[slug])) vault.customModuleRecords[slug] = [];
+        vault.customModuleRecords[slug].unshift(rec);
+        await saveEdgeUserVault(vault, env);
+        return new Response(JSON.stringify({ success: true, record: rec }), { status: 201, headers: jsonHeaders });
+      }
+    }
+    const recItemMatch = pathname.match(/^\/api\/custom-modules\/([^/]+)\/records\/([^/]+)$/);
+    if (recItemMatch) {
+      const slug = decodeURIComponent(recItemMatch[1]);
+      const recId = decodeURIComponent(recItemMatch[2]);
+      const list = Array.isArray(vault.customModuleRecords[slug]) ? vault.customModuleRecords[slug] : [];
+      if (method === 'DELETE') {
+        vault.customModuleRecords[slug] = list.filter((r: any) => r.id !== recId);
+        await saveEdgeUserVault(vault, env);
+        return new Response(JSON.stringify({ success: true, deletedId: recId }), { status: 200, headers: jsonHeaders });
+      }
+      if (method === 'PUT' || method === 'PATCH') {
+        const body: any = await request.json().catch(() => ({}));
+        vault.customModuleRecords[slug] = list.map((r: any) => (r.id === recId ? { ...r, ...body } : r));
+        await saveEdgeUserVault(vault, env);
+        return new Response(JSON.stringify({ success: true }), { status: 200, headers: jsonHeaders });
+      }
+    }
+  }
+
+  // Pet / Companion Persistence on Edge
+  if (pathname.startsWith('/api/pet')) {
+    const reqUser = await resolveEdgeRequestUser(request, secret);
+    const vault = await loadEdgeUserVault(reqUser.userId, env);
+    if (!vault.pet) {
+      vault.pet = { name: 'Mochi', species: 'cat', level: 1, xp: 0, hunger: 85, happiness: 90, accessory: 'none' };
+    }
+    if (method === 'GET') {
+      return new Response(JSON.stringify({ success: true, pet: vault.pet, data: vault.pet }), { status: 200, headers: jsonHeaders });
+    }
+    const body: any = await request.json().catch(() => ({}));
+    if (pathname === '/api/pet/rename' && body?.name) vault.pet.name = String(body.name).trim();
+    if (pathname === '/api/pet/feed') vault.pet.hunger = Math.min(100, (vault.pet.hunger || 80) + 15);
+    if (pathname === '/api/pet/pet') vault.pet.happiness = Math.min(100, (vault.pet.happiness || 80) + 10);
+    if (pathname === '/api/pet/customize') vault.pet = { ...vault.pet, ...body };
+    await saveEdgeUserVault(vault, env);
+    return new Response(JSON.stringify({ success: true, pet: vault.pet, data: vault.pet }), { status: 200, headers: jsonHeaders });
+  }
+
+  // Habit Toggle Endpoint (POST /api/habits/:id/toggle) — Persisted in vault.collections.habits!
+  const habitToggleMatch = pathname.match(/^\/api\/habits\/([^/]+)\/toggle$/);
+  if (habitToggleMatch && method === 'POST') {
+    const habitId = decodeURIComponent(habitToggleMatch[1]);
+    const reqUser = await resolveEdgeRequestUser(request, secret);
+    const vault = await loadEdgeUserVault(reqUser.userId, env);
+    const todayStr = getVietnamDateKey();
+    const habits = Array.isArray(vault.collections.habits) ? vault.collections.habits : [];
+    const records = Array.isArray(vault.collections.habitRecords) ? vault.collections.habitRecords : [];
+
+    let updatedHabit: any = null;
+    vault.collections.habits = habits.map((h: any) => {
+      if (h.id !== habitId) return h;
+      const completedDates: string[] = Array.isArray(h.completedDates) ? h.completedDates : [];
+      const isCompleted = completedDates.includes(todayStr);
+      const nextDates = isCompleted ? completedDates.filter(d => d !== todayStr) : [...completedDates, todayStr];
+      const nextStreak = isCompleted ? Math.max(0, (Number(h.streak) || 0) - 1) : (Number(h.streak) || 0) + 1;
+      updatedHabit = { ...h, completedDates: nextDates, streak: nextStreak, updatedAt: new Date().toISOString() };
+      return updatedHabit;
+    });
+
+    const filteredRecords = records.filter((r: any) => !(r.habitId === habitId && r.date === todayStr));
+    if (updatedHabit && Array.isArray(updatedHabit.completedDates) && updatedHabit.completedDates.includes(todayStr)) {
+      filteredRecords.push({
+        id: `hr_${Date.now()}_${habitId}`,
+        habitId,
+        date: todayStr,
+        status: 'Completed',
+        actualValue: updatedHabit.target || 1,
+      });
+    }
+    vault.collections.habitRecords = filteredRecords;
+    await saveEdgeUserVault(vault, env);
+    return new Response(
+      JSON.stringify({ success: true, habit: updatedHabit }),
+      { status: 200, headers: jsonHeaders }
+    );
+  }
+
+  // Notification Read / Delete Mutations — Persisted in vault.collections.notifications!
+  if (pathname === '/api/notifications/read-all' && method === 'PUT') {
+    const reqUser = await resolveEdgeRequestUser(request, secret);
+    const vault = await loadEdgeUserVault(reqUser.userId, env);
+    const nowIso = new Date().toISOString();
+    vault.collections.notifications = (vault.collections.notifications || []).map((n: any) => ({
+      ...n,
+      read: true,
+      readAt: nowIso,
+    }));
+    await saveEdgeUserVault(vault, env);
+    return new Response(JSON.stringify({ success: true }), { status: 200, headers: jsonHeaders });
+  }
+  if (pathname === '/api/notifications/all' && method === 'DELETE') {
+    const reqUser = await resolveEdgeRequestUser(request, secret);
+    const vault = await loadEdgeUserVault(reqUser.userId, env);
+    vault.collections.notifications = [];
+    await saveEdgeUserVault(vault, env);
+    return new Response(JSON.stringify({ success: true }), { status: 200, headers: jsonHeaders });
+  }
+  const notifReadMatch = pathname.match(/^\/api\/notifications\/([^/]+)\/read$/);
+  if (notifReadMatch && method === 'PUT') {
+    const notifId = decodeURIComponent(notifReadMatch[1]);
+    const reqUser = await resolveEdgeRequestUser(request, secret);
+    const vault = await loadEdgeUserVault(reqUser.userId, env);
+    const nowIso = new Date().toISOString();
+    vault.collections.notifications = (vault.collections.notifications || []).map((n: any) =>
+      n.id === notifId ? { ...n, read: true, readAt: nowIso } : n
+    );
+    await saveEdgeUserVault(vault, env);
+    return new Response(JSON.stringify({ success: true }), { status: 200, headers: jsonHeaders });
+  }
+  const notifDelMatch = pathname.match(/^\/api\/notifications\/([^/]+)$/);
+  if (notifDelMatch && method === 'DELETE') {
+    const notifId = decodeURIComponent(notifDelMatch[1]);
+    const reqUser = await resolveEdgeRequestUser(request, secret);
+    const vault = await loadEdgeUserVault(reqUser.userId, env);
+    vault.collections.notifications = (vault.collections.notifications || []).filter((n: any) => n.id !== notifId);
+    await saveEdgeUserVault(vault, env);
+    return new Response(JSON.stringify({ success: true }), { status: 200, headers: jsonHeaders });
+  }
+
+  // =========================================================================
+  // FULL PERSISTENT CRUD FOR ALL 28 WORKSPACE COLLECTIONS (/api/data/*)
+  // Also handles offline queue aliases: POST /api/tasks, /api/habits, /api/transactions
+  // =========================================================================
+  const aliasCollectionMap: Record<string, string> = {
+    '/api/tasks': 'tasks',
+    '/api/habits': 'habits',
+    '/api/transactions': 'transactions',
+  };
+  const dataColMatch = pathname.match(/^\/api\/data\/([^/]+)$/);
+  const dataItemMatch = pathname.match(/^\/api\/data\/([^/]+)\/([^/]+)$/);
+  const targetCollection = dataColMatch
+    ? decodeURIComponent(dataColMatch[1])
+    : dataItemMatch
+      ? decodeURIComponent(dataItemMatch[1])
+      : aliasCollectionMap[pathname] || null;
+
+  if (targetCollection) {
+    const reqUser = await resolveEdgeRequestUser(request, secret);
+    const vault = await loadEdgeUserVault(reqUser.userId, env);
+    if (!Array.isArray(vault.collections[targetCollection])) {
+      vault.collections[targetCollection] = [];
+    }
+    const list = vault.collections[targetCollection];
+
+    // 1. GET /api/data/:collection
+    if (method === 'GET' && !dataItemMatch) {
+      return new Response(JSON.stringify(list), { status: 200, headers: jsonHeaders });
+    }
+
+    // 2. POST /api/data/:collection (Create / Upsert Item)
+    if (method === 'POST' && !dataItemMatch) {
+      const body: any = await request.json().catch(() => ({}));
+      const nowIso = new Date().toISOString();
+      const rawId = body?.id && typeof body.id === 'string' && !body.id.startsWith('tmp_') ? body.id : null;
+      const itemId = rawId || `${targetCollection.slice(0, 4)}_${Date.now()}_${crypto.randomUUID().slice(0, 6)}`;
+      const newItem = {
+        ...body,
+        id: itemId,
+        userId: reqUser.userId,
+        createdAt: body?.createdAt || nowIso,
+        updatedAt: nowIso,
+      };
+
+      const existingIdx = list.findIndex((i: any) => i.id === itemId);
+      if (existingIdx >= 0) {
+        list[existingIdx] = { ...list[existingIdx], ...newItem };
+      } else {
+        list.push(newItem);
+      }
+
+      // Automatic Finance Account & Budget Balance Synchronization on Transaction Create
+      if (targetCollection === 'transactions') {
+        const amt = Math.abs(Number(newItem.amount) || 0);
+        const txType = String(newItem.type || '').toLowerCase();
+        const isIncome = txType === 'income' || txType === 'thu' || txType === 'deposit';
+        if (amt > 0 && newItem.accountId && Array.isArray(vault.collections.financeAccounts)) {
+          vault.collections.financeAccounts = vault.collections.financeAccounts.map((acc: any) =>
+            acc.id === newItem.accountId
+              ? { ...acc, balance: (Number(acc.balance) || 0) + (isIncome ? amt : -amt), updatedAt: nowIso }
+              : acc
+          );
+        }
+        if (!isIncome && amt > 0 && newItem.category && Array.isArray(vault.collections.budgets)) {
+          vault.collections.budgets = vault.collections.budgets.map((b: any) =>
+            b.category === newItem.category
+              ? { ...b, spent: (Number(b.spent) || 0) + amt, updatedAt: nowIso }
+              : b
+          );
+        }
+      }
+
+      await saveEdgeUserVault(vault, env);
+      return new Response(JSON.stringify(newItem), { status: 201, headers: jsonHeaders });
+    }
+
+    // 3. PUT / PATCH /api/data/:collection/:id (Update Item)
+    if ((method === 'PUT' || method === 'PATCH') && dataItemMatch) {
+      const itemId = decodeURIComponent(dataItemMatch[2]);
+      const updates: any = await request.json().catch(() => ({}));
+      const nowIso = new Date().toISOString();
+
+      // Security: Strip direct balance tampering on generic PUT financeAccounts (consistent with OWASP suite)
+      if (targetCollection === 'financeAccounts' && updates && typeof updates === 'object' && 'balance' in updates) {
+        delete updates.balance;
+      }
+
+      const idx = list.findIndex((i: any) => i.id === itemId);
+      let updatedItem: any;
+      if (idx >= 0) {
+        updatedItem = { ...list[idx], ...updates, id: itemId, updatedAt: nowIso };
+        list[idx] = updatedItem;
+      } else {
+        updatedItem = { id: itemId, userId: reqUser.userId, ...updates, createdAt: nowIso, updatedAt: nowIso };
+        list.push(updatedItem);
+      }
+
+      await saveEdgeUserVault(vault, env);
+      return new Response(JSON.stringify(updatedItem), { status: 200, headers: jsonHeaders });
+    }
+
+    // 4. DELETE /api/data/:collection/:id
+    if (method === 'DELETE' && dataItemMatch) {
+      const itemId = decodeURIComponent(dataItemMatch[2]);
+      const removed = list.find((i: any) => i.id === itemId);
+      vault.collections[targetCollection] = list.filter((i: any) => i.id !== itemId);
+
+      // Clean relational cleanup without wiping tasks!
+      if (targetCollection === 'projects' && Array.isArray(vault.collections.tasks)) {
+        vault.collections.tasks = vault.collections.tasks.map((t: any) =>
+          t.projectId === itemId ? { ...t, projectId: null } : t
+        );
+      }
+      if (targetCollection === 'goals' && Array.isArray(vault.collections.tasks)) {
+        vault.collections.tasks = vault.collections.tasks.map((t: any) =>
+          t.linkedGoalId === itemId ? { ...t, linkedGoalId: null } : t
+        );
+      }
+      if (targetCollection === 'transactions' && removed && removed.accountId && Array.isArray(vault.collections.financeAccounts)) {
+        const amt = Math.abs(Number(removed.amount) || 0);
+        const txType = String(removed.type || '').toLowerCase();
+        const isIncome = txType === 'income' || txType === 'thu' || txType === 'deposit';
+        vault.collections.financeAccounts = vault.collections.financeAccounts.map((acc: any) =>
+          acc.id === removed.accountId
+            ? { ...acc, balance: (Number(acc.balance) || 0) + (isIncome ? -amt : amt) }
+            : acc
+        );
+      }
+
+      await saveEdgeUserVault(vault, env);
+      return new Response(JSON.stringify({ success: true, deletedId: itemId }), { status: 200, headers: jsonHeaders });
+    }
+  }
+
+  if (method === 'GET') {
     return new Response(
       JSON.stringify({ success: true, items: [], data: [], announcements: [], notifications: [], sessions: [] }),
       { status: 200, headers: jsonHeaders }
@@ -2669,7 +3308,7 @@ export default {
           headers: {
             'Access-Control-Allow-Origin': origin,
             'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, X-CSRF-Token, X-Request-ID, X-Trace-ID, X-AI-Model, X-AI-Retry-Attempt',
+            'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, X-CSRF-Token, X-Request-ID, X-Trace-ID, X-AI-Model, X-AI-Retry-Attempt, X-LifeOS-User-Id',
             'Access-Control-Allow-Credentials': 'true',
             'Access-Control-Max-Age': '86400',
           },
